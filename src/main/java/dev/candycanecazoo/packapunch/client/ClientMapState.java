@@ -16,7 +16,7 @@ import java.util.Map;
 public final class ClientMapState {
     private static ZombiesMap map = ZombiesMap.EMPTY;
     private static ZoneIndex index = ZoneIndex.of(ZombiesMap.EMPTY);
-    private static Map<BlockPos, SpawnLinks.Link> spawnLinks = Map.of();
+    private static Map<BlockPos, SpawnLinks.Link> spawnLinks;
     private static Selection selection = Selection.NONE;
     private static List<BlockBox> preview = List.of();
     private static List<Problem> problems = List.of();
@@ -26,7 +26,7 @@ public final class ClientMapState {
     public static void setMap(ZombiesMap next) {
         map = next;
         index = ZoneIndex.of(next);
-        spawnLinks = SpawnLinks.resolve(next, ServerConfig.GAME.get().windows().linkRange());
+        spawnLinks = null;
     }
 
     public static void setSelection(Selection next) {
@@ -52,8 +52,14 @@ public final class ClientMapState {
         return map;
     }
 
-    /** Uses the server config's link range, which Forge syncs to clients. */
+    /**
+     * Resolved on first use, with the server config's link range (Forge syncs it to clients). Not in {@link #setMap}:
+     * maps arrive and reset while a world is still loading, before the config is.
+     */
     public static Map<BlockPos, SpawnLinks.Link> spawnLinks() {
+        if (spawnLinks == null) {
+            spawnLinks = SpawnLinks.resolve(map, ServerConfig.GAME.get().windows().linkRange());
+        }
         return spawnLinks;
     }
 
