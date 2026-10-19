@@ -28,8 +28,8 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 
 - **`GameManager`** keeps one `Game` per map level. Nothing is static, so several maps (in several dimensions) can run at once.
 - **Tick.** `Game.tick()` switches on the phase and returns the next phase. Transitions:
-  - `Lobby → Countdown` on `/pap start` or when every joined player is ready.
-  - `Countdown → Intermission(1)` when the timer ends. `MapValidator` runs first and blocks the start on any ERROR.
+  - `Lobby → Countdown` on `/pap start`. The first `/pap join` in a level runs `MapValidator` and refuses to open a lobby on any ERROR.
+  - `Countdown → RoundActive(1)` when the timer ends. Every player is moved to a standable cell in a start zone (`StartCells`) in adventure mode.
   - `Intermission(r) → RoundActive(r)` after `rounds.intermission_ticks`.
   - `RoundActive(r) → Intermission(r+1)` when `toSpawn == 0 && alive == 0`.
   - any phase `→ GameOver` when no player is `Alive`.
@@ -39,7 +39,10 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
   - Health: CoD-style, `150 + 100*(r-1)` up to round 9, then `x1.1` per round, times `rounds.health_scale` (TacZ damage is in Minecraft HP).
   - Speed: walkers until `rounds.sprint_from_round`, mixed after.
   - Max alive at once: `rounds.max_alive` (default 24).
-- **Events.** Emits `game_start`, `round_start`, `round_end`, `game_end`.
+- **Events.** Emits `game_start`, `round_start`, `round_end`, `game_end`, `zombie_spawned`, `zombie_killed` on the game's `GameEvents` bus.
+- **Effects go through `GameWorld`.** `Game` is pure: spawning, teleporting, spectating, and status text go through the `GameWorld` interface. `ForgeGameWorld` implements it for a level, and the unit tests use a fake.
+- **Commands.** `/pap join`, `/pap leave`, and `/pap status` are open to everyone. `/pap start` is for players in the game (or ops). `/pap stop` is op-only.
+- **Until downs exist (phase 6)**, a player who would die is set to spectator instead, and comes back at the next round start. Until the HUD exists (phase 5), the round, points, and zombies left show on the action bar.
 - **Crash safety.** `MapSavedData.gameInProgress` is set at start and cleared at a clean end. If it's still set on server start, the map resets. Games are not resumed.
 
 ## Config surface

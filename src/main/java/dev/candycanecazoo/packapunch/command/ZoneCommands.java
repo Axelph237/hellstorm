@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.command;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -57,7 +58,7 @@ final class ZoneCommands {
 
     private ZoneCommands() {}
 
-    static ArgumentBuilder<CommandSourceStack, ?> zone() {
+    static LiteralArgumentBuilder<CommandSourceStack> zone() {
         return Commands.literal("zone")
                 .then(Commands.literal("add").then(zoneArg().executes(ZoneCommands::add)))
                 .then(Commands.literal("remove").then(zoneArg().executes(ZoneCommands::remove)))
@@ -70,7 +71,7 @@ final class ZoneCommands {
                 .then(Commands.literal("cancel").executes(ZoneCommands::cancel));
     }
 
-    static ArgumentBuilder<CommandSourceStack, ?> map() {
+    static LiteralArgumentBuilder<CommandSourceStack> map() {
         return Commands.literal("map").then(Commands.literal("validate").executes(ZoneCommands::validate));
     }
 

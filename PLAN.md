@@ -8,6 +8,10 @@ The project directory `pack-a-punch` is empty, so this is a greenfield build.
 
 **Target.** Minecraft 1.20.1, Forge 47.x, Java 17, TacZ `1.1.8-hotfix2`. That is the newest official TacZ (published 2026-10-02), and it only ships for Forge 1.20.1 (checked against the Modrinth version API). The NeoForge 1.21.1 build is an unofficial port and is out of scope.
 
+**NeoForge 1.20.1 compatibility.** NeoForge's 1.20.1 line is a fork of Forge 47.1 that loads Forge 1.20.1 mods. It stopped at `47.1.106` (maven last updated May 2024), while Forge 1.20.1 is still maintained. So the mod builds against Forge and keeps one jar loading on both:
+- **Forge 47.1 APIs only.** Don't use APIs added after Forge 47.1. Example: Forge 47.4 deprecates the static `ModLoadingContext.get()`, but its replacement (constructor injection) doesn't exist in NeoForge 1.20.1, so the mod keeps the static getters.
+- **Boot check.** The release jar is boot-tested on NeoForge `1.20.1-47.1.106` with TacZ and Create. First passed on 2026-10-19.
+
 **Prior art.** ZombieRool (https://github.com/Cryo60/ZombieRool) is a Forge 1.20.1 mod with optional TaCZ support. We read its source and decided to build our own mod instead of an add-on or a contribution. The reasons:
 - It can't be built from the repo, it has a single author, nobody has ever opened a pull request, and there is no LICENSE file.
 - It has no zone graph. Doors, spawners and traps are linked only by integer channels.
@@ -299,7 +303,7 @@ The design as researched:
 1. **Map model and zone tools.** (Done.)
    - Build the map model, codecs, `MapSavedData`, `ZoneIndex`, the Zone Wand with Create-style outlines, zone commands, room detection, spawn markers, and `MapValidator`.
    - *Check:* build two zones in the void builder world, see them outlined while holding the wand, and pass validation.
-2. **Core loop.**
+2. **Core loop.** (Done.)
    - Build the game state machine, `GameEvents`, `SpawnDirector` with vanilla zombies, proximity spawning, and the points economy.
    - *Check:* shoot zombies, earn points, and advance rounds on the two-zone map.
 3. **Scripting.**

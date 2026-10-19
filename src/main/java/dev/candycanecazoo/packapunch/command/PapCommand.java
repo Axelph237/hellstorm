@@ -26,15 +26,21 @@ public final class PapCommand {
         register(event.getDispatcher());
     }
 
+    /** Each subcommand carries its own permission check: the root is open so players can join games. */
     static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("pap")
-                .requires(source -> source.hasPermission(2))
-                .then(ZoneCommands.zone())
-                .then(ZoneCommands.map())
-                .then(Commands.literal("give")
+        var root = Commands.literal("pap")
+                .then(ZoneCommands.zone().requires(PapCommand::op))
+                .then(ZoneCommands.map().requires(PapCommand::op))
+                .then(Commands.literal("give").requires(PapCommand::op)
                         .then(Commands.argument("gun", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(TaczBridge.allGuns(), builder))
-                                .executes(PapCommand::give))));
+                                .executes(PapCommand::give)));
+        GameCommands.all().forEach(root::then);
+        dispatcher.register(root);
+    }
+
+    static boolean op(CommandSourceStack source) {
+        return source.hasPermission(2);
     }
 
     private static int give(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

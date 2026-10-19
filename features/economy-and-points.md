@@ -21,9 +21,10 @@ record Admin() implements PointSource {}
 
 - `Economy.award(PlayerState, PointSource, GameSettings, boolean doublePoints)` and `Economy.charge(PlayerState, int cost)` are pure. `charge` returns `false` without changing anything if the player can't afford it.
 - **Sources:**
-  - `GunHit` from `TaczBridge` awards `Hit`.
-  - `GunKill` awards `Kill(headshot)`.
-  - A melee kill (non-gun damage from the player) awards `Kill(melee = true)`.
+  - A non-lethal gun hit awards `Hit`. It comes from TacZ's `EntityHurtByGunEvent.Post`, which fires only when the target survives.
+  - A non-lethal melee hit (the player is the direct damage source) awards `Hit`.
+  - Every kill goes through Forge's `LivingDeathEvent`. The killer is the damage source's entity. It's melee when the player is also the direct source. The headshot flag comes from `CombatLog`, which keeps the last TacZ `EntityHurtByGunEvent.Pre` for each mob, so a kill is never counted twice.
+  - Deaths no player caused (traps, falls) pay nothing.
   - Window repair awards `Repair`, capped per round at `economy.repair_cap_per_round`.
 - **Double Points** doubles every award while active.
 - **`Purchasable`.** Every purchase in the map goes through one server path: check the player is within reach, check state and power, `charge`, then apply. If apply fails, refund. All purchases are server-authoritative.

@@ -21,6 +21,9 @@ public final class PackAPunch {
     public static final String MOD_ID = "packapunch";
     public static final Logger LOG = LogUtils.getLogger();
 
+    // The static context getters are deprecated in Forge 47.4, but their replacement (constructor injection) doesn't exist
+    // in NeoForge 1.20.1 (Forge 47.1 based). Keeping them lets one jar load on both loaders.
+    @SuppressWarnings("removal")
     public PackAPunch() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         PapRegistries.register(modBus);

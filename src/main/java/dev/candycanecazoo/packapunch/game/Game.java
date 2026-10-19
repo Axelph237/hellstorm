@@ -1,0 +1,296 @@
+package dev.candycanecazoo.packapunch.game;
+
+import dev.candycanecazoo.packapunch.PackAPunch;
+import dev.candycanecazoo.packapunch.config.GameSettings;
+import dev.candycanecazoo.packapunch.map.ZoneId;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * One running game: its phase, players, and zombies. All rules live here and are pure apart from {@link GameWorld}.
+ * Driven by the server thread through {@link #tick} and the {@code on...} callbacks.
+ */
+public final class Game {
+    private static final int STATUS_INTERVAL = 10;
+
+    private final GameSettings settings;
+    private final GameMap map;
+    private final RandomSource random;
+    private final GameEvents events;
+    private final Map<UUID, PlayerState> players = new LinkedHashMap<>();
+    private final Set<UUID> mobs = new LinkedHashSet<>();
+    private GamePhase phase = new GamePhase.Lobby();
+    private long ticks;
+    private boolean warnedNoSpawns;
+    private boolean finished;
+
+    public Game(GameSettings settings, GameMap map, RandomSource random, GameEvents events) {
+        this.settings = settings;
+        this.map = map;
+        this.random = random;
+        this.events = events;
+    }
+
+    public GamePhase phase() {
+        return phase;
+    }
+
+    public boolean finished() {
+        return finished;
+    }
+
+    public GameSettings settings() {
+        return settings;
+    }
+
+    public GameMap map() {
+        return map;
+    }
+
+    public GameEvents events() {
+        return events;
+    }
+
+    public Collection<PlayerState> players() {
+        return players.values();
+    }
+
+    public Optional<PlayerState> player(UUID id) {
+        return Optional.ofNullable(players.get(id));
+    }
+
+    public boolean hasMob(UUID mob) {
+        return mobs.contains(mob);
+    }
+
+    public Set<UUID> mobs() {
+        return Set.copyOf(mobs);
+    }
+
+    /** Joining before the first round starts plays immediately; joining later spectates until the next round. */
+    public boolean join(UUID player) {
+        if (players.containsKey(player) || phase instanceof GamePhase.GameOver) {
+            return false;
+        }
+        PlayerState state = new PlayerState(player, settings.economy().startingPoints());
+        if (phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) {
+            state.setLife(new LifeState.Spectating());
+        }
+        players.put(player, state);
+        return true;
+    }
+
+    public void leave(UUID player) {
+        players.remove(player);
+    }
+
+    /** Starts the countdown. Only from the lobby, with at least one player. */
+    public boolean start() {
+        if (!(phase instanceof GamePhase.Lobby) || players.isEmpty()) {
+            return false;
+        }
+        phase = new GamePhase.Countdown(settings.rounds().countdownTicks());
+        return true;
+    }
+
+    /** Ends the game now, as if everyone went down. */
+    public void stop(GameWorld world) {
+        if (!(phase instanceof GamePhase.GameOver)) {
+            enterGameOver(world, 0);
+        }
+    }
+
+    public void tick(GameWorld world) {
+        ticks++;
+        if (!(phase instanceof GamePhase.Lobby)) {
+            phase = advance(world);
+        }
+        if (ticks % STATUS_INTERVAL == 0) {
+            players.keySet().forEach(id -> world.showStatus(id, status(id)));
+        }
+    }
+
+    private GamePhase advance(GameWorld world) {
+        if (phase instanceof GamePhase.Countdown countdown) {
+            if (countdown.ticksLeft() > 0) {
+                return new GamePhase.Countdown(countdown.ticksLeft() - 1);
+            }
+            players.keySet().forEach(world::respawn);
+            events.emit(new GameEvent.GameStart(List.copyOf(players.keySet())));
+            return beginRound(world, 1);
+        }
+        if (phase instanceof GamePhase.GameOver over) {
+            if (over.ticksLeft() > 0) {
+                return new GamePhase.GameOver(over.roundReached(), over.ticksLeft() - 1);
+            }
+            finished = true;
+            return over;
+        }
+        if (players.values().stream().noneMatch(PlayerState::alive)) {
+            int reached = phase instanceof GamePhase.RoundActive active ? active.round()
+                    : ((GamePhase.Intermission) phase).nextRound() - 1;
+            return enterGameOver(world, reached);
+        }
+        if (phase instanceof GamePhase.Intermission intermission) {
+            if (intermission.ticksLeft() > 0) {
+                return new GamePhase.Intermission(intermission.nextRound(), intermission.ticksLeft() - 1);
+            }
+            return beginRound(world, intermission.nextRound());
+        }
+        return tickRound(world, (GamePhase.RoundActive) phase);
+    }
+
+    private GamePhase beginRound(GameWorld world, int round) {
+        for (PlayerState player : players.values()) {
+            if (!player.alive()) {
+                player.setLife(new LifeState.Alive());
+                world.respawn(player.id());
+            }
+        }
+        events.emit(new GameEvent.RoundStart(round));
+        world.announce("Round " + round);
+        return new GamePhase.RoundActive(round, RoundPlan.zombieCount(settings.rounds(), round, players.size()), 0);
+    }
+
+    private GamePhase tickRound(GameWorld world, GamePhase.RoundActive round) {
+        updatePlayerZones(world);
+        if (round.toSpawn() == 0 && mobs.isEmpty()) {
+            events.emit(new GameEvent.RoundEnd(round.round()));
+            world.announce("Round " + round.round() + " survived");
+            return new GamePhase.Intermission(round.round() + 1, settings.rounds().intermissionTicks());
+        }
+        if (round.spawnCooldown() > 0) {
+            return new GamePhase.RoundActive(round.round(), round.toSpawn(), round.spawnCooldown() - 1);
+        }
+        if (round.toSpawn() == 0 || mobs.size() >= settings.rounds().maxAlive()) {
+            return round;
+        }
+        Optional<UUID> spawned = pickMarker(world).flatMap(marker -> world.spawnZombie(marker, zombieSpec(round.round()))
+                .map(mob -> {
+                    mobs.add(mob);
+                    events.emit(new GameEvent.ZombieSpawned(mob, marker));
+                    return mob;
+                }));
+        // The spawn tick itself counts toward the delay, so a delay of N puts the next spawn N ticks later.
+        int cooldown = RoundPlan.spawnDelayTicks(settings.rounds(), round.round()) - 1;
+        return spawned.isPresent()
+                ? new GamePhase.RoundActive(round.round(), round.toSpawn() - 1, cooldown)
+                : new GamePhase.RoundActive(round.round(), round.toSpawn(), cooldown);
+    }
+
+    private GameWorld.ZombieSpec zombieSpec(int round) {
+        GameSettings.Rounds r = settings.rounds();
+        boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
+        return new GameWorld.ZombieSpec(RoundPlan.zombieHealth(r, round), sprints ? r.sprintSpeed() : r.walkSpeed());
+    }
+
+    private void updatePlayerZones(GameWorld world) {
+        for (PlayerState player : players.values()) {
+            if (player.alive()) {
+                world.playerPosition(player.id()).flatMap(map.index()::zoneAt).ifPresent(player::setLastZone);
+            }
+        }
+    }
+
+    private Optional<BlockPos> pickMarker(GameWorld world) {
+        List<ZoneId> playerZones = new ArrayList<>();
+        List<BlockPos> positions = new ArrayList<>();
+        for (PlayerState player : players.values()) {
+            if (player.alive()) {
+                playerZones.add(player.lastZone().orElse(map.startZones().isEmpty() ? null : map.startZones().get(0)));
+                world.playerPosition(player.id()).ifPresent(positions::add);
+            }
+        }
+        playerZones.removeIf(Objects::isNull);
+        Set<ZoneId> active = SpawnDirector.activeZones(playerZones, map.graph(), map.unlocked(), settings.spawning().adjacentHops());
+        Optional<BlockPos> picked = SpawnDirector.pick(
+                SpawnDirector.candidates(map.spawnMarkers(), map.index(), active, positions, settings.spawning()), random);
+        if (picked.isPresent()) {
+            return picked;
+        }
+        List<BlockPos> fallback = map.startZoneMarkers();
+        if (fallback.isEmpty()) {
+            if (!warnedNoSpawns) {
+                warnedNoSpawns = true;
+                PackAPunch.LOG.warn("No usable spawn markers near the players or in a start zone; zombies can't spawn");
+            }
+            return Optional.empty();
+        }
+        return Optional.of(fallback.get(random.nextInt(fallback.size())));
+    }
+
+    private GamePhase enterGameOver(GameWorld world, int roundReached) {
+        List<UUID> remaining = List.copyOf(mobs);
+        mobs.clear();
+        remaining.forEach(world::removeMob);
+        events.emit(new GameEvent.GameEnd(roundReached));
+        world.announce("Game over. You survived " + roundReached + (roundReached == 1 ? " round" : " rounds"));
+        phase = new GamePhase.GameOver(roundReached, settings.rounds().gameOverTicks());
+        return phase;
+    }
+
+    /** A game zombie took non-lethal damage from a player. */
+    public void onMobHit(UUID mob, UUID attacker) {
+        PlayerState player = players.get(attacker);
+        if (mobs.contains(mob) && player != null && player.alive()) {
+            player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), false));
+        }
+    }
+
+    /** A game zombie died. {@code killer} is empty for deaths no player caused (traps, falling). */
+    public void onMobDied(UUID mob, Optional<UUID> killer, boolean headshot, boolean melee, BlockPos pos) {
+        if (!mobs.remove(mob)) {
+            return;
+        }
+        Optional<PlayerState> player = killer.map(players::get).filter(PlayerState::alive);
+        player.ifPresent(p -> {
+            p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), false));
+            p.countKill(headshot);
+        });
+        events.emit(new GameEvent.ZombieKilled(mob, player.map(PlayerState::id), headshot, melee, pos));
+    }
+
+    /** A game zombie left the world without dying (unloaded, discarded). It is spawned again. */
+    public void onMobLost(UUID mob) {
+        if (mobs.remove(mob) && phase instanceof GamePhase.RoundActive round) {
+            phase = new GamePhase.RoundActive(round.round(), round.toSpawn() + 1, round.spawnCooldown());
+        }
+    }
+
+    public void onPlayerDied(UUID id, GameWorld world) {
+        PlayerState player = players.get(id);
+        if (player != null && player.alive()) {
+            player.setLife(new LifeState.Spectating());
+            world.spectate(id);
+        }
+    }
+
+    public GameWorld.Status status(UUID id) {
+        PlayerState player = players.get(id);
+        int points = player == null ? 0 : player.points();
+        if (phase instanceof GamePhase.Countdown c) {
+            return new GameWorld.Status(0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1));
+        }
+        if (phase instanceof GamePhase.RoundActive r) {
+            return new GameWorld.Status(r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round());
+        }
+        if (phase instanceof GamePhase.Intermission i) {
+            return new GameWorld.Status(i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1));
+        }
+        if (phase instanceof GamePhase.GameOver o) {
+            return new GameWorld.Status(o.roundReached(), points, 0, "Game over");
+        }
+        return new GameWorld.Status(0, points, 0, "Waiting to start");
+    }
+}

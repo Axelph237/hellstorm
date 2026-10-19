@@ -8,6 +8,7 @@ public final class ServerConfig {
     public static final ForgeConfigSpec.IntValue DETECT_MAX_VOLUME;
     public static final ForgeConfigSpec.DoubleValue TOOL_REACH;
     public static final ForgeConfigSpec.IntValue MAX_PASSAGE_GAP;
+    public static final GameSettingsConfig GAME;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -24,6 +25,7 @@ public final class ServerConfig {
                 .comment("Two zones count as connected when a mob could walk between them through at most this many cells that belong to no zone (a doorway, an arch, an open door).")
                 .defineInRange("max_passage_gap", 2, 0, 8);
         builder.pop();
+        GAME = new GameSettingsConfig(builder);
         SPEC = builder.build();
     }
 
