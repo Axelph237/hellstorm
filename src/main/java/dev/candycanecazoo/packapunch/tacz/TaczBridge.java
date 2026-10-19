@@ -76,6 +76,42 @@ public final class TaczBridge {
         return true;
     }
 
+    private static final String TAG = "packapunch";
+    private static final String UNLIMITED_AMMO = "unlimited_ammo";
+
+    /**
+     * Gives the gun an endless reserve: the magazine still empties and needs reloading, but the reserve is topped up
+     * every tick the gun is held (see {@link TaczEvents}). Stored on the stack, so it survives being dropped and picked up.
+     */
+    public static void setUnlimitedAmmo(ItemStack stack, boolean unlimited) {
+        if (unlimited) {
+            stack.getOrCreateTagElement(TAG).putBoolean(UNLIMITED_AMMO, true);
+        } else if (stack.getTagElement(TAG) != null) {
+            stack.getTagElement(TAG).remove(UNLIMITED_AMMO);
+        }
+    }
+
+    public static boolean hasUnlimitedAmmo(ItemStack stack) {
+        return stack.getTagElement(TAG) != null && stack.getTagElement(TAG).getBoolean(UNLIMITED_AMMO);
+    }
+
+    /** Fills an unlimited gun's reserve back to its maximum (at least one magazine). No-op for other stacks. */
+    static void topUpUnlimitedReserve(ItemStack stack) {
+        if (!hasUnlimitedAmmo(stack)) {
+            return;
+        }
+        IGun gun = IGun.getIGunOrNull(stack);
+        if (gun == null) {
+            return;
+        }
+        int max = gun.getMaxDummyAmmoAmount(stack);
+        if (max <= 0) {
+            max = TimelessAPI.getCommonGunIndex(gun.getGunId(stack)).map(index -> magazineSize(stack, index)).orElse(1);
+            gun.setMaxDummyAmmoAmount(stack, max);
+        }
+        gun.setDummyAmmoAmount(stack, max);
+    }
+
     private static int magazineSize(ItemStack stack, CommonGunIndex index) {
         return AttachmentDataUtils.getAmmoCountWithAttachment(stack, index.getGunData());
     }

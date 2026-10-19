@@ -13,7 +13,7 @@ A wall-buy sells any item for points. TacZ guns are the main case, with ammo ref
 { "tacz_gun": "tacz:ak47" }
 ```
 
-The `tacz_gun` shorthand builds the stack through `TaczBridge.createGun`. TacZ guns built this way get `pap.punchable: true` unless the spec sets it to false.
+The `tacz_gun` shorthand builds the stack through `TaczBridge.createGun`. TacZ guns built this way get `pap.punchable: true` unless the spec sets it to false. A spec can add `"unlimited_ammo": true` for an endless reserve (the magazine still needs reloading); see `tacz-bridge.md`.
 
 `WallBuy` BlockEntity:
 

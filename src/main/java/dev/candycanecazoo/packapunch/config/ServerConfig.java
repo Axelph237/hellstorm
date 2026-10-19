@@ -9,6 +9,11 @@ public final class ServerConfig {
     public static final ForgeConfigSpec.DoubleValue TOOL_REACH;
     public static final ForgeConfigSpec.IntValue MAX_PASSAGE_GAP;
     public static final GameSettingsConfig GAME;
+    public static final ForgeConfigSpec.BooleanValue SCRIPTING_ENABLED;
+    public static final ForgeConfigSpec.IntValue SCRIPT_PERMISSION_LEVEL;
+    public static final ForgeConfigSpec.LongValue SCRIPT_INSTRUCTION_BUDGET;
+    public static final ForgeConfigSpec.IntValue SCRIPT_MAX_CONSECUTIVE_ERRORS;
+    public static final ForgeConfigSpec.IntValue SCRIPT_MAX_STRING_LENGTH;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -26,6 +31,22 @@ public final class ServerConfig {
                 .defineInRange("max_passage_gap", 2, 0, 8);
         builder.pop();
         GAME = new GameSettingsConfig(builder);
+        // Not part of GameSettings on purpose: a map's settings override must never raise its own script permissions.
+        builder.push("scripting");
+        SCRIPTING_ENABLED = builder.comment("Run datapack Lua scripts and event defs in games.").define("enabled", true);
+        SCRIPT_PERMISSION_LEVEL = builder
+                .comment("Permission level script commands run at. 2 matches datapack functions.")
+                .defineInRange("command_permission_level", 2, 0, 4);
+        SCRIPT_INSTRUCTION_BUDGET = builder
+                .comment("Lua instructions one listener call (or one script load) may run before it is stopped.")
+                .defineInRange("instruction_budget", 1_000_000L, 1_000L, 1_000_000_000L);
+        SCRIPT_MAX_CONSECUTIVE_ERRORS = builder
+                .comment("A listener that fails this many times in a row is disabled for the rest of the game.")
+                .defineInRange("max_consecutive_errors", 5, 1, 1000);
+        SCRIPT_MAX_STRING_LENGTH = builder
+                .comment("Longest string string.rep may build.")
+                .defineInRange("max_string_length", 1_000_000, 1_000, 100_000_000);
+        builder.pop();
         SPEC = builder.build();
     }
 

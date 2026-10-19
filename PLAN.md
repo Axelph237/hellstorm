@@ -261,14 +261,13 @@ In the MVP these are notifications only. Events that can be cancelled come later
 - `log.info`, `log.warn`, and `log.error`.
 - Read-only queries such as `game.round()`, `game.players()`, and `game.points(player)`.
 
-**Sandbox.** The runtime is FiguraMC's LuaJ fork (`com.github.FiguraMC.luaj`, `3.0.8-figura`, MIT), bundled with jarJar. TacZ jarJars the same artifacts, so Forge loads one shared copy. It follows LuaJ's official sandbox pattern (`SampleSandboxed`):
-- **Hand-built globals.** It builds `Globals` with only the base, package, table, string, math, and bit32 libs.
-- **Removed functions.** It leaves out `io`, `os`, `luajava`, and `debug`. It also removes `dofile`, `loadfile`, `string.dump`, and the ability to load binary chunks.
-- **Instruction budget.** Each listener call runs in a coroutine with a debug hook installed from Java that stops it after an instruction budget (default 1,000,000, configurable). A runaway loop errors out instead of freezing the server.
-- **Errors.** Script errors are caught and logged with the script id and line. A listener that fails N times in a row (configurable) is disabled.
-- **Limits of the sandbox.** It protects the host machine: no files, network, or Java reflection. It does not protect the game world, because scripts can run op-level commands. That is the same trust a datapack's mcfunctions already get. LuaJ can't cap memory exactly, and the instruction budget only bounds how much a single call allocates.
+**Sandbox.** The runtime is FiguraMC's LuaJ fork (`com.github.FiguraMC.luaj`, `3.0.8-figura`, MIT), bundled with jarJar and shared with TacZ's copy. Details are in `features/scripting-and-events.md`:
+- **Hand-built globals.** Only the base, table, string, and math libs are loaded. There's no io, os, luajava, debug, coroutine, package, or binary chunk loading, and `dofile`, `loadfile`, `load`, and `string.dump` are removed.
+- **Instruction budget.** A `DebugLib` subclass counts instructions for each listener call and each script load. Past the budget it throws an `Error` that `pcall` can't catch.
+- **Errors.** Script errors are logged with the script and line, and sent to ops in the game. A listener that fails N times in a row is disabled.
+- **Limits of the sandbox.** It protects the host machine, not the world (commands run at the configured permission level). Scripting settings are server-config only, so a map can't raise its own permissions.
 
-**Lifecycle.** Each running game gets a fresh Lua runtime built from the current datapack scripts at game start, and it is thrown away at game end. Script globals therefore never leak between games, and a `/reload` takes effect from the next game. `/pap script reload` rebuilds the runtime for the current game.
+**Lifecycle.** Each game gets a fresh Lua runtime built from the current datapack scripts when its lobby opens, and it is thrown away at game end. Script globals therefore never leak between games, and a `/reload` takes effect from the next game. `/pap scripts reload` rebuilds the runtime for the current game.
 
 ## Post-MVP: procedural generation
 
@@ -306,7 +305,7 @@ The design as researched:
 2. **Core loop.** (Done.)
    - Build the game state machine, `GameEvents`, `SpawnDirector` with vanilla zombies, proximity spawning, and the points economy.
    - *Check:* shoot zombies, earn points, and advance rounds on the two-zone map.
-3. **Scripting.**
+3. **Scripting.** (Done.)
    - Build `LuaRuntime` and its sandbox, `EventDef` loading, `events.on`, `command`, and `require`.
    - Every later phase emits its own events as it lands.
    - *Check:* a datapack script uses `require` to load a helper and runs `/title` on `round_end`. A script that tries to call `io.open` fails to load. A `while true do end` listener is stopped and logged while the server keeps ticking.

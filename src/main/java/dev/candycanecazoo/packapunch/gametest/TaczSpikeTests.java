@@ -179,4 +179,47 @@ public final class TaczSpikeTests {
         helper.assertTrue(player.getPose() == Pose.STANDING, "pose after clearing was " + player.getPose());
         helper.succeed();
     }
+
+    /**
+     * Both guns start with one magazine of reserve. Each is emptied, then reloaded from empty up to three times. The limited
+     * gun can reload once, then has nothing left. The unlimited gun reloads every time.
+     */
+    @GameTest(template = "floor", timeoutTicks = LONG_TIMEOUT)
+    public static void unlimitedAmmoGunsNeverRunOutOfReserve(GameTestHelper helper) {
+        ResourceLocation gunId = ResourceLocation.tryBuild("tacz", "glock_17");
+        ItemStack limitedStack = TaczBridge.createGun(gunId, 1).orElseThrow();
+        ItemStack unlimitedStack = TaczBridge.createGun(gunId, 1).orElseThrow();
+        TaczBridge.setUnlimitedAmmo(unlimitedStack, true);
+        Zombie limited = gunHolder(helper, new BlockPos(2, TestLayout.ROOM_Y, 4), limitedStack);
+        Zombie unlimited = gunHolder(helper, new BlockPos(6, TestLayout.ROOM_Y, 4), unlimitedStack);
+        int[] reloads = {0, 0};
+        boolean[] emptied = {false, false};
+        Zombie[] holders = {limited, unlimited};
+        long startedAt = System.currentTimeMillis();
+        helper.onEachTick(() -> {
+            for (int i = 0; i < holders.length; i++) {
+                ItemStack stack = holders[i].getMainHandItem();
+                IGun gun = IGun.getIGunOrNull(stack);
+                if (gun.getCurrentAmmoCount(stack) > 0 && reloads[i] < 3) {
+                    if (emptied[i]) {
+                        reloads[i]++;
+                    }
+                    emptied[i] = true;
+                    gun.setCurrentAmmoCount(stack, 0);
+                    gun.setBulletInBarrel(stack, false);
+                }
+                IGunOperator.fromLivingEntity(holders[i]).reload();
+            }
+        });
+        helper.succeedWhen(() -> {
+            if (System.currentTimeMillis() - startedAt < 12_000) {
+                helper.fail("letting reloads run (limited " + reloads[0] + ", unlimited " + reloads[1] + ")");
+            }
+            helper.assertTrue(reloads[1] == 3, "unlimited gun only completed " + reloads[1] + " reload cycles");
+            helper.assertTrue(reloads[0] == 1, "limited gun completed " + reloads[0] + " reload cycles, expected 1 (one magazine of reserve)");
+            ItemStack stack = limited.getMainHandItem();
+            helper.assertTrue(IGun.getIGunOrNull(stack).getCurrentAmmoCount(stack) == 0, "limited gun should be out of ammo");
+            helper.succeed();
+        });
+    }
 }

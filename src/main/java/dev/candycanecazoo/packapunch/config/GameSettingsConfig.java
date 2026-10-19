@@ -30,6 +30,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.ConfigValue<List<? extends String>> startingGuns;
     private final ForgeConfigSpec.ConfigValue<List<? extends String>> startingItems;
     private final ForgeConfigSpec.IntValue reserveMagazines;
+    private final ForgeConfigSpec.BooleanValue startingGunsUnlimitedAmmo;
 
     GameSettingsConfig(ForgeConfigSpec.Builder b) {
         GameSettings d = GameSettings.DEFAULT;
@@ -69,6 +70,8 @@ public final class GameSettingsConfig {
         startingItems = b.comment("Item ids every player starts with.").defineListAllowEmpty("starting_items",
                 d.players().startingItems().stream().map(ResourceLocation::toString).toList(), GameSettingsConfig::isId);
         reserveMagazines = b.comment("Reserve ammo for starting guns, in magazines.").defineInRange("reserve_magazines", d.players().reserveMagazines(), 0, 100);
+        startingGunsUnlimitedAmmo = b.comment("Give starting guns an endless reserve. The magazine still needs reloading.")
+                .define("starting_guns_unlimited_ammo", d.players().startingGunsUnlimitedAmmo());
         b.pop();
     }
 
@@ -104,6 +107,7 @@ public final class GameSettingsConfig {
                         r.read(countdownTicks), r.read(gameOverTicks)),
                 new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill)),
-                new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines)));
+                new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines),
+                        r.read(startingGunsUnlimitedAmmo)));
     }
 }

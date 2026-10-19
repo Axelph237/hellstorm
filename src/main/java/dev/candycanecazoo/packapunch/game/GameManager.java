@@ -8,6 +8,7 @@ import dev.candycanecazoo.packapunch.map.ZoneIndex;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import dev.candycanecazoo.packapunch.map.validate.MapValidator;
 import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
+import dev.candycanecazoo.packapunch.script.GameScripts;
 import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -27,7 +28,7 @@ import java.util.function.Function;
 
 /** At most one game per level. Owns the link between a {@link Game} and its {@link ForgeGameWorld}. */
 public final class GameManager {
-    public record Active(ServerLevel level, Game game, ForgeGameWorld world) {}
+    public record Active(ServerLevel level, Game game, ForgeGameWorld world, GameScripts scripts) {}
 
     public sealed interface CreateResult {
         record Created(Active active) implements CreateResult {}
@@ -78,9 +79,16 @@ public final class GameManager {
         var settings = SettingsResolver.resolve(ServerConfig.GAME.get(), Optional.empty()).getOrThrow(false, IllegalStateException::new);
         Game game = new Game(settings, map, RandomSource.create(), new GameEvents());
         ForgeGameWorld world = new ForgeGameWorld(level, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup);
-        Active active = new Active(level, game, world);
+        Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)));
         GAMES.put(level.dimension(), active);
         return active;
+    }
+
+    /** Where script commands run: the center of the first start zone, or the first start cell. */
+    static net.minecraft.core.BlockPos origin(GameMap map, List<net.minecraft.core.BlockPos> startCells) {
+        return map.map().startZones().stream().flatMap(z -> z.boxes().stream()).findFirst()
+                .map(dev.candycanecazoo.packapunch.map.BlockBox::center)
+                .orElse(startCells.isEmpty() ? net.minecraft.core.BlockPos.ZERO : startCells.get(0));
     }
 
     public static void unregister(ServerLevel level) {

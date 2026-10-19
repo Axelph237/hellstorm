@@ -42,24 +42,28 @@ end)
 
 **Event bus.** `GameEvents.emit(game, event)` delivers to subscribers in priority order on the server thread. The Lua runtime is one subscriber. A Forge-event adapter for Java addons can be added later as another. In the MVP events are notifications only. Cancellable events come later.
 
-**Runtime** (`script/LuaRuntime`), one per running game:
-- Built at game start from the current datapack scripts and discarded at game end, so globals never leak between games. `/pap script reload` rebuilds it mid-game.
-- LuaJ from FiguraMC's maintained fork (`com.github.FiguraMC.luaj:luaj-core` and `luaj-jse`, `3.0.8-figura`, MIT), bundled with Forge jarJar using range `[3.0.8,)`. TacZ already jarJars the same artifacts, so Forge loads one shared copy, and the mod keeps working if TacZ ever drops it. Figura runs untrusted player scripts with this fork, so it is built with sandboxing in mind. Found in the TacZ jar's `META-INF/jarjar/metadata.json` during phase 0.
+**Runtime** (`script/LuaRuntime`), one per game:
+- Built when the game's lobby opens (the first `/pap join` in a level) from the current datapack scripts, and discarded with the game, so globals never leak between games. `/pap scripts reload` rebuilds it for a running game. `/pap scripts check` loads everything with commands switched off and lists the load errors.
+- **Entry scripts.** Each namespace's `main` script (`data/<ns>/packapunch/scripts/main.lua`) runs on build, as does every script an EventDef names. Other scripts run only when something `require`s them.
+- LuaJ from FiguraMC's fork (`com.github.FiguraMC.luaj:luaj-core`, `3.0.8-figura`, MIT), compile-only and bundled with jarJar using range `[3.0.8-figura,)`. TacZ jarJars the same artifact, so Forge loads one shared copy (confirmed on a real server boot).
 
-**Sandbox** (LuaJ's `SampleSandboxed` pattern):
-- `Globals` built by hand with only `JseBaseLib`, `PackageLib`, `Bit32Lib`, `TableLib`, `StringLib`, `JseMathLib`. `LuaC` is installed for text chunks only.
-- Not loaded: `io`, `os`, `luajava`, `debug`, `coroutine` (exposed only as our own wrapper if needed).
-- Removed: `dofile`, `loadfile`, `string.dump`, binary chunk loading.
-- Each listener call runs in a coroutine on its own `LuaThread`. A debug hook set from Java (the `debug` table is never visible to scripts) counts instructions and errors after `scripting.instruction_budget`.
-- Errors are caught and logged with script id and line. A listener that fails `scripting.max_consecutive_errors` times is disabled for the rest of the game.
-- **Scope of the sandbox.** It protects the host machine (no files, network, or reflection). It does not protect the world, since commands run at `scripting.command_permission_level`, the same trust datapack functions get. Memory can't be capped exactly in LuaJ. The instruction budget bounds what one call can allocate.
+**Sandbox:**
+- `Globals` built by hand with only `BaseLib`, `TableLib`, `StringLib`, and `MathLib`. `LuaC` compiles text. No undumper is installed, so binary chunks can't load.
+- Not loaded: `io`, `os`, `luajava`, `coroutine` (LuaJ runs each coroutine on its own Java thread), `package` (its Java searcher can load classes), and `bit32` (absent from the Figura fork).
+- Removed: `debug`, `dofile`, `loadfile`, `load`, `loadstring`, `collectgarbage`, `module`, `string.dump`. `print` goes to the log. `require` is our own function.
+- **Instruction budget.** An `InstructionBudget` subclass of `DebugLib` is the interpreter's instruction hook (the `debug` table is never visible). Each listener call and each script load gets `scripting.instruction_budget` instructions. Past that it throws a `java.lang.Error`, which `pcall` can't catch, so a runaway loop can't swallow its own stop.
+- `string.rep` is capped at `scripting.max_string_length`. Deep recursion is caught as a stack overflow.
+- **Shared string metatable.** `StringLib` replaces the JVM-wide string metatable, which TacZ's own Lua states also use. The runtime saves it before loading and restores it after, so TacZ is unaffected.
+- Errors are caught and logged with the script and line, and sent in chat to ops in the game. A listener that fails `scripting.max_consecutive_errors` times in a row is disabled for the rest of the game. A success resets the count.
+- **Scope of the sandbox.** It protects the host machine (no files, network, threads, or reflection). It does not protect the world: commands run at `scripting.command_permission_level`, the same trust datapack functions get. Memory isn't capped exactly: the instruction budget bounds what one call can build, and `string.rep` is capped (method-call syntax `("x"):rep(n)` uses the shared metatable and isn't).
+- **Scripting settings live only in the server config**, never in a map's settings override, so a downloaded map can't raise its own permission level.
 
 **API:**
 - `events.on(name, fn)` registers a listener. Unknown event names are a load error.
-- `command(str)` runs through `server.getCommands().performPrefixedCommand` with a source at the map origin and the configured permission level. Returns `success, result`.
-- `require("ns:path")` resolves only against `data/<ns>/packapunch/scripts/<path>.lua` through a custom `package.searchers` entry. Modules are cached. Cycles raise an error naming the chain.
+- `command(str)` runs through `server.getCommands().performPrefixedCommand` with a silent source at the map origin (the center of the first start zone) and the configured permission level. Returns `success, result`.
+- `require("ns:path")` resolves only against `data/<ns>/packapunch/scripts/<path>.lua`. Modules are cached (a module runs once). Cycles raise an error naming the chain, for example `require cycle: a:main -> a:x -> a:y -> a:x`.
 - `log.info/warn/error(msg)`.
-- `game.round()`, `game.players()`, `game.points(uuid)`, `game.zone_of(uuid)`, read-only.
+- `game.round()` and `game.players()` (a list of `{uuid, name, points, alive}`), read-only.
 
 **EventDef loading.** A reload listener parses EventDefs. At runtime build, each EventDef looks up its script and function. A missing script or function is a load ERROR shown in `/pap map validate`.
 
@@ -71,6 +75,13 @@ end)
 - `scripting.command_permission_level` (2).
 - `scripting.instruction_budget` (1,000,000).
 - `scripting.max_consecutive_errors` (5).
+- `scripting.max_string_length` (1,000,000).
+- Per world, `/pap scripts rules <rule> <true|false>` (saved like a gamerule; `/pap scripts rules` lists them):
+  - `silence_errors` (default false): script errors still go to the log, but not to ops' chat.
+
+## Examples
+
+`examples/datapacks/` (in the repo, not the jar) has `pap_example`, a working map script, and `pap_sandbox_check`, which tries what the sandbox must block.
 
 ## Assets
 

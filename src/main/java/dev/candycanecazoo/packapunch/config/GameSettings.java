@@ -50,11 +50,13 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
         ).apply(i, Economy::new));
     }
 
-    public record Players(List<ResourceLocation> startingGuns, List<ResourceLocation> startingItems, int reserveMagazines) {
+    public record Players(List<ResourceLocation> startingGuns, List<ResourceLocation> startingItems, int reserveMagazines,
+                          boolean startingGunsUnlimitedAmmo) {
         public static final Codec<Players> CODEC = RecordCodecBuilder.create(i -> i.group(
                 ResourceLocation.CODEC.listOf().fieldOf("starting_guns").forGetter(Players::startingGuns),
                 ResourceLocation.CODEC.listOf().fieldOf("starting_items").forGetter(Players::startingItems),
-                Codec.INT.fieldOf("reserve_magazines").forGetter(Players::reserveMagazines)
+                Codec.INT.fieldOf("reserve_magazines").forGetter(Players::reserveMagazines),
+                Codec.BOOL.fieldOf("starting_guns_unlimited_ammo").forGetter(Players::startingGunsUnlimitedAmmo)
         ).apply(i, Players::new));
 
         public Players {
@@ -71,8 +73,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     ).apply(i, GameSettings::new));
 
     public static final GameSettings DEFAULT = new GameSettings(
-            new Rounds(6, 2.5, 0.5, 0.1, 6, 0.23, 0.32, 24, 40, 100, 100, 200),
+            new Rounds(6, 2.5, 0.5, 0.1, 6, 0.23, 0.32, 24, 40, 20, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130),
-            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4));
+            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false));
 }

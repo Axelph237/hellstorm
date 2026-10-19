@@ -19,7 +19,10 @@ public final class Loadout {
         player.removeAllEffects();
         for (ResourceLocation gun : settings.startingGuns()) {
             TaczBridge.createGun(gun, settings.reserveMagazines()).ifPresentOrElse(
-                    stack -> player.getInventory().add(stack),
+                    stack -> {
+                        TaczBridge.setUnlimitedAmmo(stack, settings.startingGunsUnlimitedAmmo());
+                        player.getInventory().add(stack);
+                    },
                     () -> PackAPunch.LOG.warn("Starting gun {} is not an installed TacZ gun; skipped", gun));
         }
         for (ResourceLocation id : settings.startingItems()) {
