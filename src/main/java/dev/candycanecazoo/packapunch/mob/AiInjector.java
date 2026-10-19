@@ -8,6 +8,8 @@ import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.Collection;
@@ -39,6 +41,11 @@ public final class AiInjector {
         mob.targetSelector.addGoal(0, new TargetGamePlayerGoal(mob, targets));
         if (mob instanceof PathfinderMob walker) {
             mob.goalSelector.addGoal(1, new GameMeleeGoal(walker, stats.damage(), navigator));
+        }
+        if (mob.getNavigation() instanceof GroundPathNavigation ground) {
+            // Wooden doors count as passages between zones (LevelCellProbe), so zombies must be able to open them.
+            ground.setCanOpenDoors(true);
+            mob.goalSelector.addGoal(2, new OpenDoorGoal(mob, false));
         }
         setBase(mob, Attributes.MAX_HEALTH, stats.health());
         mob.setHealth((float) stats.health());

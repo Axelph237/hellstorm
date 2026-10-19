@@ -17,9 +17,11 @@ import java.util.function.Predicate;
 public final class BreakBarricadeGoal extends Goal {
     /** What the goal needs from the window, so it doesn't depend on how windows are stored. */
     public interface Window {
-        BlockPos attackSpot();
+        /** Where this zombie stands outside to tear boards. Each zombie gets its own spot, so a crowd spreads along the window. */
+        Vec3 attackPoint();
 
-        BlockPos insideSpot();
+        /** Where this zombie ends up after climbing through. */
+        Vec3 insidePoint();
 
         int boards();
 
@@ -55,8 +57,8 @@ public final class BreakBarricadeGoal extends Goal {
 
     @Override
     public void tick() {
-        Vec3 attack = Vec3.atBottomCenterOf(window.attackSpot());
-        Vec3 inside = Vec3.atBottomCenterOf(window.insideSpot());
+        Vec3 attack = window.attackPoint();
+        Vec3 inside = window.insidePoint();
         mob.getLookControl().setLookAt(inside.x, inside.y + 1, inside.z);
         if (window.boards() == 0) {
             mob.getNavigation().stop();

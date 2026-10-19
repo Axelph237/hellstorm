@@ -16,6 +16,9 @@ public interface GameWorld {
     /** Empty when the player is offline or not in this level. */
     Optional<BlockPos> playerPosition(UUID player);
 
+    /** Whether a profile's mob could get in from this marker: a mob too big for the marker's window can't. */
+    boolean canSpawn(ResourceLocation profile, BlockPos marker);
+
     /** The spawned mob's id, or empty if the world refused (for example, the chunk isn't loaded). */
     Optional<UUID> spawnZombie(BlockPos marker, ZombieSpec spec);
 

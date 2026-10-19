@@ -4,8 +4,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/packapunch"
 BOARDS = 6
-# Models face north (outward = -z): boards sit on the outer face. Other facings rotate around y.
-ROTATION = {"north": 0, "east": 90, "south": 180, "west": 270}
+# Board models sit on the block's north face. `facing` is the window's outward direction, and boards go on the
+# inside face (toward the zone), so each facing rotates the model to its opposite side.
+ROTATION = {"north": 180, "east": 270, "south": 0, "west": 90}
 
 
 def board_model(n):

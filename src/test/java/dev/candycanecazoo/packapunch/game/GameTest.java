@@ -7,6 +7,7 @@ import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -257,5 +258,20 @@ class GameTest {
         tick(game, world, 10);
         assertFalse(world.specs.isEmpty());
         assertTrue(world.specs.stream().allMatch(spec -> spec.profile().toString().equals("test:zombie")));
+    }
+
+    @Test
+    void profilesThatDontFitAMarkersWindowAreNotSpawnedThere() {
+        ResourceLocation big = ResourceLocation.tryBuild("test", "golem");
+        MobRoster roster = new MobRoster(List.of(
+                new MobRoster.Entry(ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty()),
+                new MobRoster.Entry(big, 1000, 1, Optional.empty())));
+        Game game = new Game(SETTINGS, map(), roster, RandomSource.create(7), events);
+        world.canSpawn = (profile, marker) -> !profile.equals(big);
+        game.join(alice);
+        game.start();
+        tick(game, world, 60);
+        assertFalse(world.specs.isEmpty());
+        assertTrue(world.specs.stream().noneMatch(spec -> spec.profile().equals(big)), "the golem never fits, despite its weight");
     }
 }

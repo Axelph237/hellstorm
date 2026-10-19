@@ -24,6 +24,13 @@ import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
 import dev.candycanecazoo.packapunch.net.PapNetwork;
 import dev.candycanecazoo.packapunch.net.ProblemsPacket;
 import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
+import dev.candycanecazoo.packapunch.map.CellProbe;
+import dev.candycanecazoo.packapunch.map.Passages;
+import dev.candycanecazoo.packapunch.mob.path.CellQuery;
+import dev.candycanecazoo.packapunch.mob.path.MovementClass;
+import dev.candycanecazoo.packapunch.mob.path.Portal;
+import dev.candycanecazoo.packapunch.mob.path.ZonePathing;
+import net.minecraft.core.BlockPos;
 import dev.candycanecazoo.packapunch.tools.MapEdits;
 import dev.candycanecazoo.packapunch.tools.RoomDetection;
 import dev.candycanecazoo.packapunch.tools.Selection;
@@ -72,7 +79,9 @@ final class ZoneCommands {
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> map() {
-        return Commands.literal("map").then(Commands.literal("validate").executes(ZoneCommands::validate));
+        return Commands.literal("map")
+                .then(Commands.literal("validate").executes(ZoneCommands::validate))
+                .then(Commands.literal("paths").executes(ZoneCommands::paths));
     }
 
     private static ArgumentBuilder<CommandSourceStack, ?> zoneArg() {
@@ -216,6 +225,30 @@ final class ZoneCommands {
         ToolState.clearDetection(ctx.getSource().getPlayerOrException());
         ctx.getSource().sendSuccess(() -> Component.literal("Detection discarded"), false);
         return 1;
+    }
+
+    /** Which zone connections the pathfinder can use for a normal-sized zombie, and through which cell. */
+    private static int paths(CommandContext<CommandSourceStack> ctx) {
+        ServerLevel level = ctx.getSource().getLevel();
+        ZombiesMap map = MapSavedData.get(level).map();
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get());
+        MovementClass zombie = MovementClass.ofHitbox(0.6f, 1.95f);
+        CellQuery world = (x, y, z) -> LevelCellProbe.classify(level, new BlockPos(x, y, z)) == CellProbe.Cell.OPEN ? CellQuery.Cell.OPEN : CellQuery.Cell.SOLID;
+        List<Portal> portals = ZonePathing.portals(passages, ZonePathing.grids(map, passages, world, zombie));
+        if (passages.open().isEmpty()) {
+            ctx.getSource().sendSuccess(() -> Component.literal("No zone connects to another"), false);
+        }
+        for (Passages.Link link : passages.open()) {
+            Optional<Portal> portal = portals.stream().filter(p -> Passages.Link.of(p.zoneA(), p.zoneB()).equals(link)).findFirst();
+            ctx.getSource().sendSuccess(() -> portal.map(p -> Component.literal(link.a() + " <-> " + link.b() + ": through "
+                            + (p.cellA().equals(p.cellB()) ? "doorway " + p.cellA().toShortString() : p.cellA().toShortString() + " / " + p.cellB().toShortString()))
+                    .withStyle(ChatFormatting.GREEN))
+                    .orElse(Component.literal(link.a() + " <-> " + link.b() + ": connected, but no walkable 1x2 crossing (too low, too narrow, or no floor)")
+                            .withStyle(ChatFormatting.RED)), false);
+        }
+        passages.closedDoors().forEach((link, door) -> ctx.getSource().sendSuccess(() -> Component.literal(link.a() + " <-> " + link.b()
+                + ": only through a closed door at " + door.toShortString()).withStyle(ChatFormatting.GOLD), false));
+        return portals.size();
     }
 
     private static int validate(CommandContext<CommandSourceStack> ctx) {

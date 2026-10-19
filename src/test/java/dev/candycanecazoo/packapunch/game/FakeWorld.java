@@ -20,6 +20,12 @@ final class FakeWorld implements GameWorld {
     final List<UUID> spectated = new ArrayList<>();
     final List<String> announcements = new ArrayList<>();
     boolean refuseSpawns;
+    java.util.function.BiPredicate<net.minecraft.resources.ResourceLocation, BlockPos> canSpawn = (profile, marker) -> true;
+
+    @Override
+    public boolean canSpawn(net.minecraft.resources.ResourceLocation profile, BlockPos marker) {
+        return canSpawn.test(profile, marker);
+    }
 
     @Override
     public Optional<BlockPos> playerPosition(UUID player) {

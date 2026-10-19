@@ -180,7 +180,7 @@ public final class Game {
             return round;
         }
         Optional<BlockPos> marker = pickMarker(world);
-        Optional<UUID> spawned = marker.flatMap(m -> zombieSpec(round.round()).flatMap(spec -> world.spawnZombie(m, spec)));
+        Optional<UUID> spawned = marker.flatMap(m -> zombieSpec(round.round(), m, world).flatMap(spec -> world.spawnZombie(m, spec)));
         spawned.ifPresent(mob -> {
             mobs.add(mob);
             events.emit(new GameEvent.ZombieSpawned(mob, marker.get()));
@@ -192,10 +192,10 @@ public final class Game {
                 : new GamePhase.RoundActive(round.round(), round.toSpawn(), cooldown);
     }
 
-    private Optional<GameWorld.ZombieSpec> zombieSpec(int round) {
+    private Optional<GameWorld.ZombieSpec> zombieSpec(int round, BlockPos marker, GameWorld world) {
         GameSettings.Rounds r = settings.rounds();
         boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
-        return roster.pick(round, random).map(profile ->
+        return roster.pick(round, random, profile -> world.canSpawn(profile, marker)).map(profile ->
                 new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), sprints ? r.sprintSpeed() : r.walkSpeed()));
     }
 

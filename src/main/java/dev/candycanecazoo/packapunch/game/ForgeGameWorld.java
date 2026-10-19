@@ -13,6 +13,11 @@ import dev.candycanecazoo.packapunch.mob.AiInjector;
 import dev.candycanecazoo.packapunch.mob.goals.BreakBarricadeGoal;
 import dev.candycanecazoo.packapunch.map.WindowDef;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.EntityType;
+import net.minecraftforge.registries.ForgeRegistries;
+import dev.candycanecazoo.packapunch.mob.path.MovementClass;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 import dev.candycanecazoo.packapunch.mob.MobFactory;
 import dev.candycanecazoo.packapunch.mob.MobProfile;
 import dev.candycanecazoo.packapunch.mob.SupportTier;
@@ -70,6 +75,21 @@ public final class ForgeGameWorld implements GameWorld {
     }
 
     @Override
+    public boolean canSpawn(ResourceLocation profileId, BlockPos marker) {
+        Optional<WindowDef> window = map.windowFor(marker);
+        MobProfile profile = profiles.get(profileId);
+        if (window.isEmpty() || profile == null) {
+            return true;
+        }
+        EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
+        if (type == null) {
+            return true;
+        }
+        MovementClass size = MovementClass.ofHitbox(type.getWidth(), type.getHeight());
+        return size.width() <= window.get().width() && size.height() <= window.get().height();
+    }
+
+    @Override
     public Optional<UUID> spawnZombie(BlockPos marker, ZombieSpec spec) {
         MobProfile profile = profiles.get(spec.profile());
         if (profile == null || !level.isLoaded(marker)) {
@@ -96,16 +116,24 @@ public final class ForgeGameWorld implements GameWorld {
         return level.addFreshEntity(mob) ? Optional.of(mob.getUUID()) : Optional.empty();
     }
 
+    /** Picks one column of the window for this zombie, with a small random offset, and drops both points to the ground. */
     private BreakBarricadeGoal.Window windowAdapter(WindowDef window) {
+        List<BlockPos> columns = window.columns();
+        BlockPos column = columns.get(level.random.nextInt(columns.size()));
+        double sideways = (level.random.nextDouble() - 0.5) * 0.6;
+        Direction along = window.outward().getClockWise();
+        Vec3 attack = ground(column.relative(window.outward())).add(along.getStepX() * sideways, 0, along.getStepZ() * sideways)
+                .add(window.outward().getStepX() * level.random.nextDouble() * 0.5, 0, window.outward().getStepZ() * level.random.nextDouble() * 0.5);
+        Vec3 inside = ground(column.relative(window.outward().getOpposite()));
         return new BreakBarricadeGoal.Window() {
             @Override
-            public BlockPos attackSpot() {
-                return window.attackSpot();
+            public Vec3 attackPoint() {
+                return attack;
             }
 
             @Override
-            public BlockPos insideSpot() {
-                return window.insideSpot();
+            public Vec3 insidePoint() {
+                return inside;
             }
 
             @Override
@@ -118,6 +146,15 @@ public final class ForgeGameWorld implements GameWorld {
                 WindowOps.tearBoard(level, window);
             }
         };
+    }
+
+    /** The standing point at or below {@code cell}: windows with a sill have their bottom row above the ground outside. */
+    private Vec3 ground(BlockPos cell) {
+        BlockPos at = cell;
+        for (int drop = 0; drop < 3 && level.getBlockState(at.below()).getCollisionShape(level, at.below()).isEmpty(); drop++) {
+            at = at.below();
+        }
+        return Vec3.atBottomCenterOf(at);
     }
 
     /** Online, alive players of this game in this level. */

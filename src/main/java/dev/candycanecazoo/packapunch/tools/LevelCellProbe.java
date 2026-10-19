@@ -1,6 +1,7 @@
 package dev.candycanecazoo.packapunch.tools;
 
 import dev.candycanecazoo.packapunch.map.CellProbe;
+import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.DoorBlock;
@@ -10,7 +11,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 
-/** Classifies cells the way a walking mob sees them: open doors and gates pass, closed ones don't. */
+/**
+ * Classifies cells the way a game zombie sees them. Wooden doors always pass, because game zombies open them. Iron doors,
+ * fence gates, and trapdoors pass only while open.
+ */
 public final class LevelCellProbe {
     private LevelCellProbe() {}
 
@@ -23,6 +27,12 @@ public final class LevelCellProbe {
             return CellProbe.Cell.SOLID;
         }
         BlockState state = level.getBlockState(pos);
+        if (state.is(PapRegistries.BARRICADE.get())) {
+            return CellProbe.Cell.SOLID;
+        }
+        if (state.getBlock() instanceof DoorBlock door && door.type().canOpenByHand()) {
+            return CellProbe.Cell.OPEN;
+        }
         boolean openable = state.getBlock() instanceof DoorBlock
                 || state.getBlock() instanceof TrapDoorBlock
                 || state.getBlock() instanceof FenceGateBlock;

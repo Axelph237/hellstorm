@@ -44,16 +44,19 @@ public final class BarricadeBlock extends Block {
         builder.add(BOARDS, FACING);
     }
 
+    /**
+     * Context-free queries (no entity) see a bare window as open: vanilla's move control asks that way and otherwise makes
+     * zombies jump at the bottom block while climbing through. Players are always asked with their own context.
+     */
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        if (context instanceof EntityCollisionContext entityContext && entityContext.getEntity() != null) {
-            Entity entity = entityContext.getEntity();
-            if (!(entity instanceof LivingEntity)) {
-                return Shapes.empty();
-            }
-            if (state.getValue(BOARDS) == 0 && entity.getTags().contains(ForgeGameWorld.MOB_TAG)) {
-                return Shapes.empty();
-            }
+        boolean bare = state.getValue(BOARDS) == 0;
+        Entity entity = context instanceof EntityCollisionContext entityContext ? entityContext.getEntity() : null;
+        if (entity == null) {
+            return bare ? Shapes.empty() : Shapes.block();
+        }
+        if (!(entity instanceof LivingEntity) || (bare && entity.getTags().contains(ForgeGameWorld.MOB_TAG))) {
+            return Shapes.empty();
         }
         return Shapes.block();
     }

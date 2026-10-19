@@ -12,7 +12,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_1",
-        "y": 0
+        "y": 180
       }
     },
     {
@@ -22,7 +22,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_2",
-        "y": 0
+        "y": 180
       }
     },
     {
@@ -32,7 +32,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_3",
-        "y": 0
+        "y": 180
       }
     },
     {
@@ -42,7 +42,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_4",
-        "y": 0
+        "y": 180
       }
     },
     {
@@ -52,7 +52,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_5",
-        "y": 0
+        "y": 180
       }
     },
     {
@@ -62,7 +62,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_6",
-        "y": 0
+        "y": 180
       }
     },
     {
@@ -72,7 +72,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_1",
-        "y": 90
+        "y": 270
       }
     },
     {
@@ -82,7 +82,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_2",
-        "y": 90
+        "y": 270
       }
     },
     {
@@ -92,7 +92,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_3",
-        "y": 90
+        "y": 270
       }
     },
     {
@@ -102,7 +102,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_4",
-        "y": 90
+        "y": 270
       }
     },
     {
@@ -112,7 +112,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_5",
-        "y": 90
+        "y": 270
       }
     },
     {
@@ -122,7 +122,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_6",
-        "y": 90
+        "y": 270
       }
     },
     {
@@ -132,7 +132,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_1",
-        "y": 180
+        "y": 0
       }
     },
     {
@@ -142,7 +142,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_2",
-        "y": 180
+        "y": 0
       }
     },
     {
@@ -152,7 +152,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_3",
-        "y": 180
+        "y": 0
       }
     },
     {
@@ -162,7 +162,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_4",
-        "y": 180
+        "y": 0
       }
     },
     {
@@ -172,7 +172,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_5",
-        "y": 180
+        "y": 0
       }
     },
     {
@@ -182,7 +182,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_6",
-        "y": 180
+        "y": 0
       }
     },
     {
@@ -192,7 +192,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_1",
-        "y": 270
+        "y": 90
       }
     },
     {
@@ -202,7 +202,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_2",
-        "y": 270
+        "y": 90
       }
     },
     {
@@ -212,7 +212,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_3",
-        "y": 270
+        "y": 90
       }
     },
     {
@@ -222,7 +222,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_4",
-        "y": 270
+        "y": 90
       }
     },
     {
@@ -232,7 +232,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_5",
-        "y": 270
+        "y": 90
       }
     },
     {
@@ -242,7 +242,7 @@
       },
       "apply": {
         "model": "packapunch:block/barricade_board_6",
-        "y": 270
+        "y": 90
       }
     }
   ]

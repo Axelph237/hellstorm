@@ -22,7 +22,7 @@ record ValidationReport(List<Problem> problems) {
   - their boxes share a face, or
   - a mob could walk between them through at most `map.max_passage_gap` cells (default 2) that belong to no zone: a doorway, an arch, an open door, carpet. `Passages` finds these from the zone surfaces using a `CellProbe` (`LevelCellProbe` classifies real blocks with `isPathfindable(LAND)`), so the validator itself stays pure.
   - Pack-a-Punch doors add edges from phase 5.
-- **Closed doors between zones** (WARNING at the door). A closed vanilla door, trapdoor, or fence gate is not a passage, because zombies can't open doors. When it is the only thing joining two zones, the message says where it is and to open it, remove it, or make it a Pack-a-Punch door.
+- **Closed doors between zones** (WARNING at the door). Wooden doors always count as passages, because game zombies open them (`OpenDoorGoal`). A closed iron door, fence gate, or trapdoor is not a passage. When it is the only thing joining two zones, the message says where it is and to open it, remove it, or make it a Pack-a-Punch door.
 - **Key features reachable.** The power switch and PaP are in reachable zones (ERROR if missing when a map has them).
 - **Spawns.** Every zone has at least one spawn marker inside it (WARNING). A marker outside every zone is a WARNING, "not inside a zone or linked to a window yet", until window links exist in phase 4. Zone-level problems carry no position: the message names the zone.
 - **Doors.** Every door links two distinct zones (ERROR).

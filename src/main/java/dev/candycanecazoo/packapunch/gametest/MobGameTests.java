@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.monster.Zombie;
@@ -51,7 +52,7 @@ public final class MobGameTests {
         Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(4, ROOM_Y, 4));
         MobProfile.Ai used = AiInjector.inject(zombie, profile("minecraft:zombie", MobProfile.Ai.REPLACE), STATS, List::of);
         helper.assertTrue(used == MobProfile.Ai.REPLACE, "mode " + used);
-        helper.assertTrue(goalTypes(zombie.goalSelector.getAvailableGoals()).equals(Set.of(FloatGoal.class, GameMeleeGoal.class)),
+        helper.assertTrue(goalTypes(zombie.goalSelector.getAvailableGoals()).equals(Set.of(FloatGoal.class, GameMeleeGoal.class, OpenDoorGoal.class)),
                 "goals: " + goalTypes(zombie.goalSelector.getAvailableGoals()));
         helper.assertTrue(goalTypes(zombie.targetSelector.getAvailableGoals()).equals(Set.of(TargetGamePlayerGoal.class)),
                 "target goals: " + goalTypes(zombie.targetSelector.getAvailableGoals()));
@@ -79,7 +80,7 @@ public final class MobGameTests {
         helper.assertTrue(SupportTier.of(piglin) == SupportTier.PARTIAL_BRAIN, "piglin tier " + SupportTier.of(piglin));
         MobProfile.Ai used = AiInjector.inject(piglin, profile("minecraft:piglin", MobProfile.Ai.REPLACE), STATS, List::of);
         helper.assertTrue(used == MobProfile.Ai.AUGMENT, "brain mob used " + used);
-        helper.assertTrue(piglin.goalSelector.getAvailableGoals().size() == goalsBefore + 1, "augment keeps existing goals and adds melee");
+        helper.assertTrue(piglin.goalSelector.getAvailableGoals().size() == goalsBefore + 2, "augment keeps existing goals and adds melee and door opening");
         helper.succeed();
     }
 }

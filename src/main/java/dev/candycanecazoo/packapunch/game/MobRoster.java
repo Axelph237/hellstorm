@@ -20,7 +20,12 @@ public record MobRoster(List<Entry> entries) {
 
     /** A weighted pick among profiles allowed this round. Empty if none is. */
     public Optional<ResourceLocation> pick(int round, RandomSource random) {
-        List<Entry> allowed = entries.stream().filter(e -> e.allowedIn(round)).toList();
+        return pick(round, random, profile -> true);
+    }
+
+    /** As {@link #pick(int, RandomSource)}, among only the profiles {@code fits} accepts (for example, ones that fit a window). */
+    public Optional<ResourceLocation> pick(int round, RandomSource random, java.util.function.Predicate<ResourceLocation> fits) {
+        List<Entry> allowed = entries.stream().filter(e -> e.allowedIn(round) && fits.test(e.profile())).toList();
         int total = allowed.stream().mapToInt(Entry::weight).sum();
         if (total <= 0) {
             return Optional.empty();

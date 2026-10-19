@@ -37,6 +37,17 @@ public record WindowDef(String id, BlockBox opening, Direction outward, int maxB
         return opening.sizeY();
     }
 
+    /** The bottom cell of every column of the opening, left to right along the wall. */
+    public java.util.List<BlockPos> columns() {
+        java.util.List<BlockPos> columns = new java.util.ArrayList<>();
+        for (int x = opening.minX(); x <= opening.maxX(); x++) {
+            for (int z = opening.minZ(); z <= opening.maxZ(); z++) {
+                columns.add(new BlockPos(x, opening.minY(), z));
+            }
+        }
+        return columns;
+    }
+
     /** Where a zombie stands to attack the window: just outside the bottom-middle of the opening. */
     public BlockPos attackSpot() {
         return bottomCenter().relative(outward);
