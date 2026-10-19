@@ -28,7 +28,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 
 - **`GameManager`** keeps one `Game` per map level. Nothing is static, so several maps (in several dimensions) can run at once.
 - **Tick.** `Game.tick()` switches on the phase and returns the next phase. Transitions:
-  - `Lobby → Countdown` on `/zombies start` or when every joined player is ready.
+  - `Lobby → Countdown` on `/pap start` or when every joined player is ready.
   - `Countdown → Intermission(1)` when the timer ends. `MapValidator` runs first and blocks the start on any ERROR.
   - `Intermission(r) → RoundActive(r)` after `rounds.intermission_ticks`.
   - `RoundActive(r) → Intermission(r+1)` when `toSpawn == 0 && alive == 0`.

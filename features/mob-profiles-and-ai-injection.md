@@ -47,7 +47,7 @@ Any mob, vanilla or from another mod, can be a zombie. A datapack names the enti
 - **Partial:** Brain-based mobs (piglin, hoglin, warden, villager). Their Brain fights our goals for movement. Only `augment` is allowed, with a WARNING.
 - **Unsupported for navigation:** non-`PathfinderMob` mobs (ghast, phantom) and mods that rebuild goals every tick. WARNING. They still count as zombies and can target players.
 
-**Testing aid.** `/zombies mobtest <profile>` builds a small test pen with a window and two zones and spawns the profile there.
+**Testing aid.** `/pap mobtest <profile>` builds a small test pen with a window and two zones and spawns the profile there.
 
 ## Config surface
 
@@ -63,7 +63,7 @@ None. Mobs use their own models.
 
 ## Verification
 
-- `/zombies mobtest` with a zombie, a skeleton, and one modded mob: each breaks the window and paths across two zones.
+- `/pap mobtest` with a zombie, a skeleton, and one modded mob: each breaks the window and paths across two zones.
 - Profile loading: a piglin profile with `replace` logs a WARNING and is forced to `augment`.
 - A wild zombie outside the game is not affected (no goals added, normal drops).
 - Killed game mobs drop nothing.

@@ -43,7 +43,7 @@ end)
 **Event bus.** `GameEvents.emit(game, event)` delivers to subscribers in priority order on the server thread. The Lua runtime is one subscriber. A Forge-event adapter for Java addons can be added later as another. In the MVP events are notifications only. Cancellable events come later.
 
 **Runtime** (`script/LuaRuntime`), one per running game:
-- Built at game start from the current datapack scripts and discarded at game end, so globals never leak between games. `/zombies script reload` rebuilds it mid-game.
+- Built at game start from the current datapack scripts and discarded at game end, so globals never leak between games. `/pap script reload` rebuilds it mid-game.
 - LuaJ from FiguraMC's maintained fork (`com.github.FiguraMC.luaj:luaj-core` and `luaj-jse`, `3.0.8-figura`, MIT), bundled with Forge jarJar using range `[3.0.8,)`. TacZ already jarJars the same artifacts, so Forge loads one shared copy, and the mod keeps working if TacZ ever drops it. Figura runs untrusted player scripts with this fork, so it is built with sandboxing in mind. Found in the TacZ jar's `META-INF/jarjar/metadata.json` during phase 0.
 
 **Sandbox** (LuaJ's `SampleSandboxed` pattern):
@@ -61,7 +61,7 @@ end)
 - `log.info/warn/error(msg)`.
 - `game.round()`, `game.players()`, `game.points(uuid)`, `game.zone_of(uuid)`, read-only.
 
-**EventDef loading.** A reload listener parses EventDefs. At runtime build, each EventDef looks up its script and function. A missing script or function is a load ERROR shown in `/zombies map validate`.
+**EventDef loading.** A reload listener parses EventDefs. At runtime build, each EventDef looks up its script and function. A missing script or function is a load ERROR shown in `/pap map validate`.
 
 **Contract for other features.** Each feature emits its event as part of being done. This file's catalogue lists them.
 

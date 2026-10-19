@@ -15,24 +15,26 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 
-public final class ZombiesCommand {
+public final class PapCommand {
     private static final int RESERVE_MAGAZINES = 8;
     private static final DynamicCommandExceptionType UNKNOWN_GUN =
             new DynamicCommandExceptionType(id -> Component.literal("Unknown TacZ gun: " + id));
 
-    private ZombiesCommand() {}
+    private PapCommand() {}
 
     public static void register(RegisterCommandsEvent event) {
         register(event.getDispatcher());
     }
 
     static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("zombies")
+        dispatcher.register(Commands.literal("pap")
                 .requires(source -> source.hasPermission(2))
+                .then(ZoneCommands.zone())
+                .then(ZoneCommands.map())
                 .then(Commands.literal("give")
                         .then(Commands.argument("gun", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(TaczBridge.allGuns(), builder))
-                                .executes(ZombiesCommand::give))));
+                                .executes(PapCommand::give))));
     }
 
     private static int give(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

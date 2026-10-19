@@ -109,7 +109,7 @@ Support tiers:
 - **Unsupported for navigation.** Mobs that aren't `PathfinderMob` (ghast, phantom) or that rebuild their goals every tick. The profile loader warns about these. They still count as zombies and can target players.
 - **Hitbox.** Windows vary in size, so `MapValidator` checks each mob's bounding box against the openings of the windows it can spawn at.
 
-The main risk is behavior parity across arbitrary mods, not the injection code. `/zombies mobtest <profile>` spawns a profile in a test pen so a pack author can check it.
+The main risk is behavior parity across arbitrary mods, not the injection code. `/pap mobtest <profile>` spawns a profile in a test pen so a pack author can check it.
 
 ## Zombie pathfinding
 
@@ -154,7 +154,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
   - **Collision.** A member returns an empty collision shape to game mobs once boards reach 0 and a full shape to players, using the entity collision context.
   - **Zombie targeting and validation.** Zombies target the controller's attack face. Spawn markers link to the controller. `MapValidator` checks every mob profile that can spawn at a window against that window's opening, so a profile whose hitbox doesn't fit gets flagged per window. The other features are `WallBuy`, `MysteryBox`, `PerkMachine`, `PapMachine`, `PowerSwitch`, `TrapController`, and `SpawnMarker`. All purchases go through a single `Purchasable` path that checks distance, points, power, and state on the server.
 - `tacz/` holds `TaczBridge`.
-- `tools/` holds the map-maker items, the `/zombies` commands, room detection, and map and room export.
+- `tools/` holds the map-maker items, the `/pap` commands, room detection, and map and room export.
 - `script/` holds `GameEvents` with the sealed `GameEvent` type, `EventDef` loading, `LuaRuntime` (sandboxed globals, instruction hook, `require` searcher), and the Lua API bindings.
 - `net/` holds the `SimpleChannel` packets.
 - `client/` holds the HUD overlays, look-at purchase prompts, feature config screens, and `outline/ZoneOutlines` (the only place that uses Ponder).
@@ -189,7 +189,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
   On any `Rejected`, the player gets the same item back, is not charged, and sees the reason.
 
-  **Load-time errors.** The last two `Rejected` cases are also caught early. On server start, after `/reload`, and in `MapValidator` before a game starts, a `PunchAudit` scans every item source the mod controls: wall-buy BlockEntities (through the feature index), box pools, the starting loadout, and every `PunchDef` result. Each bad item gets an ERROR log line with its source and position, a chat message to ops when they join, and an entry in `/zombies map validate`. Items brought in from outside these sources (from chests or other mods) can't be scanned. The machine still rejects them safely at punch time.
+  **Load-time errors.** The last two `Rejected` cases are also caught early. On server start, after `/reload`, and in `MapValidator` before a game starts, a `PunchAudit` scans every item source the mod controls: wall-buy BlockEntities (through the feature index), box pools, the starting loadout, and every `PunchDef` result. Each bad item gets an ERROR log line with its source and position, a chat message to ops when they join, and an entry in `/pap map validate`. Items brought in from outside these sources (from chests or other mods) can't be scanned. The machine still rejects them safely at punch time.
 - **Downs and revives.** Lethal damage while the player has lives puts them in `Downed` instead of killing them. They crawl, can use a pistol only, and zombies ignore them. A teammate holds use for N seconds to revive (Quick Revive shortens it), and solo Quick Revive self-revives up to 3 times. A player who bleeds out spectates and respawns next round. Food is held at 17 to disable vanilla regen, and custom CoD-style regen replaces it.
 - **Power-ups.** These are floating entities dropped on kills, with a chance roll and a per-round cap. The types are Max Ammo, Insta-Kill, Double Points, Nuke, Carpenter (resets barricades), and Fire Sale.
 - **Power switch and traps.** Power is a map-level flag. A trap controller is a purchasable block that outputs a redstone signal for N ticks and then cools down. What the trap does is built by the map maker with redstone.
@@ -198,15 +198,15 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
 ## Map-maker tools
 
-- **Zone Wand.** Select two corners, then `/zombies zone add <zone>`. Several boxes can make up one zone.
-- **Room detection.** `/zombies zone detect <zone>` flood-fills the air volume from the player, stopping at solids, door members, and barricades, up to a volume cap. Greedy box merging turns the result into AABBs.
+- **Zone Wand.** Select two corners, then `/pap zone add <zone>`. Several boxes can make up one zone.
+- **Room detection.** `/pap zone detect <zone>` flood-fills the air volume from the player, stopping at solids, door members, and barricades, up to a volume cap. Greedy box merging turns the result into AABBs.
 - **Door Wand.** Works like the Zone Wand, but picks blocks instead of space. Click blocks, or two corners for a box, to add them to a door group. The group shows as a Create-style cluster outline, and a block already in another door shows yellow. Zones on each side are inferred.
 - **Window Tool.** Drag a rectangle on a wall face, using the same snapping Create-style selection box. Confirming fills the opening with barricade blocks and places the controller. The tool refuses openings over the configured maximum and shows them in yellow.
 - **Link Tool.** It links a door to its two zones and a spawn marker to its window. The links are inferred when a door sits between two zones.
 - **Feature configuration.** In creative mode, right-clicking a feature block opens a config screen for gun id, cost, perk, and so on.
 - **Visualizer.** While a tool is held, the client renders zone boxes, door links, and spawn points in the Create style described in the next section.
-- **`/zombies map validate`** runs `MapValidator` and reports problems with their coordinates.
-- **Export and import.** `/zombies map export|import` handles a map pack: structure NBT, map JSON, and the map's datapack, including its EventDefs and Lua scripts.
+- **`/pap map validate`** runs `MapValidator` and reports problems with their coordinates.
+- **Export and import.** `/pap map export|import` handles a map pack: structure NBT, map JSON, and the map's datapack, including its EventDefs and Lua scripts.
 - **Edit mode and play mode.** Markers show and games are blocked while the map is in edit mode.
 
 ## Zone visuals (Create-style outlines)
@@ -264,7 +264,7 @@ In the MVP these are notifications only. Events that can be cancelled come later
 - **Errors.** Script errors are caught and logged with the script id and line. A listener that fails N times in a row (configurable) is disabled.
 - **Limits of the sandbox.** It protects the host machine: no files, network, or Java reflection. It does not protect the game world, because scripts can run op-level commands. That is the same trust a datapack's mcfunctions already get. LuaJ can't cap memory exactly, and the instruction budget only bounds how much a single call allocates.
 
-**Lifecycle.** Each running game gets a fresh Lua runtime built from the current datapack scripts at game start, and it is thrown away at game end. Script globals therefore never leak between games, and a `/reload` takes effect from the next game. `/zombies script reload` rebuilds the runtime for the current game.
+**Lifecycle.** Each running game gets a fresh Lua runtime built from the current datapack scripts at game start, and it is thrown away at game end. Script globals therefore never leak between games, and a `/reload` takes effect from the next game. `/pap script reload` rebuilds the runtime for the current game.
 
 ## Post-MVP: procedural generation
 
@@ -278,13 +278,13 @@ The design as researched:
 - **Layout.** `LayoutGenerator` is a pure, seed-deterministic room-graph builder on a grid of 16-block cells. It grows a critical path start → power → PaP, then side branches, and door costs rise with depth.
 - **Validation.** `MapValidator` must accept a layout before it is used. If it doesn't, the generator retries with the next sub-seed.
 - **Placement.** Each piece is placed in `applyBiomeDecoration`, clipped to the chunk. This avoids jigsaw's limits of depth 7 and 128-block radius.
-- **Room authoring.** Rooms come from a `/zombies room export` tool that saves part of a hand-built map as an NBT template plus socket metadata.
+- **Room authoring.** Rooms come from a `/pap room export` tool that saves part of a hand-built map as an NBT template plus socket metadata.
 
 ## Phases (each ends in a check)
 
 0. **Scaffold and spikes.**
    - Write `PLAN.md`, the `features/` files, and an empty `TEXTURES_NEEDED.md` before writing any code. (Done.)
-   - Set up the Forge 1.20.1 MDK with Parchment mappings, the TacZ dependency, and Ponder and Flywheel bundled with jarJar. Add `/zombies give <gunId>`.
+   - Set up the Forge 1.20.1 MDK with Parchment mappings, the TacZ dependency, and Ponder and Flywheel bundled with jarJar. Add `/pap give <gunId>`.
    - Spike the open unknowns:
      - That an `AttachmentPropertyEvent` override shows up in live fire for RPM and mag size.
      - How to read a gun's type (pistol) from `CommonGunIndex` for the downed-pistol rule.
@@ -296,7 +296,7 @@ The design as researched:
      - A test Outliner box renders in the world.
      - The built jar launches both alone and alongside Create 6.0.8 without a duplicate-mod error.
      - The spike results are logged.
-1. **Map model and zone tools.**
+1. **Map model and zone tools.** (Done.)
    - Build the map model, codecs, `MapSavedData`, `ZoneIndex`, the Zone Wand with Create-style outlines, zone commands, room detection, spawn markers, and `MapValidator`.
    - *Check:* build two zones in the void builder world, see them outlined while holding the wand, and pass validation.
 2. **Core loop.**
@@ -309,7 +309,7 @@ The design as researched:
 4. **Mob profiles and AI.**
    - Build `MobProfile` loading, `AiInjector`, barricades and windows, and hierarchical pathfinding: passability snapshots, the portal-to-portal cache filled on door open, and A\* over the portal graph.
    - Spike the Manhattan-versus-octile heuristic: compare path quality and nodes expanded on the test map.
-   - *Check:* `/zombies mobtest` with a zombie, a skeleton, and one modded mob, each breaking a window and pathing across two zones.
+   - *Check:* `/pap mobtest` with a zombie, a skeleton, and one modded mob, each breaking a window and pathing across two zones.
 5. **Purchasables.**
    - Build doors with the Door Wand, the Link Tool, wall-buys, the box, perks, PaP, the power switch, feature config screens, and the HUD prompts.
 6. **Survival systems.**

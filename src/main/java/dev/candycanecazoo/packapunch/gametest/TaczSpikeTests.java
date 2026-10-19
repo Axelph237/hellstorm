@@ -76,7 +76,7 @@ public final class TaczSpikeTests {
             gun.setBulletInBarrel(stack, false);
             startReserve.put(gunId, gun.getDummyAmmoAmount(stack));
             int i = holders.size();
-            holders.put(gunId, gunHolder(helper, new BlockPos(1 + i % 7, 1, 1 + (i / 7) % 7), stack));
+            holders.put(gunId, gunHolder(helper, new BlockPos(1 + i % 7, TestLayout.ROOM_Y, 1 + (i / 7) % 7), stack));
         }
         PackAPunch.LOG.info("[spike] inventory-fed guns skipped (dummy ammo does not apply): {}", inventoryFed);
         long startedAt = System.currentTimeMillis();
@@ -116,8 +116,8 @@ public final class TaczSpikeTests {
         ResourceLocation gunId = ResourceLocation.tryBuild("tacz", "ak47");
         ItemStack slowStack = TaczBridge.createGun(gunId, 3).orElseThrow(() -> new IllegalStateException("tacz:ak47 missing"));
         slowStack.getOrCreateTag().putInt(SpikeRpmOverride.TAG, 60);
-        Zombie stock = gunHolder(helper, new BlockPos(2, 1, 4), TaczBridge.createGun(gunId, 3).orElseThrow());
-        Zombie slow = gunHolder(helper, new BlockPos(6, 1, 4), slowStack);
+        Zombie stock = gunHolder(helper, new BlockPos(2, TestLayout.ROOM_Y, 4), TaczBridge.createGun(gunId, 3).orElseThrow());
+        Zombie slow = gunHolder(helper, new BlockPos(6, TestLayout.ROOM_Y, 4), slowStack);
         AttachmentPropertyManager.postChangeEvent(slow, slow.getMainHandItem());
         AttachmentPropertyManager.postChangeEvent(stock, stock.getMainHandItem());
         Integer cachedRpm = IGunOperator.fromLivingEntity(slow).getCacheProperty().getCache(GunProperties.ROUNDS_PER_MINUTE);
@@ -157,7 +157,7 @@ public final class TaczSpikeTests {
 
     @GameTest(template = "floor")
     public static void goalSelectorIsReachable(GameTestHelper helper) {
-        Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(4, 1, 4));
+        Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(4, TestLayout.ROOM_Y, 4));
         helper.assertTrue(!zombie.goalSelector.getAvailableGoals().isEmpty(), "zombie started with no goals");
         zombie.goalSelector.removeAllGoals(goal -> true);
         zombie.targetSelector.removeAllGoals(goal -> true);

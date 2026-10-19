@@ -30,7 +30,7 @@ Room pools and themes are datapack JSON. Room templates are NBT exported from ha
 - **Validation.** Convert the layout to a `ZombiesMap` and run `MapValidator`. If it fails, retry with the next sub-seed.
 - **Slots.** Marker blocks in templates become features: wall-buy slots draw from `WeaponTier` by depth, perk slots from the required perk set.
 - **Placement.** In `applyBiomeDecoration`, place each piece that intersects the chunk, clipped to the chunk box (the same approach as vanilla `StructureStart.placeInChunk`). This avoids jigsaw's limits of depth 7 and 128-block radius. The layout is memoized per seed in a thread-safe way, and written to `MapSavedData` on first start, so `/reload` never changes an existing world.
-- **Room authoring.** `/zombies room export <name>` saves a selection of a hand-built map as a template plus a `RoomDef` with its footprint and sockets.
+- **Room authoring.** `/pap room export <name>` saves a selection of a hand-built map as a template plus a `RoomDef` with its footprint and sockets.
 
 ## Config surface
 

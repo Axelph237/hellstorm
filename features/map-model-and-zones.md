@@ -36,7 +36,7 @@ Config for a feature (gun id, cost, perk) lives in its BlockEntity, not in `Zomb
 ## Implementation
 
 - **`MapSavedData`** stores the `ZombiesMap` per level via `level.getDataStorage().computeIfAbsent(...)`. It is written by the tools and read at game start.
-- **Feature registration.** Each feature BlockEntity adds its `FeatureRef` in `onLoad` and when placed, and removes it when broken. The map therefore knows about features in unloaded chunks.
+- **Feature registration.** Each feature block adds its `FeatureRef` in `Block#onPlace` and removes it in `Block#onRemove`, so the map knows about features in unloaded chunks. Spawn markers have no BlockEntity yet: their zone is whichever zone contains them, so editing zones never leaves a stale link.
 - **`ZoneIndex`** answers "which zone contains this position?" It buckets each zone box into the chunk sections it overlaps, so a lookup checks only the boxes in one section. It is rebuilt when zones change.
 - **`MapCompiler`** turns `ZombiesMap` plus the loaded feature BlockEntities into an immutable `CompiledMap` at game start. It force-loads the map's chunks with `ForgeChunkManager` tickets for the length of the game.
 - **Runtime room detection.** Every few ticks, `ZoneIndex` resolves each player's current zone. Spawning and pathfinding read this.

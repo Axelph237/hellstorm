@@ -14,13 +14,13 @@ Snapshots are stored in `MapSavedData` so they survive a crash.
 
 ## Implementation
 
-- **Joining** (`/zombies join` or a join pad block):
+- **Joining** (`/pap join` or a join pad block):
   1. Save an `InventorySnapshot`.
   2. Clear the inventory and effects, set adventure mode, teleport to the start zone.
   3. Give the starting loadout (configurable `ItemSpec` list, default a TacZ pistol and a knife).
   4. Set starting points.
 - **Late join.** Joining during `RoundActive` puts the player in `Spectating(respawnNextRound = true)`.
-- **Leaving** (`/zombies leave`, game over, or kick): restore the snapshot exactly and delete it.
+- **Leaving** (`/pap leave`, game over, or kick): restore the snapshot exactly and delete it.
 - **Disconnect.** The player's state is kept for `sessions.reconnect_grace_ticks`. Reconnecting in time restores their game state. After that they are removed from the game, and their snapshot is restored on their next login.
 - **Crash.** On server start, any leftover snapshot is restored the next time that player logs in.
 - **Server authority.** Every purchase, revive, and pickup is decided on the server. Clients only send intent packets ("use pressed on block X"), which the server validates.

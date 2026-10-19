@@ -60,7 +60,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 **`PunchAudit`** reports the two `Rejected` errors before anyone plays:
 - Runs on server start, after `/reload`, and inside `MapValidator` at game start.
 - Scans every item source the mod controls: wall-buy BlockEntities (through the feature index), box pools, the starting loadout, and every `PunchDef` result.
-- Each problem is an ERROR log line with its source and position, a chat message to ops on join, and a line in `/zombies map validate`.
+- Each problem is an ERROR log line with its source and position, a chat message to ops on join, and a line in `/pap map validate`.
 - Items from outside these sources (chests, other mods) can't be scanned. The machine still rejects them safely.
 
 ## Config surface

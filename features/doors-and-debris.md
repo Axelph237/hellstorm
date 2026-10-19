@@ -28,10 +28,10 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 ## Implementation
 
 **Door Wand** (a map-maker tool, same feel as the Zone Wand):
-- `/zombies door create <door>` starts a new group, or right-click a member of an existing door to select it.
+- `/pap door create <door>` starts a new group, or right-click a member of an existing door to select it.
 - Right-click a block to add or remove it. Click two corners to add every non-air block in the box, like the Zone Wand selection.
 - The selected group shows as a Create-style `showCluster` outline around the blocks. Other doors in range show thinner clusters in their own color. A block already in another door shows yellow and is refused.
-- `/zombies door set <door> cost|power|style|name <value>`, or the creative config screen opened by sneak-right-clicking a member with the wand.
+- `/pap door set <door> cost|power|style|name <value>`, or the creative config screen opened by sneak-right-clicking a member with the wand.
 - Zones are inferred from the zones touching the group on each side. The Link Tool overrides them.
 - In edit mode, breaking a member removes it from the group. Removing the last member deletes the door.
 

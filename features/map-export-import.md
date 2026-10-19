@@ -18,17 +18,17 @@ mymap.zip
 
 ## Implementation
 
-- **Export** (`/zombies map export <name>`):
+- **Export** (`/pap map export <name>`):
   1. Run `MapValidator`. Warn on ERRORs but allow export with `--force`.
   2. Split the map's bounding box into 48³ pieces and save each with `StructureTemplate.fillFromWorld`. BlockEntity data (feature configs) comes along.
   3. Write `map.json` with positions relative to the map origin.
   4. Copy the map's datapack folder from the world.
-- **Import** (`/zombies map import <name> [pos]`):
+- **Import** (`/pap map import <name> [pos]`):
   1. Install the datapack into the world's `datapacks/` and run `/reload`.
   2. Place each template with `placeInWorld`, offset to `pos`.
   3. Write `MapSavedData` from `map.json`, offset to `pos`.
   4. Run `MapValidator` and print the report.
-- **Edit and play mode.** `/zombies map mode edit|play`. Edit mode shows markers and blocks games. Play mode hides markers and allows games.
+- **Edit and play mode.** `/pap map mode edit|play`. Edit mode shows markers and blocks games. Play mode hides markers and allows games.
 - **Safety.** Imported scripts run inside the Lua sandbox (see `scripting-and-events.md`), so a downloaded map can't touch the host machine.
 
 ## Config surface

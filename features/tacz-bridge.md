@@ -44,7 +44,7 @@ None.
 
 ## Verification
 
-- `/zombies give tacz:ak47` gives a working AK with a full magazine and a reserve stored as dummy ammo, and no ammo items appear in the inventory.
+- `/pap give tacz:ak47` gives a working AK with a full magazine and a reserve stored as dummy ammo, and no ammo items appear in the inventory.
 - Shooting a zombie produces one `GunHit` on the server and none on the client (log counter).
 - A headshot kill produces `GunKill` with `headshot = true`.
 - Phase 0 spike: an `AttachmentPropertyEvent` override visibly changes RPM and mag size in live fire, and dummy ammo works with every reload type in the default gun pack.
