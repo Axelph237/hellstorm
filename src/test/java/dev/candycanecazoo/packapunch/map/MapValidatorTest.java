@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.map;
 import dev.candycanecazoo.packapunch.map.validate.MapValidator;
 import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -87,5 +88,22 @@ class MapValidatorTest {
     void zoneWithNoBoxesIsAnError() {
         ValidationReport report = MapValidator.validate(twoTouchingZonesWithSpawns().withZone(Zone.empty(new ZoneId("ghost"))));
         assertTrue(report.has(MapValidator.EMPTY_ZONE));
+    }
+
+    @Test
+    void windowChecks() {
+        ZombiesMap map = twoTouchingZonesWithSpawns()
+                .withWindow(new WindowDef("huge", new BlockBox(2, 0, -1, 9, 1, -1), Direction.NORTH, 6, START))
+                .withWindow(new WindowDef("lost", new BlockBox(12, 0, -1, 12, 1, -1), Direction.NORTH, 6, new ZoneId("nowhere")))
+                .withFeature(new BlockPos(12, 0, -3), FeatureKind.SPAWN);
+        ValidationReport report = MapValidator.validate(map, new dev.candycanecazoo.packapunch.map.validate.ValidationContext(
+                CellProbe.ALL_SOLID, 2, new dev.candycanecazoo.packapunch.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
+                List.of(new dev.candycanecazoo.packapunch.map.validate.ValidationContext.MobSize("test:giant", 3.6f, 12f))));
+        assertTrue(report.has(MapValidator.WINDOW_TOO_LARGE), "8 wide is over 5");
+        assertTrue(report.has(MapValidator.WINDOW_UNKNOWN_ZONE));
+        assertTrue(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'huge'")));
+        assertFalse(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'lost'")),
+                "the marker in front of 'lost' links to it");
+        assertTrue(report.has(MapValidator.MOB_TOO_BIG_FOR_WINDOW));
     }
 }

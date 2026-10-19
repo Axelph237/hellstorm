@@ -9,6 +9,8 @@ public final class Economy {
         int base;
         if (source instanceof PointSource.Kill kill) {
             base = kill.melee() ? s.meleeKill() : kill.headshot() ? s.headshotKill() : s.kill();
+        } else if (source instanceof PointSource.Repair) {
+            base = s.repair();
         } else {
             base = s.hit();
         }

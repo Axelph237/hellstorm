@@ -26,7 +26,11 @@ class GameTest {
             new GameSettings.Rounds(3, 1.0, 0.0, 0.1, 100, 0.23, 0.32, 24, 1, 3, 2, 2),
             new GameSettings.Spawning(1, 24.0, 0.0),
             GameSettings.DEFAULT.economy(),
-            GameSettings.DEFAULT.players());
+            GameSettings.DEFAULT.players(),
+            GameSettings.DEFAULT.windows());
+
+    private static final MobRoster ROSTER = new MobRoster(List.of(
+            new MobRoster.Entry(net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty())));
 
     private static final List<ZoneId> ZONES = List.of(new ZoneId("a"), new ZoneId("b"), new ZoneId("c"), new ZoneId("d"));
 
@@ -49,7 +53,7 @@ class GameTest {
     }
 
     private Game newGame(GameSettings settings) {
-        return new Game(settings, map(), RandomSource.create(7), events);
+        return new Game(settings, map(), ROSTER, RandomSource.create(7), events);
     }
 
     @BeforeEach
@@ -126,7 +130,7 @@ class GameTest {
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
                 new GameSettings.Rounds(10, 0, 0, 0.1, 100, 0.23, 0.32, 2, 5, 3, 0, 2),
-                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players());
+                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows());
         Game game = newGame(capped);
         game.join(alice);
         game.start();
@@ -245,5 +249,13 @@ class GameTest {
         tick(game, world, 1);
         assertInstanceOf(GamePhase.Intermission.class, game.phase());
         assertEquals("Round 1", game.status(alice).phase());
+    }
+
+    @Test
+    void spawnsCarryTheRosterProfile() {
+        Game game = startedGame();
+        tick(game, world, 10);
+        assertFalse(world.specs.isEmpty());
+        assertTrue(world.specs.stream().allMatch(spec -> spec.profile().toString().equals("test:zombie")));
     }
 }

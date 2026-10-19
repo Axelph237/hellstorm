@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EconomyTest {
-    private static final GameSettings.Economy E = new GameSettings.Economy(500, 10, 60, 100, 130);
+    private static final GameSettings.Economy E = new GameSettings.Economy(500, 10, 60, 100, 130, 10, 500);
 
     @Test
     void eachSourceAwardsItsSetting() {

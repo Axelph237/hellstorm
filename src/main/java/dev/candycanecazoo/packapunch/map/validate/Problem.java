@@ -1,5 +1,7 @@
 package dev.candycanecazoo.packapunch.map.validate;
 
+import dev.candycanecazoo.packapunch.util.Codecs;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -23,7 +25,7 @@ public record Problem(Severity severity, String code, String message, Optional<B
             Severity.CODEC.fieldOf("severity").forGetter(Problem::severity),
             Codec.STRING.fieldOf("code").forGetter(Problem::code),
             Codec.STRING.fieldOf("message").forGetter(Problem::message),
-            BlockPos.CODEC.optionalFieldOf("pos").forGetter(Problem::pos)
+            Codecs.strictOptional(BlockPos.CODEC, "pos").forGetter(Problem::pos)
     ).apply(i, Problem::new));
 
     public static Problem error(String code, String message, BlockPos pos) {

@@ -7,8 +7,13 @@ import dev.candycanecazoo.packapunch.map.Passages;
 import dev.candycanecazoo.packapunch.map.ZoneIndex;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import dev.candycanecazoo.packapunch.map.validate.MapValidator;
+import dev.candycanecazoo.packapunch.map.validate.ValidationContext;
 import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
+import net.minecraft.world.entity.EntityType;
+import net.minecraftforge.registries.ForgeRegistries;
 import dev.candycanecazoo.packapunch.script.GameScripts;
+import dev.candycanecazoo.packapunch.mob.MobProfile;
+import dev.candycanecazoo.packapunch.mob.MobProfiles;
 import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -59,26 +64,49 @@ public final class GameManager {
     }
 
     /** Validates the level's map and opens a lobby for it. */
+    /** How this level's map is validated: its blocks, the window rules, and every mob profile's hitbox. */
+    public static ValidationContext validationContext(ServerLevel level) {
+        List<ValidationContext.MobSize> mobs = new ArrayList<>();
+        MobProfiles.all().forEach((id, profile) -> {
+            EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
+            if (type != null) {
+                mobs.add(new ValidationContext.MobSize(id.toString(), type.getWidth(), type.getHeight()));
+            }
+        });
+        return new ValidationContext(LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get(), settings().windows(), mobs);
+    }
+
+    private static dev.candycanecazoo.packapunch.config.GameSettings settings() {
+        return SettingsResolver.resolve(ServerConfig.GAME.get(), Optional.empty()).getOrThrow(false, IllegalStateException::new);
+    }
+
     public static CreateResult create(ServerLevel level) {
         ZombiesMap map = MapSavedData.get(level).map();
-        int maxGap = ServerConfig.MAX_PASSAGE_GAP.get();
-        ValidationReport report = MapValidator.validate(map, LevelCellProbe.of(level), maxGap);
+        ValidationContext context = validationContext(level);
+        ValidationReport report = MapValidator.validate(map, context);
         if (!report.playable()) {
             return new CreateResult.Invalid(report);
         }
-        GameMap gameMap = GameMap.of(map, Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), maxGap).open());
+        GameMap gameMap = GameMap.of(map, Passages.find(map, ZoneIndex.of(map), context.probe(), context.maxPassageGap()).open(),
+                context.windows().linkRange());
         List<net.minecraft.core.BlockPos> startCells = StartCells.find(level, map.startZones());
         if (startCells.isEmpty()) {
             return new CreateResult.NoStartCells();
         }
+        WindowOps.resetAll(level, map);
         return new CreateResult.Created(register(level, gameMap, startCells, level.getServer().getPlayerList()::getPlayer));
     }
 
     /** Registers a game directly. GameTests use this with their own map and player lookup. */
     public static Active register(ServerLevel level, GameMap map, List<net.minecraft.core.BlockPos> startCells, Function<UUID, ServerPlayer> lookup) {
-        var settings = SettingsResolver.resolve(ServerConfig.GAME.get(), Optional.empty()).getOrThrow(false, IllegalStateException::new);
-        Game game = new Game(settings, map, RandomSource.create(), new GameEvents());
-        ForgeGameWorld world = new ForgeGameWorld(level, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup);
+        var settings = settings();
+        Map<net.minecraft.resources.ResourceLocation, MobProfile> profiles = MobProfiles.all();
+        MobRoster roster = new MobRoster(profiles.entrySet().stream()
+                .map(e -> new MobRoster.Entry(e.getKey(), e.getValue().weight(), e.getValue().minRound(), e.getValue().maxRound()))
+                .toList());
+        Game game = new Game(settings, map, roster, RandomSource.create(), new GameEvents());
+        ForgeGameWorld world = new ForgeGameWorld(level, map, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup,
+                profiles, game::targetable, settings.windows().tearTicks());
         Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)));
         GAMES.put(level.dimension(), active);
         return active;
@@ -107,6 +135,7 @@ public final class GameManager {
     /** Stops the game if needed, gives every player back their normal state, and removes the game. */
     public static void end(Active active) {
         active.game().stop(active.world());
+        WindowOps.resetAll(active.level(), active.game().map().map());
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {
             ServerPlayer online = active.level().getServer().getPlayerList().getPlayer(player.id());

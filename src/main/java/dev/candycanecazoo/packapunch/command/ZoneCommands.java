@@ -220,7 +220,7 @@ final class ZoneCommands {
 
     private static int validate(CommandContext<CommandSourceStack> ctx) {
         ServerLevel level = ctx.getSource().getLevel();
-        ValidationReport report = MapValidator.validate(MapSavedData.get(level).map(), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get());
+        ValidationReport report = MapValidator.validate(MapSavedData.get(level).map(), dev.candycanecazoo.packapunch.game.GameManager.validationContext(level));
         if (ctx.getSource().getEntity() instanceof ServerPlayer player) {
             PapNetwork.send(player, new ProblemsPacket(report.problems()));
         }

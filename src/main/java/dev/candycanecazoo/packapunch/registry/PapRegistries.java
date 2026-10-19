@@ -1,6 +1,7 @@
 package dev.candycanecazoo.packapunch.registry;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
+import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.packapunch.tools.ZoneWandItem;
 import net.minecraft.core.registries.Registries;
@@ -25,6 +26,10 @@ public final class PapRegistries {
     public static final RegistryObject<Block> SPAWN_MARKER = BLOCKS.register("spawn_marker", () -> new SpawnMarkerBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED).strength(-1.0f, 3_600_000f)
                     .noCollission().noOcclusion().noLootTable().sound(SoundType.METAL)));
+
+    public static final RegistryObject<Block> BARRICADE = BLOCKS.register("barricade", () -> new BarricadeBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f)
+                    .noOcclusion().noLootTable().sound(SoundType.WOOD).isViewBlocking((s, l, p) -> false)));
 
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));

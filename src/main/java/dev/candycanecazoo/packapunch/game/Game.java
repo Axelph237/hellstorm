@@ -26,6 +26,7 @@ public final class Game {
 
     private final GameSettings settings;
     private final GameMap map;
+    private final MobRoster roster;
     private final RandomSource random;
     private final GameEvents events;
     private final Map<UUID, PlayerState> players = new LinkedHashMap<>();
@@ -35,9 +36,10 @@ public final class Game {
     private boolean warnedNoSpawns;
     private boolean finished;
 
-    public Game(GameSettings settings, GameMap map, RandomSource random, GameEvents events) {
+    public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
         this.settings = settings;
         this.map = map;
+        this.roster = roster;
         this.random = random;
         this.events = events;
     }
@@ -153,6 +155,7 @@ public final class Game {
 
     private GamePhase beginRound(GameWorld world, int round) {
         for (PlayerState player : players.values()) {
+            player.resetRoundCounters();
             if (!player.alive()) {
                 player.setLife(new LifeState.Alive());
                 world.respawn(player.id());
@@ -176,12 +179,12 @@ public final class Game {
         if (round.toSpawn() == 0 || mobs.size() >= settings.rounds().maxAlive()) {
             return round;
         }
-        Optional<UUID> spawned = pickMarker(world).flatMap(marker -> world.spawnZombie(marker, zombieSpec(round.round()))
-                .map(mob -> {
-                    mobs.add(mob);
-                    events.emit(new GameEvent.ZombieSpawned(mob, marker));
-                    return mob;
-                }));
+        Optional<BlockPos> marker = pickMarker(world);
+        Optional<UUID> spawned = marker.flatMap(m -> zombieSpec(round.round()).flatMap(spec -> world.spawnZombie(m, spec)));
+        spawned.ifPresent(mob -> {
+            mobs.add(mob);
+            events.emit(new GameEvent.ZombieSpawned(mob, marker.get()));
+        });
         // The spawn tick itself counts toward the delay, so a delay of N puts the next spawn N ticks later.
         int cooldown = RoundPlan.spawnDelayTicks(settings.rounds(), round.round()) - 1;
         return spawned.isPresent()
@@ -189,10 +192,17 @@ public final class Game {
                 : new GamePhase.RoundActive(round.round(), round.toSpawn(), cooldown);
     }
 
-    private GameWorld.ZombieSpec zombieSpec(int round) {
+    private Optional<GameWorld.ZombieSpec> zombieSpec(int round) {
         GameSettings.Rounds r = settings.rounds();
         boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
-        return new GameWorld.ZombieSpec(RoundPlan.zombieHealth(r, round), sprints ? r.sprintSpeed() : r.walkSpeed());
+        return roster.pick(round, random).map(profile ->
+                new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), sprints ? r.sprintSpeed() : r.walkSpeed()));
+    }
+
+    /** Players zombies may target: in this game and alive. */
+    public boolean targetable(UUID player) {
+        PlayerState state = players.get(player);
+        return state != null && state.alive();
     }
 
     private void updatePlayerZones(GameWorld world) {
@@ -215,7 +225,7 @@ public final class Game {
         playerZones.removeIf(Objects::isNull);
         Set<ZoneId> active = SpawnDirector.activeZones(playerZones, map.graph(), map.unlocked(), settings.spawning().adjacentHops());
         Optional<BlockPos> picked = SpawnDirector.pick(
-                SpawnDirector.candidates(map.spawnMarkers(), map.index(), active, positions, settings.spawning()), random);
+                SpawnDirector.candidates(markerZones(), active, positions, settings.spawning()), random);
         if (picked.isPresent()) {
             return picked;
         }
@@ -230,6 +240,12 @@ public final class Game {
         return Optional.of(fallback.get(random.nextInt(fallback.size())));
     }
 
+    private Map<BlockPos, ZoneId> markerZones() {
+        Map<BlockPos, ZoneId> zones = new LinkedHashMap<>();
+        map.spawnLinks().forEach((marker, link) -> zones.put(marker, link.zone()));
+        return zones;
+    }
+
     private GamePhase enterGameOver(GameWorld world, int roundReached) {
         List<UUID> remaining = List.copyOf(mobs);
         mobs.clear();
@@ -238,6 +254,19 @@ public final class Game {
         world.announce("Game over. You survived " + roundReached + (roundReached == 1 ? " round" : " rounds"));
         phase = new GamePhase.GameOver(roundReached, settings.rounds().gameOverTicks());
         return phase;
+    }
+
+    /** A player put a window board back. Pays until the player hits this round's repair cap. */
+    public void onRepair(UUID repairer) {
+        PlayerState player = players.get(repairer);
+        if (player == null || !player.alive()) {
+            return;
+        }
+        int award = Economy.award(settings.economy(), new PointSource.Repair(), false);
+        int room = settings.economy().repairCapPerRound() - player.repairPointsThisRound();
+        if (room > 0) {
+            player.addRepairPoints(Math.min(award, room));
+        }
     }
 
     /** A game zombie took non-lethal damage from a player. */

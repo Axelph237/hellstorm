@@ -1,0 +1,83 @@
+package dev.candycanecazoo.packapunch.mob.goals;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.EnumSet;
+import java.util.function.IntSupplier;
+import java.util.function.Predicate;
+
+/**
+ * Gets a zombie from its spawn outside the map into the zone: walk to the window, tear boards off, climb through.
+ * Boards come back if a player repairs mid-climb, and the zombie goes back to tearing. Ends once the zombie is inside.
+ */
+public final class BreakBarricadeGoal extends Goal {
+    /** What the goal needs from the window, so it doesn't depend on how windows are stored. */
+    public interface Window {
+        BlockPos attackSpot();
+
+        BlockPos insideSpot();
+
+        int boards();
+
+        void tearBoard();
+    }
+
+    private static final double REACH_SQR = 1.6 * 1.6;
+
+    private final PathfinderMob mob;
+    private final Window window;
+    private final int tearTicks;
+    private final Predicate<BlockPos> insideZone;
+    private int tearProgress;
+    private int repathCooldown;
+
+    public BreakBarricadeGoal(PathfinderMob mob, Window window, int tearTicks, Predicate<BlockPos> insideZone) {
+        this.mob = mob;
+        this.window = window;
+        this.tearTicks = tearTicks;
+        this.insideZone = insideZone;
+        setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK, Flag.JUMP));
+    }
+
+    @Override
+    public boolean canUse() {
+        return !insideZone.test(mob.blockPosition());
+    }
+
+    @Override
+    public boolean requiresUpdateEveryTick() {
+        return true;
+    }
+
+    @Override
+    public void tick() {
+        Vec3 attack = Vec3.atBottomCenterOf(window.attackSpot());
+        Vec3 inside = Vec3.atBottomCenterOf(window.insideSpot());
+        mob.getLookControl().setLookAt(inside.x, inside.y + 1, inside.z);
+        if (window.boards() == 0) {
+            mob.getNavigation().stop();
+            mob.getMoveControl().setWantedPosition(inside.x, inside.y, inside.z, 1.0);
+            return;
+        }
+        if (mob.position().distanceToSqr(attack) > REACH_SQR) {
+            tearProgress = 0;
+            if (--repathCooldown <= 0) {
+                repathCooldown = 10;
+                if (!mob.getNavigation().moveTo(attack.x, attack.y, attack.z, 1.0)) {
+                    mob.getMoveControl().setWantedPosition(attack.x, attack.y, attack.z, 1.0);
+                }
+            }
+            return;
+        }
+        mob.getNavigation().stop();
+        if (++tearProgress >= tearTicks) {
+            tearProgress = 0;
+            mob.swing(InteractionHand.MAIN_HAND);
+            window.tearBoard();
+        }
+    }
+}

@@ -4,6 +4,8 @@ import dev.candycanecazoo.packapunch.map.BlockBox;
 import dev.candycanecazoo.packapunch.map.CellProbe;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.map.Passages;
+import dev.candycanecazoo.packapunch.map.SpawnLinks;
+import dev.candycanecazoo.packapunch.map.WindowDef;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneGraph;
 import dev.candycanecazoo.packapunch.map.ZoneId;
@@ -14,6 +16,7 @@ import net.minecraft.core.BlockPos;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -30,6 +33,10 @@ public final class MapValidator {
     public static final String ZONE_WITHOUT_SPAWN = "zone_without_spawn";
     public static final String SPAWN_OUTSIDE_ZONE = "spawn_outside_zone";
     public static final String CLOSED_DOOR_GAP = "closed_door_gap";
+    public static final String WINDOW_TOO_LARGE = "window_too_large";
+    public static final String WINDOW_UNKNOWN_ZONE = "window_unknown_zone";
+    public static final String WINDOW_WITHOUT_SPAWN = "window_without_spawn";
+    public static final String MOB_TOO_BIG_FOR_WINDOW = "mob_too_big_for_window";
 
     /** Passages are searched this many cells out from each zone unless the caller says otherwise. */
     public static final int DEFAULT_MAX_GAP = 2;
@@ -38,10 +45,16 @@ public final class MapValidator {
 
     /** Validates without looking at the world: only zones whose boxes touch are connected. */
     public static ValidationReport validate(ZombiesMap map) {
-        return validate(map, CellProbe.ALL_SOLID, DEFAULT_MAX_GAP);
+        return validate(map, ValidationContext.OFFLINE);
     }
 
     public static ValidationReport validate(ZombiesMap map, CellProbe probe, int maxGap) {
+        return validate(map, new ValidationContext(probe, maxGap, ValidationContext.OFFLINE.windows(), List.of()));
+    }
+
+    public static ValidationReport validate(ZombiesMap map, ValidationContext context) {
+        CellProbe probe = context.probe();
+        int maxGap = context.maxPassageGap();
         List<Problem> problems = new ArrayList<>();
         if (map.zones().isEmpty()) {
             problems.add(Problem.error(NO_ZONES, "The map has no zones", null));
@@ -49,8 +62,34 @@ public final class MapValidator {
         }
         checkZones(map, problems);
         checkReachability(map, Passages.find(map, ZoneIndex.of(map), probe, maxGap), problems);
-        checkSpawns(map, problems);
+        Map<BlockPos, SpawnLinks.Link> links = SpawnLinks.resolve(map, context.windows().linkRange());
+        checkSpawns(map, links, problems);
+        checkWindows(map, links, context, problems);
         return new ValidationReport(problems);
+    }
+
+    private static void checkWindows(ZombiesMap map, Map<BlockPos, SpawnLinks.Link> links, ValidationContext context, List<Problem> problems) {
+        for (WindowDef window : map.windows().values()) {
+            BlockPos at = window.bottomCenter();
+            if (window.width() > context.windows().maxWidth() || window.height() > context.windows().maxHeight()) {
+                problems.add(Problem.error(WINDOW_TOO_LARGE, "Window '" + window.id() + "' is " + window.width() + "x" + window.height()
+                        + ", over the " + context.windows().maxWidth() + "x" + context.windows().maxHeight() + " limit", at));
+            }
+            if (!map.zones().containsKey(window.zone())) {
+                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, "Window '" + window.id() + "' opens into zone '" + window.zone()
+                        + "', which doesn't exist", at));
+            }
+            if (links.values().stream().noneMatch(l -> l.window().equals(Optional.of(window.id())))) {
+                problems.add(Problem.warning(WINDOW_WITHOUT_SPAWN, "No spawn marker outside window '" + window.id()
+                        + "' (place one within " + context.windows().linkRange() + " blocks of its outer side)", at));
+            }
+            for (ValidationContext.MobSize mob : context.mobs()) {
+                if (Math.ceil(mob.width()) > window.width() || Math.ceil(mob.height()) > window.height()) {
+                    problems.add(Problem.warning(MOB_TOO_BIG_FOR_WINDOW, "Mob profile " + mob.profile() + " (" + mob.width() + "x" + mob.height()
+                            + ") can't fit through window '" + window.id() + "' (" + window.width() + "x" + window.height() + ")", at));
+                }
+            }
+        }
     }
 
     private static void checkZones(ZombiesMap map, List<Problem> problems) {
@@ -99,16 +138,15 @@ public final class MapValidator {
         }
     }
 
-    private static void checkSpawns(ZombiesMap map, List<Problem> problems) {
-        ZoneIndex index = ZoneIndex.of(map);
+    private static void checkSpawns(ZombiesMap map, Map<BlockPos, SpawnLinks.Link> links, List<Problem> problems) {
         Set<ZoneId> zonesWithSpawns = new HashSet<>();
         for (BlockPos spawn : map.features(FeatureKind.SPAWN)) {
-            Optional<ZoneId> zone = index.zoneAt(spawn);
-            if (zone.isPresent()) {
-                zonesWithSpawns.add(zone.get());
+            SpawnLinks.Link link = links.get(spawn);
+            if (link != null) {
+                zonesWithSpawns.add(link.zone());
             } else {
                 problems.add(Problem.warning(SPAWN_OUTSIDE_ZONE,
-                        "Spawn marker isn't inside a zone or linked to a window yet (window links come with windows)", spawn));
+                        "Spawn marker isn't inside a zone or in front of a window", spawn));
             }
         }
         for (Zone zone : map.zones().values()) {

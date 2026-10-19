@@ -6,6 +6,8 @@ import dev.candycanecazoo.packapunch.config.ClientConfig;
 import dev.candycanecazoo.packapunch.config.ServerConfig;
 import dev.candycanecazoo.packapunch.map.BlockBox;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
+import dev.candycanecazoo.packapunch.map.SpawnLinks;
+import dev.candycanecazoo.packapunch.map.WindowDef;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.map.validate.Problem;
@@ -26,6 +28,7 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** While a map tool is held, draws zones, the selection, spawn markers, the detection preview, and validation problems. */
@@ -50,6 +53,10 @@ public final class MapToolRenderer {
     private record ProblemSlot(int index) {}
 
     private record SpawnSlot(BlockPos pos) {}
+
+    private record WindowSlot(String id) {}
+
+    private record LinkSlot(BlockPos marker) {}
 
     private static final Object SELECTION_SLOT = new Object();
 
@@ -97,10 +104,24 @@ public final class MapToolRenderer {
             }
         }
 
+        for (WindowDef window : ClientMapState.map().windows().values()) {
+            AABB box = window.opening().toAabb();
+            if (box.intersects(nearby)) {
+                ZoneOutlines.box(new WindowSlot(window.id()), box.inflate(0.02), zoneColor(window.zone()), ZoneOutlines.THICK);
+            }
+        }
+
+        Map<BlockPos, SpawnLinks.Link> links = ClientMapState.spawnLinks();
         for (BlockPos spawn : ClientMapState.map().features(FeatureKind.SPAWN)) {
             if (nearby.contains(Vec3.atCenterOf(spawn))) {
-                int color = ClientMapState.index().zoneAt(spawn).map(MapToolRenderer::zoneColor).orElse(UNZONED);
+                SpawnLinks.Link link = links.get(spawn);
+                int color = link == null ? UNZONED : zoneColor(link.zone());
                 ZoneOutlines.box(new SpawnSlot(spawn), new AABB(spawn).deflate(0.3), color, ZoneOutlines.THICK);
+                if (link != null) {
+                    link.window().map(ClientMapState.map().windows()::get).ifPresent(w ->
+                            ZoneOutlines.line(new LinkSlot(spawn), Vec3.atCenterOf(spawn), Vec3.atBottomCenterOf(w.attackSpot()).add(0, 0.5, 0),
+                                    color, ZoneOutlines.THIN * 2));
+                }
             }
         }
 

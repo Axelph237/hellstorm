@@ -3,7 +3,6 @@ package dev.candycanecazoo.packapunch.game;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneGraph;
 import dev.candycanecazoo.packapunch.map.ZoneId;
-import dev.candycanecazoo.packapunch.map.ZoneIndex;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 
@@ -50,16 +49,19 @@ public final class SpawnDirector {
         return active;
     }
 
-    /** Markers in active zones, weighted toward the nearest player. Markers inside the minimum distance are left out. */
-    public static List<Candidate> candidates(List<BlockPos> markers, ZoneIndex index, Set<ZoneId> active,
+    /**
+     * Markers that feed an active zone, weighted toward the nearest player. Markers inside the minimum distance are left out.
+     * {@code markerZones} says which zone each marker feeds (see {@link dev.candycanecazoo.packapunch.map.SpawnLinks}).
+     */
+    public static List<Candidate> candidates(Map<BlockPos, ZoneId> markerZones, Set<ZoneId> active,
                                              Collection<BlockPos> players, GameSettings.Spawning s) {
         List<Candidate> candidates = new ArrayList<>();
         if (players.isEmpty()) {
             return candidates;
         }
+        List<BlockPos> markers = markerZones.keySet().stream().sorted(java.util.Comparator.comparingLong(BlockPos::asLong)).toList();
         for (BlockPos marker : markers) {
-            Optional<ZoneId> zone = index.zoneAt(marker);
-            if (zone.isEmpty() || !active.contains(zone.get())) {
+            if (!active.contains(markerZones.get(marker))) {
                 continue;
             }
             double nearest = players.stream().mapToDouble(p -> Math.sqrt(p.distSqr(marker))).min().orElseThrow();

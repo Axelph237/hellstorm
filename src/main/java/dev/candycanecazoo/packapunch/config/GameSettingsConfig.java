@@ -27,6 +27,13 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue kill;
     private final ForgeConfigSpec.IntValue headshotKill;
     private final ForgeConfigSpec.IntValue meleeKill;
+    private final ForgeConfigSpec.IntValue repair;
+    private final ForgeConfigSpec.IntValue repairCapPerRound;
+    private final ForgeConfigSpec.IntValue windowMaxWidth;
+    private final ForgeConfigSpec.IntValue windowMaxHeight;
+    private final ForgeConfigSpec.IntValue tearTicks;
+    private final ForgeConfigSpec.IntValue repairTicks;
+    private final ForgeConfigSpec.DoubleValue linkRange;
     private final ForgeConfigSpec.ConfigValue<List<? extends String>> startingGuns;
     private final ForgeConfigSpec.ConfigValue<List<? extends String>> startingItems;
     private final ForgeConfigSpec.IntValue reserveMagazines;
@@ -63,6 +70,17 @@ public final class GameSettingsConfig {
         kill = b.defineInRange("kill", d.economy().kill(), 0, 100_000);
         headshotKill = b.defineInRange("headshot_kill", d.economy().headshotKill(), 0, 100_000);
         meleeKill = b.defineInRange("melee_kill", d.economy().meleeKill(), 0, 100_000);
+        repair = b.comment("Points per window board repaired.").defineInRange("repair", d.economy().repair(), 0, 100_000);
+        repairCapPerRound = b.comment("Most repair points one player can earn per round.")
+                .defineInRange("repair_cap_per_round", d.economy().repairCapPerRound(), 0, 1_000_000);
+        b.pop();
+        b.push("windows");
+        windowMaxWidth = b.comment("Widest window opening allowed, in blocks.").defineInRange("max_width", d.windows().maxWidth(), 1, 16);
+        windowMaxHeight = b.comment("Tallest window opening allowed, in blocks.").defineInRange("max_height", d.windows().maxHeight(), 1, 16);
+        tearTicks = b.comment("Ticks a zombie needs to tear off one board.").defineInRange("tear_ticks", d.windows().tearTicks(), 1, 1200);
+        repairTicks = b.comment("Ticks between boards a player puts back while holding use.").defineInRange("repair_ticks", d.windows().repairTicks(), 1, 1200);
+        linkRange = b.comment("A spawn marker outside every zone links to the nearest window facing it within this many blocks.")
+                .defineInRange("link_range", d.windows().linkRange(), 1.0, 64.0);
         b.pop();
         b.push("players");
         startingGuns = b.comment("TacZ gun ids every player starts with.").defineListAllowEmpty("starting_guns",
@@ -106,8 +124,10 @@ public final class GameSettingsConfig {
                         r.read(walkSpeed), r.read(sprintSpeed), r.read(maxAlive), r.read(spawnDelayTicks), r.read(intermissionTicks),
                         r.read(countdownTicks), r.read(gameOverTicks)),
                 new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
-                new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill)),
+                new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
+                        r.read(repair), r.read(repairCapPerRound)),
                 new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines),
-                        r.read(startingGunsUnlimitedAmmo)));
+                        r.read(startingGunsUnlimitedAmmo)),
+                new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)));
     }
 }

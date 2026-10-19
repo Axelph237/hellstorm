@@ -12,6 +12,7 @@ public final class PlayerState {
     private int kills;
     private int headshots;
     private Optional<ZoneId> lastZone = Optional.empty();
+    private int repairPointsThisRound;
 
     PlayerState(UUID id, int points) {
         this.id = id;
@@ -59,6 +60,19 @@ public final class PlayerState {
         if (headshot) {
             headshots++;
         }
+    }
+
+    int repairPointsThisRound() {
+        return repairPointsThisRound;
+    }
+
+    void addRepairPoints(int points) {
+        repairPointsThisRound += points;
+        this.points += points;
+    }
+
+    void resetRoundCounters() {
+        repairPointsThisRound = 0;
     }
 
     void setLastZone(ZoneId zone) {

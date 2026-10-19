@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.client.outline;
 import net.createmod.catnip.outliner.Outliner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.function.Supplier;
 
@@ -15,6 +16,10 @@ public final class ZoneOutlines {
 
     public static void box(Object slot, AABB box, int color, float lineWidth) {
         Outliner.getInstance().showAABB(slot, box).colored(color).lineWidth(lineWidth);
+    }
+
+    public static void line(Object slot, Vec3 from, Vec3 to, int color, float lineWidth) {
+        Outliner.getInstance().showLine(slot, from, to).colored(color).lineWidth(lineWidth);
     }
 
     /**

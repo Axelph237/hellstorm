@@ -1,5 +1,7 @@
 package dev.candycanecazoo.packapunch.map;
 
+import dev.candycanecazoo.packapunch.util.Codecs;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -16,25 +18,45 @@ import java.util.TreeMap;
  * The authored shape of a zombies map: its zones and the positions of its feature blocks.
  * Immutable: every edit returns a new map. The same codec is used for saved data, network sync, and export.
  */
-public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> features) {
-    public static final ZombiesMap EMPTY = new ZombiesMap(Map.of(), Map.of());
+public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> features, Map<String, WindowDef> windows) {
+    public static final ZombiesMap EMPTY = new ZombiesMap(Map.of(), Map.of(), Map.of());
 
     public static final Codec<ZombiesMap> CODEC = RecordCodecBuilder.create(i -> i.group(
-            Zone.CODEC.listOf().optionalFieldOf("zones", List.of()).forGetter(m -> List.copyOf(m.zones.values())),
-            FeatureRef.CODEC.listOf().optionalFieldOf("features", List.of()).forGetter(ZombiesMap::featureList)
+            Codecs.strictOptional(Zone.CODEC.listOf(), "zones", List.of()).forGetter(m -> List.copyOf(m.zones.values())),
+            Codecs.strictOptional(FeatureRef.CODEC.listOf(), "features", List.of()).forGetter(ZombiesMap::featureList),
+            Codecs.strictOptional(WindowDef.CODEC.listOf(), "windows", List.of()).forGetter(m -> List.copyOf(m.windows.values()))
     ).apply(i, ZombiesMap::fromLists));
 
     public ZombiesMap {
         zones = new TreeMap<>(zones);
         features = sortedFeatures(features);
+        windows = new TreeMap<>(windows);
     }
 
-    private static ZombiesMap fromLists(List<Zone> zones, List<FeatureRef> features) {
+    private static ZombiesMap fromLists(List<Zone> zones, List<FeatureRef> features, List<WindowDef> windows) {
         Map<ZoneId, Zone> zoneMap = new TreeMap<>();
         zones.forEach(z -> zoneMap.put(z.id(), z));
         Map<BlockPos, FeatureKind> featureMap = new LinkedHashMap<>();
         features.forEach(f -> featureMap.put(f.pos(), f.kind()));
-        return new ZombiesMap(zoneMap, featureMap);
+        Map<String, WindowDef> windowMap = new TreeMap<>();
+        windows.forEach(w -> windowMap.put(w.id(), w));
+        return new ZombiesMap(zoneMap, featureMap, windowMap);
+    }
+
+    public ZombiesMap withWindow(WindowDef window) {
+        Map<String, WindowDef> next = new TreeMap<>(windows);
+        next.put(window.id(), window);
+        return new ZombiesMap(zones, features, next);
+    }
+
+    public ZombiesMap withoutWindow(String id) {
+        Map<String, WindowDef> next = new TreeMap<>(windows);
+        next.remove(id);
+        return new ZombiesMap(zones, features, next);
+    }
+
+    public Optional<WindowDef> windowAt(BlockPos pos) {
+        return windows.values().stream().filter(w -> w.opening().contains(pos)).findFirst();
     }
 
     private static Map<BlockPos, FeatureKind> sortedFeatures(Map<BlockPos, FeatureKind> features) {
@@ -71,13 +93,13 @@ public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> fea
     public ZombiesMap withZone(Zone zone) {
         Map<ZoneId, Zone> next = new TreeMap<>(zones);
         next.put(zone.id(), zone);
-        return new ZombiesMap(next, features);
+        return new ZombiesMap(next, features, windows);
     }
 
     public ZombiesMap withoutZone(ZoneId id) {
         Map<ZoneId, Zone> next = new TreeMap<>(zones);
         next.remove(id);
-        return new ZombiesMap(next, features);
+        return new ZombiesMap(next, features, windows);
     }
 
     public ZombiesMap withFeature(BlockPos pos, FeatureKind kind) {
@@ -86,7 +108,7 @@ public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> fea
         }
         Map<BlockPos, FeatureKind> next = new LinkedHashMap<>(features);
         next.put(pos.immutable(), kind);
-        return new ZombiesMap(zones, next);
+        return new ZombiesMap(zones, next, windows);
     }
 
     public ZombiesMap withoutFeature(BlockPos pos) {
@@ -95,7 +117,7 @@ public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> fea
         }
         Map<BlockPos, FeatureKind> next = new LinkedHashMap<>(features);
         next.remove(pos);
-        return new ZombiesMap(zones, next);
+        return new ZombiesMap(zones, next, windows);
     }
 
     public List<Zone> startZones() {

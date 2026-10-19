@@ -5,7 +5,10 @@ import dev.candycanecazoo.packapunch.map.BlockBox;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneGraph;
 import dev.candycanecazoo.packapunch.map.ZoneId;
-import dev.candycanecazoo.packapunch.map.ZoneIndex;
+import dev.candycanecazoo.packapunch.map.FeatureKind;
+import dev.candycanecazoo.packapunch.map.SpawnLinks;
+import dev.candycanecazoo.packapunch.map.WindowDef;
+import net.minecraft.core.Direction;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
@@ -53,21 +56,33 @@ class SpawnDirectorTest {
         assertEquals(Set.of(), SpawnDirector.activeZones(List.of(B), graph, Set.of(A), 1), "a player in a locked zone activates nothing");
     }
 
+    private static Map<BlockPos, ZoneId> markerZones(ZombiesMap map) {
+        Map<BlockPos, ZoneId> zones = new HashMap<>();
+        SpawnLinks.resolve(map, 6.0).forEach((marker, link) -> zones.put(marker, link.zone()));
+        return zones;
+    }
+
     @Test
     void candidatesComeOnlyFromActiveZonesOutsideTheMinimumDistance() {
         ZombiesMap map = chain();
+        for (BlockPos marker : MARKERS) {
+            map = map.withFeature(marker, FeatureKind.SPAWN);
+        }
         BlockPos player = new BlockPos(13, 0, 5);
-        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(MARKERS, ZoneIndex.of(map), Set.of(A, B, C), List.of(player), S);
+        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(markerZones(map), Set.of(A, B, C), List.of(player), S);
         assertEquals(List.of(marker(0), marker(2)), candidates.stream().map(SpawnDirector.Candidate::marker).toList(),
                 "B's marker is 2 blocks from the player (under 6), D is not active");
         assertTrue(candidates.get(0).weight() > candidates.get(1).weight(), "closer marker weighs more");
     }
 
     @Test
-    void markersOutsideEveryZoneAreNotCandidates() {
-        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(List.of(new BlockPos(500, 0, 500)),
-                ZoneIndex.of(chain()), Set.copyOf(ZONES), List.of(new BlockPos(1, 0, 1)), S);
-        assertEquals(List.of(), candidates);
+    void unlinkedMarkersAreNotCandidatesButWindowMarkersFeedTheWindowsZone() {
+        ZombiesMap map = chain()
+                .withWindow(new WindowDef("w", new BlockBox(5, 0, -1, 5, 1, -1), Direction.NORTH, 6, A))
+                .withFeature(new BlockPos(5, 0, -3), FeatureKind.SPAWN)
+                .withFeature(new BlockPos(500, 0, 500), FeatureKind.SPAWN);
+        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(markerZones(map), Set.of(A), List.of(new BlockPos(1, 0, 8)), S);
+        assertEquals(List.of(new BlockPos(5, 0, -3)), candidates.stream().map(SpawnDirector.Candidate::marker).toList());
     }
 
     @Test

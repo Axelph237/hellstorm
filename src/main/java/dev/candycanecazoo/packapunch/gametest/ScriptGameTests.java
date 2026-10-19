@@ -6,6 +6,7 @@ import dev.candycanecazoo.packapunch.game.Game;
 import dev.candycanecazoo.packapunch.game.GameEvent;
 import dev.candycanecazoo.packapunch.game.GameEvents;
 import dev.candycanecazoo.packapunch.game.GameMap;
+import dev.candycanecazoo.packapunch.game.MobRoster;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import dev.candycanecazoo.packapunch.script.ForgeScriptHost;
 import dev.candycanecazoo.packapunch.script.LuaRuntime;
@@ -31,7 +32,7 @@ public final class ScriptGameTests {
     private ScriptGameTests() {}
 
     private static Game emptyGame() {
-        return new Game(GameSettings.DEFAULT, GameMap.of(ZombiesMap.EMPTY, Set.of()), RandomSource.create(), new GameEvents());
+        return new Game(GameSettings.DEFAULT, GameMap.of(ZombiesMap.EMPTY, Set.of()), new MobRoster(List.of()), RandomSource.create(), new GameEvents());
     }
 
     private static Map<String, String> setblockOnRoundStart(BlockPos target) {

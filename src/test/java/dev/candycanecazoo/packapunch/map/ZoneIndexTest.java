@@ -34,7 +34,7 @@ class ZoneIndexTest {
 
     @Test
     void agreesWithLinearScanOnEveryCellNearTheZones() {
-        ZombiesMap map = new ZombiesMap(java.util.Map.of(), java.util.Map.of())
+        ZombiesMap map = ZombiesMap.EMPTY
                 .withZone(new Zone(HALL, List.of(new BlockBox(-20, 60, -3, 40, 64, 3), new BlockBox(10, 60, 4, 14, 64, 30)), true))
                 .withZone(new Zone(ROOM, List.of(new BlockBox(41, 60, -3, 50, 70, 3)), false));
         ZoneIndex built = ZoneIndex.of(map);

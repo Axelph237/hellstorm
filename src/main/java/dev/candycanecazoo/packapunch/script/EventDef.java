@@ -1,5 +1,7 @@
 package dev.candycanecazoo.packapunch.script;
 
+import dev.candycanecazoo.packapunch.util.Codecs;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
@@ -11,8 +13,8 @@ public record EventDef(String event, String script, String function, Filter filt
         public static final Filter NONE = new Filter(Optional.empty(), Optional.empty());
 
         public static final Codec<Filter> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.INT.optionalFieldOf("round_min").forGetter(Filter::roundMin),
-                Codec.INT.optionalFieldOf("round_max").forGetter(Filter::roundMax)
+                Codecs.strictOptional(Codec.INT, "round_min").forGetter(Filter::roundMin),
+                Codecs.strictOptional(Codec.INT, "round_max").forGetter(Filter::roundMax)
         ).apply(i, Filter::new));
 
         public boolean accepts(int round) {
@@ -24,7 +26,7 @@ public record EventDef(String event, String script, String function, Filter filt
             Codec.STRING.fieldOf("event").forGetter(EventDef::event),
             Codec.STRING.fieldOf("script").forGetter(EventDef::script),
             Codec.STRING.fieldOf("function").forGetter(EventDef::function),
-            Filter.CODEC.optionalFieldOf("filter", Filter.NONE).forGetter(EventDef::filter),
-            Codec.INT.optionalFieldOf("priority", 0).forGetter(EventDef::priority)
+            Codecs.strictOptional(Filter.CODEC, "filter", Filter.NONE).forGetter(EventDef::filter),
+            Codecs.strictOptional(Codec.INT, "priority", 0).forGetter(EventDef::priority)
     ).apply(i, EventDef::new));
 }

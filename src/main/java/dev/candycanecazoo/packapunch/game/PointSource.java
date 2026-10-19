@@ -5,4 +5,6 @@ public sealed interface PointSource {
     record Hit() implements PointSource {}
 
     record Kill(boolean headshot, boolean melee) implements PointSource {}
+
+    record Repair() implements PointSource {}
 }

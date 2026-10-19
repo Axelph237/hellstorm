@@ -1,13 +1,15 @@
 package dev.candycanecazoo.packapunch.game;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Optional;
 import java.util.UUID;
 
 /** What a {@link Game} asks of the world. The Forge side implements it; tests use a fake. */
 public interface GameWorld {
-    record ZombieSpec(double health, double speed) {}
+    /** Round-scaled base stats. The world applies the profile's own multipliers on top. */
+    record ZombieSpec(ResourceLocation profile, double health, double speed) {}
 
     record Status(int round, int points, int zombiesLeft, String phase) {}
 

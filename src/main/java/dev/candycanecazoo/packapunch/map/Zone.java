@@ -1,5 +1,7 @@
 package dev.candycanecazoo.packapunch.map;
 
+import dev.candycanecazoo.packapunch.util.Codecs;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -12,7 +14,7 @@ public record Zone(ZoneId id, List<BlockBox> boxes, boolean start) {
     public static final Codec<Zone> CODEC = RecordCodecBuilder.create(i -> i.group(
             ZoneId.CODEC.fieldOf("id").forGetter(Zone::id),
             BlockBox.CODEC.listOf().fieldOf("boxes").forGetter(Zone::boxes),
-            Codec.BOOL.optionalFieldOf("start", false).forGetter(Zone::start)
+            Codecs.strictOptional(Codec.BOOL, "start", false).forGetter(Zone::start)
     ).apply(i, Zone::new));
 
     public Zone {
