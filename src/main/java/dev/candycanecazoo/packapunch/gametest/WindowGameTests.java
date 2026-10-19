@@ -9,6 +9,9 @@ import dev.candycanecazoo.packapunch.game.GameMap;
 import dev.candycanecazoo.packapunch.game.WindowOps;
 import dev.candycanecazoo.packapunch.map.BlockBox;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
+import dev.candycanecazoo.packapunch.map.Passages;
+import dev.candycanecazoo.packapunch.map.ZoneIndex;
+import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
 import dev.candycanecazoo.packapunch.map.WindowDef;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneId;
@@ -120,6 +123,49 @@ public final class WindowGameTests {
                     "no zombie inside yet; positions " + zombies.stream().map(z -> z.blockPosition().toShortString()).toList());
             GameManager.end(active);
             helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 6, "ending the game should board the window back up");
+        });
+    }
+
+    /**
+     * Two walled rooms, x 0..3 and x 5..8, joined by a 1x2 doorway in the wall at x = 4. The zombie spawns in the west room
+     * and the player waits in the east room, so the zombie must path through the doorway.
+     */
+    @GameTest(template = "floor", timeoutTicks = 1200, batch = "game_cross_zone")
+    public static void aZombieChasesThePlayerIntoAnotherZone(GameTestHelper helper) {
+        for (int z = 0; z <= 8; z++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                boolean doorway = z == 4 && dy <= 1;
+                if (!doorway) {
+                    helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), Blocks.STONE);
+                }
+            }
+        }
+        BlockBox west = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(3, ROOM_Y + 1, 8)));
+        BlockBox east = BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 1, 8)));
+        BlockPos marker = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(new ZoneId("gametest_west"), List.of(west), false))
+                .withZone(new Zone(new ZoneId("gametest_east"), List.of(east), true))
+                .withFeature(marker, FeatureKind.SPAWN);
+        ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_chase_test"));
+        BlockPos stand = helper.absolutePos(new BlockPos(8, ROOM_Y, 8));
+        player.moveTo(stand.getCenter());
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
+        helper.assertTrue(!passages.open().isEmpty(), "the doorway should connect the rooms");
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : null);
+        active.game().join(player.getUUID());
+        active.game().start();
+        AABB area = west.toAabb().minmax(east.toAabb()).inflate(1);
+        helper.succeedWhen(() -> {
+            player.moveTo(stand.getCenter());
+            List<Zombie> zombies = helper.getLevel().getEntitiesOfClass(Zombie.class, area, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG));
+            helper.assertTrue(!zombies.isEmpty(), "no game zombie yet");
+            helper.assertTrue(zombies.stream().anyMatch(z -> east.contains(z.blockPosition())),
+                    "no zombie in the east room yet; positions " + zombies.stream().map(z -> z.blockPosition().toShortString()).toList());
+            int followed = active.pathing().plansFollowed();
+            GameManager.end(active);
+            helper.assertTrue(followed > 0, "the zombie got there without following a cross-zone plan");
         });
     }
 }

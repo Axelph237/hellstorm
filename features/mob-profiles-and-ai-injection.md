@@ -71,3 +71,21 @@ None. Mobs use their own models.
 ## Phase
 
 4.
+
+## As built (phase 4)
+
+- **Profile JSON:** only `entity` is required. The optional fields are:
+  - `weight` (10), `min_round` (1), `max_round`
+  - `ai` (`replace` | `augment`)
+  - `nbt` (an SNBT string)
+  - `health_multiplier`, `speed_multiplier`
+  - `damage` (4)
+  - `breaks_barricades` (true)
+- **Typos are errors.** All optional fields use `Codecs.strictOptional`, so a typo like `"ai": "agument"` fails to load instead of silently becoming the default. In 1.20.1, `optionalFieldOf` would do the latter. `CodecLintTest` stops `optionalFieldOf` from coming back.
+- **Shipped default.** The mod ships `packapunch:zombie`. If no datapack defines any profile, the same zombie is built in.
+- **Goals:**
+  - `TargetGamePlayerGoal` only considers the game's own alive players. Mobs never scan every player in the level.
+  - `GameMeleeGoal` deals the profile's damage directly. Many non-hostile and modded mobs lack the attack-damage attribute that vanilla's melee goal reads.
+- **Support tiers:** decided from a live instance (`SupportTier`). Brain-driven mobs (any memories registered) are forced to `augment`. Tier warnings are logged once per profile per game.
+- **`/pap mobtest <profile>`** spawns the profile where you're looking, with the game AI and you as its target, rather than building a test pen. It reports the support tier, the AI mode actually used, the hitbox, the movement class, and any windows on the map the mob is too big for.
+- **Validation** warns when a profile's hitbox (from its entity type) can't fit a window it may have to climb through.

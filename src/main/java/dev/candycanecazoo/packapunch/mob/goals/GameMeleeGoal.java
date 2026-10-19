@@ -16,12 +16,14 @@ public final class GameMeleeGoal extends Goal {
 
     private final PathfinderMob mob;
     private final float damage;
+    private final Navigator navigator;
     private int attackCooldown;
     private int repathCooldown;
 
-    public GameMeleeGoal(PathfinderMob mob, float damage) {
+    public GameMeleeGoal(PathfinderMob mob, float damage, Navigator navigator) {
         this.mob = mob;
         this.damage = damage;
+        this.navigator = navigator;
         setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
@@ -50,7 +52,7 @@ public final class GameMeleeGoal extends Goal {
         mob.getLookControl().setLookAt(target, 30f, 30f);
         if (--repathCooldown <= 0) {
             repathCooldown = REPATH_TICKS;
-            mob.getNavigation().moveTo(target, 1.0);
+            navigator.moveToward(mob, target);
         }
         attackCooldown = Math.max(0, attackCooldown - 1);
         if (attackCooldown == 0 && mob.isWithinMeleeAttackRange(target) && mob.getSensing().hasLineOfSight(target)) {

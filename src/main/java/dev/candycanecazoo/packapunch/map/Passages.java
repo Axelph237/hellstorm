@@ -5,6 +5,7 @@ import net.minecraft.core.Direction;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,7 +25,15 @@ public final class Passages {
         }
     }
 
-    public record Result(Set<Link> open, Map<Link, BlockPos> closedDoors) {}
+    /**
+     * {@code gaps} holds, for each open link, the open cells outside every zone that both zones' searches reached: the
+     * doorway itself. Zones whose boxes touch have an empty gap.
+     */
+    public record Result(Set<Link> open, Map<Link, BlockPos> closedDoors, Map<Link, Set<BlockPos>> gaps) {
+        public Set<BlockPos> gap(Link link) {
+            return gaps.getOrDefault(link, Set.of());
+        }
+    }
 
     private record Step(BlockPos pos, int depth, BlockPos door) {}
 
@@ -33,14 +42,23 @@ public final class Passages {
     public static Result find(ZombiesMap map, ZoneIndex index, CellProbe probe, int maxGap) {
         Set<Link> open = new HashSet<>();
         Map<Link, BlockPos> closedDoors = new LinkedHashMap<>();
+        Map<ZoneId, Set<BlockPos>> openCells = new HashMap<>();
         for (Zone zone : map.zones().values()) {
-            search(zone, index, probe, maxGap, open, closedDoors);
+            openCells.put(zone.id(), search(zone, index, probe, maxGap, open, closedDoors));
         }
         closedDoors.keySet().removeAll(open);
-        return new Result(open, closedDoors);
+        Map<Link, Set<BlockPos>> gaps = new HashMap<>();
+        for (Link link : open) {
+            Set<BlockPos> shared = new HashSet<>(openCells.getOrDefault(link.a(), Set.of()));
+            shared.retainAll(openCells.getOrDefault(link.b(), Set.of()));
+            gaps.put(link, Set.copyOf(shared));
+        }
+        return new Result(open, closedDoors, gaps);
     }
 
-    private static void search(Zone zone, ZoneIndex index, CellProbe probe, int maxGap, Set<Link> open, Map<Link, BlockPos> closedDoors) {
+    /** Searches out from one zone. Returns the open (not door) cells it reached. */
+    private static Set<BlockPos> search(Zone zone, ZoneIndex index, CellProbe probe, int maxGap, Set<Link> open, Map<Link, BlockPos> closedDoors) {
+        Set<BlockPos> reachedOpen = new HashSet<>();
         Deque<Step> queue = new ArrayDeque<>();
         Set<BlockPos> seenOpen = new HashSet<>();
         Set<BlockPos> seenViaDoor = new HashSet<>();
@@ -64,6 +82,9 @@ public final class Passages {
             if (cell == CellProbe.Cell.SOLID) {
                 continue;
             }
+            if (cell == CellProbe.Cell.OPEN && step.door == null) {
+                reachedOpen.add(step.pos);
+            }
             BlockPos door = cell == CellProbe.Cell.CLOSED_DOOR && step.door == null ? step.pos : step.door;
             for (Direction direction : Direction.values()) {
                 BlockPos next = step.pos.relative(direction);
@@ -82,6 +103,7 @@ public final class Passages {
                 }
             }
         }
+        return reachedOpen;
     }
 
     /** Every cell that shares a face with the box but lies outside it. */

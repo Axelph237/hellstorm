@@ -44,11 +44,13 @@ public final class ForgeGameWorld implements GameWorld {
     private final Map<ResourceLocation, MobProfile> profiles;
     private final Predicate<UUID> targetable;
     private final Set<ResourceLocation> tierWarned = new HashSet<>();
+    private final GamePathing pathing;
 
     public ForgeGameWorld(ServerLevel level, GameMap map, List<BlockPos> startCells, Supplier<Collection<UUID>> players,
                           Function<UUID, ServerPlayer> lookup, Map<ResourceLocation, MobProfile> profiles, Predicate<UUID> targetable,
-                          int tearTicks) {
+                          int tearTicks, GamePathing pathing) {
         this.level = level;
+        this.pathing = pathing;
         this.map = map;
         this.tearTicks = tearTicks;
         this.startCells = List.copyOf(startCells);
@@ -86,7 +88,7 @@ public final class ForgeGameWorld implements GameWorld {
         mob.addTag(MOB_TAG);
         AiInjector.inject(mob, profile,
                 new AiInjector.Stats(spec.health() * profile.healthMultiplier(), spec.speed() * profile.speedMultiplier(), (float) profile.damage()),
-                this::targetablePlayers);
+                this::targetablePlayers, new PortalNavigator(pathing));
         if (profile.breaksBarricades() && mob instanceof PathfinderMob walker) {
             map.windowFor(marker).ifPresent(window -> walker.goalSelector.addGoal(0,
                     new BreakBarricadeGoal(walker, windowAdapter(window), tearTicks, pos -> map.index().zoneAt(pos).isPresent())));

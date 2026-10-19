@@ -1,6 +1,7 @@
 package dev.candycanecazoo.packapunch.mob;
 
 import dev.candycanecazoo.packapunch.mob.goals.GameMeleeGoal;
+import dev.candycanecazoo.packapunch.mob.goals.Navigator;
 import dev.candycanecazoo.packapunch.mob.goals.TargetGamePlayerGoal;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
@@ -23,6 +24,11 @@ public final class AiInjector {
      * clearing their goals leaves the brain in charge anyway. Returns the AI mode actually used.
      */
     public static MobProfile.Ai inject(Mob mob, MobProfile profile, Stats stats, Supplier<? extends Collection<? extends Player>> targets) {
+        return inject(mob, profile, stats, targets, Navigator.VANILLA);
+    }
+
+    public static MobProfile.Ai inject(Mob mob, MobProfile profile, Stats stats, Supplier<? extends Collection<? extends Player>> targets,
+                                       Navigator navigator) {
         SupportTier tier = SupportTier.of(mob);
         MobProfile.Ai mode = tier == SupportTier.PARTIAL_BRAIN ? MobProfile.Ai.AUGMENT : profile.ai();
         if (mode == MobProfile.Ai.REPLACE) {
@@ -32,7 +38,7 @@ public final class AiInjector {
         }
         mob.targetSelector.addGoal(0, new TargetGamePlayerGoal(mob, targets));
         if (mob instanceof PathfinderMob walker) {
-            mob.goalSelector.addGoal(1, new GameMeleeGoal(walker, stats.damage()));
+            mob.goalSelector.addGoal(1, new GameMeleeGoal(walker, stats.damage(), navigator));
         }
         setBase(mob, Attributes.MAX_HEALTH, stats.health());
         mob.setHealth((float) stats.health());

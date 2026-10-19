@@ -68,3 +68,20 @@ None.
 ## Phase
 
 4.
+
+## As built (phase 4)
+
+- **Pure core** in `mob/path`: `PassabilityGrid` (frozen bitsets), `BlockAStar`, `PortalPathCache`, and `HierarchicalPlanner` (immutable graph snapshot, so `plan` needs no lock). Move costs equal their Manhattan length, so the heuristic is admissible and consistent.
+- **Heuristic spike, measured (`HeuristicSpikeTest`):**
+  - Manhattan expanded about as few nodes as possible in open rooms (46 nodes for a 46-block path).
+  - Octile's paths were 20 to 30% shorter in open space on paper, but it expanded up to 2.7 times as many nodes among pillars.
+  - Vanilla path following already smooths Manhattan's corners, so we keep Manhattan.
+- **Portals from the world** (`ZonePathing`). `Passages` now records each connection's gap cells, meaning the open cells both zones' searches reached. A zone's grid covers its own cells plus its gap cells.
+  - **A doorway is a gap cell** that is walkable in both grids and steps sideways onto a walkable cell of each zone. Open air above the rooms or around the ends of a wall is excluded, because it's shared gap but no doorway. A doorway becomes a zero-cost portal.
+  - **Zones whose boxes touch** get a portal between two adjacent walkable cells instead.
+  - **One portal per connection for now.**
+- **Runtime** (`GamePathing`, one per game):
+  - Grids for a movement class are built on the server thread the first time a mob that size spawns. Plans then run on the game's single daemon worker thread.
+  - `PortalNavigator` (one per mob) uses vanilla navigation inside the target's zone, and follows a cross-zone plan as a vanilla `Path` otherwise. It replans when the target changes zone or the mob gets stuck, and falls back to vanilla navigation when there's no plan.
+  - The worker shuts down with the game.
+- **Not built yet.** The "next portal toward zone" cache isn't built yet. With small portal graphs, plans are cheap enough without it.

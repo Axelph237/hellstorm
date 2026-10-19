@@ -33,7 +33,7 @@ import java.util.function.Function;
 
 /** At most one game per level. Owns the link between a {@link Game} and its {@link ForgeGameWorld}. */
 public final class GameManager {
-    public record Active(ServerLevel level, Game game, ForgeGameWorld world, GameScripts scripts) {}
+    public record Active(ServerLevel level, Game game, ForgeGameWorld world, GameScripts scripts, GamePathing pathing) {}
 
     public sealed interface CreateResult {
         record Created(Active active) implements CreateResult {}
@@ -87,27 +87,33 @@ public final class GameManager {
         if (!report.playable()) {
             return new CreateResult.Invalid(report);
         }
-        GameMap gameMap = GameMap.of(map, Passages.find(map, ZoneIndex.of(map), context.probe(), context.maxPassageGap()).open(),
-                context.windows().linkRange());
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), context.probe(), context.maxPassageGap());
+        GameMap gameMap = GameMap.of(map, passages.open(), context.windows().linkRange());
         List<net.minecraft.core.BlockPos> startCells = StartCells.find(level, map.startZones());
         if (startCells.isEmpty()) {
             return new CreateResult.NoStartCells();
         }
         WindowOps.resetAll(level, map);
-        return new CreateResult.Created(register(level, gameMap, startCells, level.getServer().getPlayerList()::getPlayer));
+        return new CreateResult.Created(register(level, gameMap, passages, startCells, level.getServer().getPlayerList()::getPlayer));
     }
 
-    /** Registers a game directly. GameTests use this with their own map and player lookup. */
+    /** Registers a game directly, finding passages from the live world. GameTests use this with their own map and player lookup. */
     public static Active register(ServerLevel level, GameMap map, List<net.minecraft.core.BlockPos> startCells, Function<UUID, ServerPlayer> lookup) {
+        return register(level, map, Passages.find(map.map(), map.index(), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get()), startCells, lookup);
+    }
+
+    public static Active register(ServerLevel level, GameMap map, Passages.Result passages, List<net.minecraft.core.BlockPos> startCells,
+                                  Function<UUID, ServerPlayer> lookup) {
         var settings = settings();
         Map<net.minecraft.resources.ResourceLocation, MobProfile> profiles = MobProfiles.all();
         MobRoster roster = new MobRoster(profiles.entrySet().stream()
                 .map(e -> new MobRoster.Entry(e.getKey(), e.getValue().weight(), e.getValue().minRound(), e.getValue().maxRound()))
                 .toList());
         Game game = new Game(settings, map, roster, RandomSource.create(), new GameEvents());
+        GamePathing pathing = new GamePathing(level, map, passages);
         ForgeGameWorld world = new ForgeGameWorld(level, map, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup,
-                profiles, game::targetable, settings.windows().tearTicks());
-        Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)));
+                profiles, game::targetable, settings.windows().tearTicks(), pathing);
+        Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)), pathing);
         GAMES.put(level.dimension(), active);
         return active;
     }
@@ -136,6 +142,7 @@ public final class GameManager {
     public static void end(Active active) {
         active.game().stop(active.world());
         WindowOps.resetAll(active.level(), active.game().map().map());
+        active.pathing().close();
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {
             ServerPlayer online = active.level().getServer().getPlayerList().getPlayer(player.id());

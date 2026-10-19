@@ -309,7 +309,7 @@ The design as researched:
    - Build `LuaRuntime` and its sandbox, `EventDef` loading, `events.on`, `command`, and `require`.
    - Every later phase emits its own events as it lands.
    - *Check:* a datapack script uses `require` to load a helper and runs `/title` on `round_end`. A script that tries to call `io.open` fails to load. A `while true do end` listener is stopped and logged while the server keeps ticking.
-4. **Mob profiles and AI.**
+4. **Mob profiles and AI.** (Code and automated tests done. In-game check pending.)
    - Build `MobProfile` loading, `AiInjector`, barricades and windows, and hierarchical pathfinding: passability snapshots, the portal-to-portal cache filled on door open, and A\* over the portal graph.
    - Spike the Manhattan-versus-octile heuristic: compare path quality and nodes expanded on the test map.
    - *Check:* `/pap mobtest` with a zombie, a skeleton, and one modded mob, each breaking a window and pathing across two zones.

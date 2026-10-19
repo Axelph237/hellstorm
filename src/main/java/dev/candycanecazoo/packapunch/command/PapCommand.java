@@ -33,6 +33,7 @@ public final class PapCommand {
                 .then(ZoneCommands.map().requires(PapCommand::op))
                 .then(ScriptCommands.script().requires(PapCommand::op))
                 .then(WindowCommands.window().requires(PapCommand::op))
+                .then(MobTestCommand.mobtest().requires(PapCommand::op))
                 .then(Commands.literal("give").requires(PapCommand::op)
                         .then(Commands.argument("gun", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(TaczBridge.allGuns(), builder))
