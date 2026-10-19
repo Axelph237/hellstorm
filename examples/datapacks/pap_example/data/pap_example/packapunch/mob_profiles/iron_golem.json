@@ -1,0 +1,9 @@
+{
+  "entity": "minecraft:iron_golem",
+  "weight": 1,
+  "min_round": 3,
+  "ai": "replace",
+  "health_multiplier": 3.0,
+  "speed_multiplier": 0.8,
+  "damage": 8
+}

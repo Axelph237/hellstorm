@@ -1,0 +1,7 @@
+{
+  "entity": "minecraft:skeleton",
+  "weight": 4,
+  "min_round": 2,
+  "ai": "replace",
+  "damage": 3
+}
