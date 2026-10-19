@@ -168,4 +168,16 @@ public final class WindowGameTests {
             helper.assertTrue(followed > 0, "the zombie got there without following a cross-zone plan");
         });
     }
+
+    /** Vanilla's in-wall check ignores per-entity collision, so a mob climbing through a bare window must not suffocate. */
+    @GameTest(template = "floor")
+    public static void climbingThroughABareWindowDoesNotSuffocate(GameTestHelper helper) {
+        WindowDef w = window(helper, "suffocate", 3, 3, 2);
+        WindowOps.setBoards(helper.getLevel(), w, 0);
+        Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(3, ROOM_Y, 4));
+        zombie.addTag(ForgeGameWorld.MOB_TAG);
+        zombie.moveTo(w.opening().min().getCenter().add(0, -0.5, 0));
+        helper.assertTrue(!zombie.isInWall(), "a game zombie inside a bare window counts as stuck in a wall");
+        helper.succeed();
+    }
 }

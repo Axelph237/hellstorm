@@ -7,23 +7,24 @@ import dev.candycanecazoo.packapunch.mob.path.PassabilityGrid;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.level.pathfinder.Node;
-import net.minecraft.world.level.pathfinder.Path;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
- * One mob's navigator. Within the target's zone it uses vanilla navigation, which is fine over short distances.
- * Across zones it asks {@link GamePathing} for a plan through the portals (off the server thread) and follows it,
- * replanning when the target changes zone or the mob gets stuck.
+ * One mob's navigator. Within the target's zone it uses vanilla navigation. Across zones it asks {@link GamePathing}
+ * for a plan (off the server thread) but only uses it to pick the next doorway, then lets vanilla navigation walk there
+ * from wherever the mob is. Following the planned blocks exactly made every zombie queue along the same line; vanilla
+ * re-paths from each mob's own position, cuts corners, and spreads a crowd out.
  */
 public final class PortalNavigator implements Navigator {
     private final GamePathing pathing;
     private CompletableFuture<Optional<List<BlockPos>>> pending;
-    private ZoneId plannedFor;
-    private boolean following;
+    private ZoneId plannedFrom;
+    private ZoneId plannedTo;
+    private BlockPos waypoint;
 
     public PortalNavigator(GamePathing pathing) {
         this.pathing = pathing;
@@ -34,48 +35,45 @@ public final class PortalNavigator implements Navigator {
         Optional<ZoneId> mobZone = pathing.zoneAt(mob.blockPosition());
         Optional<ZoneId> targetZone = pathing.zoneAt(target.blockPosition());
         if (mobZone.isEmpty() || targetZone.isEmpty() || mobZone.equals(targetZone)) {
-            reset();
-            VANILLA.moveToward(mob, target);
-            return;
-        }
-        if (pending != null) {
-            if (!pending.isDone()) {
-                return;
-            }
-            Optional<List<BlockPos>> plan = pending.getNow(Optional.empty());
             pending = null;
-            following = plan.isPresent() && follow(mob, plan.get());
-            if (following) {
-                pathing.countFollowed();
-            } else {
-                VANILLA.moveToward(mob, target);
-            }
-            return;
-        }
-        boolean needsPlan = !targetZone.get().equals(plannedFor) || !following || mob.getNavigation().isDone() || mob.getNavigation().isStuck();
-        if (!needsPlan) {
-            return;
-        }
-        GamePathing.Planner planner = pathing.planner(MovementClass.ofHitbox(mob.getBbWidth(), mob.getBbHeight()));
-        Optional<BlockPos> start = snap(planner.grids().get(mobZone.get()), mob.blockPosition());
-        Optional<BlockPos> goal = snap(planner.grids().get(targetZone.get()), target.blockPosition());
-        if (start.isEmpty() || goal.isEmpty()) {
+            waypoint = null;
             VANILLA.moveToward(mob, target);
             return;
         }
-        plannedFor = targetZone.get();
-        pending = pathing.plan(planner, start.get(), mobZone.get(), goal.get(), targetZone.get());
+        if (pending != null && pending.isDone()) {
+            waypoint = pending.getNow(Optional.empty()).flatMap(path -> nextDoorway(path, mobZone.get(), pathing::zoneAt)).orElse(null);
+            pending = null;
+            if (waypoint != null) {
+                pathing.countFollowed();
+            }
+        }
+        boolean stale = !mobZone.get().equals(plannedFrom) || !targetZone.get().equals(plannedTo);
+        if (pending == null && (stale || waypoint == null)) {
+            request(mob, mobZone.get(), target, targetZone.get());
+        }
+        if (waypoint != null && !stale) {
+            mob.getNavigation().moveTo(waypoint.getX() + 0.5, waypoint.getY(), waypoint.getZ() + 0.5, 1.0);
+        } else {
+            VANILLA.moveToward(mob, target);
+        }
     }
 
-    private void reset() {
-        pending = null;
-        plannedFor = null;
-        following = false;
+    private void request(PathfinderMob mob, ZoneId from, LivingEntity target, ZoneId to) {
+        GamePathing.Planner planner = pathing.planner(MovementClass.ofHitbox(mob.getBbWidth(), mob.getBbHeight()));
+        Optional<BlockPos> start = snap(planner.grids().get(from), mob.blockPosition());
+        Optional<BlockPos> goal = snap(planner.grids().get(to), target.blockPosition());
+        if (start.isEmpty() || goal.isEmpty()) {
+            return;
+        }
+        plannedFrom = from;
+        plannedTo = to;
+        waypoint = null;
+        pending = pathing.plan(planner, start.get(), from, goal.get(), to);
     }
 
-    private static boolean follow(PathfinderMob mob, List<BlockPos> cells) {
-        List<Node> nodes = cells.stream().map(p -> new Node(p.getX(), p.getY(), p.getZ())).toList();
-        return mob.getNavigation().moveTo(new Path(nodes, cells.get(cells.size() - 1), true), 1.0);
+    /** The first planned cell outside the mob's current zone: the doorway it should walk to next. */
+    static Optional<BlockPos> nextDoorway(List<BlockPos> path, ZoneId current, Function<BlockPos, Optional<ZoneId>> zoneAt) {
+        return path.stream().filter(cell -> !zoneAt.apply(cell).equals(Optional.of(current))).findFirst();
     }
 
     /** Standing on a slab or mid-jump puts a mob's block position off the grid's nodes, so look one block around. */

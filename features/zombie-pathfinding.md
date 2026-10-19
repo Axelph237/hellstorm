@@ -82,6 +82,7 @@ None.
   - **One portal per connection for now.**
 - **Runtime** (`GamePathing`, one per game):
   - Grids for a movement class are built on the server thread the first time a mob that size spawns. Plans then run on the game's single daemon worker thread.
-  - `PortalNavigator` (one per mob) uses vanilla navigation inside the target's zone, and follows a cross-zone plan as a vanilla `Path` otherwise. It replans when the target changes zone or the mob gets stuck, and falls back to vanilla navigation when there's no plan.
+  - `PortalNavigator` (one per mob) uses vanilla navigation inside the target's zone. Across zones, the plan only picks the **next doorway**: the first planned cell outside the mob's current zone. Vanilla navigation then walks there from the mob's own position. It replans when the mob or the target changes zone, and uses vanilla navigation while a plan is pending or missing.
+  - **Why only the doorway.** Following the whole planned block path made every zombie queue along the same line. Vanilla re-paths from each mob's position and cuts corners, so a crowd spreads out and pushes past itself.
   - The worker shuts down with the game.
 - **Not built yet.** The "next portal toward zone" cache isn't built yet. With small portal graphs, plans are cheap enough without it.
