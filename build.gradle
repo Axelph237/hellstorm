@@ -41,6 +41,13 @@ minecraft {
 
         client {}
 
+        // A second player for co-op testing: its own name (so it doesn't kick the first) and folder.
+        client2 {
+            parent runs.client
+            workingDirectory project.file('run-client2')
+            args '--username', 'Dev2'
+        }
+
         server {
             args '--nogui'
         }
