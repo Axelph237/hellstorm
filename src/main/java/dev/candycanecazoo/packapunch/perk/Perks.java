@@ -54,11 +54,6 @@ public final class Perks {
                 .map(state -> state.perks().values()).orElse(List.of());
     }
 
-    /** How long the player's reloads take, as a multiple of normal (Speed Cola's 0.5 is twice as fast). 1 outside a game. */
-    public static double reloadMultiplier(ServerPlayer player) {
-        return product(held(player), PerkEffect.ReloadSpeed.class, PerkEffect.ReloadSpeed::multiplier);
-    }
-
     public static String displayName(PerkDef def) {
         return Language.getInstance().getOrDefault(def.name());
     }
@@ -155,7 +150,6 @@ public final class Perks {
         List<PerkSyncPacket.Badge> badges = state.perks().entrySet().stream()
                 .map(e -> new PerkSyncPacket.Badge(e.getKey(), e.getValue().name(), e.getValue().color())).toList();
         float rpm = (float) product(state.perks().values(), PerkEffect.RpmMultiplier.class, PerkEffect.RpmMultiplier::multiplier);
-        float reload = (float) product(state.perks().values(), PerkEffect.ReloadSpeed.class, PerkEffect.ReloadSpeed::multiplier);
-        PapNetwork.send(player, new PerkSyncPacket(badges, rpm, reload));
+        PapNetwork.send(player, new PerkSyncPacket(badges, rpm));
     }
 }

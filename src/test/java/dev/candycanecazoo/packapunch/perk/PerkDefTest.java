@@ -72,7 +72,6 @@ class PerkDefTest {
                 new PerkEffect.Attribute(ResourceLocation.tryBuild("minecraft", "generic.armor"), 2, AttributeModifier.Operation.ADDITION),
                 "{\"type\": \"damage_multiplier\", \"multiplier\": 2}", new PerkEffect.DamageMultiplier(2),
                 "{\"type\": \"rpm_multiplier\", \"multiplier\": 1.33}", new PerkEffect.RpmMultiplier(1.33),
-                "{\"type\": \"reload_speed\", \"multiplier\": 0.5}", new PerkEffect.ReloadSpeed(0.5),
                 "{\"type\": \"weapon_slots\", \"slots\": 1}", new PerkEffect.WeaponSlots(1),
                 "{\"type\": \"revive_speed\", \"multiplier\": 0.5}", new PerkEffect.ReviveSpeed(0.5),
                 "{\"type\": \"self_revive\"}", new PerkEffect.SelfRevive());

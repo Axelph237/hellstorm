@@ -1,5 +1,9 @@
 package dev.candycanecazoo.packapunch.registry;
 
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.RangedAttribute;
+import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
@@ -28,7 +32,15 @@ public final class PapRegistries {
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, PackAPunch.MOD_ID);
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, PackAPunch.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, PackAPunch.MOD_ID);
+    private static final DeferredRegister<Attribute> ATTRIBUTES = DeferredRegister.create(ForgeRegistries.ATTRIBUTES, PackAPunch.MOD_ID);
     private static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, PackAPunch.MOD_ID);
+
+    /**
+     * How fast a player reloads TacZ guns, as a multiple of normal: 2 reloads in half the time. Every player has it at a
+     * base of 1; Speed Cola adds 1, and anything else (perks, items, commands) can modify it like any attribute.
+     */
+    public static final RegistryObject<Attribute> RELOAD_SPEED = ATTRIBUTES.register("reload_speed",
+            () -> new RangedAttribute("attribute.name.packapunch.reload_speed", 1.0, 0.1, 10.0).setSyncable(true));
 
     public static final RegistryObject<Block> SPAWN_MARKER = BLOCKS.register("spawn_marker", () -> new SpawnMarkerBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED).strength(-1.0f, 3_600_000f)
@@ -93,5 +105,7 @@ public final class PapRegistries {
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
         TABS.register(modBus);
+        ATTRIBUTES.register(modBus);
+        modBus.addListener((EntityAttributeModificationEvent event) -> event.add(EntityType.PLAYER, RELOAD_SPEED.get()));
     }
 }

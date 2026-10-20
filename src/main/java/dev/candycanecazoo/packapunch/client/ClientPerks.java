@@ -26,8 +26,4 @@ public final class ClientPerks {
     public static float rpmMultiplier() {
         return last.rpmMultiplier();
     }
-
-    public static float reloadMultiplier() {
-        return last.reloadMultiplier();
-    }
 }

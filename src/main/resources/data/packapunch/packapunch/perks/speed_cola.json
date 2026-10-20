@@ -4,6 +4,6 @@
   "requires_power": true,
   "color": "#3fae4a",
   "effects": [
-    { "type": "reload_speed", "multiplier": 0.5 }
+    { "type": "attribute_modifier", "attribute": "packapunch:reload_speed", "amount": 1, "operation": "addition" }
   ]
 }

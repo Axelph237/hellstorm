@@ -50,13 +50,6 @@ public sealed interface PerkEffect {
         }
     }
 
-    /** Multiplies reload time (Speed Cola, 0.5 = twice as fast). Applied through {@code tacz/ReloadTimes}. */
-    record ReloadSpeed(double multiplier) implements PerkEffect {
-        public String type() {
-            return "reload_speed";
-        }
-    }
-
     /** Extra TacZ gun slots (Mule Kick). */
     record WeaponSlots(int slots) implements PerkEffect {
         static final Codec<WeaponSlots> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -92,8 +85,6 @@ public sealed interface PerkEffect {
                     multiplier().fieldOf("multiplier").forGetter(DamageMultiplier::multiplier)).apply(i, DamageMultiplier::new)),
             "rpm_multiplier", RecordCodecBuilder.<RpmMultiplier>create(i -> i.group(
                     multiplier().fieldOf("multiplier").forGetter(RpmMultiplier::multiplier)).apply(i, RpmMultiplier::new)),
-            "reload_speed", RecordCodecBuilder.<ReloadSpeed>create(i -> i.group(
-                    multiplier().fieldOf("multiplier").forGetter(ReloadSpeed::multiplier)).apply(i, ReloadSpeed::new)),
             "weapon_slots", WeaponSlots.CODEC,
             "revive_speed", RecordCodecBuilder.<ReviveSpeed>create(i -> i.group(
                     multiplier().fieldOf("multiplier").forGetter(ReviveSpeed::multiplier)).apply(i, ReviveSpeed::new)),

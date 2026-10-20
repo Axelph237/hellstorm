@@ -1,5 +1,7 @@
 package dev.candycanecazoo.packapunch.gametest;
 
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import com.tacz.guns.api.GunProperties;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
@@ -233,14 +235,36 @@ public final class PerkGameTests {
             helper.assertTrue(before.state() == ReloadState.StateType.EMPTY_RELOAD_FEEDING && before.magazine() == 0,
                     "without Speed Cola, " + elapsed + " of " + feed + " ms in should still be feeding, was " + before);
 
+            AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED.get());
+            helper.assertTrue(reloadSpeed != null && reloadSpeed.getValue() == 1, "players should start at reload speed 1");
+
             active.game().refund(player.getUUID(), 10_000);
             FeatureBlock.use(player, at);
             helper.assertTrue(state(active, player).perks().containsKey(SPEED_COLA), "Speed Cola wasn't bought");
+            helper.assertTrue(reloadSpeed.getValue() == 2, "Speed Cola should add 1 to reload speed, is " + reloadSpeed.getValue());
             Reloaded after = reloadAfter(player, elapsed);
             helper.assertTrue(after.state() != ReloadState.StateType.EMPTY_RELOAD_FEEDING && after.magazine() > 0,
                     "with Speed Cola, " + elapsed + " of " + feed + " ms in should have fed the magazine, was " + after);
         } finally {
             GameManager.end(active);
+        }
+        AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED.get());
+        helper.assertTrue(reloadSpeed.getValue() == 1, "reload speed after the game is " + reloadSpeed.getValue());
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "reload_attribute")
+    public static void anyReloadSpeedModifierSpeedsUpReloadsWithoutAPerk(GameTestHelper helper) {
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_reload_attribute");
+        long feed = (long) (TimelessAPI.getCommonGunIndex(AK47).orElseThrow().getGunData().getReloadData().getFeed().getEmptyTime() * 1000);
+        AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED.get());
+        AttributeModifier boost = new AttributeModifier(java.util.UUID.randomUUID(), "test boost", 1.0, AttributeModifier.Operation.MULTIPLY_BASE);
+        reloadSpeed.addTransientModifier(boost);
+        try {
+            Reloaded reloaded = reloadAfter(player, feed * 3 / 4);
+            helper.assertTrue(reloaded.magazine() > 0, "at reload speed " + reloadSpeed.getValue() + " the magazine should be fed, was " + reloaded);
+        } finally {
+            reloadSpeed.removeModifier(boost);
         }
         helper.succeed();
     }

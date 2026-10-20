@@ -1,32 +1,35 @@
 package dev.candycanecazoo.packapunch.tacz;
 
-import dev.candycanecazoo.packapunch.client.ClientPerks;
-import dev.candycanecazoo.packapunch.perk.Perks;
-import net.minecraft.server.level.ServerPlayer;
+import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 
 /**
- * Speed Cola. TacZ times a reload by how long ago it started: the built-in reload and every gun pack's Lua reload script
- * ask {@code ModernKineticGunScriptAPI.getReloadTime()}. Running that clock faster for a perk holder shortens every kind
- * of reload alike (magazine, shell by shell, interrupted), on the server, which owns the reload.
+ * The {@code packapunch:reload_speed} attribute applied to TacZ. TacZ times a reload by how long ago it started: the
+ * built-in reload and every gun pack's Lua reload script ask {@code ModernKineticGunScriptAPI.getReloadTime()}. Running
+ * that clock at the shooter's reload speed shortens every kind of reload alike (magazine, shell by shell, interrupted),
+ * on the server, which owns the reload. The attribute syncs to the player's client, which plays its reload animations
+ * at the same pace.
  */
 public final class ReloadTimes {
     private static final String RELOAD_ANIMATION = "reload";
 
     private ReloadTimes() {}
 
-    /** The reload's elapsed milliseconds as the shooter's perks see them: 0.5 makes a reload take half as long. */
-    public static long elapsed(LivingEntity shooter, long millis) {
-        double factor = shooter instanceof ServerPlayer player ? Perks.reloadMultiplier(player) : 1;
-        return factor == 1 || millis <= 0 ? millis : (long) (millis / factor);
+    /** 1 for anything without the attribute (mobs holding guns). */
+    public static double speed(LivingEntity shooter) {
+        AttributeInstance instance = shooter.getAttribute(PapRegistries.RELOAD_SPEED.get());
+        return instance == null ? 1 : instance.getValue();
     }
 
-    /**
-     * Client only. The local player's first-person reload animations run at the same pace, so the hands finish when the
-     * server says the magazine is in. Other animations (draw, inspect, shoot) are untouched.
-     */
-    public static long animationStep(String animation, long nanos) {
-        float factor = ClientPerks.reloadMultiplier();
-        return factor == 1 || !animation.startsWith(RELOAD_ANIMATION) ? nanos : (long) (nanos / factor);
+    /** The reload's elapsed milliseconds at the shooter's reload speed: at 2, a reload takes half as long. */
+    public static long elapsed(LivingEntity shooter, long millis) {
+        double speed = speed(shooter);
+        return speed == 1 || millis <= 0 ? millis : (long) (millis * speed);
+    }
+
+    /** One step of a first-person animation. Reload animations run at {@code speed}; draw, inspect, and shoot don't. */
+    public static long animationStep(String animation, long nanos, double speed) {
+        return speed == 1 || !animation.startsWith(RELOAD_ANIMATION) ? nanos : (long) (nanos * speed);
     }
 }
