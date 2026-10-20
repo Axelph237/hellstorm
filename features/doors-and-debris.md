@@ -47,7 +47,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
   3. Add both zones to the game's unlocked set.
   4. Tell pathfinding to compute portal edges for the newly reachable zones (see `zombie-pathfinding.md`).
   5. Emit `door_opened` (see `scripting-and-events.md`).
-- **Prompts.** `DoorIndex` membership for nearby doors is synced to clients so the HUD can show "Door 750" while looking at any member.
+- **Prompts.** `DoorIndex` membership for nearby doors is synced to clients so the HUD can show "Door [750]" while looking at any member.
 
 **Interaction with other systems.**
 - Room detection (`zone detect`) treats door members as walls, so a closed door splits two zones.

@@ -13,7 +13,7 @@ Every machine and door is bought the same way, so each feature only writes what 
   - `buy(player, game, pos, state)`: called for a player in a game in this level.
   - `describe(level, pos)`: one chat line for map makers (anyone not in a game who uses the block).
   - Static helpers `use(player, pos)`, `placed(...)` (call from `onPlace`), `removed(...)` (call from `onRemove`).
-- **`Prompted`** (`feature/`), implemented by a machine's block entity: `Optional<Prompt> prompt()` with `Prompt(String label, int cost, boolean needsPower)`. Read on the client from synced data. `client/PromptOverlay` draws "{label} {cost}", in red when the player can't afford it or it needs power.
+- **`Prompted`** (`feature/`), implemented by a machine's block entity: `Optional<Prompt> prompt()` with `Prompt(String label, int cost, boolean needsPower)`. Read on the client from synced data. `client/PromptOverlay` draws "{label} [{cost}]" with gold brackets and the cost in red when the player can't afford it, or "No power" in red while it needs the power on.
 - **`Refusal`** (`game/`): `NotPlaying`, `NotEnoughPoints(cost, points)`, `NeedsPower`, `Because(message)`.
 - **`Shop.Sale`** (`game/`): `cost()`, `needsPower()`, `check(game, player)` (feature rules, before charging), `deliver(game, player)` (a refusal here refunds).
 - **`ItemSpec`** (`data/`): `Plain(item, count, nbt)` or `Gun(tacz_gun, unlimited_ammo, punchable = true)`. `build(reserveMagazines)`, `matches(stack)`, `describe()`. Constants `PAP`, `PUNCHABLE`, `PUNCH_ID` name the `pap` NBT compound.

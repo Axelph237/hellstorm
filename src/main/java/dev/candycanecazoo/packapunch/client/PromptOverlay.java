@@ -3,9 +3,11 @@ package dev.candycanecazoo.packapunch.client;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.Prompted;
 import dev.candycanecazoo.packapunch.map.DoorDef;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
@@ -17,8 +19,8 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.Optional;
 
 /**
- * "AK-47 1000" under the crosshair while a player in a game looks at something they can buy, in red when they can't
- * afford it or it needs power.
+ * "AK-47 [1000]" (gold brackets) under the crosshair while a player in a game looks at something they can buy, with the
+ * cost in red when they can't afford it, and just "No power" in red when it needs the power on.
  */
 @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class PromptOverlay {
@@ -34,8 +36,7 @@ public final class PromptOverlay {
         if (!HudState.inGame() || mc.level == null || mc.options.hideGui) {
             return;
         }
-        prompt(mc).ifPresent(prompt -> WrappedText.drawCentered(graphics, mc.font, text(prompt), width / 2, height / 2 + 14, width,
-                buyable(prompt) ? 0xFFFFFF : 0xFF5555));
+        prompt(mc).ifPresent(prompt -> WrappedText.drawCentered(graphics, mc.font, text(prompt), width / 2, height / 2 + 14, width, 0xFFFFFF));
     }
 
     /** What the crosshair is on, if it is a door or a machine with something to sell. */
@@ -52,10 +53,15 @@ public final class PromptOverlay {
     }
 
     static Component text(Prompted.Prompt prompt) {
-        return Component.literal(prompt.cost() > 0 ? prompt.label() + " " + prompt.cost() : prompt.label());
-    }
-
-    static boolean buyable(Prompted.Prompt prompt) {
-        return (!prompt.needsPower() || HudState.powerOn()) && HudState.points() >= prompt.cost();
+        if (prompt.needsPower() && !HudState.powerOn()) {
+            return Component.literal("No power").withStyle(ChatFormatting.RED);
+        }
+        MutableComponent text = Component.literal(prompt.label());
+        if (prompt.cost() > 0) {
+            text.append(" ").append(Component.literal("[").withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal(String.valueOf(prompt.cost())).withStyle(HudState.points() >= prompt.cost() ? ChatFormatting.WHITE : ChatFormatting.RED))
+                    .append(Component.literal("]").withStyle(ChatFormatting.GOLD));
+        }
+        return text;
     }
 }
