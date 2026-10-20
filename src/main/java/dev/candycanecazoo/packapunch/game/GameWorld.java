@@ -70,6 +70,11 @@ public interface GameWorld {
 
     void announce(String message);
 
+    /** {@link #announce}, worded by the lang file, with machines' names filled in from their keys (see {@link Refusal.Translated}). */
+    default void announceNamed(String key, java.util.List<String> nameKeys) {
+        announce(key);
+    }
+
     void showStatus(UUID player, Status status);
 
     /** A timed effect ran out (see {@link Game#startTimed}). Features that changed the world for it undo that here. */

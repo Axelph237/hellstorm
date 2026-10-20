@@ -19,8 +19,9 @@ public sealed interface PunchOutcome {
         }
     }
 
+    /** {@code message} is the default English, for logs and audits; players see {@link #key()} through the lang file. */
     enum RejectReason {
-        NOT_PUNCHABLE("This item can't be Pack-a-Punched"),
+        NOT_PUNCHABLE("This item can't go in the Pack-a-Punch"),
         UNKNOWN_PUNCH_ID("This item's upgrade doesn't exist"),
         NO_UPGRADE_PATH("This item has no upgrade"),
         MAX_TIER("This weapon is fully upgraded");
@@ -33,6 +34,10 @@ public sealed interface PunchOutcome {
 
         public String message() {
             return message;
+        }
+
+        public String key() {
+            return "message.packapunch.pap." + name().toLowerCase(java.util.Locale.ROOT);
         }
     }
 }

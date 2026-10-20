@@ -46,7 +46,10 @@ public final class Shop {
     }
 
     public static void refuse(ServerPlayer player, Refusal refusal) {
-        Notices.show(player, Component.literal(refusal.message()).withStyle(ChatFormatting.RED));
+        Component text = refusal instanceof Refusal.Translated t
+                ? Component.translatable(t.key(), t.nameKeys().stream().map(Component::translatable).toArray())
+                : Component.literal(refusal.message());
+        Notices.show(player, text.copy().withStyle(ChatFormatting.RED));
         player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.0f);
     }
 }

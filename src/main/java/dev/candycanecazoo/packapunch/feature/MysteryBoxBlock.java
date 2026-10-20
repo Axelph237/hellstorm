@@ -209,7 +209,7 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
                 return Optional.empty();
             }
             if (phase == Phase.IDLE) {
-                return Optional.of(new Prompt("Mystery Box", price, false));
+                return Optional.of(new Prompt(net.minecraft.locale.Language.getInstance().getOrDefault("name.packapunch.mystery_box"), price, false));
             }
             boolean mine = phase == Phase.OFFERING && Viewer.get().map(p -> roller.equals(Optional.of(p.getUUID()))).orElse(false);
             return mine ? Optional.of(new Prompt(result.getHoverName().getString(), 0, false)) : Optional.empty();

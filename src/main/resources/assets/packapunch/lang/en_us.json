@@ -55,5 +55,16 @@
   "block.packapunch.pap_machine": "Pack-a-Punch Machine",
   "block.packapunch.trap_controller": "Trap Controller",
   "item.packapunch.upgraded": "Upgraded %s",
-  "item.packapunch.punch.iron_sword": "Pack-a-Punched Sword"
+  "item.packapunch.punch.iron_sword": "Pack-a-Punched Sword",
+  "name.packapunch.pack_a_punch": "Pack-A-Punch",
+  "name.packapunch.mystery_box": "Mystery Box",
+  "message.packapunch.box.not_here": "The %s isn't here",
+  "message.packapunch.box.in_use": "The %s is in use",
+  "message.packapunch.box.empty": "The %s is empty",
+  "message.packapunch.box.nothing_new": "The %s has nothing new for you",
+  "message.packapunch.box.moved": "The %s moved",
+  "message.packapunch.pap.not_punchable": "This item can't go in the %s",
+  "message.packapunch.pap.unknown_punch_id": "This item's upgrade doesn't exist",
+  "message.packapunch.pap.no_upgrade_path": "This item has no upgrade",
+  "message.packapunch.pap.max_tier": "This weapon is fully upgraded"
 }

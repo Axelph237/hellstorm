@@ -310,6 +310,12 @@ public final class ForgeGameWorld implements GameWorld {
     }
 
     @Override
+    public void announceNamed(String key, List<String> nameKeys) {
+        Component text = Component.translatable(key, nameKeys.stream().map(Component::translatable).toArray()).withStyle(ChatFormatting.RED);
+        players.get().forEach(id -> player(id).ifPresent(p -> p.sendSystemMessage(text)));
+    }
+
+    @Override
     public void announceKey(String key) {
         Component text = Component.translatable(key).withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
         players.get().forEach(id -> player(id).ifPresent(p -> p.sendSystemMessage(text)));

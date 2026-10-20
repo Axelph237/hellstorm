@@ -36,6 +36,8 @@ import java.util.WeakHashMap;
  * game, and Fire Sale. The box is placed when a game is registered and put away by {@code MapReset}.
  */
 public final class MysteryBoxes {
+    /** The machine's name, from the lang file so a resource pack can rename it. */
+    private static final String BOX = "name.packapunch.mystery_box";
     private static final int REEL_SIZE = 12;
     private static final Map<Game, State> STATES = new WeakHashMap<>();
 
@@ -111,7 +113,7 @@ public final class MysteryBoxes {
 
     static void use(ServerPlayer player, GameManager.Active game, MysteryBoxBlock.Entity box) {
         if (!box.active()) {
-            Shop.refuse(player, new Refusal.Because("The Mystery Box isn't here"));
+            Shop.refuse(player, new Refusal.Translated("message.packapunch.box.not_here", List.of(BOX)));
             return;
         }
         if (box.phase() == MysteryBoxBlock.Phase.OFFERING) {
@@ -123,7 +125,7 @@ public final class MysteryBoxes {
             return;
         }
         if (box.phase() == MysteryBoxBlock.Phase.ROLLING) {
-            Shop.refuse(player, new Refusal.Because("The Mystery Box is in use"));
+            Shop.refuse(player, new Refusal.Translated("message.packapunch.box.in_use", List.of(BOX)));
             return;
         }
         int cost = price(game, box);
@@ -143,7 +145,7 @@ public final class MysteryBoxes {
                 if (BoxPools.get(box.config().pool()).isEmpty()) {
                     return Optional.of(new Refusal.Because("Unknown box pool " + box.config().pool()));
                 }
-                return pool(g, box.config().pool()).isEmpty() ? Optional.of(new Refusal.Because("The Mystery Box is empty")) : Optional.empty();
+                return pool(g, box.config().pool()).isEmpty() ? Optional.of(new Refusal.Translated("message.packapunch.box.empty", List.of(BOX))) : Optional.empty();
             }
 
             @Override
@@ -184,7 +186,7 @@ public final class MysteryBoxes {
         Optional<ItemStack> stack = picked.flatMap(spec -> spec.build(game.game().settings().players().reserveMagazines()));
         if (stack.isEmpty()) {
             game.game().refund(box.roller().get(), box.paid());
-            player.ifPresent(p -> Shop.refuse(p, new Refusal.Because("The Mystery Box has nothing new for you")));
+            player.ifPresent(p -> Shop.refuse(p, new Refusal.Translated("message.packapunch.box.nothing_new", List.of(BOX))));
             box.idle();
             return;
         }
@@ -235,7 +237,7 @@ public final class MysteryBoxes {
         state.home = Optional.of(to);
         state.usesSinceMove = 0;
         activate(game, to);
-        game.world().announce("The Mystery Box moved");
+        game.world().announceNamed("message.packapunch.box.moved", List.of(BOX));
         game.game().events().emit(new GameEvent.MysteryBoxMoved(from, to));
     }
 

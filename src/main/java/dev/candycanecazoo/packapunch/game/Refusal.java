@@ -24,4 +24,14 @@ public sealed interface Refusal {
 
     /** A feature-specific reason, such as "You already have Juggernog" or "Your inventory is full". */
     record Because(String message) implements Refusal {}
+
+    /**
+     * A reason worded by the lang file, for messages that name a machine: {@code nameKeys} fill its {@code %s} slots with
+     * the machines' own names, so a resource pack renames a machine everywhere by changing one key.
+     */
+    record Translated(String key, java.util.List<String> nameKeys) implements Refusal {
+        public String message() {
+            return key;
+        }
+    }
 }

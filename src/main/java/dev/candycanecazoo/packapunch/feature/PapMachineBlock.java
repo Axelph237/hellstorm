@@ -56,6 +56,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -68,6 +69,8 @@ import java.util.UUID;
  */
 public final class PapMachineBlock extends HorizontalDirectionalBlock implements EntityBlock, FeatureBlock {
     public static final EnumProperty<BedPart> PART = BlockStateProperties.BED_PART;
+    /** The machine's name, from the lang file so a resource pack can rename it. */
+    public static final String NAME = "name.packapunch.pack_a_punch";
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
     /** Where the item lies, above the machine's floor, and how far it reaches either side of the middle. */
     public static final double TOP = 12.0 / 16;
@@ -128,7 +131,7 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
         @Override
         public Optional<Prompt> prompt() {
             if (job.isEmpty()) {
-                return Optional.of(new Prompt("Pack-A-Punch", shownCost, true));
+                return Optional.of(new Prompt(net.minecraft.locale.Language.getInstance().getOrDefault(NAME), shownCost, true));
             }
             return job.get().ready() ? Optional.of(new Prompt(job.get().result().getHoverName().getString(), 0, false)) : Optional.empty();
         }
@@ -164,7 +167,7 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
                         return Optional.of(new Refusal.Because("Hold the item you want to upgrade"));
                     }
                     if (outcome instanceof PunchOutcome.Rejected rejected) {
-                        return Optional.of(new Refusal.Because(rejected.reason().message()));
+                        return Optional.of(new Refusal.Translated(rejected.reason().key(), List.of(NAME)));
                     }
                     return result.isEmpty() ? Optional.of(new Refusal.Because("This item's upgrade isn't installed")) : Optional.empty();
                 }
