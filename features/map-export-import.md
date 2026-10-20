@@ -51,3 +51,19 @@ None.
 ## Phase
 
 7.
+
+## As built (phase 7)
+
+- **Commands** (ops, `command/MapPackCommands`). Packs live in `packapunch/maps/` in the game folder (the server folder on a server). `/pap map packs` lists them.
+  - `/pap map export <name> [force]` saves the Zone Wand selection if there is one, otherwise the map's bounds (`MapGeometry.bounds`: every zone box, feature, window, and door block) grown by `export.margin` (6) for walls, floors, and spawn areas outside the zones. It refuses while a game runs here, and when the map has validation errors unless `force`. The world's `datapacks/<name>` folder, if there is one, goes into the pack.
+  - `/pap map import <name> [<pos>] [replace]` places the pack with its corner at `<pos>`, or where it was exported from. It refuses while a game runs, and over an existing map unless `replace`. The pack's datapack is written to `datapacks/<name>` (replacing that folder) and `/reload` runs. The validation verdict is printed.
+- **Format** (`tools/MapPack`, format 1). A zip: `map.json` (`Manifest`: format, name, origin, size, and the `ZombiesMap` relative to the corner), `structure/<x>_<y>_<z>.nbt` (48-block pieces numbered from the corner, uncompressed structure templates without entities), and `datapack/...`. Block entities carry their settings and store no positions, so machines come back as they were. The pack is written to `<name>.zip.partial` and moved into place only when complete.
+- **Reading a stranger's pack.** Only those three kinds of entry are allowed. A datapack path may contain only letters, digits, `_`, `.`, `-`, and `/`, and never `..`. At most 20,000 entries and 512 MB unpacked, counted while reading. A piece must lie inside the map's size, and a damaged piece or manifest is refused with a message rather than an error. Writing the datapack checks every path stays inside `datapacks/<name>`. Scripts still run in the Lua sandbox.
+- **Placing.** Pieces go in with `StructureTemplate.placeInWorld` (client updates only, so nothing pops), into chunks that need not be loaded. The map is then moved to the new corner (`MapGeometry.moved`) and becomes the level's map, synced to players.
+- **Not fighting, not hurt.** Found while playing an import: players in a game now take no damage in the lobby, the countdown, or after game over (`Game.protectsPlayers`). Before, lobby damage was vanilla (players could die) and countdown damage downed them before round 1.
+- **Tests.**
+  - JUnit `MapGeometryTest`: bounds cover every kind of position, and moving there and back is the same map.
+  - JUnit `MapPackTest`: climbing paths, unknown entries, a missing manifest, another format, a piece outside the map, and a damaged piece are refused; a datapack is never written outside its folder.
+  - GameTest `MapPackGameTests`: an exported area imported five blocks over has its blocks, the wall-buy's facing and settings, and the same map moved by five.
+  - JUnit `DownsTest.playersAreProtectedOnlyWhileThereIsAFight`.
+  - Checked on the Test map in a live client: exported (36x19x42, 80 KB), imported 500 blocks away with `replace`, validated as playable, and a game started there with only `start` and `hall` unlocked.

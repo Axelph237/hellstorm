@@ -171,6 +171,22 @@ class DownsTest {
     }
 
     @Test
+    void playersAreProtectedOnlyWhileThereIsAFight() {
+        Game lobby = new Game(SETTINGS, GameMap.of(ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("a"), List.of(new BlockBox(0, 0, 0, 9, 3, 9)), true)), Set.of()),
+                new MobRoster(List.of(new MobRoster.Entry(ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty()))), RandomSource.create(3), new GameEvents());
+        lobby.join(alice);
+        assertTrue(lobby.protectsPlayers(), "in the lobby");
+        lobby.start();
+        assertTrue(lobby.protectsPlayers(), "during the countdown");
+
+        Game game = game(alice);
+        assertFalse(game.protectsPlayers(), "in a round");
+        game.onLethalDamage(alice, world);
+        tick(game, 1);
+        assertTrue(game.protectsPlayers(), "once it's over");
+    }
+
+    @Test
     void soloQuickReviveSelfRevivesThreeTimesThenTheFourthDownEndsIt() {
         Game game = game(alice);
         for (int i = 0; i < 3; i++) {

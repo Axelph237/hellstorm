@@ -173,7 +173,9 @@ public final class GameHooks {
         // Downed players are out of the fight: nothing hurts them until they're revived or bleed out.
         boolean downed = event.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID())
                 .flatMap(a -> a.game().player(player.getUUID())).map(s -> s.life() instanceof LifeState.Downed).orElse(false);
-        if (burningZombie || god || downed) {
+        boolean notFighting = event.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID())
+                .map(a -> a.game().protectsPlayers()).orElse(false);
+        if (burningZombie || god || downed || notFighting) {
             event.setCanceled(true);
         }
     }

@@ -23,6 +23,11 @@ public final class Targets {
     private Targets() {}
 
     /** Fails the command with the machine's reason when its new settings were refused. */
+    /** A command error carrying {@code message}, to throw. */
+    static CommandSyntaxException fail(String message) {
+        return new SimpleCommandExceptionType(Component.literal(message)).create();
+    }
+
     static void require(Optional<String> problem) throws CommandSyntaxException {
         if (problem.isPresent()) {
             throw new SimpleCommandExceptionType(Component.literal(problem.get())).create();

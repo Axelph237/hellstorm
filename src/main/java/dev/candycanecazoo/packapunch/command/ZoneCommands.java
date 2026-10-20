@@ -77,7 +77,10 @@ final class ZoneCommands {
     static LiteralArgumentBuilder<CommandSourceStack> map() {
         return Commands.literal("map")
                 .then(Commands.literal("validate").executes(ZoneCommands::validate))
-                .then(Commands.literal("paths").executes(ZoneCommands::paths));
+                .then(Commands.literal("paths").executes(ZoneCommands::paths))
+                .then(MapPackCommands.export())
+                .then(MapPackCommands.importPack())
+                .then(MapPackCommands.packs());
     }
 
     private static ArgumentBuilder<CommandSourceStack, ?> zoneArg() {

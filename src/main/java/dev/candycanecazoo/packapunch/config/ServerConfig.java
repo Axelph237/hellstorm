@@ -8,6 +8,7 @@ public final class ServerConfig {
     public static final ForgeConfigSpec.IntValue DETECT_MAX_VOLUME;
     public static final ForgeConfigSpec.DoubleValue TOOL_REACH;
     public static final ForgeConfigSpec.IntValue MAX_PASSAGE_GAP;
+    public static final ForgeConfigSpec.IntValue EXPORT_MARGIN;
     public static final GameSettingsConfig GAME;
     public static final ForgeConfigSpec.BooleanValue SCRIPTING_ENABLED;
     public static final ForgeConfigSpec.IntValue SCRIPT_PERMISSION_LEVEL;
@@ -29,6 +30,11 @@ public final class ServerConfig {
         MAX_PASSAGE_GAP = builder
                 .comment("Two zones count as connected when a mob could walk between them through at most this many cells that belong to no zone (a doorway, an arch, an open door).")
                 .defineInRange("max_passage_gap", 2, 0, 8);
+        builder.pop();
+        builder.push("export");
+        EXPORT_MARGIN = builder
+                .comment("/pap map export without a Zone Wand selection saves the map's zones, machines, windows, and doors plus this many blocks around them, for walls, floors, and spawn areas.")
+                .defineInRange("margin", 6, 0, 64);
         builder.pop();
         GAME = new GameSettingsConfig(builder);
         // Not part of GameSettings on purpose: a map's settings override must never raise its own script permissions.

@@ -65,6 +65,20 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
         return contains(o.minX, o.minY, o.minZ) && contains(o.maxX, o.maxY, o.maxZ);
     }
 
+    public BlockBox moved(int dx, int dy, int dz) {
+        return new BlockBox(minX + dx, minY + dy, minZ + dz, maxX + dx, maxY + dy, maxZ + dz);
+    }
+
+    /** The smallest box holding both. */
+    public BlockBox union(BlockBox o) {
+        return new BlockBox(Math.min(minX, o.minX), Math.min(minY, o.minY), Math.min(minZ, o.minZ),
+                Math.max(maxX, o.maxX), Math.max(maxY, o.maxY), Math.max(maxZ, o.maxZ));
+    }
+
+    public BlockBox grown(int by) {
+        return new BlockBox(minX - by, minY - by, minZ - by, maxX + by, maxY + by, maxZ + by);
+    }
+
     public boolean intersects(BlockBox o) {
         return minX <= o.maxX && maxX >= o.minX && minY <= o.maxY && maxY >= o.minY && minZ <= o.maxZ && maxZ >= o.minZ;
     }

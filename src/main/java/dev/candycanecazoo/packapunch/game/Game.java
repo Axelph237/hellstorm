@@ -540,6 +540,11 @@ public final class Game {
      * damage): an alive player goes down, and a downed one takes no more. A solo player with Quick Revive and self-revives
      * left starts reviving themselves at once.
      */
+    /** Before the first round and once the game is over, nothing hurts the players: there's no fight to be hurt in. */
+    public boolean protectsPlayers() {
+        return phase instanceof GamePhase.Lobby || phase instanceof GamePhase.Countdown || phase instanceof GamePhase.GameOver;
+    }
+
     public boolean onLethalDamage(UUID id, GameWorld world) {
         PlayerState player = players.get(id);
         if (player == null || !player.inPlay() || phase instanceof GamePhase.Lobby || phase instanceof GamePhase.GameOver) {
