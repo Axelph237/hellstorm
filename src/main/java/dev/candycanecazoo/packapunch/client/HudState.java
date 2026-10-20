@@ -23,7 +23,14 @@ public final class HudState {
 
     private HudState() {}
 
+    /** {@link HudSyncPacket#NONE} means the game just ended: out of the game now, not when the last HUD goes stale. */
     public static void update(HudSyncPacket packet) {
+        if (packet.equals(HudSyncPacket.NONE)) {
+            last = HudSyncPacket.NONE;
+            receivedAt = Long.MIN_VALUE / 2;
+            popups.clear();
+            return;
+        }
         long now = Util.getMillis();
         if (inGame() && packet.points() != last.points()) {
             popups.add(new Popup(packet.points() - last.points(), now));

@@ -160,11 +160,14 @@ class DownsTest {
     }
 
     @Test
-    void everyoneDownEndsTheGame() {
+    void everyoneDownEndsTheGameAndStandsThemUpAtOnce() {
         Game game = game(alice);
         game.onLethalDamage(alice, world);
         tick(game, 1);
         assertInstanceOf(GamePhase.GameOver.class, game.phase());
+        assertInstanceOf(LifeState.Alive.class, game.player(alice).orElseThrow().life(), "not down through the game-over pause");
+        assertEquals(List.of(alice), world.stoodUp);
+        assertEquals(List.of(), world.revived, "standing up at game over isn't a revive");
     }
 
     @Test

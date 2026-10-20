@@ -51,6 +51,9 @@ public interface GameWorld {
     /** Back up from being down, at half health. */
     void revive(UUID player);
 
+    /** No longer down, because the game is over: the crawl and the rest of being down end, nothing else changes. */
+    void standUp(UUID player);
+
     /** After bleeding out: a fresh starting loadout for the next round. */
     void giveStartingLoadout(UUID player);
 

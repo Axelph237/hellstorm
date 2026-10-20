@@ -236,6 +236,11 @@ public final class ForgeGameWorld implements GameWorld {
     }
 
     @Override
+    public void standUp(UUID id) {
+        entity(id).ifPresent(Downs::standUp);
+    }
+
+    @Override
     public void revive(UUID id) {
         player(id).ifPresent(p -> {
             Downs.standUp(p);

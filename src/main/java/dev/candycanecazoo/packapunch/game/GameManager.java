@@ -162,6 +162,7 @@ public final class GameManager {
             ServerPlayer online = active.level().getServer().getPlayerList().getPlayer(player.id());
             if (online != null) {
                 sessions.restore(online);
+                dev.candycanecazoo.packapunch.net.PapNetwork.send(online, dev.candycanecazoo.packapunch.net.HudSyncPacket.NONE);
             }
         }
         GAMES.remove(active.level().dimension());

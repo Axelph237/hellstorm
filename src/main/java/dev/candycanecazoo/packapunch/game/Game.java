@@ -429,6 +429,13 @@ public final class Game {
         });
         remaining.forEach(world::removeMob);
         endWave(world);
+        // Nobody is down once the game is lost: otherwise they crawl, glow, and see in grey through the game-over pause.
+        for (PlayerState player : players.values()) {
+            if (player.life() instanceof LifeState.Downed) {
+                player.setLife(new LifeState.Alive());
+                world.standUp(player.id());
+            }
+        }
         events.emit(new GameEvent.GameEnd(roundReached));
         world.announce("Game over. You survived " + roundReached + (roundReached == 1 ? " round" : " rounds"));
         phase = new GamePhase.GameOver(roundReached, settings.rounds().gameOverTicks());

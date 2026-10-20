@@ -22,6 +22,7 @@ final class FakeWorld implements GameWorld {
     final List<net.minecraft.resources.ResourceLocation> timedEnded = new ArrayList<>();
     final List<UUID> downed = new ArrayList<>();
     final List<UUID> revived = new ArrayList<>();
+    final List<UUID> stoodUp = new ArrayList<>();
     final List<UUID> restocked = new ArrayList<>();
     final Map<UUID, Float> healed = new HashMap<>();
     final Map<UUID, Double> reviveSpeeds = new HashMap<>();
@@ -87,6 +88,11 @@ final class FakeWorld implements GameWorld {
     @Override
     public void revive(UUID player) {
         revived.add(player);
+    }
+
+    @Override
+    public void standUp(UUID player) {
+        stoodUp.add(player);
     }
 
     @Override
