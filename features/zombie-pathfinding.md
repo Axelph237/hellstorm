@@ -119,3 +119,15 @@ Zombies still walked into open trapdoors and clipped door jambs. Vanilla's walk 
 - **Graph edges are swept.** `VanillaGraphs` slides the mob's box from one node's centre to the next, above step height, against real block shapes, and drops moves that touch anything. Moves through cells with no shapes at all skip the sweep. A wall of open trapdoors is now a wall.
 - **Steering is swept.** `FlowNavigator` picks the farthest downhill cell on its level that its own box can slide to from where it actually stands, checked with the level's collision. The sideways spread is only applied when that is clear too. If not even the next cell is reachable directly, it re-centres in its own cell first. The aim is re-chosen every 4 ticks or when reached. `FlowField.lookahead` (grid-only) was removed.
 - **Stalls are counted.** `GamePathing.stalls()` counts the times a zombie stopped making progress and needed vanilla navigation. The chase GameTests require zero, including a decoy wall of open trapdoors beside the real doorway and a doorway at the end of a wall that forces a tight turn.
+
+## Performance (phase 7)
+
+Measured on the Test map in a live client: one player (god mode), round 1 forced to 200 zombies with `spawn_delay_ticks = 2`, so the round sat at the 24-alive cap. Server average tick time (`MinecraftServer.getAverageTickTime`, a 100-tick rolling average):
+
+| State | Tick time |
+|---|---|
+| Lobby and countdown | 1.8 to 3.6 ms |
+| Spawning in, 0 to 24 zombies (first 4 s) | peak 9.0 ms |
+| 24 zombies chasing, steady (80 s) | 1.8 to 2.8 ms, typically 2.1 ms |
+
+Out of a 50 ms budget, so no optimization was needed. The spawn-time peak is the path graphs being built for the first mobs of a type. More players add only their HUD sync (every 4 ticks) and spawn-candidate weighting; zombie count is what drives the cost. A rolling average can hide a single long tick; none showed as a hitch in play.
