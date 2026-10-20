@@ -123,9 +123,9 @@ public final class GameManager {
         return active;
     }
 
-    /** The loaded power-ups, as a new game takes them. */
+    /** The loaded power-ups and wave events, as a new game takes them. */
     static SurvivalContent survivalContent() {
-        return new SurvivalContent(dev.candycanecazoo.packapunch.powerup.PowerUpDefs.table());
+        return new SurvivalContent(dev.candycanecazoo.packapunch.powerup.PowerUpDefs.table(), dev.candycanecazoo.packapunch.wave.WaveEventDefs.all());
     }
 
     /** Where script commands run: the center of the first start zone, or the first start cell. */

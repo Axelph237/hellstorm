@@ -21,6 +21,7 @@ final class FakeWorld implements GameWorld {
     final List<String> announcements = new ArrayList<>();
     final List<net.minecraft.resources.ResourceLocation> timedEnded = new ArrayList<>();
     final List<net.minecraft.resources.ResourceLocation> drops = new ArrayList<>();
+    final List<Optional<Float>> fog = new ArrayList<>();
     boolean refuseSpawns;
     java.util.function.BiPredicate<net.minecraft.resources.ResourceLocation, BlockPos> canSpawn = (profile, marker) -> true;
 
@@ -77,5 +78,10 @@ final class FakeWorld implements GameWorld {
     @Override
     public void dropPowerUp(net.minecraft.resources.ResourceLocation powerUp, BlockPos pos) {
         drops.add(powerUp);
+    }
+
+    @Override
+    public void setFog(Optional<Float> density) {
+        fog.add(density);
     }
 }

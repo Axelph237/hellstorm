@@ -45,7 +45,7 @@ class PowerUpGameTest {
         GameEvents events = new GameEvents();
         events.subscribe(seen::add);
         Game game = new Game(settings, GameMap.of(map, Set.of()), ROSTER, RandomSource.create(7), events,
-                new SurvivalContent(new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(NUKE, 1)))));
+                new SurvivalContent(new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(NUKE, 1))), java.util.Map.of()));
         assertTrue(game.join(alice));
         assertTrue(game.start());
         tick(game, 30);

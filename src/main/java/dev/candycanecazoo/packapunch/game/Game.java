@@ -5,6 +5,8 @@ import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.perk.PerkDef;
 import dev.candycanecazoo.packapunch.powerup.PowerUpDrops;
+import dev.candycanecazoo.packapunch.wave.RoundRules;
+import dev.candycanecazoo.packapunch.wave.WaveSchedule;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -46,6 +48,9 @@ public final class Game {
     private final SurvivalContent content;
     private int dropsThisRound;
     private final List<Drop> pendingDrops = new ArrayList<>();
+    private final WaveSchedule waves;
+    /** The current round's wave event, if it is a special round. */
+    private Optional<RoundRules> rules = Optional.empty();
 
     /** A power-up waiting for the next tick to be put in the world. */
     private record Drop(ResourceLocation powerUp, BlockPos pos) {}
@@ -61,6 +66,7 @@ public final class Game {
         this.random = random;
         this.events = events;
         this.content = content;
+        this.waves = new WaveSchedule(content.waveEvents(), settings.waveEvents(), random);
         // A map without a power switch is powered from the start.
         this.powerOn = map.map().features(dev.candycanecazoo.packapunch.map.FeatureKind.POWER_SWITCH).isEmpty();
         this.graph = map.graph();
@@ -300,14 +306,22 @@ public final class Game {
             }
         }
         dropsThisRound = 0;
+        rules = waves.forRound(round);
+        rules.ifPresent(r -> {
+            events.emit(new GameEvent.WaveEventStarted(r.event(), round));
+            r.announce().ifPresent(world::announceKey);
+            r.fog().ifPresent(density -> world.setFog(Optional.of(density)));
+        });
         events.emit(new GameEvent.RoundStart(round));
         world.announce("Round " + round);
-        return new GamePhase.RoundActive(round, RoundPlan.zombieCount(settings.rounds(), round, players.size()), 0);
+        int count = RoundPlan.zombieCount(settings.rounds(), round, players.size());
+        return new GamePhase.RoundActive(round, rules.map(r -> Math.max(1, (int) Math.round(count * r.count()))).orElse(count), 0);
     }
 
     private GamePhase tickRound(GameWorld world, GamePhase.RoundActive round) {
         updatePlayerZones(world);
         if (round.toSpawn() == 0 && mobs.isEmpty()) {
+            endWave(world);
             events.emit(new GameEvent.RoundEnd(round.round()));
             world.announce("Round " + round.round() + " survived");
             return new GamePhase.Intermission(round.round() + 1, settings.rounds().intermissionTicks());
@@ -325,7 +339,8 @@ public final class Game {
             events.emit(new GameEvent.ZombieSpawned(mob, marker.get()));
         });
         // The spawn tick itself counts toward the delay, so a delay of N puts the next spawn N ticks later.
-        int cooldown = RoundPlan.spawnDelayTicks(settings.rounds(), round.round()) - 1;
+        int delay = RoundPlan.spawnDelayTicks(settings.rounds(), round.round());
+        int cooldown = rules.map(r -> Math.max(1, (int) Math.round(delay / r.spawnRate()))).orElse(delay) - 1;
         return spawned.isPresent()
                 ? new GamePhase.RoundActive(round.round(), round.toSpawn() - 1, cooldown)
                 : new GamePhase.RoundActive(round.round(), round.toSpawn(), cooldown);
@@ -334,8 +349,30 @@ public final class Game {
     private Optional<GameWorld.ZombieSpec> zombieSpec(int round, BlockPos marker, GameWorld world) {
         GameSettings.Rounds r = settings.rounds();
         boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
-        return roster.pick(round, random, profile -> world.canSpawn(profile, marker)).map(profile ->
+        return pickProfile(round, marker, world).map(profile ->
                 new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), RoundPlan.zombieSpeed(r, round, sprints)));
+    }
+
+    /** A special round's own profiles, if it has any that fit this marker, else the roster's pick. */
+    private Optional<ResourceLocation> pickProfile(int round, BlockPos marker, GameWorld world) {
+        List<ResourceLocation> special = rules.map(RoundRules::profiles).orElse(List.of()).stream()
+                .filter(profile -> world.canSpawn(profile, marker)).toList();
+        if (!special.isEmpty()) {
+            return Optional.of(special.get(random.nextInt(special.size())));
+        }
+        return roster.pick(round, random, profile -> world.canSpawn(profile, marker));
+    }
+
+    private void endWave(GameWorld world) {
+        if (rules.flatMap(RoundRules::fog).isPresent()) {
+            world.setFog(Optional.empty());
+        }
+        rules = Optional.empty();
+    }
+
+    /** The current round's wave event, if any. */
+    public Optional<RoundRules> waveEvent() {
+        return rules;
     }
 
     /** Players zombies may target: in this game and alive. */
@@ -393,6 +430,7 @@ public final class Game {
             world.timedEffectEnded(effect);
         });
         remaining.forEach(world::removeMob);
+        endWave(world);
         events.emit(new GameEvent.GameEnd(roundReached));
         world.announce("Game over. You survived " + roundReached + (roundReached == 1 ? " round" : " rounds"));
         phase = new GamePhase.GameOver(roundReached, settings.rounds().gameOverTicks());
@@ -431,6 +469,9 @@ public final class Game {
             p.countKill(headshot);
         });
         events.emit(new GameEvent.ZombieKilled(mob, player.map(PlayerState::id), headshot, melee, pos));
+        if (phase instanceof GamePhase.RoundActive round && round.toSpawn() == 0 && mobs.isEmpty()) {
+            rules.flatMap(RoundRules::lastKillDrop).ifPresent(powerUp -> pendingDrops.add(new Drop(powerUp, pos)));
+        }
         // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
         if (player.isPresent()) {
             PowerUpDrops.roll(settings.powerUps(), dropsThisRound, content.powerUps(), random).ifPresent(powerUp -> {
