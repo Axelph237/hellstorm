@@ -9,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.Entity;
@@ -69,14 +70,19 @@ public final class PromptOverlay {
         Optional<DoorDef> door = ClientMapState.map().doorAt(pos);
         if (door.isPresent()) {
             return Optional.of(new Target(new Prompted.Prompt(door.get().style() == DoorDef.Style.DEBRIS ? "Debris" : "Door",
-                    door.get().cost(), door.get().requiresPower()), nearFace(door.get(), mc.gameRenderer.getMainCamera().getPosition())));
+                    door.get().cost(), door.get().requiresPower()), nearFace(door.get(), hit.getDirection(), mc.gameRenderer.getMainCamera().getPosition())));
         }
         BlockState state = mc.level.getBlockState(pos);
         BlockPos main = state.getBlock() instanceof FeatureBlock feature ? feature.mainPos(state, pos) : pos;
         if (!(mc.level.getBlockEntity(main) instanceof Prompted prompted)) {
             return Optional.empty();
         }
-        AABB box = bounds(mc, pos).minmax(bounds(mc, main));
+        AABB box = bounds(mc, pos);
+        if (state.getBlock() instanceof FeatureBlock feature) {
+            for (BlockPos part : feature.blocks(state, pos)) {
+                box = box.minmax(bounds(mc, part));
+            }
+        }
         Vec3 above = new Vec3((box.minX + box.maxX) / 2, box.maxY + ABOVE, (box.minZ + box.maxZ) / 2);
         // A wall-buy's plate sits against the wall; pulled toward the viewer, its text doesn't sink into the wall when seen from the side.
         Vec3 toward = mc.gameRenderer.getMainCamera().getPosition().subtract(above).multiply(1, 0, 1);
@@ -89,18 +95,35 @@ public final class PromptOverlay {
         return shape.isEmpty() ? new AABB(pos) : shape.bounds().move(pos);
     }
 
-    /** The middle of the side of the door's blocks that faces the camera, along the door's thinnest axis. */
-    private static Vec3 nearFace(DoorDef door, Vec3 camera) {
+    /**
+     * The middle of the side of the door you're looking at: the face your crosshair hit, moved out to the door's outer
+     * edge on that side and centered on the whole door. Looking at its top or bottom, the side nearer the camera instead.
+     */
+    private static Vec3 nearFace(DoorDef door, Direction hitFace, Vec3 camera) {
         AABB box = null;
         for (BlockPos member : door.members()) {
             box = box == null ? new AABB(member) : box.minmax(new AABB(member));
         }
         Vec3 center = box.getCenter();
-        double x = box.getXsize(), z = box.getZsize();
-        if (x <= z) {
-            return new Vec3(camera.x < center.x ? box.minX - 0.05 : box.maxX + 0.05, center.y, center.z);
+        Direction face = hitFace.getAxis().isHorizontal() ? hitFace : nearestSide(box, camera);
+        double out = 0.05;
+        return switch (face) {
+            case WEST -> new Vec3(box.minX - out, center.y, center.z);
+            case EAST -> new Vec3(box.maxX + out, center.y, center.z);
+            case NORTH -> new Vec3(center.x, center.y, box.minZ - out);
+            default -> new Vec3(center.x, center.y, box.maxZ + out);
+        };
+    }
+
+    /** The side of the box the camera is furthest out past, relative to the box's size. */
+    private static Direction nearestSide(AABB box, Vec3 camera) {
+        Vec3 center = box.getCenter();
+        double dx = (camera.x - center.x) / Math.max(box.getXsize(), 1e-3);
+        double dz = (camera.z - center.z) / Math.max(box.getZsize(), 1e-3);
+        if (Math.abs(dx) >= Math.abs(dz)) {
+            return dx < 0 ? Direction.WEST : Direction.EAST;
         }
-        return new Vec3(center.x, center.y, camera.z < center.z ? box.minZ - 0.05 : box.maxZ + 0.05);
+        return dz < 0 ? Direction.NORTH : Direction.SOUTH;
     }
 
     static Component text(Prompted.Prompt prompt) {

@@ -10,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.List;
+
 /**
  * A machine players buy from: wall-buy, perk machine, Mystery Box, Pack-a-Punch, power switch. The map indexes where
  * each one is, so a game knows about machines in unloaded chunks. Players in a game buy by right clicking or with the
@@ -28,6 +30,11 @@ public interface FeatureBlock {
     /** The block that holds a machine's settings and that the map indexes, for machines more than one block big. */
     default BlockPos mainPos(BlockState state, BlockPos pos) {
         return pos;
+    }
+
+    /** Every block the machine covers, given any one of them. */
+    default List<BlockPos> blocks(BlockState state, BlockPos pos) {
+        return List.of(pos);
     }
 
     static void use(ServerPlayer player, BlockPos clicked) {

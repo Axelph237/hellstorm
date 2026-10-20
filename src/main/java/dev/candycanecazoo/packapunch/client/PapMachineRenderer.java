@@ -40,9 +40,11 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
         Direction facing = machine.getBlockState().getValue(PapMachineBlock.FACING);
         pose.pushPose();
         pose.translate(0.5 + facing.getStepX() * 0.5, PapMachineBlock.TOP + 0.03, 0.5 + facing.getStepZ() * 0.5);
-        // Items draw their long side along x; turn it to run along the machine, then lay it face up.
+        // As a floor item frame does it: turn the item's front (which faces -z) around, lay it face up, then run its long
+        // side (x) along the machine. Face down, a gun's one-sided low-detail model can't be seen from above.
         pose.mulPose(Axis.YP.rotationDegrees(facing.getAxis() == Direction.Axis.Z ? 90 : 0));
         pose.mulPose(Axis.XP.rotationDegrees(-90));
+        pose.mulPose(Axis.YP.rotationDegrees(180));
         pose.scale(SCALE, SCALE, SCALE);
         items.renderStatic(stack, ItemDisplayContext.FIXED, LevelRenderer.getLightColor(machine.getLevel(), machine.getBlockPos().above()),
                 OverlayTexture.NO_OVERLAY, pose, buffers, machine.getLevel(), (int) machine.getBlockPos().asLong());

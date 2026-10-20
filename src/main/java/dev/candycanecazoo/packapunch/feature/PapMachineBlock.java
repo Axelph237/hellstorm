@@ -378,6 +378,12 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
     }
 
     @Override
+    public java.util.List<BlockPos> blocks(BlockState state, BlockPos pos) {
+        BlockPos foot = mainPos(state, pos);
+        return java.util.List.of(foot, foot.relative(state.getValue(FACING)));
+    }
+
+    @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
