@@ -20,6 +20,7 @@ public final class FeatureRenderers {
         event.registerBlockEntityRenderer(PapRegistries.WALL_BUY_ENTITY.get(), WallBuyRenderer::new);
         event.registerBlockEntityRenderer(PapRegistries.PERK_MACHINE_ENTITY.get(), WallBuyRenderer::new);
         event.registerBlockEntityRenderer(PapRegistries.MYSTERY_BOX_ENTITY.get(), MysteryBoxRenderer::new);
+        event.registerBlockEntityRenderer(PapRegistries.PAP_MACHINE_ENTITY.get(), PapMachineRenderer::new);
     }
 
     @SubscribeEvent

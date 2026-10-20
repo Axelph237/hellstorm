@@ -91,7 +91,7 @@ Machines sell perks like Juggernog, Speed Cola, Double Tap, Quick Revive, Stamin
   - **Prompt.** "Juggernog [2500]", or "No power" while it needs power and the power is off. Hidden for a potion whose effects the player already has, from the local player's synced effects.
   - **Settings.** The wall-buy screen (title "Perk Machine"), with a "Needs power" row. `/pap wallbuy ...` works on it too, including `/pap wallbuy power <true|false>`.
   - **Event.** `GameEvent.PerkBought(player, item, cost)`, Lua `perk_bought` with `player`, `item` (the potion id for a potion, such as `packapunch:juggernog`; the item spec otherwise), and `cost`. A perk machine doesn't emit `wall_buy`.
-- **HUD** (`client/PerkHud`). While in a game, the local player's active `packapunch:perks` effects are listed by name in the effect's color at the bottom left, sorted by id. The perk icons in `TEXTURES_NEEDED.md` would replace the names.
+- **HUD.** Perks show where every effect does, top right and in the inventory, with the icons from `client/PerkEffectIcon`. The bottom-left list of perk names was removed once that was enough.
 - **Removed.** The datapack perks (`perk/PerkDef`, `PerkDefs`, `PerkEffect`, `data/packapunch/packapunch/perks/`), the `damage_multiplier` effect, `PlayerState.perks` and `bonusWeaponSlots`, `Game.givePerk` and `takePerks`, `PerkSyncPacket`, `client/ClientPerks`, `/pap perk`, and the perk machine's own settings screen.
 - **Tests.**
   - JUnit: `PerksTest` (the limit rule), `WallBuyTest.requiresPowerIsOffUnlessSetAndRoundTrips`, `DownsTest` (solo self-revive through `GameWorld.canSelfRevive`; the fake world loses it on going down), `LuaEventsTest.aPerkPurchaseCarriesTheItemAndCost`, `ReloadAnimationTest`.

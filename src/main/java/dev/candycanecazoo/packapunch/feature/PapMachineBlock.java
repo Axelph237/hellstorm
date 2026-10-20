@@ -71,7 +71,7 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
     /** Where the item lies, above the machine's floor, and how far it reaches either side of the middle. */
     public static final double TOP = 12.0 / 16;
-    public static final double ITEM_HALF_LENGTH = 0.55;
+    public static final double ITEM_HALF_LENGTH = 0.85;
 
     /** {@code cost} replaces {@code pap.default_cost} for this machine. A {@code PunchDef}'s own cost still wins. */
     public record Config(Optional<Integer> cost) {
