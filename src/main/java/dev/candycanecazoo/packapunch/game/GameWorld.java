@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.game;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,7 +12,10 @@ public interface GameWorld {
     /** Round-scaled base stats. The world applies the profile's own multipliers on top. */
     record ZombieSpec(ResourceLocation profile, double health, double speed) {}
 
-    record Status(int round, int points, int zombiesLeft, String phase, boolean powerOn) {}
+    record Standing(UUID player, int points, boolean alive) {}
+
+    /** {@code standings} lists every player in the game, in join order. */
+    record Status(int round, int points, int zombiesLeft, String phase, boolean powerOn, List<Standing> standings) {}
 
     /** Empty when the player is offline or not in this level. */
     Optional<BlockPos> playerPosition(UUID player);

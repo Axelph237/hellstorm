@@ -22,7 +22,7 @@ import java.util.UUID;
  * Driven by the server thread through {@link #tick} and the {@code on...} callbacks.
  */
 public final class Game {
-    private static final int STATUS_INTERVAL = 10;
+    private static final int STATUS_INTERVAL = 4;
 
     private final GameSettings settings;
     private final GameMap map;
@@ -380,21 +380,25 @@ public final class Game {
         }
     }
 
+    private List<GameWorld.Standing> standings() {
+        return players.values().stream().map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive())).toList();
+    }
+
     public GameWorld.Status status(UUID id) {
         PlayerState player = players.get(id);
         int points = player == null ? 0 : player.points();
         if (phase instanceof GamePhase.Countdown c) {
-            return new GameWorld.Status(0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1), powerOn);
+            return new GameWorld.Status(0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1), powerOn, standings());
         }
         if (phase instanceof GamePhase.RoundActive r) {
-            return new GameWorld.Status(r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round(), powerOn);
+            return new GameWorld.Status(r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round(), powerOn, standings());
         }
         if (phase instanceof GamePhase.Intermission i) {
-            return new GameWorld.Status(i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1), powerOn);
+            return new GameWorld.Status(i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1), powerOn, standings());
         }
         if (phase instanceof GamePhase.GameOver o) {
-            return new GameWorld.Status(o.roundReached(), points, 0, "Game over", powerOn);
+            return new GameWorld.Status(o.roundReached(), points, 0, "Game over", powerOn, standings());
         }
-        return new GameWorld.Status(0, points, 0, "Waiting to start", powerOn);
+        return new GameWorld.Status(0, points, 0, "Waiting to start", powerOn, standings());
     }
 }

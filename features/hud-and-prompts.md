@@ -49,3 +49,14 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
 ## Phase
 
 5, extended in 6.
+
+## As built (phase 5)
+
+- **Sync.** `HudSyncPacket(round, phase, zombiesLeft, powerOn, points, players)` goes to each player every 4 ticks, built from `Game.status` (which now carries every player's standing). The client treats a HUD more than 2 seconds old as "not in a game". The action-bar status line is gone, which leaves the action bar for purchase refusals.
+- **`client/GameHud`:**
+  - The round number in red at three times text size, bottom left.
+  - The phase under it while it isn't a plain round ("Starting in 3", "Game over"); otherwise how many zombies are left.
+  - Every player's name and points, bottom right. Your own row is gold and downed or spectating players are grey.
+  - Point changes rise off your row as gold "+N" or red "-N" and fade over 1.2 seconds.
+- **`client/PromptOverlay`:** under the crosshair while in a game and looking at a door or a machine with something to sell, it shows "Press [Use] or [O] to {what} [cost]". It is greyed, with the reason in red, when you can't afford it or it needs power. Doors come from the synced map; machines from their block entity's `Prompted`.
+- **Not built yet:** the perk row (with perks), power-up timers and revive bars (phase 6), and the `hud.scale` / `hud.show_popups` client config.

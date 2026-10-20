@@ -41,6 +41,14 @@ class PacketRoundTripTest {
     }
 
     @Test
+    void hud() {
+        for (HudSyncPacket packet : List.of(HudSyncPacket.NONE, new HudSyncPacket(7, "Round 7", 12, true, 2350,
+                List.of(new HudSyncPacket.Line("alice", 2350, true, true), new HudSyncPacket.Line("bob", 90, false, false))))) {
+            assertEquals(packet, roundTrip(packet, HudSyncPacket::encode, HudSyncPacket::decode));
+        }
+    }
+
+    @Test
     void repair() {
         UsePacket packet = new UsePacket(new BlockPos(-3, -60, 12), true);
         assertEquals(packet, roundTrip(packet, UsePacket::encode, UsePacket::decode));
