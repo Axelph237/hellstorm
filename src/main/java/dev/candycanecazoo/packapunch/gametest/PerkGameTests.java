@@ -1,7 +1,5 @@
 package dev.candycanecazoo.packapunch.gametest;
 
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import com.tacz.guns.api.GunProperties;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
@@ -12,11 +10,12 @@ import com.tacz.guns.entity.shooter.ShooterDataHolder;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.FeatureBlock;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
+import dev.candycanecazoo.packapunch.feature.WallBuy;
+import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
+import dev.candycanecazoo.packapunch.game.GameEvent;
 import dev.candycanecazoo.packapunch.game.GameHooks;
 import dev.candycanecazoo.packapunch.game.GameManager;
-import dev.candycanecazoo.packapunch.game.GameEvent;
-import dev.candycanecazoo.packapunch.game.PlayerState;
-import dev.candycanecazoo.packapunch.perk.PerkDef;
+import dev.candycanecazoo.packapunch.perk.PerkEffects;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import dev.candycanecazoo.packapunch.tacz.PerkGunEffects;
 import dev.candycanecazoo.packapunch.tacz.TaczBridge;
@@ -24,16 +23,24 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,20 +48,16 @@ import java.util.Optional;
 
 import static dev.candycanecazoo.packapunch.gametest.TestLayout.ROOM_Y;
 
-/** Buying perks from a machine with the default datapack perks. */
+/** Perks as potions: bought from a perk machine, drunk for an effect with no time limit, and lost on going down. */
 @GameTestHolder(PackAPunch.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class PerkGameTests {
-    private static final ResourceLocation JUGGERNOG = PackAPunch.id("juggernog");
-    private static final ResourceLocation MULE_KICK = PackAPunch.id("mule_kick");
-    private static final ResourceLocation QUICK_REVIVE = PackAPunch.id("quick_revive");
-    private static final ResourceLocation DOUBLE_TAP = PackAPunch.id("double_tap");
-    private static final ResourceLocation SPEED_COLA = PackAPunch.id("speed_cola");
     private static final ResourceLocation AK47 = ResourceLocation.tryBuild("tacz", "ak47");
     private static final float BASE_HEALTH = 20;
 
     private PerkGameTests() {}
 
+    /** A perk machine selling a potion of {@code perk} at its default cost. */
     private static BlockPos machine(GameTestHelper helper, ResourceLocation perk) {
         BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
         helper.getLevel().setBlockAndUpdate(at, PapRegistries.PERK_MACHINE.get().defaultBlockState());
@@ -63,57 +66,116 @@ public final class PerkGameTests {
     }
 
     private static void sell(GameTestHelper helper, BlockPos at, ResourceLocation perk) {
-        ((PerkMachineBlock.Entity) helper.getLevel().getBlockEntity(at)).setConfig(new PerkMachineBlock.Config(Optional.of(perk), Optional.empty()));
+        WallBuyBlock.entity(helper.getLevel(), at).orElseThrow().setConfig(PerkMachineBlock.sells(perk, PerkMachineBlock.DEFAULT_COST));
     }
 
-    private static PlayerState state(GameManager.Active active, ServerPlayer player) {
-        return active.game().player(player.getUUID()).orElseThrow();
+    /** Takes the first potion out of the player's inventory, the way a machine handed it over. */
+    static ItemStack takePotion(ServerPlayer player) {
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            if (player.getInventory().getItem(slot).is(Items.POTION)) {
+                return player.getInventory().removeItemNoUpdate(slot);
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
-    private static boolean hasJuggernogModifier(ServerPlayer player) {
-        return player.getAttribute(Attributes.MAX_HEALTH).getModifier(PerkDef.modifierId(JUGGERNOG, 0)) != null;
+    /** Drinks {@code potion} as a player does: starting to drink can be refused, and then it's finished at once. */
+    static boolean drink(ServerPlayer player, ItemStack potion) {
+        player.setItemInHand(InteractionHand.MAIN_HAND, potion);
+        player.startUsingItem(InteractionHand.MAIN_HAND);
+        if (!player.isUsingItem()) {
+            return false;
+        }
+        player.setItemInHand(InteractionHand.MAIN_HAND, potion.finishUsingItem(player.level(), player));
+        player.stopUsingItem();
+        return true;
     }
 
-    @GameTest(template = "floor", batch = "perk_juggernog")
-    public static void juggernogRaisesMaxHealthOnceForItsCostUntilTheGameEnds(GameTestHelper helper) {
-        BlockPos at = machine(helper, JUGGERNOG);
-        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_jug");
-        GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+    private static ItemStack potion(MobEffect effect) {
+        return PotionUtils.setPotion(new ItemStack(Items.POTION), ForgeRegistries.POTIONS.getValue(ForgeRegistries.MOB_EFFECTS.getKey(effect)));
+    }
+
+    private static void give(ServerPlayer player, MobEffect effect) {
+        player.addEffect(new MobEffectInstance(effect, MobEffectInstance.INFINITE_DURATION));
+    }
+
+    @GameTest(template = "floor", batch = "perk_power")
+    public static void aPerkMachineSellsItsPotionForItsCostOnlyWithThePower(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        helper.getLevel().setBlockAndUpdate(at, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        BlockPos lever = helper.absolutePos(new BlockPos(6, ROOM_Y, 6));
+        helper.getLevel().setBlockAndUpdate(lever, PapRegistries.POWER_SWITCH.get().defaultBlockState()
+                .setValue(LeverBlock.FACE, AttachFace.FLOOR).setValue(LeverBlock.FACING, Direction.NORTH));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_power");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, at, lever);
         List<GameEvent> events = new ArrayList<>();
         active.game().events().subscribe(events::add);
         try {
             active.game().refund(player.getUUID(), 10_000);
             int start = PurchaseGameTests.points(active, player);
             FeatureBlock.use(player, at);
-            helper.assertTrue(player.getMaxHealth() == BASE_HEALTH + 20, "max health is " + player.getMaxHealth());
-            helper.assertTrue(PurchaseGameTests.points(active, player) == start - 2500, "expected to pay 2500, have " + PurchaseGameTests.points(active, player));
-            helper.assertTrue(state(active, player).perks().containsKey(JUGGERNOG), "the perk isn't recorded");
-            helper.assertTrue(events.contains(new GameEvent.PerkBought(player.getUUID(), JUGGERNOG)), "no perk_bought event");
+            helper.assertTrue(takePotion(player).isEmpty(), "a new perk machine sold its Juggernog without power");
+            helper.assertTrue(PurchaseGameTests.points(active, player) == start, "charged without power");
 
+            active.game().turnPowerOn(Optional.empty());
             FeatureBlock.use(player, at);
-            helper.assertTrue(PurchaseGameTests.points(active, player) == start - 2500, "a second Juggernog was charged");
-            helper.assertTrue(player.getMaxHealth() == BASE_HEALTH + 20, "a second Juggernog stacked: " + player.getMaxHealth());
+            ItemStack bought = takePotion(player);
+            helper.assertTrue(PotionUtils.getMobEffects(bought).stream().anyMatch(e -> e.getEffect() == PerkEffects.JUGGERNOG.get()),
+                    "expected a Juggernog potion, got " + bought + " " + bought.getTag());
+            helper.assertTrue(PurchaseGameTests.points(active, player) == start - PerkMachineBlock.DEFAULT_COST,
+                    "expected to pay " + PerkMachineBlock.DEFAULT_COST + ", have " + PurchaseGameTests.points(active, player));
+            helper.assertTrue(events.contains(new GameEvent.PerkBought(player.getUUID(), "packapunch:juggernog", PerkMachineBlock.DEFAULT_COST)),
+                    "no perk_bought event: " + events);
+            helper.assertTrue(events.stream().noneMatch(GameEvent.WallBuy.class::isInstance), "a perk machine shouldn't report a wall_buy");
         } finally {
             GameManager.end(active);
         }
-        helper.assertFalse(hasJuggernogModifier(player), "the modifier outlived the game");
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "perk_juggernog")
+    public static void drinkingJuggernogGivesAnEndlessEffectThatRaisesMaxHealthAndHealsUntilTheGameEnds(GameTestHelper helper) {
+        BlockPos at = machine(helper, PackAPunch.id("juggernog"));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_jug");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+        try {
+            active.game().refund(player.getUUID(), 10_000);
+            FeatureBlock.use(player, at);
+            player.setHealth(10);
+            helper.assertTrue(drink(player, takePotion(player)), "the bought Juggernog couldn't be drunk");
+            MobEffectInstance effect = player.getEffect(PerkEffects.JUGGERNOG.get());
+            helper.assertTrue(effect != null && effect.isInfiniteDuration(), "Juggernog should last forever, is " + effect);
+            helper.assertTrue(player.getMaxHealth() == BASE_HEALTH + 20, "max health is " + player.getMaxHealth());
+            helper.assertTrue(player.getHealth() == 30, "drinking should heal the 20 it adds, health " + player.getHealth());
+        } finally {
+            GameManager.end(active);
+        }
+        helper.assertFalse(player.hasEffect(PerkEffects.JUGGERNOG.get()), "Juggernog outlived the game");
         helper.assertTrue(player.getMaxHealth() == BASE_HEALTH, "max health after the game is " + player.getMaxHealth());
         helper.assertTrue(player.getHealth() <= BASE_HEALTH, "health above the restored max");
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "perk_machine_cost")
-    public static void aMachineWithItsOwnCostChargesThatInsteadOfThePerks(GameTestHelper helper) {
-        BlockPos at = machine(helper, JUGGERNOG);
-        ((PerkMachineBlock.Entity) helper.getLevel().getBlockEntity(at)).setConfig(new PerkMachineBlock.Config(Optional.of(JUGGERNOG), Optional.of(700)));
-        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_cost");
+    @GameTest(template = "floor", batch = "perk_downs")
+    public static void goingDownOrDyingTakesEveryBuffButNotHarm(GameTestHelper helper) {
+        BlockPos at = machine(helper, PackAPunch.id("juggernog"));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_downs");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
         try {
-            active.game().refund(player.getUUID(), 10_000);
-            int start = PurchaseGameTests.points(active, player);
-            FeatureBlock.use(player, at);
-            helper.assertTrue(state(active, player).perks().containsKey(JUGGERNOG), "Juggernog wasn't bought");
-            helper.assertTrue(PurchaseGameTests.points(active, player) == start - 700, "expected to pay 700, have " + PurchaseGameTests.points(active, player));
+            give(player, PerkEffects.JUGGERNOG.get());
+            give(player, PerkEffects.MULE_KICK.get());
+            give(player, MobEffects.DAMAGE_RESISTANCE);
+            give(player, MobEffects.WEAKNESS);
+            active.world().down(player.getUUID());
+            helper.assertTrue(player.getActiveEffects().stream().noneMatch(e -> e.getEffect().isBeneficial()),
+                    "going down should take every buff, has " + player.getActiveEffects());
+            helper.assertTrue(player.hasEffect(MobEffects.WEAKNESS), "going down shouldn't take a harmful effect");
+            helper.assertTrue(player.getMaxHealth() == BASE_HEALTH, "max health after going down is " + player.getMaxHealth());
+            helper.assertTrue(player.getAttributeValue(PapRegistries.EXTRA_WEAPON_SLOTS) == 0, "Mule Kick's slot outlived going down");
+
+            give(player, PerkEffects.STAMIN_UP.get());
+            GameHooks.onDeath(new LivingDeathEvent(player, player.damageSources().generic()));
+            helper.assertFalse(player.hasEffect(PerkEffects.STAMIN_UP.get()), "dying in a game should take every buff too");
         } finally {
             GameManager.end(active);
         }
@@ -121,95 +183,115 @@ public final class PerkGameTests {
     }
 
     @GameTest(template = "floor", batch = "perk_limit")
-    public static void theFifthPerkIsRefusedAtTheDefaultLimit(GameTestHelper helper) {
-        BlockPos at = machine(helper, JUGGERNOG);
+    public static void atThePerkLimitANewPerkCanBeNeitherBoughtNorDrunk(GameTestHelper helper) {
+        BlockPos at = machine(helper, PackAPunch.id("stamin_up"));
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_limit");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
         try {
-            active.game().refund(player.getUUID(), 50_000);
-            int limit = active.game().settings().players().perkLimit();
-            List<ResourceLocation> perks = List.of(JUGGERNOG, PackAPunch.id("speed_cola"), DOUBLE_TAP, PackAPunch.id("stamin_up"), QUICK_REVIVE, MULE_KICK);
-            for (ResourceLocation perk : perks.subList(0, limit)) {
-                sell(helper, at, perk);
-                FeatureBlock.use(player, at);
-            }
-            helper.assertTrue(state(active, player).perks().size() == limit, "bought " + state(active, player).perks().keySet());
-            int before = PurchaseGameTests.points(active, player);
-            sell(helper, at, perks.get(limit));
-            FeatureBlock.use(player, at);
-            helper.assertTrue(state(active, player).perks().size() == limit, "went past the limit: " + state(active, player).perks().keySet());
-            helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused perk");
-        } finally {
-            GameManager.end(active);
-        }
-        helper.succeed();
-    }
-
-    @GameTest(template = "floor", batch = "perk_power")
-    public static void powerGatedPerksWaitForThePower(GameTestHelper helper) {
-        BlockPos at = machine(helper, JUGGERNOG);
-        BlockPos lever = helper.absolutePos(new BlockPos(6, ROOM_Y, 6));
-        helper.getLevel().setBlockAndUpdate(lever, PapRegistries.POWER_SWITCH.get().defaultBlockState()
-                .setValue(LeverBlock.FACE, AttachFace.FLOOR).setValue(LeverBlock.FACING, Direction.NORTH));
-        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_power");
-        GameManager.Active active = PurchaseGameTests.game(helper, player, at, lever);
-        try {
             active.game().refund(player.getUUID(), 10_000);
-            int start = PurchaseGameTests.points(active, player);
-            FeatureBlock.use(player, at);
-            helper.assertFalse(state(active, player).perks().containsKey(JUGGERNOG), "Juggernog sold without power");
-            helper.assertTrue(PurchaseGameTests.points(active, player) == start, "charged without power");
+            List<MobEffect> held = List.of(PerkEffects.JUGGERNOG.get(), PerkEffects.SPEED_COLA.get(), PerkEffects.DOUBLE_TAP.get(),
+                    PerkEffects.QUICK_REVIVE.get(), PerkEffects.MULE_KICK.get());
+            int limit = active.game().settings().players().perkLimit();
+            held.subList(0, limit).forEach(effect -> give(player, effect));
 
-            sell(helper, at, QUICK_REVIVE);
+            int before = PurchaseGameTests.points(active, player);
             FeatureBlock.use(player, at);
-            helper.assertTrue(state(active, player).perks().containsKey(QUICK_REVIVE), "Quick Revive doesn't need power");
+            helper.assertTrue(takePotion(player).isEmpty(), "the machine sold a perk past the limit");
+            helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused perk");
 
-            active.game().turnPowerOn(Optional.empty());
-            sell(helper, at, JUGGERNOG);
-            FeatureBlock.use(player, at);
-            helper.assertTrue(state(active, player).perks().containsKey(JUGGERNOG), "Juggernog refused with the power on");
+            ItemStack staminUp = potion(PerkEffects.STAMIN_UP.get());
+            helper.assertFalse(drink(player, staminUp), "drinking a perk past the limit should be refused");
+            helper.assertFalse(player.hasEffect(PerkEffects.STAMIN_UP.get()), "Stamin-Up was added past the limit");
+            helper.assertTrue(player.getMainHandItem().is(Items.POTION), "the refused potion should not be used up");
+
+            helper.assertTrue(drink(player, potion(PerkEffects.JUGGERNOG.get())), "drinking a perk already held isn't a new perk");
+            helper.assertTrue(drink(player, PotionUtils.setPotion(new ItemStack(Items.POTION), net.minecraft.world.item.alchemy.Potions.SWIFTNESS)),
+                    "potions that aren't perks don't count");
         } finally {
             GameManager.end(active);
         }
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "perk_mule_kick")
-    public static void muleKickAddsAWeaponSlotUntilThePlayerDies(GameTestHelper helper) {
-        BlockPos at = machine(helper, MULE_KICK);
-        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_mule");
+    @GameTest(template = "floor", batch = "perk_already_have")
+    public static void aMachineRefusesAPotionWhoseEffectsThePlayerAlreadyHas(GameTestHelper helper) {
+        BlockPos at = machine(helper, PackAPunch.id("juggernog"));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_have");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
         try {
             active.game().refund(player.getUUID(), 10_000);
-            sell(helper, at, MULE_KICK);
-            FeatureBlock.use(player, at);
-            helper.assertTrue(state(active, player).bonusWeaponSlots() == 1, "bonus slots " + state(active, player).bonusWeaponSlots());
-            sell(helper, at, JUGGERNOG);
-            FeatureBlock.use(player, at);
+            give(player, PerkEffects.JUGGERNOG.get());
+            WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
+            WallBuy.Action action = WallBuyBlock.action(entity.config(), entity.display(), player, Optional.empty());
+            helper.assertTrue(action.equals(new WallBuy.Action.Deny("You already have Juggernog")), "the prompt should hide, action " + action);
 
-            GameHooks.onDeath(new LivingDeathEvent(player, player.damageSources().generic()));
-            helper.assertTrue(state(active, player).perks().isEmpty(), "perks kept after dying: " + state(active, player).perks().keySet());
-            helper.assertTrue(state(active, player).bonusWeaponSlots() == 0, "the slot outlived Mule Kick");
-            helper.assertFalse(hasJuggernogModifier(player), "Juggernog's modifier outlived dying");
+            int before = PurchaseGameTests.points(active, player);
+            FeatureBlock.use(player, at);
+            helper.assertTrue(takePotion(player).isEmpty(), "sold a Juggernog to a player who has it");
+            helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused Juggernog");
         } finally {
             GameManager.end(active);
         }
         helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "perk_self_revive")
+    public static void quickReviveGivesSoloSelfReviveAndRevivesFaster(GameTestHelper helper) {
+        BlockPos at = machine(helper, PackAPunch.id("quick_revive"));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_revive");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+        try {
+            helper.assertFalse(active.world().canSelfRevive(player.getUUID()), "self-revive without Quick Revive");
+            give(player, PerkEffects.QUICK_REVIVE.get());
+            helper.assertTrue(active.world().canSelfRevive(player.getUUID()), "Quick Revive is in packapunch:self_revive");
+            helper.assertTrue(active.world().reviveSpeed(player.getUUID()) == 2, "revive speed is " + active.world().reviveSpeed(player.getUUID()));
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor")
+    public static void aMachineSavedWithAPerkLoadsAsThatPerksPotion(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        helper.getLevel().setBlockAndUpdate(at, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
+        helper.assertTrue(entity.config().equals(PerkMachineBlock.DEFAULT), "a new machine should sell Juggernog, sells " + entity.config());
+
+        entity.load(legacy("packapunch:quick_revive", Optional.of(1500)));
+        helper.assertTrue(entity.config().equals(PerkMachineBlock.sells(PackAPunch.id("quick_revive"), 1500)), "with its cost: " + entity.config());
+        helper.assertTrue(entity.config().requiresPower() && entity.config().repurchase() == WallBuy.Repurchase.DENY, "old machines need power and sell once");
+        entity.load(legacy("packapunch:double_tap", Optional.empty()));
+        helper.assertTrue(entity.config().equals(PerkMachineBlock.sells(PackAPunch.id("double_tap"), PerkMachineBlock.DEFAULT_COST)),
+                "without a cost: " + entity.config());
+        helper.assertTrue(entity.itemName().equals("Double Tap"), "the machine shows " + entity.itemName());
+        entity.load(legacy("nope:perk", Optional.empty()));
+        helper.assertTrue(entity.config().equals(PerkMachineBlock.sells(PackAPunch.id("double_tap"), PerkMachineBlock.DEFAULT_COST)),
+                "an unknown old perk keeps what was there: " + entity.config());
+        helper.succeed();
+    }
+
+    private static CompoundTag legacy(String perk, Optional<Integer> cost) {
+        CompoundTag config = new CompoundTag();
+        config.putString("perk", perk);
+        cost.ifPresent(c -> config.putInt("cost", c));
+        CompoundTag tag = new CompoundTag();
+        tag.put("config", config);
+        return tag;
     }
 
     @GameTest(template = "floor", batch = "perk_double_tap")
     public static void doubleTapRaisesTheHeldGunsFireRate(GameTestHelper helper) {
-        BlockPos at = machine(helper, DOUBLE_TAP);
+        BlockPos at = machine(helper, PackAPunch.id("double_tap"));
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_tap");
-        player.setItemInHand(InteractionHand.MAIN_HAND, TaczBridge.createGun(ResourceLocation.tryBuild("tacz", "ak47"), 1)
+        player.setItemInHand(InteractionHand.MAIN_HAND, TaczBridge.createGun(AK47, 1)
                 .orElseThrow(() -> new IllegalStateException("tacz:ak47 missing")));
         PerkGunEffects.refresh(player);
         int base = rpm(player);
         helper.assertTrue(base > 0, "no cached rpm for the AK");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
         try {
-            active.game().refund(player.getUUID(), 10_000);
-            FeatureBlock.use(player, at);
+            give(player, PerkEffects.DOUBLE_TAP.get());
             int expected = (int) Math.round(base * 1.33);
             helper.assertTrue(rpm(player) == expected, "rpm " + rpm(player) + ", expected " + expected + " from " + base);
         } finally {
@@ -225,7 +307,7 @@ public final class PerkGameTests {
      */
     @GameTest(template = "floor", batch = "perk_speed_cola")
     public static void speedColaFinishesFeedingAReloadInHalfTheTime(GameTestHelper helper) {
-        BlockPos at = machine(helper, SPEED_COLA);
+        BlockPos at = machine(helper, PackAPunch.id("speed_cola"));
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_cola");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
         try {
@@ -235,12 +317,12 @@ public final class PerkGameTests {
             helper.assertTrue(before.state() == ReloadState.StateType.EMPTY_RELOAD_FEEDING && before.magazine() == 0,
                     "without Speed Cola, " + elapsed + " of " + feed + " ms in should still be feeding, was " + before);
 
-            AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED.get());
+            AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED);
             helper.assertTrue(reloadSpeed != null && reloadSpeed.getValue() == 1, "players should start at reload speed 1");
 
             active.game().refund(player.getUUID(), 10_000);
             FeatureBlock.use(player, at);
-            helper.assertTrue(state(active, player).perks().containsKey(SPEED_COLA), "Speed Cola wasn't bought");
+            helper.assertTrue(drink(player, takePotion(player)), "Speed Cola wasn't bought");
             helper.assertTrue(reloadSpeed.getValue() == 2, "Speed Cola should add 1 to reload speed, is " + reloadSpeed.getValue());
             Reloaded after = reloadAfter(player, elapsed);
             helper.assertTrue(after.state() != ReloadState.StateType.EMPTY_RELOAD_FEEDING && after.magazine() > 0,
@@ -248,7 +330,7 @@ public final class PerkGameTests {
         } finally {
             GameManager.end(active);
         }
-        AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED.get());
+        AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED);
         helper.assertTrue(reloadSpeed.getValue() == 1, "reload speed after the game is " + reloadSpeed.getValue());
         helper.succeed();
     }
@@ -257,7 +339,7 @@ public final class PerkGameTests {
     public static void anyReloadSpeedModifierSpeedsUpReloadsWithoutAPerk(GameTestHelper helper) {
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_reload_attribute");
         long feed = (long) (TimelessAPI.getCommonGunIndex(AK47).orElseThrow().getGunData().getReloadData().getFeed().getEmptyTime() * 1000);
-        AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED.get());
+        AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED);
         AttributeModifier boost = new AttributeModifier(java.util.UUID.randomUUID(), "test boost", 1.0, AttributeModifier.Operation.MULTIPLY_BASE);
         reloadSpeed.addTransientModifier(boost);
         try {

@@ -94,16 +94,6 @@ class PacketRoundTripTest {
     }
 
     @Test
-    void perkSync() {
-        PerkSyncPacket full = new PerkSyncPacket(List.of(
-                new PerkSyncPacket.Badge(ResourceLocation.tryBuild("packapunch", "juggernog"), "perk.packapunch.juggernog", 0xd33a2c),
-                new PerkSyncPacket.Badge(ResourceLocation.tryBuild("other", "tap"), "Tap", 0)), 1.33f);
-        for (PerkSyncPacket packet : List.of(PerkSyncPacket.NONE, full)) {
-            assertEquals(packet, roundTrip(packet, PerkSyncPacket::encode, PerkSyncPacket::decode));
-        }
-    }
-
-    @Test
     void debugPaths() {
         DebugPathsPacket empty = new DebugPathsPacket(List.of(), List.of());
         DebugPathsPacket full = new DebugPathsPacket(
@@ -118,7 +108,7 @@ class PacketRoundTripTest {
     void settings() {
         OpenSettingsPacket bare = new OpenSettingsPacket(new BlockPos(1, 2, 3), List.of(), Optional.empty(), 0);
         OpenSettingsPacket full = new OpenSettingsPacket(new BlockPos(-4, 70, 9),
-                List.of(new OpenSettingsPacket.Choice(ResourceLocation.tryBuild("packapunch", "juggernog"), net.minecraft.network.chat.Component.literal("Juggernog"), 2500)),
+                List.of(new OpenSettingsPacket.Choice(ResourceLocation.tryBuild("packapunch", "default"), net.minecraft.network.chat.Component.literal("Default"))),
                 Optional.of(new OpenSettingsPacket.Held(new dev.candycanecazoo.packapunch.data.ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3,
                         Optional.empty()), net.minecraft.network.chat.Component.literal("Golden Apple"))), 5000);
         for (OpenSettingsPacket packet : List.of(bare, full)) {
@@ -129,7 +119,7 @@ class PacketRoundTripTest {
         SaveSettingsPacket save = new SaveSettingsPacket(new BlockPos(0, 64, 0), tag);
         assertEquals(save, roundTrip(save, SaveSettingsPacket::encode, SaveSettingsPacket::decode));
         for (SettingsResultPacket packet : List.of(new SettingsResultPacket(BlockPos.ZERO, Optional.empty()),
-                new SettingsResultPacket(BlockPos.ZERO, Optional.of("Unknown perk: x:y")))) {
+                new SettingsResultPacket(BlockPos.ZERO, Optional.of("Unknown item: x:y")))) {
             assertEquals(packet, roundTrip(packet, SettingsResultPacket::encode, SettingsResultPacket::decode));
         }
     }

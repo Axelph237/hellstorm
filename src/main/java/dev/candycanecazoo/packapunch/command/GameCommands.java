@@ -85,7 +85,7 @@ final class GameCommands {
             ctx.getSource().sendFailure(Component.literal("You're not in a game"));
             return 0;
         }
-        Perks.removeAll(active.get(), player);
+        Perks.clearBuffs(player);
         active.get().game().leave(player.getUUID());
         Sessions.get(player.server).restore(player);
         if (active.get().game().players().isEmpty()) {

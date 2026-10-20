@@ -1,9 +1,0 @@
-{
-  "name": "perk.packapunch.juggernog",
-  "cost": 2500,
-  "requires_power": true,
-  "color": "#d33a2c",
-  "effects": [
-    { "type": "attribute_modifier", "attribute": "minecraft:generic.max_health", "amount": 20, "operation": "addition" }
-  ]
-}

@@ -1,12 +1,7 @@
 package dev.candycanecazoo.packapunch.game;
 
 import dev.candycanecazoo.packapunch.map.ZoneId;
-import dev.candycanecazoo.packapunch.perk.PerkDef;
-import net.minecraft.resources.ResourceLocation;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,10 +13,8 @@ public final class PlayerState {
     private int headshots;
     private Optional<ZoneId> lastZone = Optional.empty();
     private int repairPointsThisRound;
-    private int bonusWeaponSlots;
     private int selfRevivesUsed;
     private long lastHurtTick;
-    private final Map<ResourceLocation, PerkDef> perks = new LinkedHashMap<>();
 
     PlayerState(UUID id, int points) {
         this.id = id;
@@ -87,30 +80,6 @@ public final class PlayerState {
 
     void spend(int amount) {
         points -= amount;
-    }
-
-    /** Extra TacZ gun slots on top of {@code players.weapon_slots}, from perks such as Mule Kick. */
-    public int bonusWeaponSlots() {
-        return bonusWeaponSlots;
-    }
-
-    public void setBonusWeaponSlots(int slots) {
-        bonusWeaponSlots = slots;
-    }
-
-    /** Perks held, in the order bought, each as defined when bought, so a /reload mid-game can't change what removal undoes. */
-    public Map<ResourceLocation, PerkDef> perks() {
-        return Collections.unmodifiableMap(perks);
-    }
-
-    void addPerk(ResourceLocation id, PerkDef def) {
-        perks.put(id, def);
-    }
-
-    Map<ResourceLocation, PerkDef> takePerks() {
-        Map<ResourceLocation, PerkDef> taken = new LinkedHashMap<>(perks);
-        perks.clear();
-        return taken;
     }
 
     void countKill(boolean headshot) {

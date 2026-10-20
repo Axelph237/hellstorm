@@ -86,7 +86,8 @@ public final class LuaEvents {
             e.by().ifPresent(p -> t.set("player", p.toString()));
         } else if (event instanceof GameEvent.PerkBought e) {
             t.set("player", e.player().toString());
-            t.set("perk", e.perk().toString());
+            t.set("item", e.item());
+            t.set("cost", e.cost());
         } else if (event instanceof GameEvent.ZombieKilled e) {
             t.set("mob", e.mob().toString());
             e.killer().ifPresent(k -> t.set("killer", k.toString()));

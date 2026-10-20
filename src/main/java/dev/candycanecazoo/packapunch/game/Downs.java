@@ -41,7 +41,7 @@ public final class Downs {
     private Downs() {}
 
     public static void knockDown(ServerPlayer player, GameSettings.Players settings) {
-        GameManager.forPlayer(player.getUUID()).ifPresent(active -> Perks.removeAll(active, player));
+        Perks.clearBuffs(player);
         player.setForcedPose(Pose.SWIMMING);
         player.setSprinting(false);
         AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);

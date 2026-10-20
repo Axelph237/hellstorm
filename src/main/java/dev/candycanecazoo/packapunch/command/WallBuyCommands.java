@@ -1,5 +1,6 @@
 package dev.candycanecazoo.packapunch.command;
 
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -23,8 +24,8 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * {@code /pap wallbuy set <cost> held|gun <id>}, {@code ammo <cost> [papCost]}, {@code repurchase <mode>}, {@code describe}:
- * settings for the wall-buy you're looking at.
+ * {@code /pap wallbuy set <cost> held|gun <id>}, {@code ammo <cost> [papCost]}, {@code repurchase <mode>},
+ * {@code power <bool>}, {@code describe}: settings for the wall-buy or perk machine you're looking at.
  */
 final class WallBuyCommands {
     private static final SimpleCommandExceptionType EMPTY_HAND = new SimpleCommandExceptionType(Component.literal("Hold the item to sell in your main hand"));
@@ -48,11 +49,13 @@ final class WallBuyCommands {
                         .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
                                 Arrays.stream(WallBuy.Repurchase.values()).map(WallBuy.Repurchase::getSerializedName), builder))
                         .executes(WallBuyCommands::repurchase)))
+                .then(Commands.literal("power").then(Commands.argument("needed", BoolArgumentType.bool())
+                        .executes(WallBuyCommands::power)))
                 .then(Commands.literal("describe").executes(WallBuyCommands::describe));
     }
 
     private static WallBuyBlock.Entity target(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        return Targets.lookedAt(ctx.getSource().getPlayerOrException(), WallBuyBlock.Entity.class, "wall-buy");
+        return Targets.lookedAt(ctx.getSource().getPlayerOrException(), WallBuyBlock.Entity.class, "wall-buy or perk machine");
     }
 
     private static int setHeld(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -72,7 +75,8 @@ final class WallBuyCommands {
 
     private static int sell(CommandContext<CommandSourceStack> ctx, WallBuyBlock.Entity entity, ItemSpec item) throws CommandSyntaxException {
         int cost = IntegerArgumentType.getInteger(ctx, "cost");
-        return apply(ctx, entity, WallBuy.Config.forItem(item, cost, WallBuy.Repurchase.defaultFor(item)));
+        WallBuy.Config config = WallBuy.Config.forItem(item, cost, WallBuy.Repurchase.defaultFor(item));
+        return apply(ctx, entity, config.withRequiresPower(entity.config().requiresPower()));
     }
 
     private static int apply(CommandContext<CommandSourceStack> ctx, WallBuyBlock.Entity entity, WallBuy.Config config) throws CommandSyntaxException {
@@ -85,7 +89,12 @@ final class WallBuyCommands {
         WallBuyBlock.Entity entity = target(ctx);
         WallBuy.Config c = entity.config();
         int cost = IntegerArgumentType.getInteger(ctx, "cost");
-        return apply(ctx, entity, new WallBuy.Config(c.item(), c.cost(), c.repurchase(), cost, papCost.orElse(c.papAmmoCost())));
+        return apply(ctx, entity, new WallBuy.Config(c.item(), c.cost(), c.repurchase(), cost, papCost.orElse(c.papAmmoCost()), c.requiresPower()));
+    }
+
+    private static int power(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        WallBuyBlock.Entity entity = target(ctx);
+        return apply(ctx, entity, entity.config().withRequiresPower(BoolArgumentType.getBool(ctx, "needed")));
     }
 
     private static int repurchase(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -94,7 +103,7 @@ final class WallBuyCommands {
         WallBuy.Repurchase mode = Arrays.stream(WallBuy.Repurchase.values()).filter(m -> m.getSerializedName().equals(name)).findFirst()
                 .orElseThrow(() -> UNKNOWN_MODE.create(name));
         WallBuy.Config c = entity.config();
-        return apply(ctx, entity, new WallBuy.Config(c.item(), c.cost(), mode, c.ammoCost(), c.papAmmoCost()));
+        return apply(ctx, entity, new WallBuy.Config(c.item(), c.cost(), mode, c.ammoCost(), c.papAmmoCost(), c.requiresPower()));
     }
 
     private static int describe(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

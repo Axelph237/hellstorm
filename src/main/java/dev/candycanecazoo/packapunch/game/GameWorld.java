@@ -59,6 +59,9 @@ public interface GameWorld {
     /** How fast this player revives others, from the {@code packapunch:revive_speed} attribute: 1 is normal. */
     double reviveSpeed(UUID player);
 
+    /** Whether a solo player going down revives themselves: they have an effect in the {@code packapunch:self_revive} tag. */
+    boolean canSelfRevive(UUID player);
+
     /** Blocks between two players, or {@link Double#MAX_VALUE} if either isn't here. */
     double distance(UUID a, UUID b);
 

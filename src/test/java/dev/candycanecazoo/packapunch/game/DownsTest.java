@@ -6,8 +6,6 @@ import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
-import dev.candycanecazoo.packapunch.perk.PerkDef;
-import dev.candycanecazoo.packapunch.perk.PerkEffect;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -36,8 +34,6 @@ class DownsTest {
             GameSettings.DEFAULT.doors(), GameSettings.DEFAULT.box(), GameSettings.DEFAULT.pap(),
             new GameSettings.Downs(BLEED, REVIVE, 2.5, 3, REGEN_DELAY, 4.0),
             GameSettings.DEFAULT.powerUps(), GameSettings.DEFAULT.traps(), GameSettings.DEFAULT.waveEvents());
-    private static final ResourceLocation QUICK_REVIVE = ResourceLocation.tryBuild("packapunch", "quick_revive");
-    private static final PerkDef QUICK_REVIVE_DEF = new PerkDef("perk.packapunch.quick_revive", 1500, false, 0, List.of(new PerkEffect.SelfRevive()));
 
     private FakeWorld world;
     private List<GameEvent> seen;
@@ -175,21 +171,20 @@ class DownsTest {
     void soloQuickReviveSelfRevivesThreeTimesThenTheFourthDownEndsIt() {
         Game game = game(alice);
         for (int i = 0; i < 3; i++) {
-            game.givePerk(alice, QUICK_REVIVE, QUICK_REVIVE_DEF);
+            world.selfRevivers.add(alice);
             assertTrue(game.onLethalDamage(alice, world));
-            game.takePerks(alice);
+            assertFalse(world.selfRevivers.contains(alice), "going down takes Quick Revive");
             tick(game, 1);
             assertInstanceOf(GamePhase.RoundActive.class, game.phase(), "self-reviving keeps the game going, down " + (i + 1));
             tick(game, REVIVE);
             assertInstanceOf(LifeState.Alive.class, life(game, alice), "self-revive " + (i + 1));
             assertTrue(seen.contains(new GameEvent.PlayerRevived(alice, Optional.empty())));
         }
-        game.givePerk(alice, QUICK_REVIVE, QUICK_REVIVE_DEF);
+        world.selfRevivers.add(alice);
         game.onLethalDamage(alice, world);
         tick(game, 1);
         assertInstanceOf(GamePhase.GameOver.class, game.phase());
     }
-
     @Test
     void regenWaitsForTheDelayAfterDamage() {
         Game game = game(alice);

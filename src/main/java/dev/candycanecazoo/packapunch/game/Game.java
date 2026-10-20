@@ -3,8 +3,6 @@ package dev.candycanecazoo.packapunch.game;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneId;
-import dev.candycanecazoo.packapunch.perk.PerkDef;
-import dev.candycanecazoo.packapunch.perk.PerkEffect;
 import dev.candycanecazoo.packapunch.powerup.PowerUpDrops;
 import dev.candycanecazoo.packapunch.wave.RoundRules;
 import dev.candycanecazoo.packapunch.wave.WaveSchedule;
@@ -144,21 +142,6 @@ public final class Game {
         }
         player.spend(cost);
         return Optional.empty();
-    }
-
-    /** Records a bought perk and tells scripts. Applying its effects to the player is up to the caller. */
-    public void givePerk(UUID buyer, ResourceLocation perk, PerkDef def) {
-        PlayerState player = players.get(buyer);
-        if (player != null) {
-            player.addPerk(perk, def);
-            events.emit(new GameEvent.PerkBought(buyer, perk));
-        }
-    }
-
-    /** Takes every perk from a player and returns them, so the caller can undo their effects. */
-    public Map<ResourceLocation, PerkDef> takePerks(UUID id) {
-        PlayerState player = players.get(id);
-        return player == null ? Map.of() : player.takePerks();
     }
 
     /**
@@ -558,7 +541,7 @@ public final class Game {
         if (!player.alive()) {
             return true;
         }
-        boolean selfRevive = players.size() == 1 && hasSelfRevive(player) && player.selfRevivesUsed() < settings.downs().soloSelfRevives();
+        boolean selfRevive = players.size() == 1 && world.canSelfRevive(id) &&player.selfRevivesUsed() < settings.downs().soloSelfRevives();
         if (selfRevive) {
             player.useSelfRevive();
         }
@@ -592,10 +575,6 @@ public final class Game {
 
     private static boolean stillFighting(PlayerState player) {
         return player.alive() || player.life() instanceof LifeState.Downed down && down.selfReviving();
-    }
-
-    private static boolean hasSelfRevive(PlayerState player) {
-        return player.perks().values().stream().anyMatch(def -> def.effects().stream().anyMatch(PerkEffect.SelfRevive.class::isInstance));
     }
 
     private void tickDowns(GameWorld world) {

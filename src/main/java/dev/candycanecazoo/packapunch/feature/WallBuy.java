@@ -44,22 +44,30 @@ public final class WallBuy {
         }
     }
 
-    /** {@code ammoCost} and {@code papAmmoCost} are what a refill costs on a plain and a Pack-a-Punched copy of the gun. */
-    public record Config(ItemSpec item, int cost, Repurchase repurchase, int ammoCost, int papAmmoCost) {
+    /**
+     * {@code ammoCost} and {@code papAmmoCost} are what a refill costs on a plain and a Pack-a-Punched copy of the gun.
+     * {@code requiresPower} keeps it from selling until the power is on, as perk machines do by default.
+     */
+    public record Config(ItemSpec item, int cost, Repurchase repurchase, int ammoCost, int papAmmoCost, boolean requiresPower) {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
                 ItemSpec.CODEC.fieldOf("item").forGetter(Config::item),
                 Codec.intRange(0, Integer.MAX_VALUE).fieldOf("cost").forGetter(Config::cost),
                 Codecs.strictOptional(Repurchase.CODEC, "repurchase").forGetter(c -> Optional.of(c.repurchase())),
                 Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "ammo_cost").forGetter(c -> Optional.of(c.ammoCost())),
-                Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "pap_ammo_cost", DEFAULT_PAP_AMMO_COST).forGetter(Config::papAmmoCost)
-        ).apply(i, (item, cost, repurchase, ammo, papAmmo) ->
-                new Config(item, cost, repurchase.orElseGet(() -> Repurchase.defaultFor(item)), ammo.orElse(cost / 2), papAmmo)));
+                Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "pap_ammo_cost", DEFAULT_PAP_AMMO_COST).forGetter(Config::papAmmoCost),
+                Codecs.strictOptional(Codec.BOOL, "requires_power", false).forGetter(Config::requiresPower)
+        ).apply(i, (item, cost, repurchase, ammo, papAmmo, power) ->
+                new Config(item, cost, repurchase.orElseGet(() -> Repurchase.defaultFor(item)), ammo.orElse(cost / 2), papAmmo, power)));
 
         public static final Config DEFAULT = forItem(ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "ak47")), 1200, Repurchase.REFILL_AMMO);
 
-        /** A new item at {@code cost}: refills cost half the price, upgraded refills the default. */
+        /** A new item at {@code cost}: refills cost half the price, upgraded refills the default, and no power needed. */
         public static Config forItem(ItemSpec item, int cost, Repurchase repurchase) {
-            return new Config(item, cost, repurchase, cost / 2, DEFAULT_PAP_AMMO_COST);
+            return new Config(item, cost, repurchase, cost / 2, DEFAULT_PAP_AMMO_COST, false);
+        }
+
+        public Config withRequiresPower(boolean power) {
+            return new Config(item, cost, repurchase, ammoCost, papAmmoCost, power);
         }
 
         /** Refilling ammo only makes sense for a gun; other items top up instead. */

@@ -13,6 +13,7 @@ import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.packapunch.feature.MysteryBoxBlock;
 import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
+import dev.candycanecazoo.packapunch.perk.PerkEffects;
 import dev.candycanecazoo.packapunch.tools.ZoneWandItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -36,16 +37,30 @@ public final class PapRegistries {
     private static final DeferredRegister<Attribute> ATTRIBUTES = DeferredRegister.create(ForgeRegistries.ATTRIBUTES, PackAPunch.MOD_ID);
     private static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, PackAPunch.MOD_ID);
 
+    // The attributes are built here, not in their suppliers: mob effects register before attributes, and the perk effects
+    // (perk/PerkEffects) need them when they are built.
+
     /**
      * How fast a player reloads TacZ guns, as a multiple of normal: 2 reloads in half the time. Every player has it at a
-     * base of 1; Speed Cola adds 1, and anything else (perks, items, commands) can modify it like any attribute.
+     * base of 1; Speed Cola adds 1, and anything else (effects, items, commands) can modify it like any attribute.
      */
-    public static final RegistryObject<Attribute> RELOAD_SPEED = ATTRIBUTES.register("reload_speed",
-            () -> new RangedAttribute("attribute.name.packapunch.reload_speed", 1.0, 0.1, 10.0).setSyncable(true));
+    public static final Attribute RELOAD_SPEED = new RangedAttribute("attribute.name.packapunch.reload_speed", 1.0, 0.1, 10.0).setSyncable(true);
 
     /** How fast a player revives teammates, as a multiple of normal: 2 revives in half the time. Quick Revive adds 1. */
-    public static final RegistryObject<Attribute> REVIVE_SPEED = ATTRIBUTES.register("revive_speed",
-            () -> new RangedAttribute("attribute.name.packapunch.revive_speed", 1.0, 0.1, 10.0).setSyncable(true));
+    public static final Attribute REVIVE_SPEED = new RangedAttribute("attribute.name.packapunch.revive_speed", 1.0, 0.1, 10.0).setSyncable(true);
+
+    /** How fast a player's TacZ guns fire, as a multiple of their rounds per minute. Double Tap adds 0.33. */
+    public static final Attribute FIRE_RATE = new RangedAttribute("attribute.name.packapunch.fire_rate", 1.0, 0.1, 10.0).setSyncable(true);
+
+    /** TacZ guns a player can carry on top of {@code players.weapon_slots}. Mule Kick adds 1. */
+    public static final Attribute EXTRA_WEAPON_SLOTS = new RangedAttribute("attribute.name.packapunch.extra_weapon_slots", 0.0, 0.0, 9.0).setSyncable(true);
+
+    static {
+        ATTRIBUTES.register("reload_speed", () -> RELOAD_SPEED);
+        ATTRIBUTES.register("revive_speed", () -> REVIVE_SPEED);
+        ATTRIBUTES.register("fire_rate", () -> FIRE_RATE);
+        ATTRIBUTES.register("extra_weapon_slots", () -> EXTRA_WEAPON_SLOTS);
+    }
 
     public static final RegistryObject<Block> SPAWN_MARKER = BLOCKS.register("spawn_marker", () -> new SpawnMarkerBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED).strength(-1.0f, 3_600_000f)
@@ -64,8 +79,9 @@ public final class PapRegistries {
 
     public static final RegistryObject<Block> PERK_MACHINE = BLOCKS.register("perk_machine", () -> new PerkMachineBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.QUARTZ).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.METAL)));
-    public static final RegistryObject<BlockEntityType<PerkMachineBlock.Entity>> PERK_MACHINE_ENTITY = BLOCK_ENTITIES.register("perk_machine",
-            () -> BlockEntityType.Builder.of(PerkMachineBlock.Entity::new, PERK_MACHINE.get()).build(null));
+    /** A wall-buy on the machine block. Its own id keeps machines saved before perks were potions loading. */
+    public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> PERK_MACHINE_ENTITY = BLOCK_ENTITIES.register("perk_machine",
+            () -> BlockEntityType.Builder.of(PerkMachineBlock::newEntity, PERK_MACHINE.get()).build(null));
     public static final RegistryObject<Block> WALL_BUY = BLOCKS.register("wall_buy", () -> new WallBuyBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.WOOD)));
     public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> WALL_BUY_ENTITY = BLOCK_ENTITIES.register("wall_buy",
@@ -119,9 +135,12 @@ public final class PapRegistries {
         BLOCK_ENTITIES.register(modBus);
         TABS.register(modBus);
         ATTRIBUTES.register(modBus);
+        PerkEffects.register(modBus);
         modBus.addListener((EntityAttributeModificationEvent event) -> {
-            event.add(EntityType.PLAYER, RELOAD_SPEED.get());
-            event.add(EntityType.PLAYER, REVIVE_SPEED.get());
+            event.add(EntityType.PLAYER, RELOAD_SPEED);
+            event.add(EntityType.PLAYER, REVIVE_SPEED);
+            event.add(EntityType.PLAYER, FIRE_RATE);
+            event.add(EntityType.PLAYER, EXTRA_WEAPON_SLOTS);
         });
     }
 }

@@ -18,12 +18,11 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Opens the settings screen for the machine at {@code pos}, with what only the server knows: the perks or box pools to
- * pick from, the item in the map maker's hand, and the default cost a blank cost falls back to.
+ * Opens the settings screen for the machine at {@code pos}, with what only the server knows: the box pools to pick from,
+ * the item in the map maker's hand, and the default cost a blank cost falls back to.
  */
 public record OpenSettingsPacket(BlockPos pos, List<Choice> choices, Optional<Held> held, int defaultCost) {
-    /** {@code cost} is the choice's own price where it has one (a perk's), else 0. */
-    public record Choice(ResourceLocation id, Component name, int cost) {}
+    public record Choice(ResourceLocation id, Component name) {}
 
     /** The item in the map maker's hand when they opened the screen, as a wall-buy would sell it. */
     public record Held(ItemSpec item, Component name) {}
@@ -34,7 +33,6 @@ public record OpenSettingsPacket(BlockPos pos, List<Choice> choices, Optional<He
         for (Choice choice : choices) {
             buf.writeResourceLocation(choice.id());
             buf.writeComponent(choice.name());
-            buf.writeVarInt(choice.cost());
         }
         buf.writeOptional(held, (b, h) -> {
             b.writeNbt((CompoundTag) ItemSpec.CODEC.encodeStart(NbtOps.INSTANCE, h.item()).getOrThrow(false, e -> {}));
@@ -48,7 +46,7 @@ public record OpenSettingsPacket(BlockPos pos, List<Choice> choices, Optional<He
         int count = buf.readVarInt();
         List<Choice> choices = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            choices.add(new Choice(buf.readResourceLocation(), buf.readComponent(), buf.readVarInt()));
+            choices.add(new Choice(buf.readResourceLocation(), buf.readComponent()));
         }
         Optional<Held> held = buf.readOptional(b -> new Held(ItemSpec.CODEC.parse(NbtOps.INSTANCE, b.readNbt()).getOrThrow(false, e -> {}), b.readComponent()));
         return new OpenSettingsPacket(pos, List.copyOf(choices), held, buf.readVarInt());

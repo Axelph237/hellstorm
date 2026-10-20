@@ -15,7 +15,7 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 ## Implementation
 
 - **Going down.** `LivingDamageEvent` on an in-game player: if the damage would kill, cancel it, set health to 1, and switch to `Downed`.
-  - Remove all perks.
+  - Remove every beneficial effect, perks included.
   - Force the crawl pose (phase 0 spike for the forced-pose API in 1.20.1).
   - Switch to the best pistol the player holds, or give the starting pistol. Only pistols can be used while downed (gun type from `TaczBridge.inspect`).
   - Emit `player_downed`.
@@ -43,7 +43,7 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 
 ## Verification
 
-- GameTest: lethal damage downs the player instead of killing them, removes perks, and zombies stop targeting them.
+- GameTest: lethal damage downs the player instead of killing them, removes their buffs, and zombies stop targeting them.
 - GameTest: a teammate reviving for `revive_ticks` restores `Alive`. Moving away resets progress.
 - GameTest: bleeding out leads to spectating, and the player respawns at the next round start.
 - GameTest: solo with Quick Revive self-revives 3 times, then bleeds out on the fourth down.
@@ -56,7 +56,7 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 
 - **Rules** (pure, in `Game`, tested in `DownsTest`):
   - `onLethalDamage(player, world)`: an alive player goes `Downed(bleedTicksLeft, reviver, reviveTicks, reviveNeeded, selfReviving)` and the caller cancels the damage. More damage while down is absorbed. Emits `player_downed`.
-  - **Solo Quick Revive.** A player alone in the game who holds a perk with `self_revive` and has used fewer than `downs.solo_self_revives` starts reviving themselves at once, taking `downs.revive_ticks`. Going down takes the perk, so each self-revive costs a fresh Quick Revive, as in CoD.
+  - **Solo Quick Revive.** A player alone in the game who has an effect in the `packapunch:self_revive` mob effect tag (Quick Revive) and has used fewer than `downs.solo_self_revives` starts reviving themselves at once, taking `downs.revive_ticks`. `Game` asks `GameWorld.canSelfRevive` before the player goes down. Going down takes the effect, so each self-revive costs a fresh Quick Revive, as in CoD.
   - **Reviving.** `holdRevive(reviver, downed)` marks a teammate holding use this tick. A hold carries over 5 ticks between presses, so right click's repeat rate counts as holding. Progress needs the reviver alive, within `downs.revive_range`, and the same reviver throughout. It takes `revive_ticks / revive speed` (the reviver's `packapunch:revive_speed` attribute: base 1, Quick Revive +1). Letting go, moving away, or the reviver taking damage (`onPlayerHurt`) resets it. Bleeding pauses while someone is reviving.
   - **Bleeding out.** When `bleedTicksLeft` runs out the player spectates (`player_bled_out`), and comes back at the next round start with a fresh starting loadout (`GameWorld.giveStartingLoadout`).
   - **Game over** when nobody is alive or self-reviving.
@@ -64,7 +64,7 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
   - **Regen.** Alive players heal `downs.regen_per_second` once `downs.regen_delay_ticks` have passed since their last damage.
   - **HUD.** The downed player sees "Bleeding out" (red, draining), "Being revived", or "Reviving" for a self-revive. The reviver sees "Reviving". Downed players' points show in red for everyone.
 - **On the player** (`game/Downs`, through `GameWorld.down` / `revive` / `spectate`):
-  - Going down removes perks, forces the crawl pose (`setForcedPose(SWIMMING)`), slows movement by 60%, sets health to 1, and selects a pistol (TacZ type `pistol`), swapping one into the hotbar if needed. A player with no pistol is lent the first starting pistol (else `tacz:m1911`), tagged `packapunch_downed_pistol`.
+  - Going down removes every beneficial effect (`Perks.clearBuffs`: perks, and any other buff such as Resistance; harmful effects stay), forces the crawl pose (`setForcedPose(SWIMMING)`), slows movement by 60%, sets health to 1, and selects a pistol (TacZ type `pistol`), swapping one into the hotbar if needed. A player with no pistol is lent the first starting pistol (else `tacz:m1911`), tagged `packapunch_downed_pistol`.
   - Every tick while down they keep crawling and keep the pistol selected. Downed players take no damage at all.
   - **Seen by everyone.** A forced pose isn't synced, so the server's crawl alone left players standing on every client. `client/DownedView` sets the crawl on each client for every player the HUD sync says is down, including you.
   - **Your screen** goes black and white while you're down: the post effect `packapunch:shaders/post/downed.json`, vanilla's `color_convolve` at saturation 0. It turns off when you get up or the game ends.
@@ -79,9 +79,9 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
   - letting go, damage, and range reset
   - bleeding out spectates, then respawns with a fresh loadout next round
   - everyone down ends the game
-  - solo Quick Revive works 3 times and the 4th down ends it
+  - solo Quick Revive works 3 times and the 4th down ends it (the fake world's `canSelfRevive`, which going down clears)
   - regen waits for the delay
   - downed players earn kill points
 
-  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer (crawl pose, slowed, pistol held, Juggernog's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
+  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer who bought and drank a Juggernog (crawl pose, slowed, pistol held, Juggernog's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `PerkGameTests` checks which effects going down and dying take. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
 

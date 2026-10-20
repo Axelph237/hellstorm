@@ -36,8 +36,6 @@ public final class PapNetwork {
                 .encoder(HudSyncPacket::encode).decoder(HudSyncPacket::decode).consumerMainThread(HudSyncPacket::handle).add();
         CHANNEL.messageBuilder(UsePacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(UsePacket::encode).decoder(UsePacket::decode).consumerMainThread(UsePacket::handle).add();
-        CHANNEL.messageBuilder(PerkSyncPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(PerkSyncPacket::encode).decoder(PerkSyncPacket::decode).consumerMainThread(PerkSyncPacket::handle).add();
         CHANNEL.messageBuilder(OpenSettingsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(OpenSettingsPacket::encode).decoder(OpenSettingsPacket::decode).consumerMainThread(OpenSettingsPacket::handle).add();
         CHANNEL.messageBuilder(SaveSettingsPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)

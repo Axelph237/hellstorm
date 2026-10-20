@@ -1,9 +1,0 @@
-{
-  "name": "perk.packapunch.speed_cola",
-  "cost": 3000,
-  "requires_power": true,
-  "color": "#3fae4a",
-  "effects": [
-    { "type": "attribute_modifier", "attribute": "packapunch:reload_speed", "amount": 1, "operation": "addition" }
-  ]
-}

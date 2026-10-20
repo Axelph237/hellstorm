@@ -2,87 +2,106 @@
 
 ## Goal
 
-Machines sell perks like Juggernog, Speed Cola, Double Tap, Quick Revive, Stamin-Up, and Mule Kick. Perks are data-driven, need power, and are lost when the player goes down.
+Machines sell perks like Juggernog, Speed Cola, Double Tap, Quick Revive, Stamin-Up, and Mule Kick. A perk is a potion effect with no time limit. The machine sells the potion, and the player drinks it to get the perk. Perks need power by default and are lost when the player goes down.
 
 ## Data shape
 
-`data/<ns>/packapunch/perks/<id>.json`:
+- **Perk effects** are registered `MobEffect`s (`perk/PerkEffects`). Each is one attribute modifier, so anything else that changes the same attribute stacks with it.
+- **A perk** is any effect in the mob effect tag `packapunch:perks` (`data/packapunch/tags/mob_effect/perks.json`). A datapack can add its own effects to the tag.
+- **Potions.** One per perk effect, `packapunch:<id>`, giving the effect with `MobEffectInstance.INFINITE_DURATION`.
+- **The machine** is a wall-buy (`wall-buys.md`): its block entity holds a `WallBuy.Config`.
 
 ```json
-{
-  "name": "perk.packapunch.juggernog",
-  "cost": 2500,
-  "requires_power": true,
-  "color": "#d33a2c",
-  "effects": [
-    { "type": "attribute_modifier", "attribute": "minecraft:generic.max_health", "amount": 20, "operation": "addition" }
-  ]
-}
+{ "item": { "item": "minecraft:potion", "nbt": { "Potion": "packapunch:juggernog" } },
+  "cost": 2500, "repurchase": "deny", "requires_power": true }
 ```
-
-Effect types (codec dispatch on `type`):
-- `attribute_modifier` (Juggernog health, Stamin-Up speed)
-- Reload speed (Speed Cola): an `attribute_modifier` on the `packapunch:reload_speed` attribute; see As built
-- `rpm_multiplier` (Double Tap, through `AttachmentPropertyEvent`)
-- `damage_multiplier`
-- Revive speed (Quick Revive): an `attribute_modifier` on the `packapunch:revive_speed` attribute; and `self_revive`
-- `weapon_slots` (Mule Kick)
-
-`PerkMachine` BlockEntity: `{ perkId }`.
 
 ## Implementation
 
-- **Buying** through `Purchasable`: refuse without power (if required), if the player already has it, or at `players.perk_limit`. On success, add to `PlayerState.perks` and apply each effect. Emit `perk_bought`.
-- **Effects** implement `apply(PlayerState, ServerPlayer)` and `remove(...)`. Attribute effects use a UUID per perk so removal is exact.
-- **Losing perks.** Going `Downed` removes every perk (Quick Revive's solo self-revive is handled in `downs-and-revives.md`).
-- **Names.** Perk names are lang keys, so trademarked names can be renamed in a resource pack.
+- **Buying** goes through the wall-buy sale. It refuses without power when `requires_power` is set. It refuses a potion whose effects the player already has, and a potion that would add a perk past `players.perk_limit`. On success the player gets the potion. Emit `perk_bought`.
+- **Drinking** is vanilla. A player in a game who would go past the perk limit is refused when they start drinking, so nothing is used up.
+- **Losing perks.** Going `Downed` removes every beneficial effect. Quick Revive's solo self-revive is handled in `downs-and-revives.md`.
+- **Names.** Effect and potion names are lang keys, so trademarked names can be renamed in a resource pack.
 
 ## Config surface
 
-- Per perk JSON: cost, power requirement, effects.
+- Per machine: the same settings as a wall-buy (item, cost, repurchase, power).
 - `players.perk_limit` (4).
+- The `packapunch:perks` and `packapunch:self_revive` mob effect tags.
 
 ## Assets
 
-- Machine block uses vanilla textures in a custom model, tinted by the perk's `color`.
-- **Needed from you:** one HUD icon per default perk (16×16). Listed in `TEXTURES_NEEDED.md`.
+- Machine block uses vanilla textures in a custom model, tinted with the color of the potion it sells.
+- **Needed from you:** one HUD icon per default perk (16×16), and one mob effect icon per perk (18×18). Listed in `TEXTURES_NEEDED.md`.
 
 ## Depends on
 
-`economy-and-points.md`, `power-switch.md`, `tacz-bridge.md`, `downs-and-revives.md`.
+`wall-buys.md`, `economy-and-points.md`, `power-switch.md`, `tacz-bridge.md`, `downs-and-revives.md`.
 
 ## Verification
 
-- JUnit: each effect type applies and removes cleanly (attribute value returns to the original).
-- GameTest: Juggernog raises max health, going down removes it, and buying it again works.
-- GameTest: a power-gated perk refuses until power is on. The perk limit refuses the fifth perk.
-- In game: edit Juggernog's amount, `/reload`, start a new game, and see the new value.
+- GameTest: buying a perk potion needs power, charges the cost, and emits `perk_bought`.
+- GameTest: drinking Juggernog gives an endless effect that raises max health and heals; going down takes it.
+- GameTest: the perk limit refuses buying and drinking a new perk.
+- GameTest: a machine refuses a potion whose effects the player already has.
+- GameTest: a machine saved with the old `{ perk, cost }` settings loads as that perk's potion.
 
 ## Phase
 
-5.
+5. Reworked to potions after phase 6.
 
-## As built (phase 5)
+## As built
 
-- **Data.** `perk/PerkDef` and `perk/PerkEffect` (codec dispatch on `type`), loaded by `perk/PerkDefs` from `data/<ns>/packapunch/perks/`. `requires_power` defaults to true and `color` to white. A perk whose `attribute_modifier` names an unknown attribute is logged and skipped. Defaults ship under `data/packapunch/packapunch/perks/`: Juggernog 2500 (+20 max health), Speed Cola 3000 (+1 `packapunch:reload_speed`), Double Tap 2000 (`rpm_multiplier` 1.33), Stamin-Up 2000 (+7% movement speed, `multiply_base`), Quick Revive 1500 (+1 `packapunch:revive_speed`, solo self-revive), Mule Kick 4000 (`weapon_slots` 1). Names are `perk.packapunch.<id>` lang keys.
-- **Ledger in `PlayerState.perks`,** a map from perk id to the `PerkDef` as it was when bought. Removal undoes exactly what was applied, even after a `/reload` changes or deletes the perk mid-game. `Game.givePerk` records a perk and emits `GameEvent.PerkBought` (`perk_bought`, with `player` and `perk`); `Game.takePerks` clears them. `perk/Perks` applies and removes effects on the `ServerPlayer`.
-- **Buying** goes through `Shop` (the design's `Purchasable`). `Sale.check` refuses a perk the player has or a full list (`players.perk_limit`); `Game.charge` refuses without power.
-- **Effects.**
-  - `attribute_modifier`: a transient modifier with a UUID from the perk id and effect index (`PerkDef.modifierId`). Transient, so it is never saved with a player who disconnects mid-game. Gaining max health heals the gain; losing it clamps health.
-  - `damage_multiplier`: multiplies `EntityHurtByGunEvent.Pre`'s base amount for the attacking player (`tacz/PerkGunEffects`).
-  - `rpm_multiplier`: multiplies `ROUNDS_PER_MINUTE` in `AttachmentPropertyEvent`. The event only carries the stack, so the holder is found as the game player (server thread) or local player (client thread) whose main hand is that exact stack, which is how TacZ evaluates guns. TacZ times shots on the client too, so the client gets its multiplier through `PerkSyncPacket`. Buying or losing the perk re-evaluates the held gun on both sides (`AttachmentPropertyManager.postChangeEvent`). Both multiply what is there, so Pack-a-Punch's changes stack.
-  - `weapon_slots`: adds to `PlayerState.bonusWeaponSlots` and subtracts on removal.
-  - (`reload_speed` was its own effect type until it became an attribute; Speed Cola now uses `attribute_modifier`.)
-  - `self_revive`: a solo player who goes down holding the perk revives themselves (see `downs-and-revives.md`). Revive speed is the `packapunch:revive_speed` attribute (base 1, Quick Revive +1), replacing the old `revive_speed` effect type.
-- **Reload speed and Speed Cola** (`packapunch:reload_speed` in `PapRegistries`, `tacz/ReloadTimes`, two mixins in `tacz/mixin`).
+- **Effects** (`perk/PerkEffects`, all `BENEFICIAL`, colors from the old perk JSONs). Each modifier has a fixed UUID.
+
+  | Effect | Attribute | Modifier |
+  |---|---|---|
+  | `juggernog` | `minecraft:generic.max_health` | +20, `addition` |
+  | `speed_cola` | `packapunch:reload_speed` | +1, `addition` |
+  | `double_tap` | `packapunch:fire_rate` | +0.33, `addition` |
+  | `quick_revive` | `packapunch:revive_speed` | +1, `addition` |
+  | `mule_kick` | `packapunch:extra_weapon_slots` | +1, `addition` |
+  | `stamin_up` | `minecraft:generic.movement_speed` | +0.07, `multiply_base` |
+
+  - Gaining max health heals the gain, and losing it clamps health, as vanilla Health Boost does.
+  - The amplifier scales the modifier as vanilla does, so a Juggernog II from a command adds 40.
+  - `quick_revive` is also in the `packapunch:self_revive` tag, which is what gives the solo self-revive.
+- **Attributes** (`registry/PapRegistries`). All four are syncable and added to every player.
+  - `packapunch:reload_speed` (base 1, 0.1 to 10) and `packapunch:revive_speed` (base 1, 0.1 to 10) as before.
+  - `packapunch:fire_rate` (base 1, 0.1 to 10) multiplies a TacZ gun's rounds per minute.
+  - `packapunch:extra_weapon_slots` (base 0, 0 to 9) adds to `players.weapon_slots` (`game/WeaponSlots`).
+  - The attributes are built outside their suppliers, because mob effects register before attributes and the effects need them.
+- **Potions.** One per effect, so each effect also has splash, lingering, and tipped arrow forms, all named in the lang file (`item.minecraft.potion.effect.juggernog` is "Juggernog").
+- **Effect icons.** No textures ship. `client/PerkEffectIcon` (`IClientMobEffectExtensions`) draws each perk's icon in the HUD and inventory as a square in the effect's color with the first letter of its name, so nothing draws as a missing texture.
+- **What a perk is** (`perk/Perks`). An effect in `packapunch:perks`. `Perks.held` lists the ones a player has active, and `players.perk_limit` counts them.
+  - `Perks.limitRefusal(held, adding, limit)` refuses a potion whose new perks would take the player past the limit: "You can only hold 4 perks". Perks the player already has and non-perk effects don't count. A potion of two new perks needs room for both.
+  - Drinking: `LivingEntityUseItemEvent.Start` is cancelled on the server for a player in a game when the potion would go past the limit, with the usual refusal notice. The client keeps its drinking pose until the player lets go of use, since it doesn't know the limit. Splash and lingering potions and `/effect` aren't checked.
+- **Losing buffs.** `Perks.clearBuffs(player)` removes every `BENEFICIAL` effect, perk or not. It runs on going down (`Downs.knockDown`), on dying in a game (`GameHooks.onDeath`), on `/pap leave`, on logout, and for every player when the game ends (`GameManager.end`). Harmful and neutral effects stay. Removing an effect undoes its attribute modifier, so Mule Kick's slot and Juggernog's health go with it.
+- **Fire rate on TacZ guns** (`tacz/PerkGunEffects`). `AttachmentPropertyEvent` multiplies `ROUNDS_PER_MINUTE` by the holder's `packapunch:fire_rate`. The event only carries the stack, so the holder is the player (server thread) or the local player (client thread) whose main hand is that exact stack; game players are searched too, since test players aren't in the server's player list. It multiplies what is there, so Pack-a-Punch's change stacks.
+  - Server: any perk effect with a fire rate modifier re-evaluates the held gun when it is added or removed.
+  - Client: TacZ times shots on the client too. `tacz/LocalGunPerks` checks the local player's synced `fire_rate` each client tick and re-evaluates the held gun when it changes. This replaces `PerkSyncPacket`.
+- **Reload speed and Speed Cola** (`tacz/ReloadTimes`, two mixins in `tacz/mixin`).
   - **Why this seam.** TacZ 1.1.8 has no reload-time property, but every reload asks one method how long ago it started: `ModernKineticGunScriptAPI.getReloadTime()`. That covers the built-in `defaultTickReload` (magazine guns like the AK) and every gun pack's Lua `tick_reload` (shell-by-shell guns like the M870 read `api:getReloadTime()` for each shell and for interruptions). Reloads tick only on the server (`LivingEntityMixin.onTickServerSide`), and the client learns the state through TacZ's synced reload state.
-  - **Server.** `ModernKineticGunScriptAPIMixin` scales the answer at `RETURN` by the shooter's `packapunch:reload_speed` attribute: `elapsed * speed` (`tacz/ReloadTimes`). Every player has the attribute at base 1 (added in `EntityAttributeModificationEvent`); Speed Cola adds 1 with an `addition` modifier, so it reloads twice as fast. Anything else (a perk, an item, `/attribute`) can modify it the same way, and the modifiers stack by vanilla's attribute rules. Range 0.1 to 10. Mobs without the attribute reload at normal speed.
-  - **Client.** The client only plays the animation. The attribute is syncable, so the local player's value reaches the client on its own. `ObjectAnimationRunnerMixin` (a `client` mixin) speeds up `updateProgress` for animations whose name starts with `reload` (`reload_empty`, `reload_tactical`, `reload_intro`, `reload_loop`, ...), from both `update` and `updateSoundOnly`, so the hands and the sounds keyed to the animation keep pace with the server. Draw, inspect, and shooting animations are untouched.
-- **Losing perks.** `Perks.removeAll(game, player)` runs when the player dies in a game (`GameHooks.onDeath`, before the player is set to spectate, so dying loses perks as going down will), on `/pap leave`, on logout, and for every player when the game ends (`GameManager.end`, using the game's player lookup so FakePlayers count too). Death in a game is cancelled, so the player entity is never recreated; without this the modifiers would carry over to the next round. `removeAll` is the hook for `Downed` in `downs-and-revives.md`. Losing Mule Kick lowers `bonusWeaponSlots`; dropping the extra gun is up to the wall-buy feature.
-- **Machine block** (`feature/PerkMachineBlock`): a horizontal-facing block with `ConfigBlockEntity<Config { perk }>`. The model is a vanilla-textured cabinet (iron block trim, quartz pillar body, white concrete label, glowstone panel). The body and label have `tintindex` 0, colored by `client/PerkMachineColors` from the block entity.
-- **Machine cost.** A machine's settings are `{ perk, cost }`. `cost` replaces the perk's own cost at that machine and is empty by default. Set it with `/pap perk cost <points|default>` or the settings screen. The prompt, the charge, and `describe` all use `Config.costOf(def)`.
-- **Client data.** Clients have no datapack perks. The block entity's update tag adds a `display` compound (perk id, name key, color, cost, requires power), resolved from `PerkDefs` each time the server sends the machine, and never saved. After `/reload`, `OnDatapackSyncEvent` resends every loaded machine in each level's map. On receipt the client redraws the block so the tint updates. The prompt reads "Juggernog [2500]" and is hidden for a perk the player already holds.
-- **HUD.** `PerkSyncPacket(badges, rpmMultiplier)` is sent whenever a player's perks change. `client/PerkHud` draws the perk names as colored text badges at the bottom left while in a game. The state clears on disconnect. The perk icons in `TEXTURES_NEEDED.md` would replace the badges.
-- **Commands.** `/pap perk set <perk>` (the machine you're looking at, suggests loaded perks) and `/pap perk list`.
-- **Reload speed tests.** GameTests: buying Speed Cola takes reload speed from 1 to 2, and ending the game puts it back to 1; a plain `multiply_base` modifier with no perk speeds up a reload the same way.
-- **Tests.** JUnit: `PerkDefTest` (the shipped defaults, every effect type, round trips, invalid values), `PerksTest` (refusal rules, multipliers), `GameTest.perksAreRecordedWithAnEventAndTakenTogether`, `PacketRoundTripTest.perkSync`. GameTests in `PerkGameTests`: Juggernog raises max health and charges, a second purchase is refused and not charged, and ending the game removes the modifier; the perk limit refuses the fifth; a power-gated perk waits for power while Quick Revive doesn't; Mule Kick adds a slot and dying removes every perk; Double Tap raises the held AK's cached RPM by 1.33 and the game ending restores it; Speed Cola drives TacZ's own `reload()` and `tickReload` on a FakePlayer's empty AK, and three quarters of the feed time in, the magazine is still empty without the perk and full with it (making `ReloadTimes.elapsed` ignore the perk fails this test). JUnit `ReloadAnimationTest`: the client scales reload animations only, at the synced pace.
+  - **Server.** `ModernKineticGunScriptAPIMixin` scales the answer at `RETURN` by the shooter's `packapunch:reload_speed`: `elapsed * speed`. Mobs without the attribute reload at normal speed.
+  - **Client.** The client only plays the animation. `ObjectAnimationRunnerMixin` (a `client` mixin) speeds up `updateProgress` for animations whose name starts with `reload`, from both `update` and `updateSoundOnly`, so the hands and the sounds keyed to the animation keep pace with the server. Draw, inspect, and shooting animations are untouched.
+- **Machine block** (`feature/PerkMachineBlock`). It keeps its own block, cabinet model, `FeatureKind.PERK_MACHINE`, and outline. Its block entity is `WallBuyBlock.Entity`, registered under its own type id `packapunch:perk_machine`, so machines saved before this change still load.
+  - **Defaults.** A new machine sells a Juggernog potion for 2500, `repurchase: deny`, `requires_power: true` (`PerkMachineBlock.sells(potion, cost)`).
+  - **Old saves.** The machine's codec also reads the old `{ perk, cost }` shape. It becomes the potion with the perk's id at that cost (2500 if none), `deny`, needing power. A perk id with no potion is logged and the machine keeps its default. Saving writes the wall-buy shape.
+  - **Display.** `client/WallBuyRenderer` draws the sold item on the machine's front, over the glowstone panel, at half size. `client/PerkMachineColors` tints the body and label (`tintindex` 0) with `PotionUtils.getColor` for a potion and leaves anything else white. The block redraws when its block entity changes.
+  - **Prompt.** "Juggernog [2500]", or "No power" while it needs power and the power is off. Hidden for a potion whose effects the player already has, from the local player's synced effects.
+  - **Settings.** The wall-buy screen (title "Perk Machine"), with a "Needs power" row. `/pap wallbuy ...` works on it too, including `/pap wallbuy power <true|false>`.
+  - **Event.** `GameEvent.PerkBought(player, item, cost)`, Lua `perk_bought` with `player`, `item` (the potion id for a potion, such as `packapunch:juggernog`; the item spec otherwise), and `cost`. A perk machine doesn't emit `wall_buy`.
+- **HUD** (`client/PerkHud`). While in a game, the local player's active `packapunch:perks` effects are listed by name in the effect's color at the bottom left, sorted by id. The perk icons in `TEXTURES_NEEDED.md` would replace the names.
+- **Removed.** The datapack perks (`perk/PerkDef`, `PerkDefs`, `PerkEffect`, `data/packapunch/packapunch/perks/`), the `damage_multiplier` effect, `PlayerState.perks` and `bonusWeaponSlots`, `Game.givePerk` and `takePerks`, `PerkSyncPacket`, `client/ClientPerks`, `/pap perk`, and the perk machine's own settings screen.
+- **Tests.**
+  - JUnit: `PerksTest` (the limit rule), `WallBuyTest.requiresPowerIsOffUnlessSetAndRoundTrips`, `DownsTest` (solo self-revive through `GameWorld.canSelfRevive`; the fake world loses it on going down), `LuaEventsTest.aPerkPurchaseCarriesTheItemAndCost`, `ReloadAnimationTest`.
+  - GameTests in `PerkGameTests`:
+    - a new machine sells its Juggernog only with the power on, for 2500, with a `perk_bought` event and no `wall_buy`
+    - drinking Juggernog gives an endless effect, 40 max health, and heals 20, all gone when the game ends
+    - going down takes Juggernog, Mule Kick, and Resistance but not Weakness; dying takes Stamin-Up
+    - at the limit, the machine charges nothing and sells nothing, and drinking a new perk is refused without using the potion; an already-held perk and Swiftness can be drunk
+    - a machine refuses Juggernog to a player who has it, and its action is the denial the prompt hides on
+    - Quick Revive gives self-revive and revive speed 2
+    - old `{ perk, cost }` settings load as the potion, with and without a cost, and an unknown perk keeps what was there
+    - Double Tap raises the held AK's cached RPM by 1.33 when the effect is added, and the game ending restores it
+    - Speed Cola, bought and drunk, makes TacZ's own `reload()` and `tickReload` feed an empty AK in three quarters of the time; a plain `multiply_base` reload speed modifier does the same

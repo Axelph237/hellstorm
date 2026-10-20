@@ -57,12 +57,12 @@ public final class SettingsGameTests {
 
     @GameTest(template = "floor")
     public static void machinesRefuseSettingsTheirCommandsWouldRefuseAndKeepTheOldOnes(GameTestHelper helper) {
-        PerkMachineBlock.Entity perk = place(helper, 1, PapRegistries.PERK_MACHINE.get().defaultBlockState());
-        assertRefused(helper, perk, encode(perk, new PerkMachineBlock.Config(Optional.of(ResourceLocation.tryBuild("nope", "perk")), Optional.empty())), "an unloaded perk");
-        ResourceLocation juggernog = ResourceLocation.tryBuild(PackAPunch.MOD_ID, "juggernog");
-        helper.assertTrue(perk.trySet(encode(perk, new PerkMachineBlock.Config(Optional.of(juggernog), Optional.of(1234)))).isEmpty(), "Juggernog should be accepted");
-        helper.assertTrue(perk.config().perk().equals(Optional.of(juggernog)), "the perk machine should sell Juggernog");
-        helper.assertTrue(perk.display().map(d -> d.cost() == 1234).orElse(false), "the machine's own cost should replace Juggernog's, shows " + perk.display());
+        WallBuyBlock.Entity perk = place(helper, 1, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        ItemSpec unknown = new ItemSpec.Plain(ResourceLocation.tryBuild("nope", "item"), 1, Optional.empty());
+        assertRefused(helper, perk, encode(perk, WallBuy.Config.forItem(unknown, 500, WallBuy.Repurchase.DENY)), "an unknown item");
+        WallBuy.Config cola = PerkMachineBlock.sells(PackAPunch.id("speed_cola"), 1234);
+        helper.assertTrue(perk.trySet(encode(perk, cola)).isEmpty(), "a Speed Cola potion should be accepted");
+        helper.assertTrue(perk.config().equals(cola), "the perk machine should keep what was sent, has " + perk.config());
 
         MysteryBoxBlock.Entity box = place(helper, 3, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
         assertRefused(helper, box, encode(box, new MysteryBoxBlock.Config(ResourceLocation.tryBuild("nope", "pool"), Optional.empty())), "an unloaded box pool");
@@ -70,10 +70,10 @@ public final class SettingsGameTests {
         WallBuyBlock.Entity wallBuy = place(helper, 5, PapRegistries.WALL_BUY.get().defaultBlockState().setValue(WallBuyBlock.FACING, Direction.NORTH));
         ItemSpec apple = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 1, Optional.empty());
         assertRefused(helper, wallBuy, encode(wallBuy, new WallBuy.Config(ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "nope")), 500,
-                WallBuy.Repurchase.REFILL_AMMO, 250, 4500)), "an unknown gun");
-        assertRefused(helper, wallBuy, encode(wallBuy, new WallBuy.Config(apple, 500, WallBuy.Repurchase.REFILL_AMMO, 250, 4500)),
+                WallBuy.Repurchase.REFILL_AMMO, 250, 4500, false)), "an unknown gun");
+        assertRefused(helper, wallBuy, encode(wallBuy, new WallBuy.Config(apple, 500, WallBuy.Repurchase.REFILL_AMMO, 250, 4500, false)),
                 "refilling ammo on a golden apple");
-        WallBuy.Config m4 = new WallBuy.Config(ItemSpec.Gun.of(AK47), 900, WallBuy.Repurchase.REFILL_AMMO, 300, 3000);
+        WallBuy.Config m4 = new WallBuy.Config(ItemSpec.Gun.of(AK47), 900, WallBuy.Repurchase.REFILL_AMMO, 300, 3000, false);
         helper.assertTrue(wallBuy.trySet(encode(wallBuy, m4)).isEmpty(), "a real gun should be accepted");
         helper.assertTrue(wallBuy.config().equals(m4), "the wall-buy should keep what was sent, has " + wallBuy.config());
 

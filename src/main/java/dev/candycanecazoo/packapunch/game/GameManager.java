@@ -156,7 +156,7 @@ public final class GameManager {
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {
             active.world().entity(player.id()).ifPresent(p -> {
-                Perks.removeAll(active, p);
+                Perks.clearBuffs(p);
                 Downs.standUp(p);
             });
             ServerPlayer online = active.level().getServer().getPlayerList().getPlayer(player.id());

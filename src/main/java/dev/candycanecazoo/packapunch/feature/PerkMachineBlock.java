@@ -1,31 +1,30 @@
 package dev.candycanecazoo.packapunch.feature;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.candycanecazoo.packapunch.client.ClientPerks;
+import dev.candycanecazoo.packapunch.PackAPunch;
+import dev.candycanecazoo.packapunch.data.ItemSpec;
+import dev.candycanecazoo.packapunch.game.GameEvent;
 import dev.candycanecazoo.packapunch.game.GameManager;
-import dev.candycanecazoo.packapunch.game.Refusal;
-import dev.candycanecazoo.packapunch.game.Shop;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
-import dev.candycanecazoo.packapunch.perk.PerkDef;
-import dev.candycanecazoo.packapunch.perk.PerkDefs;
-import dev.candycanecazoo.packapunch.perk.Perks;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import dev.candycanecazoo.packapunch.util.Codecs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.locale.Language;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -35,107 +34,58 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Optional;
 
-/** Sells one perk. The machine is tinted with its perk's color. */
+/**
+ * A wall-buy in a machine cabinet: it sells any item the same way and shows it on its front. By default it sells a
+ * Juggernog potion and needs the power. The cabinet is tinted with the color of the potion it sells.
+ */
 public final class PerkMachineBlock extends HorizontalDirectionalBlock implements EntityBlock, FeatureBlock {
-    /** {@code cost} replaces the perk's own cost at this machine; empty sells it at the perk's cost. */
-    public record Config(Optional<ResourceLocation> perk, Optional<Integer> cost) {
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codecs.strictOptional(ResourceLocation.CODEC, "perk").forGetter(Config::perk),
-                Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "cost").forGetter(Config::cost)
-        ).apply(i, Config::new));
+    public static final int DEFAULT_COST = 2500;
+    public static final WallBuy.Config DEFAULT = sells(PackAPunch.id("juggernog"), DEFAULT_COST);
 
-        public static final Config NONE = new Config(Optional.empty(), Optional.empty());
+    /** Machines saved before perks were potions: {@code {perk, cost}}, read as a potion with the perk's id. */
+    private record Legacy(ResourceLocation perk, Optional<Integer> cost) {
+        static final Codec<Legacy> CODEC = RecordCodecBuilder.create(i -> i.group(
+                ResourceLocation.CODEC.fieldOf("perk").forGetter(Legacy::perk),
+                Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "cost").forGetter(Legacy::cost)
+        ).apply(i, Legacy::new));
 
-        public int costOf(PerkDef def) {
-            return cost.orElse(def.cost());
+        DataResult<WallBuy.Config> config() {
+            return ForgeRegistries.POTIONS.containsKey(perk)
+                    ? DataResult.success(sells(perk, cost.orElse(DEFAULT_COST)))
+                    : DataResult.error(() -> "No potion " + perk + " for the old perk machine setting");
         }
     }
 
-    /**
-     * What clients need to draw and prompt for the machine. Clients have no datapack perks, so the server resolves the perk
-     * each time it sends the machine; it is never saved.
-     */
-    public record Display(ResourceLocation perk, String name, int color, int cost, boolean requiresPower) {
-        public static final Codec<Display> CODEC = RecordCodecBuilder.create(i -> i.group(
-                ResourceLocation.CODEC.fieldOf("perk").forGetter(Display::perk),
-                Codec.STRING.fieldOf("name").forGetter(Display::name),
-                Codec.INT.fieldOf("color").forGetter(Display::color),
-                Codec.INT.fieldOf("cost").forGetter(Display::cost),
-                Codec.BOOL.fieldOf("requires_power").forGetter(Display::requiresPower)
-        ).apply(i, Display::new));
-
-        static Display of(ResourceLocation id, PerkDef def, int cost) {
-            return new Display(id, def.name(), def.color(), cost, def.requiresPower());
-        }
-    }
-
-    public static final class Entity extends ConfigBlockEntity<Config> implements Prompted {
-        private static final String DISPLAY = "display";
-        private static final int UNSET_COLOR = 0xFFFFFF;
-
-        private Optional<Display> synced = Optional.empty();
-
-        public Entity(BlockPos pos, BlockState state) {
-            super(PapRegistries.PERK_MACHINE_ENTITY.get(), pos, state, Config.CODEC, Config.NONE);
-        }
-
-        @Override
-        protected Optional<String> problem(Config config) {
-            return config.perk().filter(id -> PerkDefs.get(id).isEmpty()).map(id -> "Unknown perk: " + id + ". See /pap perk list");
-        }
-
-        /** Resolved from the datapack on the server, and from the last sync on the client. */
-        public Optional<Display> display() {
-            if (level == null || level.isClientSide) {
-                return synced;
-            }
-            return config().perk().flatMap(id -> PerkDefs.get(id).map(def -> Display.of(id, def, config().costOf(def))));
-        }
-
-        public int color() {
-            return display().map(Display::color).orElse(UNSET_COLOR);
-        }
-
-        /** Resends the machine to clients, after a /reload changed its perk. */
-        public void refresh() {
-            changed();
-        }
-
-        @Override
-        public Optional<Prompt> prompt() {
-            return display().filter(d -> !ClientPerks.owns(d.perk()))
-                    .map(d -> new Prompt(Language.getInstance().getOrDefault(d.name()), d.cost(), d.requiresPower()));
-        }
-
-        @Override
-        public CompoundTag getUpdateTag() {
-            CompoundTag tag = super.getUpdateTag();
-            display().flatMap(d -> Display.CODEC.encodeStart(NbtOps.INSTANCE, d).result()).ifPresent(d -> tag.put(DISPLAY, d));
-            return tag;
-        }
-
-        @Override
-        public void load(CompoundTag tag) {
-            super.load(tag);
-            synced = tag.contains(DISPLAY) ? Display.CODEC.parse(NbtOps.INSTANCE, tag.get(DISPLAY)).result() : Optional.empty();
-        }
-
-        @Override
-        public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet) {
-            super.onDataPacket(net, packet);
-            // The tint comes from this block entity, so the chunk has to be redrawn when it changes.
-            if (level != null && level.isClientSide) {
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_IMMEDIATE);
-            }
-        }
-    }
+    /** A wall-buy's settings; the old perk shape still loads, and is saved as a wall-buy's from then on. */
+    public static final Codec<WallBuy.Config> CODEC = Codec.either(WallBuy.Config.CODEC,
+                    Legacy.CODEC.flatXmap(Legacy::config, c -> DataResult.error(() -> "Perk machines save as wall-buy settings")))
+            .xmap(either -> either.map(c -> c, c -> c), Either::left);
 
     public PerkMachineBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    /** Sells one potion of {@code potion}, once per player: buying again is refused. */
+    public static WallBuy.Config sells(ResourceLocation potion, int cost) {
+        CompoundTag nbt = new CompoundTag();
+        nbt.putString(PotionUtils.TAG_POTION, potion.toString());
+        ItemSpec item = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "potion"), 1, Optional.of(nbt));
+        return new WallBuy.Config(item, cost, WallBuy.Repurchase.DENY, cost / 2, WallBuy.DEFAULT_PAP_AMMO_COST, true);
+    }
+
+    public static WallBuyBlock.Entity newEntity(BlockPos pos, BlockState state) {
+        return new WallBuyBlock.Entity(PapRegistries.PERK_MACHINE_ENTITY.get(), pos, state, CODEC, DEFAULT);
+    }
+
+    /** The potion's id for a potion, so a script sees which perk was bought; the item spec otherwise. */
+    static String describe(ItemStack sold, ItemSpec spec) {
+        Potion potion = PotionUtils.getPotion(sold);
+        return potion == Potions.EMPTY ? spec.describe() : String.valueOf(ForgeRegistries.POTIONS.getKey(potion));
     }
 
     @Override
@@ -150,7 +100,7 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new Entity(pos, state);
+        return newEntity(pos, state);
     }
 
     @Override
@@ -168,30 +118,13 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
 
     @Override
     public void buy(ServerPlayer player, GameManager.Active game, BlockPos pos, BlockState state) {
-        Config config = config(game.level(), pos);
-        Optional<PerkDef> def = config.perk().flatMap(PerkDefs::get);
-        if (def.isEmpty()) {
-            Shop.refuse(player, new Refusal.Because("This machine has nothing to sell"));
-            return;
-        }
-        Perks.buy(player, game, config.perk().get(), def.get(), config.costOf(def.get()));
-    }
-
-    public static Config config(Level level, BlockPos pos) {
-        return level.getBlockEntity(pos) instanceof Entity entity ? entity.config() : Config.NONE;
+        WallBuyBlock.entity(game.level(), pos).ifPresent(entity -> WallBuyBlock.sell(player, game, entity,
+                (buyer, cost, refill) -> new GameEvent.PerkBought(buyer, describe(entity.display(), entity.config().item()), cost)));
     }
 
     @Override
     public Component describe(ServerLevel level, BlockPos pos) {
-        Config config = config(level, pos);
-        Optional<ResourceLocation> id = config.perk();
-        if (id.isEmpty()) {
-            return Component.literal("Perk machine: no perk set. Set with /pap perk set <perk>");
-        }
-        return PerkDefs.get(id.get()).<Component>map(def -> Component.literal("Perk machine: ").append(Component.translatable(def.name()))
-                        .append(" (" + id.get() + "), " + config.costOf(def) + " points" + (config.cost().isEmpty() ? " (the perk's cost)" : "")
-                                + (def.requiresPower() ? ", needs power" : "") + ". Set with /pap perk set <perk> and /pap perk cost <points|default>"))
-                .orElseGet(() -> Component.literal("Perk machine: " + id.get() + " is not a loaded perk. See /pap perk list"));
+        return WallBuyBlock.entity(level, pos).map(WallBuyBlock::describe).orElse(Component.literal("Perk machine"));
     }
 
     @Override

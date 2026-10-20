@@ -12,7 +12,7 @@ import java.util.Map;
 final class Choices {
     private Choices() {}
 
-    /** Every id offered, plus {@code current} when it isn't (a perk or pool that's no longer loaded), so it stays selectable. */
+    /** Every id offered, plus {@code current} when it isn't (a pool that's no longer loaded), so it stays selectable. */
     static List<ResourceLocation> ids(List<OpenSettingsPacket.Choice> choices, ResourceLocation current) {
         List<ResourceLocation> ids = new ArrayList<>(choices.stream().map(OpenSettingsPacket.Choice::id).toList());
         if (current != null && !ids.contains(current)) {

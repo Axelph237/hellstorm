@@ -79,7 +79,7 @@ public final class GameHooks {
         if (entity instanceof ServerPlayer player) {
             GameManager.forPlayer(player.getUUID()).ifPresent(active -> {
                 event.setCanceled(true);
-                Perks.removeAll(active, player);
+                Perks.clearBuffs(player);
                 player.setHealth(player.getMaxHealth());
                 active.game().onPlayerDied(player.getUUID(), active.world());
             });
@@ -209,7 +209,7 @@ public final class GameHooks {
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         GameManager.forPlayer(event.getEntity().getUUID()).ifPresent(a -> {
             if (event.getEntity() instanceof ServerPlayer player) {
-                Perks.removeAll(a, player);
+                Perks.clearBuffs(player);
                 Downs.standUp(player);
             }
             a.game().leave(event.getEntity().getUUID());

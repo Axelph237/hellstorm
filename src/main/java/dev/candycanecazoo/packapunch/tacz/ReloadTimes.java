@@ -18,7 +18,7 @@ public final class ReloadTimes {
 
     /** 1 for anything without the attribute (mobs holding guns). */
     public static double speed(LivingEntity shooter) {
-        AttributeInstance instance = shooter.getAttribute(PapRegistries.RELOAD_SPEED.get());
+        AttributeInstance instance = shooter.getAttribute(PapRegistries.RELOAD_SPEED);
         return instance == null ? 1 : instance.getValue();
     }
 
