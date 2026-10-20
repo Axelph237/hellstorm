@@ -27,7 +27,6 @@ import java.util.TreeMap;
 @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID)
 public final class PerkDefs {
     private static volatile Map<ResourceLocation, PerkDef> perks = Map.of();
-    private static boolean warnedReloadSpeed;
 
     private PerkDefs() {}
 
@@ -51,10 +50,6 @@ public final class PerkDefs {
                         .ifPresent(def -> loaded.put(id, def)));
                 perks = Map.copyOf(loaded);
                 PackAPunch.LOG.info("Loaded {} Pack-a-Punch perks", loaded.size());
-                if (!warnedReloadSpeed && loaded.values().stream().anyMatch(d -> d.effects().stream().anyMatch(PerkEffect.ReloadSpeed.class::isInstance))) {
-                    warnedReloadSpeed = true;
-                    PackAPunch.LOG.warn("reload_speed perk effects do nothing yet: TacZ 1.1.8 has no per-player or per-gun reload time hook");
-                }
             }
         });
     }

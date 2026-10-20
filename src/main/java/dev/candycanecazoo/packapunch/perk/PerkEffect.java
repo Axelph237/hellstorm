@@ -50,10 +50,7 @@ public sealed interface PerkEffect {
         }
     }
 
-    /**
-     * Multiplies reload time (Speed Cola, 0.5 = twice as fast). Parsed but not applied: TacZ 1.1.8 reads reload times from
-     * the gun's shared data on both sides, with no per-player or per-stack hook.
-     */
+    /** Multiplies reload time (Speed Cola, 0.5 = twice as fast). Applied through {@code tacz/ReloadTimes}. */
     record ReloadSpeed(double multiplier) implements PerkEffect {
         public String type() {
             return "reload_speed";
