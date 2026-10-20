@@ -50,7 +50,8 @@ public final class AiInjector {
         setBase(mob, Attributes.MAX_HEALTH, stats.health());
         mob.setHealth((float) stats.health());
         setBase(mob, Attributes.MOVEMENT_SPEED, stats.speed());
-        setBase(mob, Attributes.FOLLOW_RANGE, 64.0);
+        // Long enough for mobs on vanilla navigation to find players across a map.
+        setBase(mob, Attributes.FOLLOW_RANGE, 128.0);
         mob.setPersistenceRequired();
         mob.setCanPickUpLoot(false);
         return mode;

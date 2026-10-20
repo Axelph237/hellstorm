@@ -3,7 +3,6 @@ package dev.candycanecazoo.packapunch.game;
 import dev.candycanecazoo.packapunch.mob.goals.Navigator;
 import dev.candycanecazoo.packapunch.mob.path.FlowField;
 import dev.candycanecazoo.packapunch.mob.path.FlowGraph;
-import dev.candycanecazoo.packapunch.mob.path.MovementClass;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -53,11 +52,10 @@ public final class FlowNavigator implements Navigator {
             mob.getMoveControl().setWantedPosition(target.getX(), target.getY(), target.getZ(), 1.0);
             return;
         }
-        MovementClass size = MovementClass.ofHitbox(mob.getBbWidth(), mob.getBbHeight());
-        FlowGraph graph = pathing.graph(size);
+        FlowGraph graph = pathing.graph(mob);
         Optional<BlockPos> from = snap(graph, mob.blockPosition());
         Optional<BlockPos> goal = snap(graph, target.blockPosition());
-        Optional<FlowField> field = goal.flatMap(g -> pathing.field(size, target, g));
+        Optional<FlowField> field = goal.flatMap(g -> pathing.field(mob, target, g));
         Optional<BlockPos> aim = from.flatMap(f -> field.flatMap(fl -> fl.lookahead(f, LOOKAHEAD, tieBreak)));
         if (aim.isEmpty()) {
             rescue.tick(mob, target);

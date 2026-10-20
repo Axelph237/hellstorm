@@ -108,12 +108,18 @@ public final class ForgeGameWorld implements GameWorld {
         mob.addTag(MOB_TAG);
         AiInjector.inject(mob, profile,
                 new AiInjector.Stats(spec.health() * profile.healthMultiplier(), spec.speed() * profile.speedMultiplier(), (float) profile.damage()),
-                this::targetablePlayers, new FlowNavigator(pathing, level.random.nextInt()));
+                this::targetablePlayers, navigatorFor(mob, profile));
         if (profile.breaksBarricades() && mob instanceof PathfinderMob walker) {
             map.windowFor(marker).ifPresent(window -> walker.goalSelector.addGoal(0,
                     new BreakBarricadeGoal(walker, windowAdapter(window), tearTicks, pos -> map.index().zoneAt(pos).isPresent())));
         }
         return level.addFreshEntity(mob) ? Optional.of(mob.getUUID()) : Optional.empty();
+    }
+
+    private dev.candycanecazoo.packapunch.mob.goals.Navigator navigatorFor(Mob mob, MobProfile profile) {
+        return profile.navigation() == MobProfile.Navigation.FLOW && GamePathing.walks(mob)
+                ? new FlowNavigator(pathing, level.random.nextInt())
+                : dev.candycanecazoo.packapunch.mob.goals.Navigator.vanilla();
     }
 
     /** Picks one column of the window for this zombie, with a small random offset, and drops both points to the ground. */

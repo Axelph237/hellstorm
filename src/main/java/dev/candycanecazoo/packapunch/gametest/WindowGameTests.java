@@ -206,6 +206,37 @@ public final class WindowGameTests {
         }, Blocks.AIR, 2);
     }
 
+    /**
+     * A wall of glass panes, iron bars, and fences splits one room, with a gap at the far end. Vanilla's walk evaluator
+     * sees all three as walls, so the flow graph leaves them out and the walking cost goes round through the gap.
+     */
+    @GameTest(template = "floor")
+    public static void theFlowGraphRoutesRoundPanesBarsAndFences(GameTestHelper helper) {
+        for (int z = 0; z <= 7; z++) {
+            net.minecraft.world.level.block.Block wall = z < 4 ? Blocks.GLASS_PANE : z < 6 ? Blocks.IRON_BARS : Blocks.OAK_FENCE;
+            for (int dy = 0; dy <= 3; dy++) {
+                helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), wall);
+            }
+        }
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_split"), List.of(room), true));
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
+        Zombie template = EntityType.ZOMBIE.create(helper.getLevel());
+        try (dev.candycanecazoo.packapunch.game.GamePathing pathing =
+                     new dev.candycanecazoo.packapunch.game.GamePathing(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages)) {
+            dev.candycanecazoo.packapunch.mob.path.FlowGraph graph = pathing.graph(template);
+            for (int z = 0; z <= 7; z++) {
+                helper.assertTrue(graph.indexOf(helper.absolutePos(new BlockPos(4, ROOM_Y, z))) < 0, "wall cell z=" + z + " is walkable");
+            }
+            helper.assertTrue(graph.indexOf(helper.absolutePos(new BlockPos(4, ROOM_Y, 8))) >= 0, "the gap isn't walkable");
+            int cost = graph.fieldTo(helper.absolutePos(new BlockPos(8, ROOM_Y, 0))).orElseThrow()
+                    .distance(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)));
+            // Straight across is 8 blocks (cost 80); round through the gap is about 19.
+            helper.assertTrue(cost > 150 && cost < 300, "walking cost " + cost + " doesn't go round through the gap");
+        }
+        helper.succeed();
+    }
+
     /** An iron golem (1.4 x 2.7, so 2x3) can't come through a 1x2 window; a zombie (1x2) can. */
     @GameTest(template = "floor")
     public static void theDirectorOnlySpawnsMobsThatFitTheMarkersWindow(GameTestHelper helper) {
@@ -218,7 +249,7 @@ public final class WindowGameTests {
         net.minecraft.resources.ResourceLocation zombie = net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie");
         java.util.Map<net.minecraft.resources.ResourceLocation, dev.candycanecazoo.packapunch.mob.MobProfile> profiles = java.util.Map.of(
                 golem, new dev.candycanecazoo.packapunch.mob.MobProfile(net.minecraft.resources.ResourceLocation.tryParse("minecraft:iron_golem"), 1, 1,
-                        java.util.Optional.empty(), dev.candycanecazoo.packapunch.mob.MobProfile.Ai.REPLACE, java.util.Optional.empty(), 1, 1, 4, true),
+                        java.util.Optional.empty(), dev.candycanecazoo.packapunch.mob.MobProfile.Ai.REPLACE, java.util.Optional.empty(), 1, 1, 4, true, dev.candycanecazoo.packapunch.mob.MobProfile.Navigation.FLOW),
                 zombie, dev.candycanecazoo.packapunch.mob.MobProfile.FALLBACK);
         ForgeGameWorld world = new ForgeGameWorld(helper.getLevel(), gameMap, List.of(), List::of, id -> null, profiles, id -> false, 30,
                 new dev.candycanecazoo.packapunch.game.GamePathing(helper.getLevel(), gameMap,

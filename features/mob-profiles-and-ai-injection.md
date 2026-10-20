@@ -1,3 +1,4 @@
 
 - **Door opening.** Ground-navigating game mobs can open wooden doors (`setCanOpenDoors` plus `OpenDoorGoal`, which leaves them open), so a door's state when a game starts doesn't cut zones apart.
 - **Window-aware spawning.** The spawner only picks a profile that fits the marker's window. It uses `GameWorld.canSpawn`, which compares the profile's entity-type size, rounded up to whole blocks, with the window opening. An iron golem (2x3) is never sent to a 1x2 or 2x2 window.
+- **Navigation per profile.** `"navigation": "flow"` (the default) steers on the game's flow fields (see `zombie-pathfinding.md`). `"navigation": "vanilla"` keeps the mob's own pathfinding and re-paths to its target every 10 ticks. Mobs whose navigation isn't walk-based (spiders on walls, fliers, swimmers) always use their own, whatever the profile says. Game mobs get a follow range of 128 so vanilla navigation finds players across a map.

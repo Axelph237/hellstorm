@@ -90,7 +90,7 @@ None.
 ## Flow fields (replaced the hierarchical planner, after play testing)
 
 In play, zombies reached the end of the planned route and stopped. Two pathfinders disagreed about where a zombie can walk: our planner picked a doorway, but vanilla navigation couldn't always reach it and quietly returned a partial path. Every zombie also followed the same route in single file. The hierarchical planner, its edge cache, and `PortalNavigator` were removed and replaced:
-- **`FlowGraph`** (one per movement class, `mob/path`). It covers every walkable node of one grid over all unlocked zones plus the doorway cells between them (`ZonePathing.unionGrid`). Moves come from `BlockAStar`'s rules, stored as forward and reverse edge arrays. It is immutable.
+- **`FlowGraph`** (`mob/path`). It covers every walkable node of all unlocked zones plus the doorway cells between them, stored as forward and reverse edge arrays. It is immutable. (First built from our own grid and `BlockAStar`'s moves, now from vanilla's evaluator; see below.)
 - **`FlowField`** (one per chased player). A reverse Dijkstra from the player's cell gives every node's true walking cost to the player, drops included (they're one-way). Unit tests check it against a reference Dijkstra.
   - **`next`** steps to the cheapest neighbour. Ties are split per zombie, so a crowd fans out.
   - **`lookahead`** picks the farthest downhill cell reachable in a straight line on the same level, so zombies cut corners instead of following the grid's staircase.
@@ -103,3 +103,12 @@ In play, zombies reached the end of the planned route and stopped. Two pathfinde
 - **Doorway portals** (`ZonePathing.portals`) remain for `/pap map paths` and `show_paths`. They no longer drive movement.
 - **`show_paths`** draws each zombie's downhill walk from its current cell.
 - **What one field costs.** One Dijkstra per player per cell change, shared by every zombie chasing that player, so cost doesn't grow with the number of zombies.
+
+## Graphs from vanilla's walk evaluator (after play testing)
+
+Zombies walked into glass panes, trapdoors, and door panels. Our own grid called a cell open whenever vanilla's `isPathfindable(LAND)` said so, which is true for panes and open trapdoors that a mob can't actually step through. Two models of walkability disagreed again, so the flow graph now comes from vanilla's:
+- **`VanillaGraphs`** builds one `FlowGraph` per entity type. It sets up a `WalkNodeEvaluator` for a real mob of that type (doors passable and openable, floating on), seeds it with every standable cell of the unlocked zones, and floods with the evaluator's own `getNeighbors`. Neighbours outside the unlocked zones and their doorway cells are dropped. Edge cost is the step length (diagonals 1.41) plus height change plus vanilla's path malus, times 10.
+- **What this buys.** Panes, bars, fences, walls, trapdoors, doors, slabs, carpet, and modded blocks behave exactly as vanilla pathfinding sees them, for that mob's size and penalties. GameTested with a wall of panes, bars, and fences that has a gap: wall cells aren't nodes and the walking cost goes round through the gap.
+- **Cost.** Building is on the server thread the first time a zombie of that type needs a graph. Test rooms (about 80 nodes) take 2 to 9 ms. A full-size map hasn't been measured; the build stops at 400,000 nodes.
+- **Who uses it.** Only mobs whose navigation uses a `WalkNodeEvaluator` and whose profile says `navigation: flow`. Everything else uses its own vanilla navigation with a 128-block follow range (see `mob-profiles-and-ai-injection.md`).
+- **Removed.** `ZonePathing.unionGrid`. The per-zone grids remain only for the doorway portals in `/pap map paths`.

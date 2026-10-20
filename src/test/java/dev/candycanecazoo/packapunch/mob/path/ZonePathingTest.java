@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -54,26 +53,6 @@ class ZonePathingTest {
     }
 
     @Test
-    void aFlowFieldOverTheUnionGridLeadsThroughTheDoorway() {
-        ZombiesMap map = rooms(6);
-        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), PROBE, 2);
-        PassabilityGrid grid = ZonePathing.unionGrid(map, Set.of(WEST, EAST), passages, WORLD, ZOMBIE);
-        FlowField field = FlowGraph.build(grid, BlockAStar.DEFAULT).fieldTo(new BlockPos(10, 0, 4)).orElseThrow();
-        List<BlockPos> walk = field.descent(new BlockPos(0, 0, 0), 100, 0);
-        assertTrue(walk.contains(new BlockPos(5, 0, 2)), "the walk goes through the doorway: " + walk);
-        assertEquals(new BlockPos(10, 0, 4), walk.get(walk.size() - 1));
-    }
-
-    @Test
-    void aZoneLeftOutOfTheUnionIsUnreachable() {
-        ZombiesMap map = rooms(6);
-        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), PROBE, 2);
-        PassabilityGrid grid = ZonePathing.unionGrid(map, Set.of(EAST), passages, WORLD, ZOMBIE);
-        FlowField field = FlowGraph.build(grid, BlockAStar.DEFAULT).fieldTo(new BlockPos(10, 0, 4)).orElseThrow();
-        assertEquals(FlowField.UNREACHABLE, field.distance(new BlockPos(0, 0, 0)), "a locked zone isn't part of the field");
-    }
-
-    @Test
     void touchingZonesGetAPortalBetweenAdjacentCells() {
         ZombiesMap map = ZombiesMap.EMPTY
                 .withZone(new Zone(WEST, List.of(new BlockBox(0, 0, 0, 4, 1, 4)), true))
@@ -106,9 +85,5 @@ class ZonePathingTest {
         Map<ZoneId, PassabilityGrid> grids = ZonePathing.grids(map, passages, world, ZOMBIE);
         List<Portal> portals = ZonePathing.portals(passages, grids);
         assertEquals(List.of(new BlockPos(5, 0, 2)), portals.stream().map(Portal::cellA).toList());
-        FlowField field = FlowGraph.build(ZonePathing.unionGrid(map, Set.of(WEST, EAST), passages, world, ZOMBIE), BlockAStar.DEFAULT)
-                .fieldTo(new BlockPos(10, 0, 4)).orElseThrow();
-        assertTrue(field.distance(new BlockPos(0, 0, 0)) < FlowField.UNREACHABLE, "west reaches east through the doorway, not around the wall");
-        assertTrue(field.descent(new BlockPos(0, 0, 0), 100, 0).contains(new BlockPos(5, 0, 2)));
     }
 }

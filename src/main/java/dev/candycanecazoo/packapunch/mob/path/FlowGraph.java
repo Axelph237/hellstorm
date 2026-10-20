@@ -2,18 +2,82 @@ package dev.candycanecazoo.packapunch.mob.path;
 
 import dev.candycanecazoo.packapunch.map.BlockBox;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongHeapPriorityQueue;
 import net.minecraft.core.BlockPos;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
- * Every walkable node of one grid with its moves, as compact arrays. Built once per movement class and never changed, so
- * any thread may read it. {@link #fieldTo} turns it into a {@link FlowField} toward one goal.
+ * Walkable nodes and the moves between them, as compact arrays. Built once and never changed, so any thread may read it.
+ * The game builds it from vanilla's own walk evaluator ({@code VanillaGraphs}), so doors, trapdoors, panes, slabs, and
+ * modded blocks behave exactly as vanilla pathfinding sees them. {@link #fieldTo} turns it into a {@link FlowField}.
  */
 public final class FlowGraph {
-    private final PassabilityGrid grid;
-    private final int[] indexInBounds;
+    /** Collects nodes and moves. A move to a node that was never added is dropped. */
+    public static final class Builder {
+        private final Long2IntOpenHashMap index = new Long2IntOpenHashMap();
+        private final LongArrayList positions = new LongArrayList();
+        private final IntArrayList edgeFrom = new IntArrayList();
+        private final LongArrayList edgeTo = new LongArrayList();
+        private final IntArrayList edgeCost = new IntArrayList();
+
+        private Builder() {
+            index.defaultReturnValue(-1);
+        }
+
+        public Builder node(BlockPos pos) {
+            long key = pos.asLong();
+            if (index.get(key) < 0) {
+                index.put(key, positions.size());
+                positions.add(key);
+            }
+            return this;
+        }
+
+        public boolean has(BlockPos pos) {
+            return index.get(pos.asLong()) >= 0;
+        }
+
+        public Builder move(BlockPos from, BlockPos to, int cost) {
+            node(from);
+            edgeFrom.add(index.get(from.asLong()));
+            edgeTo.add(to.asLong());
+            edgeCost.add(cost);
+            return this;
+        }
+
+        public FlowGraph build() {
+            int n = positions.size();
+            int[] start = new int[n + 1];
+            IntArrayList kept = new IntArrayList();
+            for (int e = 0; e < edgeFrom.size(); e++) {
+                if (index.get(edgeTo.getLong(e)) >= 0) {
+                    start[edgeFrom.getInt(e) + 1]++;
+                    kept.add(e);
+                }
+            }
+            for (int i = 0; i < n; i++) {
+                start[i + 1] += start[i];
+            }
+            int[] to = new int[kept.size()];
+            int[] cost = new int[kept.size()];
+            int[] fill = Arrays.copyOf(start, n);
+            for (int k = 0; k < kept.size(); k++) {
+                int e = kept.getInt(k);
+                int slot = fill[edgeFrom.getInt(e)]++;
+                to[slot] = index.get(edgeTo.getLong(e));
+                cost[slot] = edgeCost.getInt(e);
+            }
+            Long2IntOpenHashMap frozen = new Long2IntOpenHashMap(index);
+            frozen.defaultReturnValue(-1);
+            return new FlowGraph(frozen, positions.toLongArray(), start, to, cost);
+        }
+    }
+
+    private final Long2IntOpenHashMap index;
     private final long[] positions;
     private final int[] forwardStart;
     private final int[] forwardTo;
@@ -22,9 +86,8 @@ public final class FlowGraph {
     private final int[] reverseFrom;
     private final int[] reverseCost;
 
-    private FlowGraph(PassabilityGrid grid, int[] indexInBounds, long[] positions, int[] forwardStart, int[] forwardTo, int[] forwardCost) {
-        this.grid = grid;
-        this.indexInBounds = indexInBounds;
+    private FlowGraph(Long2IntOpenHashMap index, long[] positions, int[] forwardStart, int[] forwardTo, int[] forwardCost) {
+        this.index = index;
         this.positions = positions;
         this.forwardStart = forwardStart;
         this.forwardTo = forwardTo;
@@ -50,51 +113,35 @@ public final class FlowGraph {
         }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /** A graph over a {@link PassabilityGrid} with {@link BlockAStar}'s moves. Used by the pure tests. */
     public static FlowGraph build(PassabilityGrid grid, BlockAStar moves) {
+        Builder builder = builder();
         BlockBox b = grid.bounds();
-        int[] index = new int[Math.toIntExact(b.volume())];
-        Arrays.fill(index, -1);
-        IntArrayList walkable = new IntArrayList();
         for (int y = b.minY(); y <= b.maxY(); y++) {
             for (int z = b.minZ(); z <= b.maxZ(); z++) {
                 for (int x = b.minX(); x <= b.maxX(); x++) {
                     if (grid.walkable(x, y, z)) {
-                        int local = local(b, x, y, z);
-                        index[local] = walkable.size();
-                        walkable.add(local);
+                        BlockPos from = new BlockPos(x, y, z);
+                        builder.node(from);
+                        moves.forEachMove(grid, x, y, z, (tx, ty, tz, c) -> builder.move(from, new BlockPos(tx, ty, tz), c));
                     }
                 }
             }
         }
-        long[] positions = new long[walkable.size()];
-        for (int i = 0; i < positions.length; i++) {
-            positions[i] = global(b, walkable.getInt(i)).asLong();
-        }
-        int[] start = new int[positions.length + 1];
-        IntArrayList to = new IntArrayList();
-        IntArrayList cost = new IntArrayList();
-        for (int i = 0; i < positions.length; i++) {
-            long p = positions[i];
-            moves.forEachMove(grid, BlockPos.getX(p), BlockPos.getY(p), BlockPos.getZ(p), (x, y, z, c) -> {
-                to.add(index[local(b, x, y, z)]);
-                cost.add(c);
-            });
-            start[i + 1] = to.size();
-        }
-        return new FlowGraph(grid, index, positions, start, to.toIntArray(), cost.toIntArray());
-    }
-
-    public PassabilityGrid grid() {
-        return grid;
+        return builder.build();
     }
 
     public int nodeCount() {
         return positions.length;
     }
 
-    /** The node index of a walkable cell, or -1. */
+    /** The node index of a position, or -1 if it isn't a node. */
     public int indexOf(BlockPos pos) {
-        return grid.walkable(pos) ? indexInBounds[local(grid.bounds(), pos.getX(), pos.getY(), pos.getZ())] : -1;
+        return index.get(pos.asLong());
     }
 
     BlockPos position(int node) {
@@ -117,11 +164,11 @@ public final class FlowGraph {
         return forwardCost[edge];
     }
 
-    /** Every node's walking cost to {@code goal}, by a Dijkstra over reversed moves (drops are one-way). Empty if the goal isn't walkable. */
-    public java.util.Optional<FlowField> fieldTo(BlockPos goal) {
+    /** Every node's walking cost to {@code goal}, by a Dijkstra over reversed moves (drops are one-way). Empty if the goal isn't a node. */
+    public Optional<FlowField> fieldTo(BlockPos goal) {
         int target = indexOf(goal);
         if (target < 0) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         int[] distance = new int[positions.length];
         Arrays.fill(distance, FlowField.UNREACHABLE);
@@ -144,17 +191,6 @@ public final class FlowGraph {
                 }
             }
         }
-        return java.util.Optional.of(new FlowField(this, goal.immutable(), distance));
-    }
-
-    private static int local(BlockBox b, int x, int y, int z) {
-        return ((y - b.minY()) * b.sizeZ() + (z - b.minZ())) * b.sizeX() + (x - b.minX());
-    }
-
-    private static BlockPos global(BlockBox b, int local) {
-        int x = local % b.sizeX();
-        int z = (local / b.sizeX()) % b.sizeZ();
-        int y = local / (b.sizeX() * b.sizeZ());
-        return new BlockPos(b.minX() + x, b.minY() + y, b.minZ() + z);
+        return Optional.of(new FlowField(this, goal.immutable(), distance));
     }
 }

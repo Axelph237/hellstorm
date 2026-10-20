@@ -23,13 +23,29 @@ public record MobProfile(
         double healthMultiplier,
         double speedMultiplier,
         double damage,
-        boolean breaksBarricades) {
+        boolean breaksBarricades,
+        Navigation navigation) {
 
     /** {@code replace} clears the mob's own goals; {@code augment} keeps them and adds the game's on top. */
     public enum Ai implements StringRepresentable {
         REPLACE, AUGMENT;
 
         public static final Codec<Ai> CODEC = StringRepresentable.fromEnum(Ai::values);
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase();
+        }
+    }
+
+    /**
+     * {@code flow} steers on the game's shared flow fields (crowds spread, no stalls). {@code vanilla} uses the mob's own
+     * navigation with a long follow range. Mobs that don't walk (fliers, swimmers) always use their own navigation.
+     */
+    public enum Navigation implements StringRepresentable {
+        FLOW, VANILLA;
+
+        public static final Codec<Navigation> CODEC = StringRepresentable.fromEnum(Navigation::values);
 
         @Override
         public String getSerializedName() {
@@ -47,13 +63,14 @@ public record MobProfile(
             Codecs.strictOptional(Codec.doubleRange(0.001, 1000), "health_multiplier", 1.0).forGetter(MobProfile::healthMultiplier),
             Codecs.strictOptional(Codec.doubleRange(0.001, 100), "speed_multiplier", 1.0).forGetter(MobProfile::speedMultiplier),
             Codecs.strictOptional(Codec.doubleRange(0, 10_000), "damage", 4.0).forGetter(MobProfile::damage),
-            Codecs.strictOptional(Codec.BOOL, "breaks_barricades", true).forGetter(MobProfile::breaksBarricades)
+            Codecs.strictOptional(Codec.BOOL, "breaks_barricades", true).forGetter(MobProfile::breaksBarricades),
+            Codecs.strictOptional(Navigation.CODEC, "navigation", Navigation.FLOW).forGetter(MobProfile::navigation)
     ).apply(i, MobProfile::new));
 
     /** Used when no datapack provides any profile, so a game always has something to spawn. */
     public static final ResourceLocation FALLBACK_ID = ResourceLocation.tryBuild("packapunch", "zombie");
     public static final MobProfile FALLBACK = new MobProfile(ResourceLocation.tryBuild("minecraft", "zombie"),
-            10, 1, Optional.empty(), Ai.REPLACE, Optional.empty(), 1.0, 1.0, 4.0, true);
+            10, 1, Optional.empty(), Ai.REPLACE, Optional.empty(), 1.0, 1.0, 4.0, true, Navigation.FLOW);
 
     public boolean allowedIn(int round) {
         return round >= minRound && maxRound.map(max -> round <= max).orElse(true);

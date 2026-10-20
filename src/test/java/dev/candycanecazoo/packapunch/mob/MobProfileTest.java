@@ -22,6 +22,7 @@ class MobProfileTest {
         assertEquals(1, profile.minRound());
         assertEquals(Optional.empty(), profile.maxRound());
         assertTrue(profile.breaksBarricades());
+        assertEquals(MobProfile.Navigation.FLOW, profile.navigation());
     }
 
     @Test
@@ -29,12 +30,13 @@ class MobProfileTest {
         MobProfile profile = parse("""
                 {"entity": "mymod:ghoul", "weight": 3, "min_round": 5, "max_round": 9, "ai": "augment",
                  "nbt": "{CustomName:'Ghoul'}", "health_multiplier": 2.5, "speed_multiplier": 1.2,
-                 "damage": 7, "breaks_barricades": false}
+                 "damage": 7, "breaks_barricades": false, "navigation": "vanilla"}
                 """);
         assertEquals(MobProfile.Ai.AUGMENT, profile.ai());
         assertEquals(Optional.of(9), profile.maxRound());
         assertEquals(2.5, profile.healthMultiplier());
         assertFalse(profile.breaksBarricades());
+        assertEquals(MobProfile.Navigation.VANILLA, profile.navigation());
         assertTrue(profile.nbt().orElseThrow().contains("Ghoul"));
         assertFalse(profile.allowedIn(4));
         assertTrue(profile.allowedIn(9));

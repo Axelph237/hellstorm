@@ -99,11 +99,13 @@ public final class PathDebug {
         if (mob.getTarget() == null) {
             return java.util.Optional.empty();
         }
-        MovementClass size = MovementClass.ofHitbox(mob.getBbWidth(), mob.getBbHeight());
-        var graph = pathing.graph(size);
+        if (!dev.candycanecazoo.packapunch.game.GamePathing.walks(mob)) {
+            return java.util.Optional.empty();
+        }
+        var graph = pathing.graph(mob);
         var from = dev.candycanecazoo.packapunch.game.FlowNavigator.snap(graph, mob.blockPosition());
         var goal = dev.candycanecazoo.packapunch.game.FlowNavigator.snap(graph, mob.getTarget().blockPosition());
-        return from.flatMap(f -> goal.flatMap(g -> pathing.field(size, mob.getTarget(), g)).map(field -> {
+        return from.flatMap(f -> goal.flatMap(g -> pathing.field(mob, mob.getTarget(), g)).map(field -> {
             List<BlockPos> trail = new ArrayList<>();
             trail.add(f);
             trail.addAll(field.descent(f, MAX_NODES, 0));

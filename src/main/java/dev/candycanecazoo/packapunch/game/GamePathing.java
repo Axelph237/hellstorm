@@ -3,7 +3,6 @@ package dev.candycanecazoo.packapunch.game;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.map.CellProbe;
 import dev.candycanecazoo.packapunch.map.Passages;
-import dev.candycanecazoo.packapunch.mob.path.BlockAStar;
 import dev.candycanecazoo.packapunch.mob.path.CellQuery;
 import dev.candycanecazoo.packapunch.mob.path.FlowField;
 import dev.candycanecazoo.packapunch.mob.path.FlowGraph;
@@ -14,6 +13,9 @@ import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 
 import java.util.List;
 import java.util.Map;
@@ -25,15 +27,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * One game's zombie pathfinding: a {@link FlowGraph} per movement class over every unlocked zone, and a {@link FlowField}
- * per chased player. Graphs are read from the world on the server thread the first time a mob of that size needs one.
+ * One game's zombie pathfinding: a {@link FlowGraph} per mob type over every unlocked zone (built from vanilla's walk
+ * evaluator, see {@link VanillaGraphs}), and a {@link FlowField} per chased player and mob type. Graphs are built on the
+ * server thread the first time a mob of that type needs one.
  * Fields are recomputed on this game's worker thread when their player moves to another cell; zombies always read the
  * latest finished field and never wait.
  */
 public final class GamePathing implements AutoCloseable {
     private static final int RECOMPUTE_TICKS = 5;
 
-    private record FieldKey(MovementClass mc, UUID target) {}
+    private record FieldKey(EntityType<?> type, UUID target) {}
 
     private static final class FieldState {
         volatile FlowField field;
@@ -46,7 +49,7 @@ public final class GamePathing implements AutoCloseable {
     private final ServerLevel level;
     private final GameMap map;
     private final Passages.Result passages;
-    private final Map<MovementClass, FlowGraph> graphs = new ConcurrentHashMap<>();
+    private final Map<EntityType<?>, FlowGraph> graphs = new ConcurrentHashMap<>();
     private final Map<FieldKey, FieldState> fields = new ConcurrentHashMap<>();
     private final AtomicInteger flowSteps = new AtomicInteger();
     private volatile List<Portal> doorways;
@@ -66,19 +69,23 @@ public final class GamePathing implements AutoCloseable {
         return (x, y, z) -> LevelCellProbe.classify(level, new BlockPos(x, y, z)) == CellProbe.Cell.OPEN ? CellQuery.Cell.OPEN : CellQuery.Cell.SOLID;
     }
 
-    /** Call on the server thread: may read the world to build this movement class's graph. */
-    public FlowGraph graph(MovementClass mc) {
-        return graphs.computeIfAbsent(mc, size -> FlowGraph.build(
-                ZonePathing.unionGrid(map.map(), map.unlocked(), passages, world(), size), BlockAStar.DEFAULT));
+    /** True for mobs that walk with vanilla's walk evaluator, the only kind a flow graph describes. */
+    public static boolean walks(Mob mob) {
+        return mob.getNavigation().getNodeEvaluator() instanceof WalkNodeEvaluator;
+    }
+
+    /** Call on the server thread: the first call for a mob type reads the world, using {@code mob} as the template. */
+    public FlowGraph graph(Mob mob) {
+        return graphs.computeIfAbsent(mob.getType(), type -> VanillaGraphs.build(level, mob, map, passages));
     }
 
     /**
      * The latest field toward {@code target} for this movement class, starting a recompute if the target has moved to a
      * new cell. Empty until the first field is ready, or if the target isn't standing on the grid.
      */
-    public Optional<FlowField> field(MovementClass mc, Entity target, BlockPos targetCell) {
-        FlowGraph graph = graph(mc);
-        FieldState state = fields.computeIfAbsent(new FieldKey(mc, target.getUUID()), k -> new FieldState());
+    public Optional<FlowField> field(Mob mob, Entity target, BlockPos targetCell) {
+        FlowGraph graph = graph(mob);
+        FieldState state = fields.computeIfAbsent(new FieldKey(mob.getType(), target.getUUID()), k -> new FieldState());
         long now = level.getGameTime();
         synchronized (state) {
             boolean moved = !targetCell.equals(state.requestedGoal);

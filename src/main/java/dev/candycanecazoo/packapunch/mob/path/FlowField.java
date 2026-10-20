@@ -108,7 +108,7 @@ public final class FlowField {
         for (int i = 1; i <= samples; i++) {
             double t = i / (double) samples;
             BlockPos cell = BlockPos.containing(from.getX() + 0.5 + dx * t, from.getY(), from.getZ() + 0.5 + dz * t);
-            if (!graph.grid().walkable(cell)) {
+            if (cell.getY() != from.getY() || graph.indexOf(cell) < 0) {
                 return false;
             }
         }
