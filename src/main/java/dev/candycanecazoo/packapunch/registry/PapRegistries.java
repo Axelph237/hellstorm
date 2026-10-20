@@ -8,6 +8,7 @@ import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
+import dev.candycanecazoo.packapunch.feature.TrapControllerBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.packapunch.feature.MysteryBoxBlock;
@@ -80,6 +81,12 @@ public final class PapRegistries {
     public static final RegistryObject<BlockEntityType<PapMachineBlock.Entity>> PAP_MACHINE_ENTITY = BLOCK_ENTITIES.register("pap_machine",
             () -> BlockEntityType.Builder.of(PapMachineBlock.Entity::new, PAP_MACHINE.get()).build(null));
 
+    public static final RegistryObject<Block> TRAP_CONTROLLER = BLOCKS.register("trap_controller", () -> new TrapControllerBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(-1.0f, 3_600_000f).noLootTable().sound(SoundType.METAL)
+                    .lightLevel(s -> s.getValue(TrapControllerBlock.POWERED) ? 9 : 0)));
+    public static final RegistryObject<BlockEntityType<TrapControllerBlock.Entity>> TRAP_CONTROLLER_ENTITY = BLOCK_ENTITIES.register("trap_controller",
+            () -> BlockEntityType.Builder.of(TrapControllerBlock.Entity::new, TRAP_CONTROLLER.get()).build(null));
+
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));
     public static final RegistryObject<Item> POWER_SWITCH_ITEM = ITEMS.register("power_switch", () -> new BlockItem(POWER_SWITCH.get(), new Item.Properties()));
@@ -87,6 +94,7 @@ public final class PapRegistries {
     public static final RegistryObject<Item> WALL_BUY_ITEM = ITEMS.register("wall_buy", () -> new BlockItem(WALL_BUY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MYSTERY_BOX_ITEM = ITEMS.register("mystery_box", () -> new BlockItem(MYSTERY_BOX.get(), new Item.Properties()));
     public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.packapunch"))
@@ -99,6 +107,7 @@ public final class PapRegistries {
                 output.accept(WALL_BUY_ITEM.get());
                 output.accept(MYSTERY_BOX_ITEM.get());
                 output.accept(PAP_MACHINE_ITEM.get());
+                output.accept(TRAP_CONTROLLER_ITEM.get());
             })
             .build());
 

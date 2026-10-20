@@ -82,6 +82,9 @@ public final class MachineSettings {
         if (entity instanceof PapMachineBlock.Entity) {
             return settings.pap().defaultCost();
         }
+        if (entity instanceof TrapControllerBlock.Entity) {
+            return settings.traps().defaultCost();
+        }
         return entity instanceof MysteryBoxBlock.Entity ? settings.box().cost() : 0;
     }
 }

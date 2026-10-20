@@ -4,6 +4,7 @@ import dev.candycanecazoo.packapunch.feature.MysteryBoxBlock;
 import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
+import dev.candycanecazoo.packapunch.feature.TrapControllerBlock;
 import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
 import dev.candycanecazoo.packapunch.net.OpenSettingsPacket;
 import net.minecraft.client.Minecraft;
@@ -31,6 +32,8 @@ public final class SettingsScreens {
             screen = new PapMachineScreen(pap, packet);
         } else if (entity instanceof PowerSwitchBlock.Entity power) {
             screen = new PowerSwitchScreen(power);
+        } else if (entity instanceof TrapControllerBlock.Entity trap) {
+            screen = new TrapScreen(trap, packet);
         }
         if (screen != null) {
             mc.setScreen(screen);
