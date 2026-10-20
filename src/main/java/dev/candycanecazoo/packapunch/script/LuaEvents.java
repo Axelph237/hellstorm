@@ -31,6 +31,7 @@ public final class LuaEvents {
         if (event instanceof GameEvent.ZombieSpawned) return "zombie_spawned";
         if (event instanceof GameEvent.ZombieKilled) return "zombie_killed";
         if (event instanceof GameEvent.PowerOn) return "power_on";
+        if (event instanceof GameEvent.PerkBought) return "perk_bought";
         throw new IllegalArgumentException("No script name for " + event);
     }
 
@@ -62,6 +63,9 @@ public final class LuaEvents {
             pos(t, e.pos());
         } else if (event instanceof GameEvent.PowerOn e) {
             e.by().ifPresent(p -> t.set("player", p.toString()));
+        } else if (event instanceof GameEvent.PerkBought e) {
+            t.set("player", e.player().toString());
+            t.set("perk", e.perk().toString());
         } else if (event instanceof GameEvent.ZombieKilled e) {
             t.set("mob", e.mob().toString());
             e.killer().ifPresent(k -> t.set("killer", k.toString()));

@@ -1,0 +1,44 @@
+package dev.candycanecazoo.packapunch.net;
+
+import dev.candycanecazoo.packapunch.client.PerkHud;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.network.NetworkEvent;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+
+/** The perks a player holds, sent whenever they change. {@code name} is a lang key. */
+public record PerkSyncPacket(List<Badge> perks, float rpmMultiplier) {
+    public record Badge(ResourceLocation perk, String name, int color) {}
+
+    public PerkSyncPacket {
+        perks = List.copyOf(perks);
+    }
+
+    void encode(FriendlyByteBuf buf) {
+        buf.writeVarInt(perks.size());
+        for (Badge badge : perks) {
+            buf.writeResourceLocation(badge.perk());
+            buf.writeUtf(badge.name());
+            buf.writeInt(badge.color());
+        }
+        buf.writeFloat(rpmMultiplier);
+    }
+
+    static PerkSyncPacket decode(FriendlyByteBuf buf) {
+        int count = buf.readVarInt();
+        List<Badge> perks = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            perks.add(new Badge(buf.readResourceLocation(), buf.readUtf(), buf.readInt()));
+        }
+        return new PerkSyncPacket(perks, buf.readFloat());
+    }
+
+    void handle(Supplier<NetworkEvent.Context> ctx) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> PerkHud.update(this));
+    }
+}

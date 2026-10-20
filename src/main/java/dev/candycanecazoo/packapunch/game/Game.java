@@ -3,7 +3,9 @@ package dev.candycanecazoo.packapunch.game;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneId;
+import dev.candycanecazoo.packapunch.perk.PerkDef;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 
 import java.util.ArrayList;
@@ -78,6 +80,21 @@ public final class Game {
         }
         player.spend(cost);
         return Optional.empty();
+    }
+
+    /** Records a bought perk and tells scripts. Applying its effects to the player is up to the caller. */
+    public void givePerk(UUID buyer, ResourceLocation perk, PerkDef def) {
+        PlayerState player = players.get(buyer);
+        if (player != null) {
+            player.addPerk(perk, def);
+            events.emit(new GameEvent.PerkBought(buyer, perk));
+        }
+    }
+
+    /** Takes every perk from a player and returns them, so the caller can undo their effects. */
+    public Map<ResourceLocation, PerkDef> takePerks(UUID id) {
+        PlayerState player = players.get(id);
+        return player == null ? Map.of() : player.takePerks();
     }
 
     public void refund(UUID buyer, int cost) {

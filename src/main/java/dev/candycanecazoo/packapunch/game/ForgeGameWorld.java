@@ -69,6 +69,11 @@ public final class ForgeGameWorld implements GameWorld {
         return Optional.ofNullable(lookup.apply(id)).filter(p -> p.level() == level);
     }
 
+    /** The player's entity in any level, for undoing what the game put on them. */
+    public Optional<ServerPlayer> entity(UUID id) {
+        return Optional.ofNullable(lookup.apply(id));
+    }
+
     @Override
     public Optional<BlockPos> playerPosition(UUID id) {
         return player(id).map(Entity::blockPosition);

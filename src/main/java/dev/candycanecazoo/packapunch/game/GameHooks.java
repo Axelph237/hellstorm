@@ -1,6 +1,7 @@
 package dev.candycanecazoo.packapunch.game;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
+import dev.candycanecazoo.packapunch.perk.Perks;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
@@ -57,6 +58,7 @@ public final class GameHooks {
         if (entity instanceof ServerPlayer player) {
             GameManager.forPlayer(player.getUUID()).ifPresent(active -> {
                 event.setCanceled(true);
+                Perks.removeAll(active, player);
                 player.setHealth(player.getMaxHealth());
                 active.game().onPlayerDied(player.getUUID(), active.world());
             });
@@ -141,7 +143,12 @@ public final class GameHooks {
 
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        GameManager.forPlayer(event.getEntity().getUUID()).ifPresent(a -> a.game().leave(event.getEntity().getUUID()));
+        GameManager.forPlayer(event.getEntity().getUUID()).ifPresent(a -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                Perks.removeAll(a, player);
+            }
+            a.game().leave(event.getEntity().getUUID());
+        });
     }
 
     /** Someone who left mid-game (or was in a game when the server crashed) gets their normal state back here. */

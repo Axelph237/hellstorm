@@ -21,5 +21,7 @@ public sealed interface GameEvent {
     /** {@code by} is empty when the power came on without a player (a script, or a map that starts powered). */
     record PowerOn(java.util.Optional<UUID> by) implements GameEvent {}
 
+    record PerkBought(UUID player, net.minecraft.resources.ResourceLocation perk) implements GameEvent {}
+
     record ZombieKilled(UUID mob, Optional<UUID> killer, boolean headshot, boolean melee, BlockPos pos) implements GameEvent {}
 }

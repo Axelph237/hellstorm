@@ -1,0 +1,9 @@
+{
+  "name": "perk.packapunch.stamin_up",
+  "cost": 2000,
+  "requires_power": true,
+  "color": "#f2d64b",
+  "effects": [
+    { "type": "attribute_modifier", "attribute": "minecraft:generic.movement_speed", "amount": 0.07, "operation": "multiply_base" }
+  ]
+}

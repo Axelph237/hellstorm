@@ -34,6 +34,7 @@ public final class PapCommand {
                 .then(ScriptCommands.script().requires(PapCommand::op))
                 .then(WindowCommands.window().requires(PapCommand::op))
                 .then(PowerCommands.power().requires(PapCommand::op))
+                .then(PerkCommands.perk().requires(PapCommand::op))
                 .then(MobTestCommand.mobtest().requires(PapCommand::op))
                 .then(DebugCommands.debug().requires(PapCommand::op))
                 .then(Commands.literal("give").requires(PapCommand::op)

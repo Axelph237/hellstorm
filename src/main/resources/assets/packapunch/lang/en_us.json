@@ -6,5 +6,12 @@
   "block.packapunch.barricade": "Window Barricade",
   "key.categories.packapunch": "Pack-a-Punch",
   "key.packapunch.repair": "Use (repair windows, buy)",
-  "block.packapunch.power_switch": "Power Switch"
+  "block.packapunch.power_switch": "Power Switch",
+  "block.packapunch.perk_machine": "Perk Machine",
+  "perk.packapunch.juggernog": "Juggernog",
+  "perk.packapunch.speed_cola": "Speed Cola",
+  "perk.packapunch.double_tap": "Double Tap",
+  "perk.packapunch.stamin_up": "Stamin-Up",
+  "perk.packapunch.quick_revive": "Quick Revive",
+  "perk.packapunch.mule_kick": "Mule Kick"
 }

@@ -14,6 +14,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import dev.candycanecazoo.packapunch.script.GameScripts;
 import dev.candycanecazoo.packapunch.mob.MobProfile;
 import dev.candycanecazoo.packapunch.mob.MobProfiles;
+import dev.candycanecazoo.packapunch.perk.Perks;
 import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -146,6 +147,7 @@ public final class GameManager {
         active.pathing().close();
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {
+            active.world().entity(player.id()).ifPresent(p -> Perks.removeAll(active, p));
             ServerPlayer online = active.level().getServer().getPlayerList().getPlayer(player.id());
             if (online != null) {
                 sessions.restore(online);
