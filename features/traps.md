@@ -60,8 +60,9 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
 - **Settings** (`Config`):
   - `cost`, `active_ticks`, and `cooldown_ticks` are optional. Unset, they fall back to `traps.default_cost`, `traps.default_active_ticks`, and `traps.default_cooldown_ticks`.
   - `requires_power` defaults to true, and `signal_strength` (1 to 15) defaults to 15.
-  - There's no display name yet; the prompt label is "Trap".
+  - `name` (optional, 1 to 32 characters) is what players see. Without one, the label is "Trap".
   - Set them with these commands, or with the settings screen (`client/settings/TrapScreen`). Both go through `ConfigBlockEntity.trySet`.
+    - `/pap trap name <text|default>`
     - `/pap trap cost|active|cooldown <n|default>`
     - `/pap trap power <bool>`
     - `/pap trap signal <1-15>`
@@ -71,7 +72,7 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
   - If a tick comes late, the cooldown still counts from when the signal should have ended.
   - A cooldown of 0 goes straight back to ready.
   - The cycle is saved and synced.
-- **Prompt.** "Trap [cost]" while ready, and no prompt while it's running or cooling down. Using it then says "The trap is already running" or "The trap is cooling down (Ns)".
+- **Prompt.** "<name> [cost]" while ready, and no prompt while it's running or cooling down. Using it then says "<name> is already running" or "<name> is cooling down (Ns)".
 - **Buying** goes through `Shop.buy`. The sale checks the refusals above and takes `needsPower` from `requires_power`. Delivering calls `activate` and emits `GameEvent.TrapActivated(player, pos)`.
 - **Redstone.**
   - While `powered`, `getSignal` and `getDirectSignal` return `signal_strength` on every side, so it strongly powers every block it touches.
@@ -85,6 +86,7 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
   - GameTests in `TrapGameTests`:
     - A bought trap charges, emits `trap_activated`, and keeps two lamps lit for exactly `active_ticks` ticks: one next to it and one at the end of a dust line. Then it cools down and the lamps go out.
     - It refuses while running and while cooling down. Once ready it prompts again and sells again. Ending the game turns it off and makes it ready.
+    - A named trap prompts with its name, including when it's saved through the settings screen's codec path. A name over 32 characters is refused and the old one stays. Clearing it goes back to "Trap".
     - A trap that needs power refuses until the power is on.
     - At signal 5, the first dust carries 5, a lamp after 5 dust lights, and a lamp after 6 dust stays dark.
     - A reset, run twice, leaves it ready and off, with its lamp dark.

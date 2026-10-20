@@ -46,10 +46,13 @@ import java.util.Optional;
 public final class TrapControllerBlock extends HorizontalDirectionalBlock implements EntityBlock, FeatureBlock {
     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
-    /** Empty costs and times use the game's {@code traps.*} defaults. */
-    public record Config(Optional<Integer> cost, boolean requiresPower, Optional<Integer> activeTicks, Optional<Integer> cooldownTicks,
-                         int signalStrength) {
+    /** Empty costs and times use the game's {@code traps.*} defaults. Without a name, players see "Trap". */
+    public record Config(Optional<String> name, Optional<Integer> cost, boolean requiresPower, Optional<Integer> activeTicks,
+                         Optional<Integer> cooldownTicks, int signalStrength) {
+        public static final int MAX_NAME = 32;
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codecs.strictOptional(Codec.STRING, "name").forGetter(Config::name),
                 Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "cost").forGetter(Config::cost),
                 Codecs.strictOptional(Codec.BOOL, "requires_power", true).forGetter(Config::requiresPower),
                 Codecs.strictOptional(Codec.intRange(1, 72_000), "active_ticks").forGetter(Config::activeTicks),
@@ -57,7 +60,11 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
                 Codecs.strictOptional(Codec.intRange(1, 15), "signal_strength", 15).forGetter(Config::signalStrength)
         ).apply(i, Config::new));
 
-        public static final Config DEFAULT = new Config(Optional.empty(), true, Optional.empty(), Optional.empty(), 15);
+        public static final Config DEFAULT = new Config(Optional.empty(), Optional.empty(), true, Optional.empty(), Optional.empty(), 15);
+
+        public String label() {
+            return name.orElse("Trap");
+        }
 
         public int cost(GameSettings.Traps defaults) {
             return cost.orElse(defaults.defaultCost());
@@ -71,24 +78,28 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
             return cooldownTicks.orElse(defaults.defaultCooldownTicks());
         }
 
+        public Config withName(Optional<String> name) {
+            return new Config(name, cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
+        }
+
         public Config withCost(Optional<Integer> cost) {
-            return new Config(cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
+            return new Config(name, cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
         }
 
         public Config withPower(boolean requiresPower) {
-            return new Config(cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
+            return new Config(name, cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
         }
 
         public Config withActiveTicks(Optional<Integer> activeTicks) {
-            return new Config(cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
+            return new Config(name, cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
         }
 
         public Config withCooldownTicks(Optional<Integer> cooldownTicks) {
-            return new Config(cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
+            return new Config(name, cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
         }
 
         public Config withSignal(int signalStrength) {
-            return new Config(cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
+            return new Config(name, cost, requiresPower, activeTicks, cooldownTicks, signalStrength);
         }
     }
 
@@ -107,10 +118,16 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
             return cycle;
         }
 
+        @Override
+        protected Optional<String> problem(Config config) {
+            return config.name().filter(n -> n.isBlank() || n.length() > Config.MAX_NAME)
+                    .map(n -> "A trap's name must be 1 to " + Config.MAX_NAME + " characters");
+        }
+
         /** No prompt while it runs or cools down: there's nothing to buy until it's ready again. */
         @Override
         public Optional<Prompt> prompt() {
-            return cycle.phase() == TrapCycle.Phase.READY ? Optional.of(new Prompt("Trap", shownCost, config().requiresPower())) : Optional.empty();
+            return cycle.phase() == TrapCycle.Phase.READY ? Optional.of(new Prompt(config().label(), shownCost, config().requiresPower())) : Optional.empty();
         }
 
         /** Gives the signal now, whoever paid. */
@@ -265,10 +282,10 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
             public Optional<Refusal> check(GameManager.Active g, ServerPlayer p) {
                 TrapCycle cycle = trap.cycle();
                 if (cycle.phase() == TrapCycle.Phase.ACTIVE) {
-                    return Optional.of(new Refusal.Because("The trap is already running"));
+                    return Optional.of(new Refusal.Because(config.label() + " is already running"));
                 }
                 if (cycle.phase() == TrapCycle.Phase.COOLDOWN) {
-                    return Optional.of(new Refusal.Because("The trap is cooling down (" + cycle.secondsLeft(g.level().getGameTime()) + "s)"));
+                    return Optional.of(new Refusal.Because(config.label() + " is cooling down (" + cycle.secondsLeft(g.level().getGameTime()) + "s)"));
                 }
                 return Optional.empty();
             }
@@ -293,11 +310,11 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
 
     public static Component describe(Entity trap, GameSettings.Traps defaults) {
         Config c = trap.config();
-        return Component.literal("Trap: " + c.cost(defaults) + " points" + (c.cost().isEmpty() ? " (default)" : "")
+        return Component.literal(c.label() + (c.name().isPresent() ? " (trap)" : "") + ": " + c.cost(defaults) + " points" + (c.cost().isEmpty() ? " (default)" : "")
                 + (c.requiresPower() ? ", needs power" : "") + ", signal " + c.signalStrength() + " for " + c.activeTicks(defaults) + " ticks"
                 + (c.activeTicks().isEmpty() ? " (default)" : "") + ", cooldown " + c.cooldownTicks(defaults) + " ticks"
                 + (c.cooldownTicks().isEmpty() ? " (default)" : "") + ", " + trap.cycle().phase().getSerializedName()
-                + ". Set with /pap trap cost|power|active|cooldown|signal");
+                + ". Set with /pap trap name|cost|power|active|cooldown|signal");
     }
 
     @Override

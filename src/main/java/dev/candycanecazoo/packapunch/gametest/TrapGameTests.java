@@ -46,7 +46,7 @@ public final class TrapGameTests {
     }
 
     private static TrapControllerBlock.Config config(int cost, boolean power, int active, int cooldown, int signal) {
-        return new TrapControllerBlock.Config(Optional.of(cost), power, Optional.of(active), Optional.of(cooldown), signal);
+        return new TrapControllerBlock.Config(Optional.empty(), Optional.of(cost), power, Optional.of(active), Optional.of(cooldown), signal);
     }
 
     private static boolean powered(GameTestHelper helper, BlockPos at) {
@@ -145,6 +145,23 @@ public final class TrapGameTests {
             helper.assertTrue(trap.cycle().phase() == TrapCycle.Phase.READY, "ending the game makes it ready");
             helper.succeed();
         }));
+    }
+
+    @GameTest(template = "floor", batch = "trap_name")
+    public static void aNamedTrapPromptsWithItsName(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        TrapControllerBlock.Entity trap = trap(helper, at, config(100, false, 5, 10, 15));
+        helper.assertTrue(trap.prompt().orElseThrow().label().equals("Trap"), "an unnamed trap is a Trap");
+        TrapControllerBlock.Config named = trap.config().withName(Optional.of("Flogger"));
+        net.minecraft.nbt.Tag saved = TrapControllerBlock.Config.CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, named).getOrThrow(false, e -> {});
+        helper.assertTrue(trap.trySet(saved).isEmpty(), "the settings screen's save should take the name");
+        helper.assertTrue(trap.prompt().orElseThrow().label().equals("Flogger"), "got " + trap.prompt());
+        helper.assertTrue(trap.trySet(trap.config().withName(Optional.of("x".repeat(TrapControllerBlock.Config.MAX_NAME + 1)))).isPresent(),
+                "a name that long should be refused");
+        helper.assertTrue(trap.prompt().orElseThrow().label().equals("Flogger"), "a refused name mustn't stick");
+        helper.assertTrue(trap.trySet(trap.config().withName(Optional.empty())).isEmpty(), "clearing the name should be allowed");
+        helper.assertTrue(trap.prompt().orElseThrow().label().equals("Trap"), "clearing the name goes back to Trap");
+        helper.succeed();
     }
 
     @GameTest(template = "floor", batch = "trap_power")

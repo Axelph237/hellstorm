@@ -129,6 +129,15 @@ abstract class SettingsScreen<C> extends Screen {
         return addRenderableWidget(box);
     }
 
+    protected EditBox text(Component label, String value, int maxLength, Component hint, Consumer<String> changed) {
+        EditBox box = new EditBox(font, fieldX(), row(label), fieldWidth(), HEIGHT, label);
+        box.setMaxLength(maxLength);
+        box.setValue(value);
+        box.setHint(hint);
+        box.setResponder(changed);
+        return addRenderableWidget(box);
+    }
+
     protected <T> CycleButton<T> choice(Component label, List<T> values, T value, Function<T, Component> name, Consumer<T> changed) {
         return addRenderableWidget(CycleButton.builder(name).withValues(values).withInitialValue(value).displayOnlyValue()
                 .create(fieldX(), row(label), fieldWidth(), HEIGHT, label, (button, chosen) -> changed.accept(chosen)));

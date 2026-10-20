@@ -6,10 +6,12 @@ import dev.candycanecazoo.packapunch.net.OpenSettingsPacket;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
+import java.util.Optional;
 
-/** A trap's price, whether it needs power, how long its redstone signal lasts and how strong it is, and its cooldown. */
+/** A trap's name, price, whether it needs power, how long its redstone signal lasts and how strong it is, and its cooldown. */
 final class TrapScreen extends SettingsScreen<TrapControllerBlock.Config> {
     private final int defaultCost;
+    private String name;
     private String cost;
     private boolean requiresPower;
     private String activeTicks;
@@ -20,6 +22,7 @@ final class TrapScreen extends SettingsScreen<TrapControllerBlock.Config> {
         super(Component.literal("Trap"), entity);
         TrapControllerBlock.Config config = entity.config();
         defaultCost = packet.defaultCost();
+        name = config.name().orElse("");
         cost = config.cost().map(String::valueOf).orElse("");
         requiresPower = config.requiresPower();
         activeTicks = config.activeTicks().map(String::valueOf).orElse("");
@@ -29,6 +32,7 @@ final class TrapScreen extends SettingsScreen<TrapControllerBlock.Config> {
 
     @Override
     protected void rows() {
+        text(Component.literal("Name"), name, TrapControllerBlock.Config.MAX_NAME, Component.literal("Trap"), v -> name = v);
         number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), v -> cost = v);
         choice(Component.literal("Needs power"), List.of(true, false), requiresPower,
                 v -> Component.literal(v ? "Yes" : "No"), v -> requiresPower = v);
@@ -41,7 +45,8 @@ final class TrapScreen extends SettingsScreen<TrapControllerBlock.Config> {
     protected DataResult<TrapControllerBlock.Config> settings() {
         return cost(signal, "Signal").flatMap(strength -> strength < 1 || strength > 15
                 ? DataResult.error(() -> "Signal must be 1 to 15")
-                : DataResult.success(new TrapControllerBlock.Config(optionalCost(cost), requiresPower, optionalCost(activeTicks),
+                : DataResult.success(new TrapControllerBlock.Config(
+                        name.isBlank() ? Optional.empty() : Optional.of(name.trim()), optionalCost(cost), requiresPower, optionalCost(activeTicks),
                         optionalCost(cooldownTicks), strength)));
     }
 }

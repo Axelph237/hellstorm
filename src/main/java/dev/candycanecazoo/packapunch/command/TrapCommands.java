@@ -2,6 +2,7 @@ package dev.candycanecazoo.packapunch.command;
 
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -15,7 +16,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
- * {@code /pap trap cost|active|cooldown <n|default>}, {@code power <bool>}, {@code signal <1-15>}, {@code describe}: settings
+ * {@code /pap trap name <text|default>}, {@code cost|active|cooldown <n|default>}, {@code power <bool>}, {@code signal <1-15>}, {@code describe}: settings
  * for the trap you're looking at.
  */
 final class TrapCommands {
@@ -23,6 +24,10 @@ final class TrapCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> trap() {
         return Commands.literal("trap")
+                .then(Commands.literal("name")
+                        .then(Commands.literal("default").executes(ctx -> apply(ctx, c -> c.withName(Optional.empty()))))
+                        .then(Commands.argument("name", StringArgumentType.greedyString())
+                                .executes(ctx -> apply(ctx, c -> c.withName(Optional.of(StringArgumentType.getString(ctx, "name").trim()))))))
                 .then(optional("cost", 0, TrapControllerBlock.Config::withCost))
                 .then(optional("active", 1, TrapControllerBlock.Config::withActiveTicks))
                 .then(optional("cooldown", 0, TrapControllerBlock.Config::withCooldownTicks))
