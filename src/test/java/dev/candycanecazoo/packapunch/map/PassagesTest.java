@@ -82,7 +82,16 @@ class PassagesTest {
     }
 
     @Test
-    void touchingZonesConnectEvenWithoutTheWorld() {
-        assertTrue(MapValidator.validate(rooms(0)).playable());
+    void touchingZonesConnectWhereAMobCanStepAcross() {
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), pos -> CellProbe.Cell.OPEN, 2).open());
+    }
+
+    @Test
+    void doorBlocksDrawnInsideTouchingZonesKeepThemApartUntilTheyAreGone() {
+        Set<BlockPos> door = Set.of(new BlockPos(2, 0, 1), new BlockPos(2, 1, 1));
+        CellProbe walls = pos -> pos.getX() == 2 && !door.contains(pos) ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+        CellProbe closed = pos -> door.contains(pos) ? CellProbe.Cell.SOLID : walls.at(pos);
+        assertEquals(Set.of(), find(rooms(0), closed, 2).open(), "the door's blocks are the only way across");
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), walls, 2).open(), "bought: the blocks are air");
     }
 }

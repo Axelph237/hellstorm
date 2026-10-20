@@ -98,7 +98,7 @@ class MapValidatorTest {
                 .withWindow(new WindowDef("lost", new BlockBox(12, 0, -1, 12, 1, -1), Direction.NORTH, 6, new ZoneId("nowhere")))
                 .withFeature(new BlockPos(12, 0, -3), FeatureKind.SPAWN);
         ValidationReport report = MapValidator.validate(map, new dev.candycanecazoo.packapunch.map.validate.ValidationContext(
-                CellProbe.ALL_SOLID, pos -> false, 2, new dev.candycanecazoo.packapunch.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
+                CellProbe.zonesOnly(ZoneIndex.of(map)), pos -> false, 2, new dev.candycanecazoo.packapunch.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
                 List.of(new dev.candycanecazoo.packapunch.map.validate.ValidationContext.MobSize("test:giant", 3.6f, 12f))));
         assertTrue(report.has(MapValidator.WINDOW_TOO_LARGE), "8 wide is over 5");
         assertTrue(report.has(MapValidator.WINDOW_UNKNOWN_ZONE));
@@ -125,7 +125,7 @@ class MapValidatorTest {
         assertEquals(List.of(100, 25), pieces.stream().map(List::size).toList(), "the room first, then the stray box");
 
         ValidationReport report = MapValidator.validate(startWithStrayBox(), new dev.candycanecazoo.packapunch.map.validate.ValidationContext(
-                CellProbe.ALL_SOLID, MapValidatorTest::standable, 2, dev.candycanecazoo.packapunch.config.GameSettings.DEFAULT.windows(), List.of()));
+                CellProbe.zonesOnly(ZoneIndex.of(startWithStrayBox())), MapValidatorTest::standable, 2, dev.candycanecazoo.packapunch.config.GameSettings.DEFAULT.windows(), List.of()));
         List<Problem> split = report.problems().stream().filter(p -> p.code().equals(MapValidator.SPLIT_START_ZONE)).toList();
         assertEquals(1, split.size());
         assertTrue(new BlockBox(11, 0, -6, 15, 0, -2).contains(split.get(0).pos().orElseThrow()), "points into the stray box");

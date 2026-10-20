@@ -43,7 +43,7 @@ class SpawnDirectorTest {
 
     @Test
     void activeZonesAreThePlayersZoneAndItsNeighbours() {
-        ZoneGraph graph = ZoneGraph.of(chain(), Set.of());
+        ZoneGraph graph = ZoneGraph.of(chain(), GameTest.offlinePassages(chain()));
         assertEquals(Set.of(A, B, C), SpawnDirector.activeZones(List.of(B), graph, Set.copyOf(ZONES), 1));
         assertEquals(Set.of(B), SpawnDirector.activeZones(List.of(B), graph, Set.copyOf(ZONES), 0));
         assertEquals(Set.copyOf(ZONES), SpawnDirector.activeZones(List.of(B), graph, Set.copyOf(ZONES), 2));
@@ -51,7 +51,7 @@ class SpawnDirectorTest {
 
     @Test
     void lockedZonesAreNeverActiveAndBlockTheWayThrough() {
-        ZoneGraph graph = ZoneGraph.of(chain(), Set.of());
+        ZoneGraph graph = ZoneGraph.of(chain(), GameTest.offlinePassages(chain()));
         assertEquals(Set.of(A), SpawnDirector.activeZones(List.of(A), graph, Set.of(A, C, D), 3), "B is locked, so C and D are cut off");
         assertEquals(Set.of(), SpawnDirector.activeZones(List.of(B), graph, Set.of(A), 1), "a player in a locked zone activates nothing");
     }

@@ -13,8 +13,8 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Finds passages between zones through the cells that belong to no zone, such as a doorway, an arch, or an open door.
- * Searches at most {@code maxGap} cells out from each zone's surface. A path that needs a closed door is recorded
+ * Finds passages between zones: where their boxes touch and a mob can step across, and through the cells that belong to
+ * no zone, such as a doorway, an arch, or an open door. Searches at most {@code maxGap} cells out from each zone's surface. A path that needs a closed door is recorded
  * separately: zombies can't open doors, so it is not a passage, but it is worth telling the map maker about.
  */
 public final class Passages {
@@ -27,7 +27,7 @@ public final class Passages {
 
     /**
      * {@code gaps} holds, for each open link, the open cells outside every zone that both zones' searches reached: the
-     * doorway itself. Zones whose boxes touch have an empty gap.
+     * doorway itself. Zones joined only where their boxes touch have an empty gap.
      */
     public record Result(Set<Link> open, Map<Link, BlockPos> closedDoors, Map<Link, Set<BlockPos>> gaps) {
         public Set<BlockPos> gap(Link link) {
@@ -63,12 +63,19 @@ public final class Passages {
         Set<BlockPos> seenOpen = new HashSet<>();
         Set<BlockPos> seenViaDoor = new HashSet<>();
         for (BlockBox box : zone.boxes()) {
-            forEachShellCell(box, cell -> {
+            forEachShellCell(box, (inside, cell) -> {
                 Optional<ZoneId> owner = index.zoneAt(cell);
                 if (owner.isEmpty()) {
                     queue.add(new Step(cell, 1, null));
                 } else if (!owner.get().equals(zone.id())) {
-                    open.add(Link.of(zone.id(), owner.get()));
+                    crossing(probe, inside, cell).ifPresent(door -> {
+                        Link link = Link.of(zone.id(), owner.get());
+                        if (door.isEmpty()) {
+                            open.add(link);
+                        } else {
+                            closedDoors.putIfAbsent(link, door.get());
+                        }
+                    });
                 }
             });
         }
@@ -106,24 +113,41 @@ public final class Passages {
         return reachedOpen;
     }
 
-    /** Every cell that shares a face with the box but lies outside it. */
-    private static void forEachShellCell(BlockBox box, java.util.function.Consumer<BlockPos> action) {
+    /**
+     * Whether a mob can step from {@code inside} one zone to {@code outside} in the zone next to it, where their boxes touch.
+     * Empty when either cell is solid, such as a wall or a bought door's blocks drawn inside the boxes. Otherwise holds
+     * the closed door in the way, if there is one.
+     */
+    private static Optional<Optional<BlockPos>> crossing(CellProbe probe, BlockPos inside, BlockPos outside) {
+        CellProbe.Cell from = probe.at(inside);
+        CellProbe.Cell to = probe.at(outside);
+        if (from == CellProbe.Cell.SOLID || to == CellProbe.Cell.SOLID) {
+            return Optional.empty();
+        }
+        if (from == CellProbe.Cell.CLOSED_DOOR) {
+            return Optional.of(Optional.of(inside));
+        }
+        return Optional.of(to == CellProbe.Cell.CLOSED_DOOR ? Optional.of(outside) : Optional.empty());
+    }
+
+    /** Every cell that shares a face with the box but lies outside it, with the cell inside the box across that face. */
+    private static void forEachShellCell(BlockBox box, java.util.function.BiConsumer<BlockPos, BlockPos> action) {
         for (int y = box.minY(); y <= box.maxY(); y++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
-                action.accept(new BlockPos(box.minX() - 1, y, z));
-                action.accept(new BlockPos(box.maxX() + 1, y, z));
+                action.accept(new BlockPos(box.minX(), y, z), new BlockPos(box.minX() - 1, y, z));
+                action.accept(new BlockPos(box.maxX(), y, z), new BlockPos(box.maxX() + 1, y, z));
             }
         }
         for (int x = box.minX(); x <= box.maxX(); x++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
-                action.accept(new BlockPos(x, box.minY() - 1, z));
-                action.accept(new BlockPos(x, box.maxY() + 1, z));
+                action.accept(new BlockPos(x, box.minY(), z), new BlockPos(x, box.minY() - 1, z));
+                action.accept(new BlockPos(x, box.maxY(), z), new BlockPos(x, box.maxY() + 1, z));
             }
         }
         for (int x = box.minX(); x <= box.maxX(); x++) {
             for (int y = box.minY(); y <= box.maxY(); y++) {
-                action.accept(new BlockPos(x, y, box.minZ() - 1));
-                action.accept(new BlockPos(x, y, box.maxZ() + 1));
+                action.accept(new BlockPos(x, y, box.minZ()), new BlockPos(x, y, box.minZ() - 1));
+                action.accept(new BlockPos(x, y, box.maxZ()), new BlockPos(x, y, box.maxZ() + 1));
             }
         }
     }

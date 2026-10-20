@@ -86,6 +86,41 @@ public final class DoorGameTests {
         helper.succeed();
     }
 
+    /**
+     * The same rooms, but drawn the way map makers often do: the west zone runs up to and over the wall, so the two zones'
+     * boxes touch, with the door's barrels inside them. The east room must stay locked until the barrels go.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_touching")
+    public static void aDoorDrawnInsideTouchingZonesStillKeepsTheFarOneLocked(GameTestHelper helper) {
+        for (int z = -1; z <= 9; z++) {
+            for (int dy = 0; dy <= 3; dy++) {
+                helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), z == 4 && dy < 2 ? Blocks.BARREL : Blocks.STONE);
+            }
+        }
+        BlockPos low = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
+        ZoneId west = new ZoneId("gametest_touching_west");
+        ZoneId east = new ZoneId("gametest_touching_east");
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(west, List.of(BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(4, ROOM_Y + 2, 8)))), true))
+                .withZone(new Zone(east, List.of(BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)))), false))
+                .withDoor(DoorDef.empty("barrels", 300).withMember(low).withMember(low.above()));
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_door_touching_test");
+        BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
+        player.moveTo(stand.getCenter());
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : null);
+        active.game().join(player.getUUID());
+        try {
+            helper.assertTrue(active.game().unlocked().equals(Set.of(west)), "the east room starts locked, got " + active.game().unlocked());
+            Doors.use(player, low);
+            helper.assertTrue(active.game().unlocked().equals(Set.of(west, east)), "the east room didn't unlock: " + active.game().unlocked());
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "floor", batch = "door_poor")
     public static void aDoorStaysShutForAPlayerWhoCantAffordIt(GameTestHelper helper) {
         BlockPos low = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));

@@ -51,7 +51,7 @@ public final class MapValidator {
 
     /** Validates without looking at the world: only zones whose boxes touch are connected. */
     public static ValidationReport validate(ZombiesMap map) {
-        return validate(map, ValidationContext.OFFLINE);
+        return validate(map, CellProbe.zonesOnly(ZoneIndex.of(map)), DEFAULT_MAX_GAP);
     }
 
     public static ValidationReport validate(ZombiesMap map, CellProbe probe, int maxGap) {

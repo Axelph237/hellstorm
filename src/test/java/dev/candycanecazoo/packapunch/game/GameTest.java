@@ -58,7 +58,13 @@ class GameTest {
             map = map.withZone(new Zone(ZONES.get(i), List.of(new BlockBox(i * 10, 0, 0, i * 10 + 9, 3, 9)), i == 0))
                     .withFeature(marker(i), FeatureKind.SPAWN);
         }
-        return GameMap.of(map, Set.of());
+        return GameMap.of(map, offlinePassages(map));
+    }
+
+    /** Where the zones' boxes touch, reading every cell inside a zone as open. */
+    static Set<dev.candycanecazoo.packapunch.map.Passages.Link> offlinePassages(ZombiesMap map) {
+        var index = dev.candycanecazoo.packapunch.map.ZoneIndex.of(map);
+        return dev.candycanecazoo.packapunch.map.Passages.find(map, index, dev.candycanecazoo.packapunch.map.CellProbe.zonesOnly(index), 2).open();
     }
 
     private Game newGame(GameSettings settings) {
@@ -364,10 +370,11 @@ class GameTest {
                 .withZone(new Zone(ZONES.get(0), List.of(new BlockBox(0, 0, 0, 9, 3, 9)), true))
                 .withZone(new Zone(ZONES.get(1), List.of(new BlockBox(11, 0, 0, 19, 3, 9)), false))
                 .withZone(new Zone(ZONES.get(2), List.of(new BlockBox(20, 0, 0, 29, 3, 9)), false));
-        Game game = new Game(SETTINGS, GameMap.of(map, Set.of()), ROSTER, RandomSource.create(7), events);
+        Game game = new Game(SETTINGS, GameMap.of(map, offlinePassages(map)), ROSTER, RandomSource.create(7), events);
         assertEquals(Set.of(ZONES.get(0)), game.unlocked(), "b sits behind the door, and c is only reachable through b");
-        Set<ZoneId> added = game.openDoor("gate", Optional.of(alice),
-                dev.candycanecazoo.packapunch.map.ZoneGraph.of(map, Set.of(dev.candycanecazoo.packapunch.map.Passages.Link.of(ZONES.get(0), ZONES.get(1)))));
+        Set<dev.candycanecazoo.packapunch.map.Passages.Link> opened = new java.util.HashSet<>(offlinePassages(map));
+        opened.add(dev.candycanecazoo.packapunch.map.Passages.Link.of(ZONES.get(0), ZONES.get(1)));
+        Set<ZoneId> added = game.openDoor("gate", Optional.of(alice), dev.candycanecazoo.packapunch.map.ZoneGraph.of(map, opened));
         assertEquals(Set.of(ZONES.get(1), ZONES.get(2)), added, "c touches b, so it opens up too");
         assertEquals(Set.of(ZONES.get(0), ZONES.get(1), ZONES.get(2)), game.unlocked());
         assertTrue(game.doorOpen("gate"));

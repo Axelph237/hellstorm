@@ -61,16 +61,4 @@ public record Zone(ZoneId id, List<BlockBox> boxes, boolean start) {
     public Zone withStart(boolean start) {
         return new Zone(id, boxes, start);
     }
-
-    /** True when any box of this zone shares a face with any box of the other: an open passage. */
-    public boolean touches(Zone other) {
-        for (BlockBox a : boxes) {
-            for (BlockBox b : other.boxes) {
-                if (a.touchesFace(b)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 }

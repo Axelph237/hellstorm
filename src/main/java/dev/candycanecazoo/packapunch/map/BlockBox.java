@@ -69,20 +69,6 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
         return minX <= o.maxX && maxX >= o.minX && minY <= o.maxY && maxY >= o.minY && minZ <= o.maxZ && maxZ >= o.minZ;
     }
 
-    /** True when the boxes don't overlap but share part of a face, so a mob could walk from one into the other. */
-    public boolean touchesFace(BlockBox o) {
-        if (intersects(o)) {
-            return false;
-        }
-        boolean overlapX = minX <= o.maxX && maxX >= o.minX;
-        boolean overlapY = minY <= o.maxY && maxY >= o.minY;
-        boolean overlapZ = minZ <= o.maxZ && maxZ >= o.minZ;
-        boolean adjacentX = maxX + 1 == o.minX || o.maxX + 1 == minX;
-        boolean adjacentY = maxY + 1 == o.minY || o.maxY + 1 == minY;
-        boolean adjacentZ = maxZ + 1 == o.minZ || o.maxZ + 1 == minZ;
-        return (adjacentX && overlapY && overlapZ) || (adjacentY && overlapX && overlapZ) || (adjacentZ && overlapX && overlapY);
-    }
-
     public AABB toAabb() {
         return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
     }

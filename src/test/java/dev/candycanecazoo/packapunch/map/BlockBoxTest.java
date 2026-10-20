@@ -23,18 +23,10 @@ class BlockBoxTest {
     }
 
     @Test
-    void faceTouchingBoxesAreAdjacentButNotIntersecting() {
+    void overlappingBoxesIntersect() {
         BlockBox a = new BlockBox(0, 0, 0, 3, 3, 3);
-        BlockBox east = new BlockBox(4, 1, 1, 6, 2, 2);
-        BlockBox diagonal = new BlockBox(4, 4, 4, 5, 5, 5);
-        BlockBox gap = new BlockBox(5, 0, 0, 6, 3, 3);
-        BlockBox overlapping = new BlockBox(3, 0, 0, 5, 3, 3);
-        assertTrue(a.touchesFace(east));
-        assertTrue(east.touchesFace(a));
-        assertFalse(a.touchesFace(diagonal), "corner contact is not a passage");
-        assertFalse(a.touchesFace(gap));
-        assertFalse(a.touchesFace(overlapping), "overlap is not adjacency");
-        assertTrue(a.intersects(overlapping));
+        assertTrue(a.intersects(new BlockBox(3, 0, 0, 5, 3, 3)));
+        assertFalse(a.intersects(new BlockBox(4, 0, 0, 5, 3, 3)));
     }
 
     @Test

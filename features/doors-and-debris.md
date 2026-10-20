@@ -93,6 +93,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
   - `list`, which shows each door's zones.
 - **Edit mode.** Outside a game, breaking a door's block removes it from the door. Breaking the last block deletes the door.
 - **Locked zones.** A game unlocks zones reachable from a start zone through open passages only. `Game.unlocked()` replaces the fixed `GameMap.unlocked` for spawning and pathing.
+- **Doors inside zone boxes.** Zones whose boxes touch connect only where a mob can step across: `Passages` reads the cell on each side of the shared face and links the zones only when neither is solid. A door's blocks may sit inside the boxes, and the zones stay apart until it opens. Before this, touching boxes always connected, so a zone drawn up to a door was unlocked from the start and spawned zombies that couldn't get out. Offline validation (`MapValidator.validate(map)`) reads every cell inside a zone as open and the rest as solid (`CellProbe.zonesOnly`).
 - **Buying.** Right-click any block of a door, or press the use key on it (default O). Purchases go through `Shop` with the door's cost and power requirement, and an open door refuses.
 - **Opening** (`game/Doors.open`):
   1. Set every block to air without drops or neighbour updates. Debris plays block-break particles, and doors play a door sound.
@@ -107,4 +108,5 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
   - Zones reachable only through doors count as reachable.
 - **Tests.**
   - JUnit: zone inference and validation (`MapValidatorTest`), the codec (`ZombiesMapCodecTest`), and unlocking (`GameTest.openingADoorUnlocksTheZonesBeyondItOnce`).
-  - GameTests (`DoorGameTests`): buying a door removes its blocks, charges, unlocks the zone beyond, and extends pathing through the doorway; the reset bricks the doorway back up; a player who can't afford it gets nothing and pays nothing.
+  - GameTests (`DoorGameTests`): buying a door removes its blocks, charges, unlocks the zone beyond, and extends pathing through the doorway; the reset bricks the doorway back up; a player who can't afford it gets nothing and pays nothing; a barrel door inside two touching zones keeps the far one locked until bought.
+  - JUnit `PassagesTest`: touching zones connect over open cells and not over a door's blocks.
