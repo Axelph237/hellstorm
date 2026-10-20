@@ -150,7 +150,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 ## Package layout (`src/main/java/<group>/packapunch/`)
 
 - `config/` holds `GameSettings` (a record with a codec), the `ServerConfig` spec, and the override resolver.
-- `data/` holds the reload listeners and codecs for `ItemSpec`, `PunchDef`, `MobProfile`, `PerkDef`, `PowerUpDef`, `WaveEventDef`, `BoxPool`, and `WeaponTier`. `PunchResolver` and `PunchAudit` live here too. Perk and power-up effects use codec dispatch into a small registry of effect types: `attribute_modifier`, `damage_multiplier`, `revive_speed`, `weapon_slots`, `max_ammo`, `insta_kill`, `nuke`, and so on.
+- `data/` holds the reload listeners and codecs for `ItemSpec`, `PunchDef`, `MobProfile`, `PowerUpDef`, `WaveEventDef`, `BoxPool`, and `WeaponTier`. `PunchResolver` and `PunchAudit` live here too. Power-up effects use codec dispatch into a small registry of effect types: `max_ammo`, `insta_kill`, `nuke`, and so on. Perks are mob effects (see `perk-machines.md`).
 - `map/` holds `ZombiesMap`, `Zone`, `Door`, `Window`, `SpawnPoint`, `MapSavedData`, `ZoneIndex` (a spatial lookup from chunk section to zone), `MapCompiler` (feature index to compiled map), and `MapValidator`. The validator checks that every zone is reachable from the start, that power and PaP are reachable, that every zone has a spawn point, and that every door links two zones.
 - `game/` holds `GameManager` (one game per map level), the `Game` state machine, `RoundPlan`, `Economy`, `SpawnDirector`, `DownedSystem`, `PowerUpSystem`, `WaveEventRunner`, and the inventory snapshot and restore logic.
 - `mob/` holds the `GameMob` capability, `AiInjector`, the goals, and the health and spawn-count formulas.
@@ -165,7 +165,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 - `script/` holds `GameEvents` with the sealed `GameEvent` type, `EventDef` loading, `LuaRuntime` (sandboxed globals, instruction hook, `require` searcher), and the Lua API bindings.
 - `net/` holds the `SimpleChannel` packets.
 - `client/` holds the HUD overlays, look-at purchase prompts, feature config screens, and `outline/ZoneOutlines` (the only place that uses Ponder).
-- Datapack resources live in `src/main/resources/data/packapunch/` and cover the default mob profiles, perks, power-ups, wave events, and box pool. A void "Zombies Builder" world preset gives map makers an empty world to build in.
+- Datapack resources live in `src/main/resources/data/packapunch/` and cover the default mob profiles, power-ups, wave events, box pool, and the perk mob effect tags. A void "Zombies Builder" world preset gives map makers an empty world to build in.
 
 ## Gameplay systems
 
@@ -180,7 +180,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
   The weapon-slot limit (2, or 3 with Mule Kick) counts TacZ guns only. When the slots are full, buying a new gun replaces the held one.
 - **Mystery Box.** A weighted `BoxPool` of `ItemSpec`s. By default it holds every TacZ gun index entry minus the wall-buys, with per-entry overrides. The box relocates after a configurable number of uses, and Fire Sale lowers its cost.
-- **Perks.** Machines reference a `PerkDef`. Perks need power, have a perk limit, and are lost on down.
+- **Perks.** Perks are potion effects. A perk machine is a wall-buy that sells the potion. Perks need power by default, have a perk limit, and are lost on down with every other buff.
 - **Pack-a-Punch.** Any item can be punched if it carries the right NBT, and the machine needs power to run. The tag is a `pap` compound with two keys:
   - `punchable` is a boolean.
   - `punch_id` is optional. It names a `PunchDef` from a datapack, stored at `data/<ns>/packapunch/punch/<id>.json`.
@@ -335,6 +335,6 @@ The design as researched:
   3. Use every purchasable. Include a non-gun wall-buy item whose `punch_id` turns it into another item. Also try a punchable non-TacZ item with no id: confirm the load-time ERROR was logged and that the machine hands the item back without charging.
   4. Get downed and revived.
   5. Watch a special round.
-  6. Run `/reload` after a perk JSON edit.
+  6. Run `/reload` after a power-up JSON edit.
   7. Check a script bound to `zombie_killed`, `wall_buy`, and `mystery_box_opened`: each runs its command once per occurrence.
   8. Export the map, import it into a fresh world, and play it again.

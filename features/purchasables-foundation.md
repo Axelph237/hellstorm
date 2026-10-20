@@ -18,7 +18,7 @@ Every machine and door is bought the same way, so each feature only writes what 
 - **`Shop.Sale`** (`game/`): `cost()`, `needsPower()`, `check(game, player)` (feature rules, before charging), `deliver(game, player)` (a refusal here refunds).
 - **`ItemSpec`** (`data/`): `Plain(item, count, nbt)` or `Gun(tacz_gun, unlimited_ammo, punchable = true)`. `build(reserveMagazines)`, `matches(stack)`, `describe()`. Constants `PAP`, `PUNCHABLE`, `PUNCH_ID` name the `pap` NBT compound.
 - **Settings** (`GameSettings`): `players.weapon_slots` (2), `players.perk_limit` (4), `doors.default_cost` (750), `box.*` (cost 950, fire sale 10, roll 80 ticks, collect 240, moves after 4 uses at 0.15 per roll), `pap.*` (cost 5000, process 60, collect 240, max tier 1, damage x2.0, magazine x1.5, rpm x1.2 per tier).
-- **`PlayerState.bonusWeaponSlots`**: extra gun slots from perks (Mule Kick).
+- **`packapunch:extra_weapon_slots`** (a player attribute): extra gun slots, from the Mule Kick effect.
 
 ## Implementation
 
@@ -32,10 +32,10 @@ Every machine and door is bought the same way, so each feature only writes what 
 - **Reset.** `MapReset.reset(level, map)` runs when a game is created and when it ends: it restores windows and turns power switches off. Each feature adds its own reset there.
 - **Commands.** `/pap <feature> ...` subcommands act on the machine the player is looking at, through `command/Targets.lookedAt(player, BlockEntityClass, "name")`.
 - **Settings screens.** An op in creative mode who uses a machine outside a game gets its settings screen instead of the chat line (`feature/MachineSettings`):
-  - `OpenSettingsPacket` carries what only the server knows: the loaded perks (with their costs) or box pools to choose from, the item in hand (for "Sell held" on a wall-buy), and the default cost a blank cost falls back to.
+  - `OpenSettingsPacket` carries what only the server knows: the box pools to choose from, the item in hand (for "Sell held" on a wall-buy), and the default cost a blank cost falls back to.
   - The screens (`client/settings/`) edit the machine's own `Config` record. Rows that depend on another row (the wall-buy's ammo costs) are laid out again on the next tick through `SettingsScreen.relayout`, not inside the click. Done encodes it with the block entity's codec and sends `SaveSettingsPacket`. The server re-checks op, creative mode, and reach, then calls `ConfigBlockEntity.trySet`, and answers with `SettingsResultPacket`: the screen closes, or stays open with the reason in red.
-  - `trySet` runs the machine's `problem` check (unknown perk, unloaded box pool, unknown gun or item, refilling ammo on a non-gun). The `/pap` commands go through the same `trySet`, so the screen and the commands accept exactly the same settings.
-  - Wall-buy: "Sell held" switches it to the item in hand when the screen opened (map makers find items in the creative menu); cost; what buying again does; ammo and upgraded-ammo costs, shown only when buying again refills ammo. Perk machine: the perk, or none, and a cost (blank is the perk's own cost). Mystery Box: pool and cost (blank is the default). Pack-a-Punch: cost (blank is the default). Power switch: cost.
+  - `trySet` runs the machine's `problem` check (unloaded box pool, unknown gun or item, refilling ammo on a non-gun). The `/pap` commands go through the same `trySet`, so the screen and the commands accept exactly the same settings.
+  - Wall-buy: "Sell held" switches it to the item in hand when the screen opened (map makers find items in the creative menu); cost; what buying again does; ammo and upgraded-ammo costs, shown only when buying again refills ammo. Wall-buys and perk machines also have "Needs power". Mystery Box: pool and cost (blank is the default). Pack-a-Punch: cost (blank is the default). Power switch: cost.
 - **Events.** A new event is a `GameEvent` record plus its name and Lua table in `script/LuaEvents` (`name` and `table`).
 - **Power switch** (`feature/PowerSwitchBlock`): a `LeverBlock` only a game can pull. Settings `{ cost }` (default 0), set with `/pap power cost <points>`. Pulling one charges the cost, turns the power on, flips every switch in the map, and powers redstone like a lever. It reuses vanilla's lever models.
 

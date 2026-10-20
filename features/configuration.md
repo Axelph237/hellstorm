@@ -25,7 +25,7 @@ record GameSettings(
 Each sub-record has a `Codec`. The same codec reads map-override JSON, writes NBT, and syncs to clients.
 
 Content definitions are separate from settings. They are datapack JSON under `data/<ns>/packapunch/`:
-- `mob_profiles/`, `perks/`, `powerups/`, `wave_events/`, `box_pools/`, `weapon_tiers/`, `punch/`, `events/`, `scripts/`
+- `mob_profiles/`, `powerups/`, `wave_events/`, `box_pools/`, `weapon_tiers/`, `punch/`, `events/`, `scripts/`
 
 ## Implementation
 
@@ -51,7 +51,7 @@ Nothing. Everything else depends on this.
 
 - JUnit on `SettingsResolver`: a map override beats the server config, and the server config beats the default, for every field.
 - JUnit codec round-trips: `GameSettings` to JSON and back, and to NBT and back, are equal.
-- In game: change a perk JSON, run `/reload`, and see the new value in the next purchase.
+- In game: change a power-up JSON, run `/reload`, and see the new value on the next drop.
 
 ## Phase
 
