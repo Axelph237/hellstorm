@@ -12,8 +12,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Two 3x3x3 rooms on the x axis: "west" at x 0..2, "east" starting after a gap. Everything outside the zones is solid
- * except the cells the probe in each test opens up.
+ * Two 3x3x3 rooms on the x axis: "west" at x 0..2, "east" starting after a gap. The rooms are air, and everything outside
+ * them is solid except the cells the probe in each test opens up.
  */
 class PassagesTest {
     private static final ZoneId WEST = new ZoneId("west");
@@ -28,8 +28,10 @@ class PassagesTest {
                 .withFeature(new BlockPos(eastMin + 1, 0, 1), FeatureKind.SPAWN);
     }
 
-    private static CellProbe openings(Map<BlockPos, CellProbe.Cell> cells) {
-        return pos -> cells.getOrDefault(pos, CellProbe.Cell.SOLID);
+    /** The rooms are air inside, the listed cells are as given, and everything else is solid. */
+    private static CellProbe openings(ZombiesMap map, Map<BlockPos, CellProbe.Cell> cells) {
+        ZoneIndex index = ZoneIndex.of(map);
+        return pos -> cells.getOrDefault(pos, index.zoneAt(pos).isPresent() ? CellProbe.Cell.OPEN : CellProbe.Cell.SOLID);
     }
 
     private static Passages.Result find(ZombiesMap map, CellProbe probe, int maxGap) {
@@ -38,9 +40,9 @@ class PassagesTest {
 
     @Test
     void aOneCellDoorwayConnectsTheRooms() {
-        Passages.Result result = find(rooms(1), openings(Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(3, 1, 1), CellProbe.Cell.OPEN)), 2);
+        Passages.Result result = find(rooms(1), openings(rooms(1), Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(3, 1, 1), CellProbe.Cell.OPEN)), 2);
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), result.open());
-        assertTrue(MapValidator.validate(rooms(1), openings(Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN)), 2).playable());
+        assertTrue(MapValidator.validate(rooms(1), openings(rooms(1), Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN)), 2).playable());
     }
 
     @Test
@@ -54,7 +56,7 @@ class PassagesTest {
     @Test
     void aClosedDoorIsNotAPassageButIsReportedWhereItIs() {
         BlockPos door = new BlockPos(3, 0, 1);
-        CellProbe probe = openings(Map.of(door, CellProbe.Cell.CLOSED_DOOR, door.above(), CellProbe.Cell.CLOSED_DOOR));
+        CellProbe probe = openings(rooms(1), Map.of(door, CellProbe.Cell.CLOSED_DOOR, door.above(), CellProbe.Cell.CLOSED_DOOR));
         Passages.Result result = find(rooms(1), probe, 2);
         assertEquals(Set.of(), result.open());
         assertTrue(result.closedDoors().containsKey(Passages.Link.of(WEST, EAST)));
@@ -67,7 +69,7 @@ class PassagesTest {
 
     @Test
     void anOpenDoorwayNextToAClosedDoorStillConnectsWithoutAWarning() {
-        CellProbe probe = openings(Map.of(new BlockPos(3, 0, 0), CellProbe.Cell.CLOSED_DOOR, new BlockPos(3, 0, 2), CellProbe.Cell.OPEN));
+        CellProbe probe = openings(rooms(1), Map.of(new BlockPos(3, 0, 0), CellProbe.Cell.CLOSED_DOOR, new BlockPos(3, 0, 2), CellProbe.Cell.OPEN));
         ValidationReport report = MapValidator.validate(rooms(1), probe, 2);
         assertFalse(report.has(MapValidator.UNREACHABLE_ZONE));
         assertFalse(report.has(MapValidator.CLOSED_DOOR_GAP));
@@ -75,7 +77,7 @@ class PassagesTest {
 
     @Test
     void aCorridorLongerThanTheGapLimitDoesNotConnect() {
-        CellProbe corridor = openings(Map.of(
+        CellProbe corridor = openings(rooms(3), Map.of(
                 new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(4, 0, 1), CellProbe.Cell.OPEN, new BlockPos(5, 0, 1), CellProbe.Cell.OPEN));
         assertEquals(Set.of(), find(rooms(3), corridor, 2).open(), "3 open cells must not bridge a 2-cell limit");
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(3), corridor, 3).open());
@@ -93,5 +95,19 @@ class PassagesTest {
         CellProbe closed = pos -> door.contains(pos) ? CellProbe.Cell.SOLID : walls.at(pos);
         assertEquals(Set.of(), find(rooms(0), closed, 2).open(), "the door's blocks are the only way across");
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), walls, 2).open(), "bought: the blocks are air");
+    }
+
+    /**
+     * The Test map's barrel door: two blocks thick inside the east zone's box (x 3 and 4), with an air gap in the near layer.
+     * The gap touches the west zone but is sealed off from the rest of the east zone, so it mustn't connect them.
+     */
+    @Test
+    void aGapInsideAThickDoorDoesNotConnectTheZones() {
+        BlockPos gap = new BlockPos(3, 1, 1);
+        Set<BlockPos> doorway = Set.of(new BlockPos(3, 0, 1), gap, new BlockPos(4, 0, 1), new BlockPos(4, 1, 1));
+        CellProbe closed = pos -> (pos.getX() == 3 && !pos.equals(gap)) || pos.getX() == 4 ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+        assertEquals(Set.of(), find(rooms(0), closed, 2).open(), "the gap is a pocket of the east zone, not a way in");
+        CellProbe bought = pos -> (pos.getX() == 3 || pos.getX() == 4) && !doorway.contains(pos) ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), bought, 2).open(), "bought, the doorway runs through");
     }
 }

@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -42,9 +43,13 @@ public final class Passages {
     public static Result find(ZombiesMap map, ZoneIndex index, CellProbe probe, int maxGap) {
         Set<Link> open = new HashSet<>();
         Map<Link, BlockPos> closedDoors = new LinkedHashMap<>();
+        Map<ZoneId, Set<BlockPos>> spaces = new HashMap<>();
+        for (Zone zone : map.zones().values()) {
+            spaces.put(zone.id(), walkableSpace(zone, index, probe));
+        }
         Map<ZoneId, Set<BlockPos>> openCells = new HashMap<>();
         for (Zone zone : map.zones().values()) {
-            openCells.put(zone.id(), search(zone, index, probe, maxGap, open, closedDoors));
+            openCells.put(zone.id(), search(zone, index, probe, maxGap, spaces, open, closedDoors));
         }
         closedDoors.keySet().removeAll(open);
         Map<Link, Set<BlockPos>> gaps = new HashMap<>();
@@ -56,18 +61,62 @@ public final class Passages {
         return new Result(open, closedDoors, gaps);
     }
 
-    /** Searches out from one zone. Returns the open (not door) cells it reached. */
-    private static Set<BlockPos> search(Zone zone, ZoneIndex index, CellProbe probe, int maxGap, Set<Link> open, Map<Link, BlockPos> closedDoors) {
+    /**
+     * A zone's walkable space: the largest connected group of its cells that aren't solid. Air sealed off from the rest
+     * of the zone, such as the gaps inside a thick door drawn into the zone's boxes, is left out, so a passage that only
+     * reaches such a pocket doesn't connect the zone.
+     */
+    static Set<BlockPos> walkableSpace(Zone zone, ZoneIndex index, CellProbe probe) {
+        Set<BlockPos> cells = new HashSet<>();
+        for (BlockBox box : zone.boxes()) {
+            for (BlockPos pos : BlockPos.betweenClosed(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ())) {
+                if (index.zoneAt(pos).filter(zone.id()::equals).isPresent() && probe.at(pos) != CellProbe.Cell.SOLID) {
+                    cells.add(pos.immutable());
+                }
+            }
+        }
+        Set<BlockPos> largest = Set.of();
+        Set<BlockPos> seen = new HashSet<>();
+        for (BlockPos start : cells) {
+            if (!seen.add(start)) {
+                continue;
+            }
+            Set<BlockPos> group = new HashSet<>();
+            Deque<BlockPos> queue = new ArrayDeque<>(List.of(start));
+            while (!queue.isEmpty()) {
+                BlockPos pos = queue.poll();
+                group.add(pos);
+                for (Direction direction : Direction.values()) {
+                    BlockPos next = pos.relative(direction);
+                    if (cells.contains(next) && seen.add(next)) {
+                        queue.add(next);
+                    }
+                }
+            }
+            if (group.size() > largest.size()) {
+                largest = group;
+            }
+        }
+        return largest;
+    }
+
+    /** Searches out from one zone's walkable space. Returns the open (not door) cells it reached. */
+    private static Set<BlockPos> search(Zone zone, ZoneIndex index, CellProbe probe, int maxGap, Map<ZoneId, Set<BlockPos>> spaces,
+                                        Set<Link> open, Map<Link, BlockPos> closedDoors) {
+        Set<BlockPos> own = spaces.get(zone.id());
         Set<BlockPos> reachedOpen = new HashSet<>();
         Deque<Step> queue = new ArrayDeque<>();
         Set<BlockPos> seenOpen = new HashSet<>();
         Set<BlockPos> seenViaDoor = new HashSet<>();
         for (BlockBox box : zone.boxes()) {
             forEachShellCell(box, (inside, cell) -> {
+                if (!own.contains(inside)) {
+                    return;
+                }
                 Optional<ZoneId> owner = index.zoneAt(cell);
                 if (owner.isEmpty()) {
                     queue.add(new Step(cell, 1, null));
-                } else if (!owner.get().equals(zone.id())) {
+                } else if (!owner.get().equals(zone.id()) && spaces.get(owner.get()).contains(cell)) {
                     crossing(probe, inside, cell).ifPresent(door -> {
                         Link link = Link.of(zone.id(), owner.get());
                         if (door.isEmpty()) {
@@ -97,7 +146,7 @@ public final class Passages {
                 BlockPos next = step.pos.relative(direction);
                 Optional<ZoneId> owner = index.zoneAt(next);
                 if (owner.isPresent()) {
-                    if (!owner.get().equals(zone.id())) {
+                    if (!owner.get().equals(zone.id()) && spaces.get(owner.get()).contains(next)) {
                         Link link = Link.of(zone.id(), owner.get());
                         if (door == null) {
                             open.add(link);
