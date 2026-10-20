@@ -17,10 +17,12 @@ class RoundPlanTest {
     }
 
     @Test
-    void healthGrowsByPointTwoPercentPerRound() {
-        assertEquals(15.0, RoundPlan.zombieHealth(R, 1), 1e-9);
-        assertEquals(15.0 * 1.002, RoundPlan.zombieHealth(R, 2), 1e-9);
-        assertEquals(15.0 * Math.pow(1.002, 99), RoundPlan.zombieHealth(R, 100), 1e-9, "about 18.3 HP by round 100");
+    void healthFollowsCodsShapeThenGrowsSlowly() {
+        assertEquals(22.5, RoundPlan.zombieHealth(R, 1), 1e-9, "150 x 0.15");
+        assertEquals(82.5, RoundPlan.zombieHealth(R, 5), 1e-9, "(150 + 400) x 0.15");
+        assertEquals(142.5, RoundPlan.zombieHealth(R, 9), 1e-9);
+        assertEquals(950 * 1.004 * 0.15, RoundPlan.zombieHealth(R, 10), 1e-9, "0.4% more than round 9");
+        assertEquals(950 * Math.pow(1.004, 41) * 0.15, RoundPlan.zombieHealth(R, 50), 1e-9, "about 168 HP by round 50");
     }
 
     @Test

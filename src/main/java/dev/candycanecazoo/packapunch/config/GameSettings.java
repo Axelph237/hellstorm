@@ -14,13 +14,13 @@ import java.util.List;
 public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Players players, Windows windows, Doors doors, Box box, Pap pap) {
     public record Rounds(
             int baseCount, double countPerRound, double playerFactor,
-            double baseHealth, int sprintFromRound, double walkSpeed, double sprintSpeed, double healthGrowth, double speedGrowth,
+            double healthScale, int sprintFromRound, double walkSpeed, double sprintSpeed, double healthGrowth, double speedGrowth,
             int maxAlive, int spawnDelayTicks, int intermissionTicks, int countdownTicks, int gameOverTicks) {
         public static final Codec<Rounds> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("base_count").forGetter(Rounds::baseCount),
                 Codec.DOUBLE.fieldOf("count_per_round").forGetter(Rounds::countPerRound),
                 Codec.DOUBLE.fieldOf("player_factor").forGetter(Rounds::playerFactor),
-                Codec.DOUBLE.fieldOf("base_health").forGetter(Rounds::baseHealth),
+                Codec.DOUBLE.fieldOf("health_scale").forGetter(Rounds::healthScale),
                 Codec.INT.fieldOf("sprint_from_round").forGetter(Rounds::sprintFromRound),
                 Codec.DOUBLE.fieldOf("walk_speed").forGetter(Rounds::walkSpeed),
                 Codec.DOUBLE.fieldOf("sprint_speed").forGetter(Rounds::sprintSpeed),
@@ -127,7 +127,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     ).apply(i, GameSettings::new));
 
     public static final GameSettings DEFAULT = new GameSettings(
-            new Rounds(6, 2.5, 0.5, 15.0, 6, 0.23, 0.32, 0.002, 0.0001, 24, 40, 20, 100, 200),
+            new Rounds(6, 2.5, 0.5, 0.15, 6, 0.23, 0.32, 0.004, 0.0001, 24, 40, 20, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
             new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false, 2, 4),

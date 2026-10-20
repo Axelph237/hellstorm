@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** The game loop against a fake world: four touching zones A-B-C-D along x, a spawn marker in each, A is the start. */
 class GameTest {
     private static final GameSettings SETTINGS = new GameSettings(
-            new GameSettings.Rounds(3, 1.0, 0.0, 15.0, 100, 0.23, 0.32, 0.002, 0.0001, 24, 1, 3, 2, 2),
+            new GameSettings.Rounds(3, 1.0, 0.0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 24, 1, 3, 2, 2),
             new GameSettings.Spawning(1, 24.0, 0.0),
             GameSettings.DEFAULT.economy(),
             GameSettings.DEFAULT.players(),
@@ -134,7 +134,7 @@ class GameTest {
     @Test
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
-                new GameSettings.Rounds(10, 0, 0, 15.0, 100, 0.23, 0.32, 0.002, 0.0001, 2, 5, 3, 0, 2),
+                new GameSettings.Rounds(10, 0, 0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 2, 5, 3, 0, 2),
                 SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap());
         Game game = newGame(capped);
         game.join(alice);

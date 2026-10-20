@@ -11,9 +11,13 @@ public final class RoundPlan {
         return Math.max(1, (int) Math.round(base * (1 + s.playerFactor() * Math.max(0, players - 1))));
     }
 
-    /** {@code base_health}, growing by {@code health_growth} each round after the first, compounding. */
+    /**
+     * CoD's shape: 150 + 100 per round up to round 9, then growing {@code health_growth} per round, compounding (CoD's
+     * own is 10%). Times {@code health_scale} into Minecraft HP.
+     */
     public static double zombieHealth(GameSettings.Rounds s, int round) {
-        return Math.max(1.0, s.baseHealth() * Math.pow(1 + s.healthGrowth(), round - 1));
+        double cod = round < 10 ? 150 + 100.0 * (round - 1) : 950 * Math.pow(1 + s.healthGrowth(), round - 9);
+        return Math.max(1.0, cod * s.healthScale());
     }
 
     /** Walk or sprint speed, growing by {@code speed_growth} each round after the first, compounding. */
