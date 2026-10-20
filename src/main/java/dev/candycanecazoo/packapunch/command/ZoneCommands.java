@@ -80,7 +80,8 @@ final class ZoneCommands {
                 .then(Commands.literal("paths").executes(ZoneCommands::paths))
                 .then(MapPackCommands.export())
                 .then(MapPackCommands.importPack())
-                .then(MapPackCommands.packs());
+                .then(MapPackCommands.packs())
+                .then(MapPackCommands.mode());
     }
 
     private static ArgumentBuilder<CommandSourceStack, ?> zoneArg() {

@@ -57,6 +57,10 @@ final class GameCommands {
                         .forEach(p -> ctx.getSource().sendFailure(Component.literal(" - " + p.message())));
                 return 0;
             }
+            if (result instanceof GameManager.CreateResult.EditMode) {
+                ctx.getSource().sendFailure(Component.literal("This map is in edit mode. An op can open it for games with /pap map mode play"));
+                return 0;
+            }
             if (result instanceof GameManager.CreateResult.NoStartCells) {
                 ctx.getSource().sendFailure(Component.literal("No start zone has a spot to stand on (solid floor and two blocks of headroom)"));
                 return 0;

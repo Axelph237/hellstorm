@@ -42,6 +42,8 @@ public final class GameManager {
         record Invalid(ValidationReport report) implements CreateResult {}
 
         record NoStartCells() implements CreateResult {}
+
+        record EditMode() implements CreateResult {}
     }
 
     private static final Map<ResourceKey<Level>, Active> GAMES = new LinkedHashMap<>();
@@ -83,6 +85,9 @@ public final class GameManager {
     }
 
     public static CreateResult create(ServerLevel level) {
+        if (MapSavedData.get(level).mode() == dev.candycanecazoo.packapunch.map.MapMode.EDIT) {
+            return new CreateResult.EditMode();
+        }
         ZombiesMap map = MapSavedData.get(level).map();
         // Before reading the world: a crash mid-game can leave doors open and windows bare.
         MapReset.reset(level, map);

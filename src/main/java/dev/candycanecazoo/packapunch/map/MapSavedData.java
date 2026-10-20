@@ -13,6 +13,8 @@ public final class MapSavedData extends SavedData {
     private static final String NAME = PackAPunch.MOD_ID + "_map";
 
     private ZombiesMap map = ZombiesMap.EMPTY;
+    /** Worlds saved before modes existed load as play, so their games keep working. */
+    private MapMode mode = MapMode.PLAY;
     private ZoneIndex index;
 
     public static MapSavedData get(ServerLevel level) {
@@ -21,6 +23,18 @@ public final class MapSavedData extends SavedData {
 
     public ZombiesMap map() {
         return map;
+    }
+
+    public MapMode mode() {
+        return mode;
+    }
+
+    /** Use {@link dev.candycanecazoo.packapunch.tools.MapModes#set}, which also shows or hides the spawn markers. */
+    public void setMode(MapMode mode) {
+        if (this.mode != mode) {
+            this.mode = mode;
+            setDirty();
+        }
     }
 
     public ZoneIndex index() {
@@ -47,6 +61,7 @@ public final class MapSavedData extends SavedData {
         data.map = ZombiesMap.CODEC.parse(NbtOps.INSTANCE, tag.get("map"))
                 .resultOrPartial(error -> PackAPunch.LOG.error("Failed to load zombies map: {}", error))
                 .orElse(ZombiesMap.EMPTY);
+        data.mode = tag.getString("mode").equals(MapMode.EDIT.getSerializedName()) ? MapMode.EDIT : MapMode.PLAY;
         return data;
     }
 
@@ -55,6 +70,7 @@ public final class MapSavedData extends SavedData {
         ZombiesMap.CODEC.encodeStart(NbtOps.INSTANCE, map)
                 .resultOrPartial(error -> PackAPunch.LOG.error("Failed to save zombies map: {}", error))
                 .ifPresent(encoded -> tag.put("map", encoded));
+        tag.putString("mode", mode.getSerializedName());
         return tag;
     }
 }

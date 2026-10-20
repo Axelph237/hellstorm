@@ -9,11 +9,13 @@ import dev.candycanecazoo.packapunch.config.ServerConfig;
 import dev.candycanecazoo.packapunch.game.GameManager;
 import dev.candycanecazoo.packapunch.map.BlockBox;
 import dev.candycanecazoo.packapunch.map.MapGeometry;
+import dev.candycanecazoo.packapunch.map.MapMode;
 import dev.candycanecazoo.packapunch.map.MapSavedData;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import dev.candycanecazoo.packapunch.map.validate.MapValidator;
 import dev.candycanecazoo.packapunch.map.validate.Problem;
 import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
+import dev.candycanecazoo.packapunch.tools.MapModes;
 import dev.candycanecazoo.packapunch.tools.MapPack;
 import dev.candycanecazoo.packapunch.tools.ToolState;
 import net.minecraft.ChatFormatting;
@@ -65,6 +67,27 @@ final class MapPackCommands {
                     : "Map packs in " + folder() + ": " + String.join(", ", names)), false);
             return names.size();
         });
+    }
+
+    /** {@code /pap map mode} shows it; {@code /pap map mode edit|play} switches it. */
+    static LiteralArgumentBuilder<CommandSourceStack> mode() {
+        LiteralArgumentBuilder<CommandSourceStack> mode = Commands.literal("mode").executes(ctx -> {
+            MapMode current = MapSavedData.get(ctx.getSource().getLevel()).mode();
+            ctx.getSource().sendSuccess(() -> Component.literal("The map is in " + current.getSerializedName() + " mode"), false);
+            return 1;
+        });
+        for (MapMode target : MapMode.values()) {
+            mode.then(Commands.literal(target.getSerializedName()).executes(ctx -> {
+                ServerLevel level = ctx.getSource().getLevel();
+                notWhilePlaying(level);
+                MapModes.set(level, target);
+                ctx.getSource().sendSuccess(() -> Component.literal(target == MapMode.EDIT
+                        ? "Edit mode: spawn markers show, and games can't start" : "Play mode: spawn markers are hidden, and games can start")
+                        .withStyle(ChatFormatting.GREEN), true);
+                return 1;
+            }));
+        }
+        return mode;
     }
 
     static Path folder() {
@@ -148,6 +171,7 @@ final class MapPackCommands {
             }
         }
         MapPack.place(level, contents, corner);
+        MapModes.set(level, MapMode.PLAY);
         var size = contents.manifest().size();
         ctx.getSource().sendSuccess(() -> Component.literal("Imported " + name + " (" + size.getX() + "x" + size.getY() + "x" + size.getZ()
                 + ") with its corner at " + corner.toShortString()).withStyle(ChatFormatting.GREEN), true);

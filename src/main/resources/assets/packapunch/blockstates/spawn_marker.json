@@ -1,5 +1,10 @@
 {
   "variants": {
-    "": { "model": "packapunch:block/spawn_marker" }
+    "hidden=false": {
+      "model": "packapunch:block/spawn_marker"
+    },
+    "hidden=true": {
+      "model": "packapunch:block/spawn_marker"
+    }
   }
 }
