@@ -4,6 +4,7 @@ import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.perk.Perks;
 import dev.candycanecazoo.packapunch.tacz.TaczBridge;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,13 +14,17 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
 
 /**
- * What being down looks like on a player: crawling, slowed, perks gone, and holding a pistol. A player with no pistol is
+ * What being down looks like on a player: crawling, slowed, glowing red, perks gone, and holding a pistol. A player with no pistol is
  * lent the starting pistol, which goes away when they get up.
  */
 public final class Downs {
@@ -27,6 +32,9 @@ public final class Downs {
     private static final String LENT = PackAPunch.MOD_ID + "_downed_pistol";
     private static final UUID SLOW = UUID.fromString("5f1a4b9e-3c2d-4e8f-9a7b-6c5d4e3f2a1b");
     private static final double SLOW_AMOUNT = -0.6;
+    private static final String DOWNED_TEAM = PackAPunch.MOD_ID + "_downed";
+    /** The team each downed player was on before, if any, to put them back when they get up. */
+    private static final Map<UUID, Optional<String>> PREVIOUS_TEAMS = new HashMap<>();
     /** Food is held here in a game: below vanilla's 18 for natural regen, above 6 so players can still sprint. */
     public static final int FOOD_LEVEL = 17;
 
@@ -45,10 +53,12 @@ public final class Downs {
             lendPistol(player, settings);
         }
         holdPistol(player);
+        glow(player);
     }
 
     /** Undoes {@link #knockDown}. Safe to call on anyone. */
     public static void standUp(ServerPlayer player) {
+        stopGlowing(player);
         player.setForcedPose(null);
         AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speed != null) {
@@ -72,6 +82,41 @@ public final class Downs {
         if (!isPistol(player.getMainHandItem())) {
             holdPistol(player);
         }
+    }
+
+    /**
+     * Outlines the player in red for everyone, through walls, so teammates can find them. Glowing takes its color from the
+     * player's team, so they join a red team for the duration and go back to their own team when they get up.
+     */
+    private static void glow(ServerPlayer player) {
+        Scoreboard scoreboard = player.getScoreboard();
+        String name = player.getScoreboardName();
+        PlayerTeam previous = scoreboard.getPlayersTeam(name);
+        if (previous == null || !previous.getName().equals(DOWNED_TEAM)) {
+            PREVIOUS_TEAMS.put(player.getUUID(), Optional.ofNullable(previous).map(PlayerTeam::getName));
+        }
+        PlayerTeam team = scoreboard.getPlayerTeam(DOWNED_TEAM);
+        if (team == null) {
+            team = scoreboard.addPlayerTeam(DOWNED_TEAM);
+            team.setColor(ChatFormatting.RED);
+        }
+        scoreboard.addPlayerToTeam(name, team);
+        player.setGlowingTag(true);
+    }
+
+    private static void stopGlowing(ServerPlayer player) {
+        player.setGlowingTag(false);
+        Optional<Optional<String>> previous = Optional.ofNullable(PREVIOUS_TEAMS.remove(player.getUUID()));
+        if (previous.isEmpty()) {
+            return;
+        }
+        Scoreboard scoreboard = player.getScoreboard();
+        String name = player.getScoreboardName();
+        PlayerTeam current = scoreboard.getPlayersTeam(name);
+        if (current != null && current.getName().equals(DOWNED_TEAM)) {
+            scoreboard.removePlayerFromTeam(name, current);
+        }
+        previous.get().map(scoreboard::getPlayerTeam).ifPresent(team -> scoreboard.addPlayerToTeam(name, team));
     }
 
     static boolean isPistol(ItemStack stack) {

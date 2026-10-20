@@ -50,6 +50,11 @@ public final class HudState {
                 && hud().players().stream().anyMatch(line -> line.downed() && !line.you() && line.name().equals(player.getGameProfile().getName()));
     }
 
+    /** Whether the HUD says this player is down. */
+    public static boolean selfDowned() {
+        return inGame() && hud().players().stream().anyMatch(line -> line.downed() && line.you());
+    }
+
     public static boolean powerOn() {
         return last.powerOn();
     }

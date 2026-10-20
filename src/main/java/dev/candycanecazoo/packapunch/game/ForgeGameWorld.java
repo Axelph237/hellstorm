@@ -227,7 +227,10 @@ public final class ForgeGameWorld implements GameWorld {
 
     @Override
     public void down(UUID id) {
-        player(id).ifPresent(p -> Downs.knockDown(p, settings.players()));
+        player(id).ifPresent(p -> {
+            Downs.knockDown(p, settings.players());
+            announce(p.getGameProfile().getName() + " is downed");
+        });
     }
 
     @Override

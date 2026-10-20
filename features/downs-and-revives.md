@@ -66,6 +66,10 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 - **On the player** (`game/Downs`, through `GameWorld.down` / `revive` / `spectate`):
   - Going down removes perks, forces the crawl pose (`setForcedPose(SWIMMING)`), slows movement by 60%, sets health to 1, and selects a pistol (TacZ type `pistol`), swapping one into the hotbar if needed. A player with no pistol is lent the first starting pistol (else `tacz:m1911`), tagged `packapunch_downed_pistol`.
   - Every tick while down they keep crawling and keep the pistol selected. Downed players take no damage at all.
+  - **Seen by everyone.** A forced pose isn't synced, so the server's crawl alone left players standing on every client. `client/DownedView` sets the crawl on each client for every player the HUD sync says is down, including you.
+  - **Your screen** goes black and white while you're down: the post effect `packapunch:shaders/post/downed.json`, vanilla's `color_convolve` at saturation 0. It turns off when you get up or the game ends.
+  - **Red glow.** A downed player glows, through walls, for everyone. Glowing takes the team's color, so they join the red team `packapunch_downed` and go back to their previous team (or none) when they get up, leave, or the game ends.
+  - **Chat.** Everyone in the game sees "<name> is downed" in red.
   - Getting up (revive, bleed out, leaving, game end) undoes all of that and takes back the lent pistol. A revive leaves them at half health.
 - **Food** is held at 17 for players in a game, so vanilla regen never runs and sprinting still works.
 - **Input.** Hold the use key (O) or right click on a downed teammate. The use key sends `RevivePacket(entity)` every 2 ticks; right click goes through `EntityInteract`. The crosshair on a downed teammate shows "Revive <name>".
@@ -79,5 +83,5 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
   - regen waits for the delay
   - downed players earn kill points
 
-  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer (crawl pose, slowed, pistol held, Juggernog's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone.
+  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer (crawl pose, slowed, pistol held, Juggernog's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
 
