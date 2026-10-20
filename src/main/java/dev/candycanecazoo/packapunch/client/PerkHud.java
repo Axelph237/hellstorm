@@ -59,7 +59,7 @@ public final class PerkHud {
 
         @SubscribeEvent
         public static void register(RegisterGuiOverlaysEvent event) {
-            event.registerAbove(VanillaGuiOverlay.HOTBAR.id(), "perks", (gui, graphics, partialTick, width, height) -> draw(graphics, width, height));
+            event.registerAbove(VanillaGuiOverlay.HOTBAR.id(), "perks", (gui, graphics, partialTick, width, height) -> GameHud.scaled(graphics, width, height, PerkHud::draw));
         }
     }
 

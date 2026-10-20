@@ -2,7 +2,7 @@
 
 ## Goal
 
-Players spend points to open doors and clear debris, which unlocks new zones. A door is any group of ordinary blocks the map maker picks with the Door Wand, so a door can look like anything: a wooden door, a pile of gravel, a bookshelf wall. Opening it grows where zombies spawn and where they can path.
+Players spend points to open doors and clear debris, which unlocks new zones. A door is any group of ordinary blocks the map maker selects with the Zone Wand, so a door can look like anything: a wooden door, a pile of gravel, a bookshelf wall. Opening it grows where zombies spawn and where they can path.
 
 ## Data shape
 
@@ -14,7 +14,7 @@ record DoorId(String value) {}
 record DoorDef(
     DoorId id,
     String displayName,
-    Set<BlockPos> members,          // any blocks, picked with the Door Wand
+    Set<BlockPos> members,          // any blocks, selected with the Zone Wand
     int cost,
     boolean requiresPower,
     DoorStyle style,                // DOOR or DEBRIS: only changes the open animation and sound
@@ -27,12 +27,11 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 
 ## Implementation
 
-**Door Wand** (a map-maker tool, same feel as the Zone Wand):
-- `/pap door create <door>` starts a new group, or right-click a member of an existing door to select it.
-- Right-click a block to add or remove it. Click two corners to add every non-air block in the box, like the Zone Wand selection.
-- The selected group shows as a Create-style `showCluster` outline around the blocks. Other doors in range show thinner clusters in their own color. A block already in another door shows yellow and is refused.
-- `/pap door set <door> cost|power|style|name <value>`, or the creative config screen opened by sneak-right-clicking a member with the wand.
-- Zones are inferred from the zones touching the group on each side. The Link Tool overrides them.
+**Making a door** (with the Zone Wand selection):
+- Select a box around the door's blocks, then `/pap door create <door> [cost]`. Add more boxes with `/pap door add <door>` and take blocks out with `/pap door cut <door>`.
+- Doors show as Create-style `showCluster` outlines around their blocks while a map tool is held.
+- `/pap door set <door> cost|power|style <value>`.
+- Zones are inferred from the zones touching the group on each side.
 - In edit mode, breaking a member removes it from the group. Removing the last member deletes the door.
 
 **Snapshot and reset.**
@@ -83,15 +82,12 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 ## As built (phase 5)
 
 - **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The zones aren't stored. `DoorDef.zones(index)` finds the zones its blocks border, looking up to 2 cells out from each block, so editing zones never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "Door" or "Debris".
-- **Door Wand** (`tools/DoorWandItem`, golden axe look):
-  - Right-click a block to add it to the door being edited, or remove it.
-  - With no door being edited, right-click a door's block to start editing that door.
-  - Sneak-right-click stops editing.
-  - Every door shows as a gold cluster outline while a map tool is held; the one being edited is thicker and brighter.
-- **Commands** (`/pap door`):
-  - `create <id> [cost]` creates a door at `doors.default_cost` unless a cost is given, and starts editing it.
-  - `select <id>`.
-  - `fill` adds every non-air block in the Zone Wand selection to the door being edited.
+- **No Door Wand.** Doors are made from the Zone Wand selection (removed the Door Wand in phase 5). Every door shows as a gold cluster outline while a map tool is held.
+- **Commands** (`/pap door`), each acting on the Zone Wand selection where it takes blocks. The selection clears afterwards:
+  - `create <id> [cost]` makes a door from every non-air block in the selection, at `doors.default_cost` unless a cost is given.
+  - `add <id>` adds the selection's blocks to a door, for doors that aren't one box.
+  - `cut <id>` takes the selection's blocks out of a door.
+  - Blocks in another door are skipped, and a door holds at most 256 blocks (`tools/DoorBlocks`). `create` and `add` fail if nothing would be added.
   - `set <id> cost <points> | power <bool> | style <door|debris>`.
   - `remove <id>` (the blocks stay in the world).
   - `list`, which shows each door's zones.

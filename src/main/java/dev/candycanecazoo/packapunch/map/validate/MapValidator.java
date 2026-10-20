@@ -144,7 +144,7 @@ public final class MapValidator {
         ZoneGraph open = ZoneGraph.of(map, passages.open());
         for (DoorDef door : map.doors().values()) {
             if (door.members().isEmpty()) {
-                problems.add(Problem.error(EMPTY_DOOR, "Door '" + door.id() + "' has no blocks. Add some with the Door Wand", null));
+                problems.add(Problem.error(EMPTY_DOOR, "Door '" + door.id() + "' has no blocks. Select some with the Zone Wand, then /pap door add " + door.id(), null));
                 continue;
             }
             BlockPos at = door.members().iterator().next();

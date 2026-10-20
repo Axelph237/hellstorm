@@ -111,7 +111,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 - **Audit.** `PunchAudit.SOURCES` is a list of `Source` functions (`ServerLevel -> List<Entry(source, pos, ItemSpec)>`). Today it holds every def result and the starting loadout.
   - It runs on `ServerStartedEvent` and on `OnDatapackSyncEvent` with no player (end of /reload), against the overworld, and logs each finding as an ERROR.
   - `GameManager.validationContext` passes the findings to `MapValidator` through a new `ValidationContext.itemProblems`. They are WARNINGs (`pap_unknown_punch_id`, `pap_no_upgrade_path`), so they show in `/pap map validate` but don't block a game, because the machine refuses those items safely.
-  - Not built: the chat message to ops on join.
+  - Ops get a chat summary on joining when anything is flagged: the count, the first five findings with positions, and a pointer to `/pap map validate` (`PunchAudit.opNotice`).
 - **Shipped default.** `packapunch:iron_sword`: a diamond sword with Sharpness III, named "Pack-a-Punched Sword", for 2500. Try it with `/give @s iron_sword{pap:{punchable:1b,punch_id:"packapunch:iron_sword"}}`.
 - **Not supported: multi-tier defs through `tacz_gun`.** `ItemSpec.Gun` has no `nbt` field, so a gun result can't carry its own `punch_id`. A `Plain` result can. Adding `nbt` to `Gun` would close this.
 - **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `TEXTURES_NEEDED.md`.

@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * A door players buy to open: any group of blocks, picked with the Door Wand, standing between two zones. Opening it
+ * A door players buy to open: any group of blocks, picked with the Zone Wand, standing between two zones. Opening it
  * removes the blocks for the rest of the game; the zones beyond unlock. The zones aren't stored: they are whichever zones
  * the blocks border, so editing zones never leaves a door pointing at the wrong ones.
  */

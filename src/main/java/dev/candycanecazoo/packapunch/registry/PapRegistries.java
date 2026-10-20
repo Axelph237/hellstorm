@@ -6,7 +6,6 @@ import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
-import dev.candycanecazoo.packapunch.tools.DoorWandItem;
 import dev.candycanecazoo.packapunch.feature.MysteryBoxBlock;
 import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
 import dev.candycanecazoo.packapunch.tools.ZoneWandItem;
@@ -66,7 +65,6 @@ public final class PapRegistries {
             () -> BlockEntityType.Builder.of(PapMachineBlock.Entity::new, PAP_MACHINE.get()).build(null));
 
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
-    public static final RegistryObject<Item> DOOR_WAND = ITEMS.register("door_wand", () -> new DoorWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));
     public static final RegistryObject<Item> POWER_SWITCH_ITEM = ITEMS.register("power_switch", () -> new BlockItem(POWER_SWITCH.get(), new Item.Properties()));
     public static final RegistryObject<Item> PERK_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new BlockItem(PERK_MACHINE.get(), new Item.Properties()));
@@ -79,7 +77,6 @@ public final class PapRegistries {
             .icon(() -> ZONE_WAND.get().getDefaultInstance())
             .displayItems((params, output) -> {
                 output.accept(ZONE_WAND.get());
-                output.accept(DOOR_WAND.get());
                 output.accept(SPAWN_MARKER_ITEM.get());
                 output.accept(POWER_SWITCH_ITEM.get());
                 output.accept(PERK_MACHINE_ITEM.get());

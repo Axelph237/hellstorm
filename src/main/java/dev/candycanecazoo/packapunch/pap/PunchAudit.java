@@ -1,5 +1,9 @@
 package dev.candycanecazoo.packapunch.pap;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.config.ServerConfig;
@@ -24,13 +28,15 @@ import java.util.function.Predicate;
 
 /**
  * Finds punchable items the machine would refuse (a {@code punch_id} with no {@link PunchDef}, or a non-gun with no
- * {@code punch_id}) before anyone plays. Runs on server start and after /reload (ERROR log lines), and in map validation.
+ * {@code punch_id}) before anyone plays. Runs on server start and after /reload (ERROR log lines), in map validation,
+ * and when an op joins (a chat summary).
  * Items from elsewhere (chests, other mods) can't be scanned; the machine still hands them back unchanged.
  */
 @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID)
 public final class PunchAudit {
     public static final String UNKNOWN_PUNCH_ID = "pap_unknown_punch_id";
     public static final String NO_UPGRADE_PATH = "pap_no_upgrade_path";
+    private static final int NOTICE_LINES = 5;
 
     /** One item the mod hands out. {@code pos} is the block it comes from, for items sold by a machine. */
     public record Entry(String source, Optional<BlockPos> pos, ItemSpec spec) {}
@@ -118,6 +124,21 @@ public final class PunchAudit {
                 .toList();
     }
 
+    /** What an op sees in chat on joining: a count, the first few findings, and where to see the rest. Empty when all is well. */
+    public static List<Component> opNotice(List<Finding> findings) {
+        if (findings.isEmpty()) {
+            return List.of();
+        }
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal("Pack-a-Punch found " + findings.size() + (findings.size() == 1 ? " item" : " items")
+                + " its machine would refuse:").withStyle(ChatFormatting.RED));
+        findings.stream().limit(NOTICE_LINES).forEach(f -> lines.add(Component.literal(" - " + f.message()
+                + f.entry().pos().map(p -> " at " + p.toShortString()).orElse("")).withStyle(ChatFormatting.GRAY)));
+        int rest = findings.size() - NOTICE_LINES;
+        lines.add(Component.literal((rest > 0 ? "...and " + rest + " more. " : "") + "See /pap map validate").withStyle(ChatFormatting.GRAY));
+        return lines;
+    }
+
     private static boolean isTaczGun(ItemSpec spec) {
         return spec instanceof ItemSpec.Gun || spec.build(1).flatMap(TaczBridge::inspect).isPresent();
     }
@@ -154,6 +175,13 @@ public final class PunchAudit {
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         if (event.getPlayer() == null) {
             log(event.getPlayerList().getServer().overworld());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && player.hasPermissions(2)) {
+            opNotice(run(player.serverLevel())).forEach(player::sendSystemMessage);
         }
     }
 }

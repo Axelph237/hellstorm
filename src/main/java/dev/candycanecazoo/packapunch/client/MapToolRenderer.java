@@ -67,7 +67,6 @@ public final class MapToolRenderer {
     private static final int PATH = 0xff5555;
     private static final int DOORWAY = 0xb06cff;
     private static final int DOOR = 0xd9a441;
-    private static final int DOOR_EDITING = 0xffe14d;
 
     private static final Object SELECTION_SLOT = new Object();
 
@@ -119,9 +118,7 @@ public final class MapToolRenderer {
             if (door.members().isEmpty() || !new AABB(door.members().iterator().next()).intersects(nearby)) {
                 continue;
             }
-            boolean editing = ClientMapState.selectedDoor().filter(door.id()::equals).isPresent();
-            ZoneOutlines.cluster(new DoorSlot(door.id(), door.members()), door::members, editing ? DOOR_EDITING : DOOR,
-                    editing ? ZoneOutlines.THICK : ZoneOutlines.THIN);
+            ZoneOutlines.cluster(new DoorSlot(door.id(), door.members()), door::members, DOOR, ZoneOutlines.THIN);
         }
 
         for (WindowDef window : ClientMapState.map().windows().values()) {

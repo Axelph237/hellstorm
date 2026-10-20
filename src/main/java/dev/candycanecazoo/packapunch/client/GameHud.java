@@ -1,5 +1,6 @@
 package dev.candycanecazoo.packapunch.client;
 
+import dev.candycanecazoo.packapunch.config.ClientConfig;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.net.HudSyncPacket;
 import net.minecraft.Util;
@@ -29,7 +30,25 @@ public final class GameHud {
 
     @SubscribeEvent
     public static void register(RegisterGuiOverlaysEvent event) {
-        event.registerAbove(VanillaGuiOverlay.HOTBAR.id(), "game_hud", (gui, graphics, partialTick, width, height) -> draw(graphics, width, height));
+        event.registerAbove(VanillaGuiOverlay.HOTBAR.id(), "game_hud", (gui, graphics, partialTick, width, height) -> scaled(graphics, width, height, GameHud::draw));
+    }
+
+    /** Something drawn against the screen's edges, given the screen size it should lay itself out in. */
+    @FunctionalInterface
+    public interface Layer {
+        void draw(GuiGraphics graphics, int width, int height);
+    }
+
+    /**
+     * Draws {@code layer} at the player's {@code hud.scale}. The layer sees the screen size divided by the scale, so
+     * anything it anchors to an edge stays on that edge.
+     */
+    public static void scaled(GuiGraphics graphics, int width, int height, Layer layer) {
+        float scale = ClientConfig.HUD_SCALE.get().floatValue();
+        graphics.pose().pushPose();
+        graphics.pose().scale(scale, scale, 1);
+        layer.draw(graphics, Math.round(width / scale), Math.round(height / scale));
+        graphics.pose().popPose();
     }
 
     private static void draw(GuiGraphics graphics, int width, int height) {
@@ -87,7 +106,7 @@ public final class GameHud {
             graphics.drawString(font, points, x, y, color);
             String name = line.name();
             graphics.drawString(font, name, x - 6 - font.width(name), y, line.alive() ? GREY : 0x555555);
-            if (line.you()) {
+            if (line.you() && ClientConfig.SHOW_POPUPS.get()) {
                 drawPopups(graphics, font, x, y);
             }
             y += font.lineHeight + 2;
