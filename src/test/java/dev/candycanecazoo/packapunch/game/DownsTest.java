@@ -29,7 +29,7 @@ class DownsTest {
     private static final int REVIVE = 10;
     private static final int REGEN_DELAY = 5;
     private static final GameSettings SETTINGS = new GameSettings(
-            new GameSettings.Rounds(2, 0, 0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 24, 1, 150, 2, 2),
+            new GameSettings.Rounds(8, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2),
             GameSettings.DEFAULT.spawning(), GameSettings.DEFAULT.economy(), GameSettings.DEFAULT.players(), GameSettings.DEFAULT.windows(),
             GameSettings.DEFAULT.doors(), GameSettings.DEFAULT.box(), GameSettings.DEFAULT.pap(),
             new GameSettings.Downs(BLEED, REVIVE, 2.5, 3, REGEN_DELAY, 4.0),

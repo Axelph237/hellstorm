@@ -55,6 +55,10 @@ public final class Game {
     private record ReviveHold(UUID reviver, long tick) {}
     private final SurvivalContent content;
     private int dropsThisRound;
+    /** Points the whole team has earned this game, and where the next points-triggered drop is due (CoD's score_to_drop). */
+    private long earned;
+    private long nextDropAt;
+    private double dropIncrement;
     private final List<Drop> pendingDrops = new ArrayList<>();
     private final WaveSchedule waves;
     /** The current round's wave event, if it is a special round. */
@@ -79,6 +83,8 @@ public final class Game {
         this.powerOn = map.map().features(dev.candycanecazoo.packapunch.map.FeatureKind.POWER_SWITCH).isEmpty();
         this.graph = map.graph();
         this.unlocked = Set.copyOf(map.unlocked());
+        this.dropIncrement = settings.powerUps().dropIncrement();
+        this.nextDropAt = Math.round(dropIncrement);
     }
 
     /** Zones players can get to right now: reachable from a start zone without going through a closed door. */
@@ -390,9 +396,8 @@ public final class Game {
 
     private Optional<GameWorld.ZombieSpec> zombieSpec(int round, BlockPos marker, GameWorld world) {
         GameSettings.Rounds r = settings.rounds();
-        boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
         return pickProfile(round, marker, world).map(profile ->
-                new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), RoundPlan.zombieSpeed(r, round, sprints)));
+                new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), RoundPlan.zombieSpeed(r, round)));
     }
 
     /** A special round's own profiles, if it has any that fit this marker, else the roster's pick. */
@@ -496,6 +501,7 @@ public final class Game {
         int room = settings.economy().repairCapPerRound() - player.repairPointsThisRound();
         if (room > 0) {
             player.addRepairPoints(Math.min(award, room));
+            earned += Math.min(award, room);
         }
     }
 
@@ -503,7 +509,7 @@ public final class Game {
     public void onMobHit(UUID mob, UUID attacker) {
         PlayerState player = players.get(attacker);
         if (mobs.contains(mob) && player != null && player.inPlay()) {
-            player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), doublePoints()));
+            earn(player, Economy.award(settings.economy(), new PointSource.Hit(), doublePoints()));
         }
     }
 
@@ -514,7 +520,7 @@ public final class Game {
         }
         Optional<PlayerState> player = killer.map(players::get).filter(PlayerState::inPlay);
         player.ifPresent(p -> {
-            p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), doublePoints()));
+            earn(p, Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), doublePoints()));
             p.countKill(headshot);
         });
         events.emit(new GameEvent.ZombieKilled(mob, player.map(PlayerState::id), headshot, melee, pos));
@@ -523,8 +529,13 @@ public final class Game {
         }
         // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
         if (player.isPresent()) {
-            PowerUpDrops.roll(settings.powerUps(), dropsThisRound, content.powerUps(), random).ifPresent(powerUp -> {
+            boolean pointsDue = earned >= nextDropAt;
+            PowerUpDrops.roll(settings.powerUps(), dropsThisRound, pointsDue, content.powerUps(), random).ifPresent(powerUp -> {
                 dropsThisRound++;
+                if (pointsDue) {
+                    nextDropAt = earned + Math.round(dropIncrement);
+                    dropIncrement *= settings.powerUps().dropIncrementGrowth();
+                }
                 pendingDrops.add(new Drop(powerUp, pos));
             });
         }
@@ -559,7 +570,13 @@ public final class Game {
 
     /** Points for every player in the game, such as a Nuke's or a Carpenter's bonus. Never doubled. */
     public void awardEveryone(int points) {
-        players.values().forEach(p -> p.addPoints(points));
+        players.values().forEach(p -> earn(p, points));
+    }
+
+    /** Points a player earned, as opposed to a refund: they count toward the points-triggered power-up drops. */
+    private void earn(PlayerState player, int points) {
+        player.addPoints(points);
+        earned += points;
     }
 
     /** A game zombie left the world without dying (unloaded, discarded). It is spawned again. */

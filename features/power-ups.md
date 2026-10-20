@@ -33,7 +33,7 @@ Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `nuke`
 
 ## Config surface
 
-- `powerups.drop_chance` (0.03), `powerups.max_per_round` (4).
+- `powerups.drop_chance` (0.02), `powerups.max_per_round` (4), `powerups.drop_increment` (2000), `powerups.drop_increment_growth` (1.14).
 - `powerups.lifetime_ticks` (600), `powerups.blink_ticks` (100).
 - Per power-up JSON: weight, duration.
 
@@ -72,3 +72,8 @@ Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `nuke`
 - **HUD.** Timed effects show in the foundation's timer row ("Insta-Kill 23").
 - **Tests.** JUnit: `PowerUpDropsTest` (the cap, the chance and weights over many kills, zero weight), `PowerUpDefTest` (the six defaults, field defaults, bad files), `game/PowerUpGameTest` (player kills drop up to the cap and it resets next round, kills nobody made don't drop, Double Points doubles hits and kills and stops with its timer, collecting needs an alive player and a running game). GameTests (`PowerUpGameTests`): Max Ammo refills a held and a stowed gun; Double Points doubles a repair and shows its timer; Carpenter boards two windows and pays the bonus; Fire Sale opens both box locations at the Fire Sale price and closes all but the home when its 20-tick timer ends; Insta-Kill makes a 1-damage punch kill a real game zombie and pay a melee kill; Nuke kills every game zombie as kills nobody made and pays only the bonus; walking into a dropped pickup collects it once and removes it.
 - **Not built:** per-power-up sounds and the HUD icons (`TEXTURES_NEEDED.md`).
+
+## CoD drop scaling (phase 7)
+
+Drops follow Black Ops: a 2% chance on any player's kill (`drop_chance`), plus points-triggered drops. The game keeps the team's earned points (hits, kills, repairs, and Nuke and Carpenter bonuses; not refunds). Once they reach the next threshold, the next player kill drops a power-up even without the chance, the threshold moves `drop_increment` further on from the current total, and the increment grows by `drop_increment_growth`: 2000 points, then 2280 more, 2599 more, and so on. `max_per_round` still caps both kinds. `PowerUpDrops.roll(settings, droppedThisRound, pointsDue, table, random)` decides; `Game` tracks the points. Tests: `PowerUpDropsTest.pointsReachingTheThresholdDropEvenWithNoChanceButNotPastTheCap` and `PowerUpGameTest.theTeamsPointsTriggerDropsAtAGrowingThresholdWithoutAnyChance`.
+

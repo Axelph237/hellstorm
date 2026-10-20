@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class RoundsTest {
     private static int ticks(int ms) {
         GameSettings.Rounds d = GameSettings.DEFAULT.rounds();
-        return new GameSettings.Rounds(d.baseCount(), d.countPerRound(), d.playerFactor(), d.healthScale(), d.sprintFromRound(), d.walkSpeed(),
-                d.sprintSpeed(), d.healthGrowth(), d.speedGrowth(), d.maxAlive(), d.spawnDelayTicks(), ms, d.countdownTicks(), d.gameOverTicks())
+        return new GameSettings.Rounds(d.baseCount(), d.aiPerPlayer(), d.healthScale(), d.healthGrowth(), d.runFromRound(), d.sprintFromRound(),
+                d.walkSpeed(), d.runSpeed(), d.sprintSpeed(), d.maxAlive(), d.spawnDelayTicks(), d.spawnDelayFactor(), ms, d.countdownTicks(), d.gameOverTicks())
                 .intermissionTicks();
     }
 

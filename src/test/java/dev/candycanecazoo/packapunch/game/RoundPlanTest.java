@@ -3,46 +3,53 @@ package dev.candycanecazoo.packapunch.game;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.stream.IntStream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/** The defaults are Black Ops' own numbers. */
 class RoundPlanTest {
     private static final GameSettings.Rounds R = GameSettings.DEFAULT.rounds();
 
-    @Test
-    void zombieCountGrowsPerRoundAndPerPlayer() {
-        assertEquals(6, RoundPlan.zombieCount(R, 1, 1));
-        assertEquals(16, RoundPlan.zombieCount(R, 5, 1));
-        assertEquals(29, RoundPlan.zombieCount(R, 10, 1), "6 + 2.5 * 9 = 28.5, rounded");
-        assertEquals(15, RoundPlan.zombieCount(R, 1, 4), "6 * (1 + 0.5 * 3)");
+    private static List<Integer> counts(int players, int toRound) {
+        return IntStream.rangeClosed(1, toRound).map(round -> RoundPlan.zombieCount(R, round, players)).boxed().toList();
     }
 
     @Test
-    void healthFollowsCodsShapeThenGrowsSlowly() {
+    void soloCountsAreCodsFirstTenRounds() {
+        assertEquals(List.of(6, 8, 13, 18, 24, 27, 28, 28, 29, 33), counts(1, 10));
+    }
+
+    @Test
+    void morePlayersAddSixEachScaledByTheRound() {
+        assertEquals(10, RoundPlan.zombieCount(R, 1, 4), "(24 + 3 x 6) x 25%");
+        assertEquals(45, RoundPlan.zombieCount(R, 6, 4), "24 + int(3 x 6 x 1.2) = 24 + 21; 1.2 from round 6 / 5");
+        assertEquals(24 + (int) (6 * 3.0), RoundPlan.zombieCount(R, 10, 2), "round 10: 2 x (10 x 0.15) = 3");
+        assertEquals(24 + (int) (0.5 * 6 * (20 / 5.0) * (20 * 0.15)), RoundPlan.zombieCount(R, 20, 1), "round 20 solo: 24 + 36 = 60");
+    }
+
+    @Test
+    void healthIsCodsCurve() {
         assertEquals(22.5, RoundPlan.zombieHealth(R, 1), 1e-9, "150 x 0.15");
-        assertEquals(82.5, RoundPlan.zombieHealth(R, 5), 1e-9, "(150 + 400) x 0.15");
-        assertEquals(142.5, RoundPlan.zombieHealth(R, 9), 1e-9);
-        assertEquals(950 * 1.004 * 0.15, RoundPlan.zombieHealth(R, 10), 1e-9, "0.4% more than round 9");
-        assertEquals(950 * Math.pow(1.004, 41) * 0.15, RoundPlan.zombieHealth(R, 50), 1e-9, "about 168 HP by round 50");
+        assertEquals(142.5, RoundPlan.zombieHealth(R, 9), 1e-9, "950 x 0.15");
+        assertEquals(950 * 1.1 * 0.15, RoundPlan.zombieHealth(R, 10), 1e-9, "10% more each round from round 10");
+        assertEquals(950 * Math.pow(1.1, 21) * 0.15, RoundPlan.zombieHealth(R, 30), 1e-6);
     }
 
     @Test
-    void speedGrowsByAHundredthOfAPercentPerRound() {
-        assertEquals(0.23, RoundPlan.zombieSpeed(R, 1, false), 1e-12);
-        assertEquals(0.23 * 1.0001, RoundPlan.zombieSpeed(R, 2, false), 1e-12);
-        assertEquals(0.32 * Math.pow(1.0001, 49), RoundPlan.zombieSpeed(R, 50, true), 1e-12, "sprinters grow at the same rate");
+    void walkersThenRunnersFromRoundFiveThenSprintersFromRoundNine() {
+        assertEquals(R.walkSpeed(), RoundPlan.zombieSpeed(R, 4));
+        assertEquals(R.runSpeed(), RoundPlan.zombieSpeed(R, 5));
+        assertEquals(R.runSpeed(), RoundPlan.zombieSpeed(R, 8));
+        assertEquals(R.sprintSpeed(), RoundPlan.zombieSpeed(R, 9));
+        assertEquals(R.sprintSpeed(), RoundPlan.zombieSpeed(R, 50), "no further growth");
     }
 
     @Test
-    void sprintersStartAtTheConfiguredRound() {
-        assertEquals(0.0, RoundPlan.sprintChance(R, 5));
-        assertEquals(0.2, RoundPlan.sprintChance(R, 6), 1e-9);
-        assertEquals(1.0, RoundPlan.sprintChance(R, 20));
-    }
-
-    @Test
-    void spawnDelayShrinksToAFloor() {
-        assertEquals(40, RoundPlan.spawnDelayTicks(R, 1));
-        assertEquals(22, RoundPlan.spawnDelayTicks(R, 10));
-        assertEquals(5, RoundPlan.spawnDelayTicks(R, 50));
+    void theSpawnDelayShrinksFivePercentARoundToCodsFloor() {
+        assertEquals(40, RoundPlan.spawnDelayTicks(R, 1), "2 seconds");
+        assertEquals((int) Math.round(40 * Math.pow(0.95, 9)), RoundPlan.spawnDelayTicks(R, 10));
+        assertEquals(RoundPlan.MIN_SPAWN_DELAY_TICKS, RoundPlan.spawnDelayTicks(R, 100));
     }
 }

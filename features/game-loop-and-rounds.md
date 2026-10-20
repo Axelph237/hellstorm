@@ -34,11 +34,12 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
   - `RoundActive(r) → Intermission(r+1)` when `toSpawn == 0 && alive == 0`.
   - any phase `→ GameOver` when no player is `Alive`.
   - `GameOver → Lobby` after the timer. `MapReset` runs.
-- **Round formulas** (`RoundPlan`, pure):
-  - Zombie count: `rounds.base_count + rounds.count_per_round * r`, times a player-count factor.
-  - Health: CoD-style `150 + 100*(r-1)` up to round 9, then growing `rounds.health_growth` (0.4%, where CoD uses 10%) per round, times `rounds.health_scale` (0.15). Speed grows `rounds.speed_growth` (0.01%) per round (TacZ damage is in Minecraft HP).
-  - Speed: walkers until `rounds.sprint_from_round`, mixed after.
-  - Max alive at once: `rounds.max_alive` (default 24).
+- **Round formulas** (`RoundPlan`, pure). Black Ops' own scaling, from its `_zombiemode` script (phase 7; before, the count grew linearly, health barely grew after round 9, and sprinters phased in by chance):
+  - Zombie count: `base_count` (24, CoD's `zombie_max_ai`) plus `ai_per_player` (6) for each player past the first, or half of it alone, that extra times the round multiplier: round / 5 (at least 1), and from round 10 also times round x 0.15. Rounds 1 to 5 take 25, 30, 50, 70, and 90% of it. Solo that gives CoD's 6, 8, 13, 18, 24, 27, 28, 28, 29, 33 for rounds 1 to 10, and 60 at round 20.
+  - Health: `150 + 100*(r-1)` up to round 9 (950), then times 1 + `health_growth` (0.1, CoD's 10%) each round, all times `health_scale` (0.15) into Minecraft HP, since TacZ damage is in Minecraft HP.
+  - Speed: walkers (`walk_speed` 0.23), runners from `run_from_round` (5, `run_speed` 0.28), sprinters from `sprint_from_round` (9, `sprint_speed` 0.32), CoD's move-speed thresholds (round x 8 below 35, below 70, and above). No further growth.
+  - Spawn delay: `spawn_delay_ticks` (40, CoD's 2 seconds) times `spawn_delay_factor` (0.95) each round, down to 2 ticks (CoD's 0.08 s).
+  - Max alive at once: `rounds.max_alive` (24).
 - **Events.** Emits `game_start`, `round_start`, `round_end`, `game_end`, `zombie_spawned`, `zombie_killed` on the game's `GameEvents` bus.
 - **Effects go through `GameWorld`.** `Game` is pure: spawning, teleporting, spectating, and status text go through the `GameWorld` interface. `ForgeGameWorld` implements it for a level, and the unit tests use a fake.
 - **Commands.** `/pap join`, `/pap leave`, and `/pap status` are open to everyone. `/pap start` is for players in the game (or ops). `/pap stop` is op-only.
@@ -47,7 +48,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 
 ## Config surface
 
-`rounds.base_count`, `rounds.count_per_round`, `rounds.player_factor`, `rounds.health_scale`, `rounds.health_growth`, `rounds.speed_growth`, `rounds.sprint_from_round`, `rounds.max_alive`, `rounds.spawn_delay_ticks`, `rounds.intermission_ms`, `rounds.countdown_ticks`.
+`rounds.base_count`, `rounds.ai_per_player`, `rounds.health_scale`, `rounds.health_growth`, `rounds.run_from_round`, `rounds.sprint_from_round`, `rounds.walk_speed`, `rounds.run_speed`, `rounds.sprint_speed`, `rounds.max_alive`, `rounds.spawn_delay_ticks`, `rounds.spawn_delay_factor`, `rounds.intermission_ms`, `rounds.countdown_ticks`.
 
 ## Assets
 

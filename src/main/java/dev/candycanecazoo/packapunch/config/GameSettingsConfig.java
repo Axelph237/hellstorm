@@ -8,16 +8,19 @@ import java.util.List;
 /** The server-config side of {@link GameSettings}: one TOML entry per field, defaulting to {@link GameSettings#DEFAULT}. */
 public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue baseCount;
-    private final ForgeConfigSpec.DoubleValue countPerRound;
-    private final ForgeConfigSpec.DoubleValue playerFactor;
+    private final ForgeConfigSpec.IntValue aiPerPlayer;
     private final ForgeConfigSpec.DoubleValue healthScale;
     private final ForgeConfigSpec.DoubleValue healthGrowth;
-    private final ForgeConfigSpec.DoubleValue speedGrowth;
+    private final ForgeConfigSpec.IntValue runFromRound;
     private final ForgeConfigSpec.IntValue sprintFromRound;
     private final ForgeConfigSpec.DoubleValue walkSpeed;
+    private final ForgeConfigSpec.DoubleValue runSpeed;
     private final ForgeConfigSpec.DoubleValue sprintSpeed;
     private final ForgeConfigSpec.IntValue maxAlive;
     private final ForgeConfigSpec.IntValue spawnDelayTicks;
+    private final ForgeConfigSpec.DoubleValue spawnDelayFactor;
+    private final ForgeConfigSpec.IntValue dropIncrement;
+    private final ForgeConfigSpec.DoubleValue dropIncrementGrowth;
     private final ForgeConfigSpec.IntValue intermissionMs;
     private final ForgeConfigSpec.IntValue countdownTicks;
     private final ForgeConfigSpec.IntValue gameOverTicks;
@@ -79,21 +82,24 @@ public final class GameSettingsConfig {
     GameSettingsConfig(ForgeConfigSpec.Builder b) {
         GameSettings d = GameSettings.DEFAULT;
         b.push("rounds");
-        baseCount = b.comment("Zombies in round 1 for one player.").defineInRange("base_count", d.rounds().baseCount(), 1, 1000);
-        countPerRound = b.comment("Extra zombies per round.").defineInRange("count_per_round", d.rounds().countPerRound(), 0.0, 100.0);
-        playerFactor = b.comment("Each extra player multiplies the count by (1 + this).").defineInRange("player_factor", d.rounds().playerFactor(), 0.0, 10.0);
+        baseCount = b.comment("Black Ops' zombie count: (this + extra for players) times a round multiplier, then 25/30/50/70/90% of it in rounds 1 to 5. CoD's zombie_max_ai, 24.")
+                .defineInRange("base_count", d.rounds().baseCount(), 1, 1000);
+        aiPerPlayer = b.comment("CoD's zombie_ai_per_player (6): each player past the first adds this times the round multiplier; alone, half of it.")
+                .defineInRange("ai_per_player", d.rounds().aiPerPlayer(), 0, 100);
         healthScale = b.comment("Zombie health follows CoD's curve (150, +100 per round to round 9) times this, in Minecraft HP.")
                 .defineInRange("health_scale", d.rounds().healthScale(), 0.001, 100.0);
-        healthGrowth = b.comment("After round 9, CoD's health grows by this fraction each round, compounding (0.004 = 0.4%; CoD itself uses 0.1).")
+        healthGrowth = b.comment("After round 9, CoD's health grows by this fraction each round, compounding (CoD's own is 0.1).")
                 .defineInRange("health_growth", d.rounds().healthGrowth(), 0.0, 10.0);
-        speedGrowth = b.comment("Zombie walk and sprint speed grow by this fraction each round, compounding (0.0001 = 0.01% per round).")
-                .defineInRange("speed_growth", d.rounds().speedGrowth(), 0.0, 10.0);
-        sprintFromRound = b.comment("First round where some zombies sprint.").defineInRange("sprint_from_round", d.rounds().sprintFromRound(), 1, 1000);
+        runFromRound = b.comment("First round zombies run instead of walk (CoD: 5).").defineInRange("run_from_round", d.rounds().runFromRound(), 1, 1000);
+        sprintFromRound = b.comment("First round zombies sprint (CoD: 9).").defineInRange("sprint_from_round", d.rounds().sprintFromRound(), 1, 1000);
         walkSpeed = b.defineInRange("walk_speed", d.rounds().walkSpeed(), 0.01, 2.0);
+        runSpeed = b.defineInRange("run_speed", d.rounds().runSpeed(), 0.01, 2.0);
         sprintSpeed = b.defineInRange("sprint_speed", d.rounds().sprintSpeed(), 0.01, 2.0);
         maxAlive = b.comment("Most zombies alive at once.").defineInRange("max_alive", d.rounds().maxAlive(), 1, 500);
-        spawnDelayTicks = b.comment("Ticks between spawns in round 1. Shrinks by 2 per round, to a minimum of 5.")
+        spawnDelayTicks = b.comment("Ticks between spawns in round 1 (CoD: 2 seconds, 40 ticks).")
                 .defineInRange("spawn_delay_ticks", d.rounds().spawnDelayTicks(), 1, 1200);
+        spawnDelayFactor = b.comment("The spawn delay is multiplied by this each round, down to 2 ticks (CoD: 0.95, to 0.08 seconds).")
+                .defineInRange("spawn_delay_factor", d.rounds().spawnDelayFactor(), 0.01, 1.0);
         intermissionMs = b.comment("The break between rounds, in milliseconds.").defineInRange("intermission_ms", d.rounds().intermissionMs(), 0, 600_000);
         countdownTicks = b.defineInRange("countdown_ticks", d.rounds().countdownTicks(), 0, 12000);
         gameOverTicks = b.defineInRange("game_over_ticks", d.rounds().gameOverTicks(), 0, 12000);
@@ -168,12 +174,16 @@ public final class GameSettingsConfig {
         regenPerSecond = b.comment("Health regained per second once regen starts.").defineInRange("regen_per_second", d.downs().regenPerSecond(), 0.0, 100.0);
         b.pop();
         b.push("powerups");
-        dropChance = b.comment("Chance a zombie kill drops a power-up.").defineInRange("drop_chance", d.powerUps().dropChance(), 0.0, 1.0);
+        dropChance = b.comment("Chance any zombie kill drops a power-up, besides the points-triggered drops (CoD: 0.02).").defineInRange("drop_chance", d.powerUps().dropChance(), 0.0, 1.0);
         maxPowerUpsPerRound = b.defineInRange("max_per_round", d.powerUps().maxPerRound(), 0, 100);
         powerUpLifetimeTicks = b.comment("How long a dropped power-up waits to be picked up.").defineInRange("lifetime_ticks", d.powerUps().lifetimeTicks(), 20, 12000);
         powerUpBlinkTicks = b.comment("It blinks for this long before it disappears.").defineInRange("blink_ticks", d.powerUps().blinkTicks(), 0, 12000);
         nukeBonus = b.comment("Points each player gets from a Nuke.").defineInRange("nuke_bonus", d.powerUps().nukeBonus(), 0, 1_000_000);
         carpenterBonus = b.comment("Points each player gets from a Carpenter.").defineInRange("carpenter_bonus", d.powerUps().carpenterBonus(), 0, 1_000_000);
+        dropIncrement = b.comment("CoD's points-triggered drops: the next kill drops a power-up once the team has earned this many points since the last one.")
+                .defineInRange("drop_increment", d.powerUps().dropIncrement(), 1, Integer.MAX_VALUE);
+        dropIncrementGrowth = b.comment("Each points-triggered drop makes the next threshold this much bigger (CoD: 1.14).")
+                .defineInRange("drop_increment_growth", d.powerUps().dropIncrementGrowth(), 1.0, 10.0);
         b.pop();
         b.push("traps");
         trapDefaultCost = b.defineInRange("default_cost", d.traps().defaultCost(), 0, 1_000_000);
@@ -213,8 +223,8 @@ public final class GameSettingsConfig {
 
     private GameSettings read(ConfigValueReader r) {
         return new GameSettings(
-                new GameSettings.Rounds(r.read(baseCount), r.read(countPerRound), r.read(playerFactor), r.read(healthScale), r.read(sprintFromRound),
-                        r.read(walkSpeed), r.read(sprintSpeed), r.read(healthGrowth), r.read(speedGrowth), r.read(maxAlive), r.read(spawnDelayTicks), r.read(intermissionMs),
+                new GameSettings.Rounds(r.read(baseCount), r.read(aiPerPlayer), r.read(healthScale), r.read(healthGrowth), r.read(runFromRound), r.read(sprintFromRound),
+                        r.read(walkSpeed), r.read(runSpeed), r.read(sprintSpeed), r.read(maxAlive), r.read(spawnDelayTicks), r.read(spawnDelayFactor), r.read(intermissionMs),
                         r.read(countdownTicks), r.read(gameOverTicks)),
                 new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
@@ -230,7 +240,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Downs(r.read(bleedOutTicks), r.read(reviveTicks), r.read(reviveRange), r.read(soloSelfRevives),
                         r.read(regenDelayTicks), r.read(regenPerSecond)),
                 new GameSettings.PowerUps(r.read(dropChance), r.read(maxPowerUpsPerRound), r.read(powerUpLifetimeTicks), r.read(powerUpBlinkTicks),
-                        r.read(nukeBonus), r.read(carpenterBonus)),
+                        r.read(nukeBonus), r.read(carpenterBonus), r.read(dropIncrement), r.read(dropIncrementGrowth)),
                 new GameSettings.Traps(r.read(trapDefaultCost), r.read(trapDefaultActiveTicks), r.read(trapDefaultCooldownTicks)),
                 new GameSettings.WaveEvents(r.read(waveEventsEnabled), ids(r.read(waveEventsDisabled))));
     }

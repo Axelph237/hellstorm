@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** The game loop against a fake world: four touching zones A-B-C-D along x, a spawn marker in each, A is the start. */
 class GameTest {
     private static final GameSettings SETTINGS = new GameSettings(
-            new GameSettings.Rounds(3, 1.0, 0.0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 24, 1, 150, 2, 2),
+            new GameSettings.Rounds(12, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2),
             new GameSettings.Spawning(1, 24.0, 0.0),
             GameSettings.DEFAULT.economy(),
             GameSettings.DEFAULT.players(),
@@ -137,13 +137,13 @@ class GameTest {
         tick(game, world, 4);
         assertEquals(2, assertInstanceOf(GamePhase.RoundActive.class, game.phase()).round());
         tick(game, world, 50);
-        assertEquals(3 + 4, world.spawned.size(), "round 2 spawns 3 + 1 more");
+        assertEquals(3 + RoundPlan.zombieCount(SETTINGS.rounds(), 2, 1), world.spawned.size(), "round 2 spawns its own count");
     }
 
     @Test
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
-                new GameSettings.Rounds(10, 0, 0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 2, 5, 150, 0, 2),
+                new GameSettings.Rounds(40, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 2, 5, 1.0, 150, 0, 2),
                 SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap(),
                 SETTINGS.downs(), SETTINGS.powerUps(), SETTINGS.traps(), SETTINGS.waveEvents());
         Game game = newGame(capped);

@@ -13,22 +13,27 @@ import java.util.List;
  */
 public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Players players, Windows windows, Doors doors, Box box, Pap pap,
                            Downs downs, PowerUps powerUps, Traps traps, WaveEvents waveEvents) {
+    /**
+     * Black Ops' round scaling (see {@link dev.candycanecazoo.packapunch.game.RoundPlan}). {@code baseCount} and
+     * {@code aiPerPlayer} are CoD's {@code zombie_max_ai} (24) and {@code zombie_ai_per_player} (6).
+     */
     public record Rounds(
-            int baseCount, double countPerRound, double playerFactor,
-            double healthScale, int sprintFromRound, double walkSpeed, double sprintSpeed, double healthGrowth, double speedGrowth,
-            int maxAlive, int spawnDelayTicks, int intermissionMs, int countdownTicks, int gameOverTicks) {
+            int baseCount, int aiPerPlayer, double healthScale, double healthGrowth,
+            int runFromRound, int sprintFromRound, double walkSpeed, double runSpeed, double sprintSpeed,
+            int maxAlive, int spawnDelayTicks, double spawnDelayFactor, int intermissionMs, int countdownTicks, int gameOverTicks) {
         public static final Codec<Rounds> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("base_count").forGetter(Rounds::baseCount),
-                Codec.DOUBLE.fieldOf("count_per_round").forGetter(Rounds::countPerRound),
-                Codec.DOUBLE.fieldOf("player_factor").forGetter(Rounds::playerFactor),
+                Codec.INT.fieldOf("ai_per_player").forGetter(Rounds::aiPerPlayer),
                 Codec.DOUBLE.fieldOf("health_scale").forGetter(Rounds::healthScale),
+                Codec.DOUBLE.fieldOf("health_growth").forGetter(Rounds::healthGrowth),
+                Codec.INT.fieldOf("run_from_round").forGetter(Rounds::runFromRound),
                 Codec.INT.fieldOf("sprint_from_round").forGetter(Rounds::sprintFromRound),
                 Codec.DOUBLE.fieldOf("walk_speed").forGetter(Rounds::walkSpeed),
+                Codec.DOUBLE.fieldOf("run_speed").forGetter(Rounds::runSpeed),
                 Codec.DOUBLE.fieldOf("sprint_speed").forGetter(Rounds::sprintSpeed),
-                Codec.DOUBLE.fieldOf("health_growth").forGetter(Rounds::healthGrowth),
-                Codec.DOUBLE.fieldOf("speed_growth").forGetter(Rounds::speedGrowth),
                 Codec.INT.fieldOf("max_alive").forGetter(Rounds::maxAlive),
                 Codec.INT.fieldOf("spawn_delay_ticks").forGetter(Rounds::spawnDelayTicks),
+                Codec.DOUBLE.fieldOf("spawn_delay_factor").forGetter(Rounds::spawnDelayFactor),
                 Codec.INT.fieldOf("intermission_ms").forGetter(Rounds::intermissionMs),
                 Codec.INT.fieldOf("countdown_ticks").forGetter(Rounds::countdownTicks),
                 Codec.INT.fieldOf("game_over_ticks").forGetter(Rounds::gameOverTicks)
@@ -141,14 +146,22 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     }
 
     /** Power-up drops from zombie kills: a chance per kill, at most {@code maxPerRound} a round. */
-    public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int nukeBonus, int carpenterBonus) {
+    /**
+     * {@code dropIncrement} and {@code dropIncrementGrowth}: CoD's points-triggered drops. Once the team has earned that
+     * many points since the last such drop, the next kill drops a power-up, and the next threshold is that much further
+     * on, times the growth.
+     */
+    public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int nukeBonus, int carpenterBonus,
+                           int dropIncrement, double dropIncrementGrowth) {
         public static final Codec<PowerUps> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.fieldOf("drop_chance").forGetter(PowerUps::dropChance),
                 Codec.INT.fieldOf("max_per_round").forGetter(PowerUps::maxPerRound),
                 Codec.INT.fieldOf("lifetime_ticks").forGetter(PowerUps::lifetimeTicks),
                 Codec.INT.fieldOf("blink_ticks").forGetter(PowerUps::blinkTicks),
                 Codec.INT.fieldOf("nuke_bonus").forGetter(PowerUps::nukeBonus),
-                Codec.INT.fieldOf("carpenter_bonus").forGetter(PowerUps::carpenterBonus)
+                Codec.INT.fieldOf("carpenter_bonus").forGetter(PowerUps::carpenterBonus),
+                Codec.INT.fieldOf("drop_increment").forGetter(PowerUps::dropIncrement),
+                Codec.DOUBLE.fieldOf("drop_increment_growth").forGetter(PowerUps::dropIncrementGrowth)
         ).apply(i, PowerUps::new));
     }
 
@@ -189,7 +202,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     ).apply(i, GameSettings::new));
 
     public static final GameSettings DEFAULT = new GameSettings(
-            new Rounds(6, 2.5, 0.5, 0.15, 6, 0.23, 0.32, 0.004, 0.0001, 24, 40, 3000, 100, 200),
+            new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 3000, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
             new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false, 2, 4, 4, 1200),
@@ -198,7 +211,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             new Box(950, 10, 80, 240, 4, 0.15),
             new Pap(5000, 60, 240, 1, 2.0, 1.5, 1.2),
             new Downs(600, 60, 2.5, 3, 80, 4.0),
-            new PowerUps(0.03, 4, 600, 100, 400, 200),
+            new PowerUps(0.02, 4, 600, 100, 400, 200, 2000, 1.14),
             new Traps(1000, 200, 600),
             new WaveEvents(true, List.of()));
 }

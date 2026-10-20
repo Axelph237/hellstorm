@@ -33,10 +33,14 @@ class PowerUpGameTest {
     private UUID alice;
 
     private static GameSettings settings(double dropChance, int cap) {
+        return settings(dropChance, cap, Integer.MAX_VALUE, 1.0);
+    }
+
+    private static GameSettings settings(double dropChance, int cap, int increment, double growth) {
         GameSettings d = GameSettings.DEFAULT;
-        return new GameSettings(new GameSettings.Rounds(4, 0.0, 0.0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 24, 1, 3, 2, 2),
+        return new GameSettings(new GameSettings.Rounds(16, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 3, 2, 2),
                 new GameSettings.Spawning(1, 24.0, 0.0), d.economy(), d.players(), d.windows(), d.doors(), d.box(), d.pap(), d.downs(),
-                new GameSettings.PowerUps(dropChance, cap, 600, 100, 400, 200), d.traps(), d.waveEvents());
+                new GameSettings.PowerUps(dropChance, cap, 600, 100, 400, 200, increment, growth), d.traps(), d.waveEvents());
     }
 
     private Game game(GameSettings settings) {
@@ -87,6 +91,26 @@ class PowerUpGameTest {
         game.onMobDied(game.mobs().iterator().next(), Optional.of(alice), false, false, BlockPos.ZERO);
         tick(game, 1);
         assertEquals(3, world.drops.size(), "round 2 can drop again");
+    }
+
+    /** Kills are worth 60. The first drop is due at 100 team points; then 100 further on, and the gap doubles each time. */
+    @Test
+    void theTeamsPointsTriggerDropsAtAGrowingThresholdWithoutAnyChance() {
+        Game game = game(settings(0.0, 10, 100, 2.0));
+        List<UUID> mobs = new ArrayList<>(game.mobs());
+        assertEquals(4, mobs.size());
+        game.onMobDied(mobs.get(0), Optional.of(alice), false, false, BlockPos.ZERO);
+        tick(game, 1);
+        assertEquals(0, world.drops.size(), "60 points: not due yet");
+        game.onMobDied(mobs.get(1), Optional.of(alice), false, false, BlockPos.ZERO);
+        tick(game, 1);
+        assertEquals(1, world.drops.size(), "120 points passed 100");
+        game.onMobDied(mobs.get(2), Optional.of(alice), false, false, BlockPos.ZERO);
+        tick(game, 1);
+        assertEquals(1, world.drops.size(), "180: the next is due at 120 + 100 = 220");
+        game.onMobDied(mobs.get(3), Optional.of(alice), false, false, BlockPos.ZERO);
+        tick(game, 1);
+        assertEquals(2, world.drops.size(), "240 passed 220");
     }
 
     @Test

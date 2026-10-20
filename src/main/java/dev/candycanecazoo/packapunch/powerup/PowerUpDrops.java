@@ -41,9 +41,12 @@ public final class PowerUpDrops {
 
     private PowerUpDrops() {}
 
-    /** A kill's drop: none once {@code maxPerRound} have dropped this round, else {@code dropChance} of a weighted pick. */
-    public static Optional<ResourceLocation> roll(GameSettings.PowerUps settings, int droppedThisRound, Table table, RandomSource random) {
-        if (droppedThisRound >= settings.maxPerRound() || random.nextDouble() >= settings.dropChance()) {
+    /**
+     * A kill's drop: none once {@code maxPerRound} have dropped this round. Otherwise a weighted pick when the team's
+     * points have reached the next threshold ({@code pointsDue}), or else with {@code dropChance}.
+     */
+    public static Optional<ResourceLocation> roll(GameSettings.PowerUps settings, int droppedThisRound, boolean pointsDue, Table table, RandomSource random) {
+        if (droppedThisRound >= settings.maxPerRound() || (!pointsDue && random.nextDouble() >= settings.dropChance())) {
             return Optional.empty();
         }
         return table.pick(random);

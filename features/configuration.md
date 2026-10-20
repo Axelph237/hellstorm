@@ -68,3 +68,5 @@ Nothing. Everything else depends on this.
 - `rounds.intermission_ms` (3000): the break between rounds, in milliseconds, rounded up to whole ticks. Replaces `rounds.intermission_ticks`.
 - `export.margin` (6): blocks around the map's zones and machines that `/pap map export` saves when there's no Zone Wand selection (see `map-export-import.md`).
 - Per-map, not server config: `/pap map mode edit|play`, saved with the map.
+- **CoD scaling** replaced `rounds.count_per_round`, `rounds.player_factor`, and `rounds.speed_growth` with `rounds.ai_per_player` (6), `rounds.run_from_round` (5), `rounds.run_speed` (0.28), and `rounds.spawn_delay_factor` (0.95), and added `powerups.drop_increment` (2000) and `powerups.drop_increment_growth` (1.14). Changed defaults: `base_count` 6 to 24 (it is now CoD's base, not round 1's count), `sprint_from_round` 6 to 9, `health_growth` 0.004 to 0.1, `drop_chance` 0.03 to 0.02. See `game-loop-and-rounds.md` and `power-ups.md`.
+
