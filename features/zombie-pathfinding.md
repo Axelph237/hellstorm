@@ -130,4 +130,4 @@ Measured on the Test map in a live client: one player (god mode), round 1 forced
 | Spawning in, 0 to 24 zombies (first 4 s) | peak 9.0 ms |
 | 24 zombies chasing, steady (80 s) | 1.8 to 2.8 ms, typically 2.1 ms |
 
-Out of a 50 ms budget, so no optimization was needed. The spawn-time peak is the path graphs being built for the first mobs of a type. More players add only their HUD sync (every 4 ticks) and spawn-candidate weighting; zombie count is what drives the cost. A rolling average can hide a single long tick; none showed as a hitch in play.
+Out of a 50 ms budget, so no optimization was needed. The spawn-time peak is the path graphs being built for the first mobs of a type. More players add only their HUD sync (every 4 ticks) and spawn-candidate weighting; zombie count is what drives the cost. A rolling average can hide a single long tick; single-tick spikes weren't measured.
