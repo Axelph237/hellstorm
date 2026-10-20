@@ -7,6 +7,10 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.IntValue OUTLINE_RANGE;
     public static final ForgeConfigSpec.DoubleValue HUD_SCALE;
     public static final ForgeConfigSpec.BooleanValue SHOW_POPUPS;
+    public static final ForgeConfigSpec.EnumValue<PromptStyle> PROMPT_STYLE;
+
+    /** Where "AK-47 [1200]" shows: floating at the thing you're looking at, or under the crosshair. */
+    public enum PromptStyle { WORLD, HUD }
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -22,6 +26,9 @@ public final class ClientConfig {
         SHOW_POPUPS = builder
                 .comment("Show the +N / -N popups next to your points when they change.")
                 .define("show_popups", true);
+        PROMPT_STYLE = builder
+                .comment("Where the name and price of what you're looking at shows: WORLD floats it at the thing itself, HUD puts it under the crosshair.")
+                .defineEnum("prompt_style", PromptStyle.WORLD);
         builder.pop();
         SPEC = builder.build();
     }

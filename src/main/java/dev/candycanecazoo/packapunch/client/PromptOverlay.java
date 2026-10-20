@@ -1,15 +1,21 @@
 package dev.candycanecazoo.packapunch.client;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
+import dev.candycanecazoo.packapunch.config.ClientConfig;
 import dev.candycanecazoo.packapunch.feature.Prompted;
 import dev.candycanecazoo.packapunch.map.DoorDef;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
@@ -19,11 +25,16 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.Optional;
 
 /**
- * "AK-47 [1000]" (gold brackets) under the crosshair while a player in a game looks at something they can buy, with the
- * cost in red when they can't afford it, and just "No power" in red when it needs the power on.
+ * "AK-47 [1000]" (gold brackets) while a player in a game looks at something they can buy, with the cost in red when they
+ * can't afford it, and just "No power" in red when it needs the power on. Drawn here under the crosshair when the client
+ * config asks for the HUD style; otherwise {@link WorldPrompt} floats it at the target.
  */
 @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class PromptOverlay {
+    /** How far above a machine or a player the text floats. */
+    private static final double ABOVE = 0.35;
+    private static final double TOWARD_VIEWER = 0.4;
+
     private PromptOverlay() {}
 
     @SubscribeEvent
@@ -33,26 +44,55 @@ public final class PromptOverlay {
 
     private static void draw(GuiGraphics graphics, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
-        if (!HudState.inGame() || mc.level == null || mc.options.hideGui) {
+        if (!HudState.inGame() || mc.level == null || mc.options.hideGui || ClientConfig.PROMPT_STYLE.get() != ClientConfig.PromptStyle.HUD) {
             return;
         }
-        prompt(mc).ifPresent(prompt -> WrappedText.drawCentered(graphics, mc.font, text(prompt), width / 2, height / 2 + 14, width, 0xFFFFFF));
+        target(mc).ifPresent(t -> WrappedText.drawCentered(graphics, mc.font, text(t.prompt()), width / 2, height / 2 + 14, width, 0xFFFFFF));
     }
 
+    /** A prompt and the point in the world it belongs to: above a machine or a downed teammate, or on a door's near face. */
+    record Target(Prompted.Prompt prompt, Vec3 anchor) {}
+
     /** What the crosshair is on, if it is a downed teammate, a door, or a machine with something to sell. */
-    static Optional<Prompted.Prompt> prompt(Minecraft mc) {
+    static Optional<Target> target(Minecraft mc) {
         if (mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult target && HudState.downed(target.getEntity())) {
-            return Optional.of(new Prompted.Prompt("Revive " + target.getEntity().getName().getString(), 0, false));
+            Entity entity = target.getEntity();
+            return Optional.of(new Target(new Prompted.Prompt("Revive " + entity.getName().getString(), 0, false),
+                    entity.position().add(0, entity.getBbHeight() + ABOVE, 0)));
         }
         if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
             return Optional.empty();
         }
-        Optional<Prompted.Prompt> door = ClientMapState.map().doorAt(hit.getBlockPos()).map(d -> new Prompted.Prompt(
-                d.style() == DoorDef.Style.DEBRIS ? "Debris" : "Door", d.cost(), d.requiresPower()));
+        BlockPos pos = hit.getBlockPos();
+        Optional<DoorDef> door = ClientMapState.map().doorAt(pos);
         if (door.isPresent()) {
-            return door;
+            return Optional.of(new Target(new Prompted.Prompt(door.get().style() == DoorDef.Style.DEBRIS ? "Debris" : "Door",
+                    door.get().cost(), door.get().requiresPower()), nearFace(door.get(), mc.gameRenderer.getMainCamera().getPosition())));
         }
-        return mc.level.getBlockEntity(hit.getBlockPos()) instanceof Prompted prompted ? prompted.prompt() : Optional.empty();
+        if (!(mc.level.getBlockEntity(pos) instanceof Prompted prompted)) {
+            return Optional.empty();
+        }
+        VoxelShape shape = mc.level.getBlockState(pos).getShape(mc.level, pos);
+        AABB box = shape.isEmpty() ? new AABB(pos) : shape.bounds().move(pos);
+        Vec3 above = new Vec3((box.minX + box.maxX) / 2, box.maxY + ABOVE, (box.minZ + box.maxZ) / 2);
+        // A wall-buy's plate sits against the wall; pulled toward the viewer, its text doesn't sink into the wall when seen from the side.
+        Vec3 toward = mc.gameRenderer.getMainCamera().getPosition().subtract(above).multiply(1, 0, 1);
+        Vec3 anchor = toward.lengthSqr() > TOWARD_VIEWER * TOWARD_VIEWER ? above.add(toward.normalize().scale(TOWARD_VIEWER)) : above;
+        return prompted.prompt().map(p -> new Target(p, anchor));
+    }
+
+    /** The middle of the side of the door's blocks that faces the camera, along the door's thinnest axis. */
+    private static Vec3 nearFace(DoorDef door, Vec3 camera) {
+        AABB box = null;
+        for (BlockPos member : door.members()) {
+            box = box == null ? new AABB(member) : box.minmax(new AABB(member));
+        }
+        Vec3 center = box.getCenter();
+        double x = box.getXsize(), z = box.getZsize();
+        if (x <= z) {
+            return new Vec3(camera.x < center.x ? box.minX - 0.05 : box.maxX + 0.05, center.y, center.z);
+        }
+        return new Vec3(center.x, center.y, camera.z < center.z ? box.minZ - 0.05 : box.maxZ + 0.05);
     }
 
     static Component text(Prompted.Prompt prompt) {
