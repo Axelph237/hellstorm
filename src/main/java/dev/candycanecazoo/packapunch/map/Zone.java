@@ -33,16 +33,23 @@ public record Zone(ZoneId id, List<BlockBox> boxes, boolean start) {
         return boxes.stream().mapToLong(BlockBox::volume).sum();
     }
 
+    /** Adds a box, skipping it if an existing box already covers it and dropping existing boxes it covers. */
     public Zone withBox(BlockBox box) {
+        if (boxes.stream().anyMatch(b -> b.contains(box))) {
+            return this;
+        }
         List<BlockBox> next = new ArrayList<>(boxes);
+        next.removeIf(box::contains);
         next.add(box);
         return new Zone(id, next, start);
     }
 
     public Zone withBoxes(List<BlockBox> added) {
-        List<BlockBox> next = new ArrayList<>(boxes);
-        next.addAll(added);
-        return new Zone(id, next, start);
+        Zone zone = this;
+        for (BlockBox box : added) {
+            zone = zone.withBox(box);
+        }
+        return zone;
     }
 
     public Zone withoutBox(int index) {

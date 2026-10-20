@@ -158,8 +158,9 @@ public final class MapToolRenderer {
         }
     }
 
-    private static List<BlockPos> cells(Zone zone) {
-        List<BlockPos> cells = new ArrayList<>();
+    /** Each block once: the cluster outline toggles a face per block that has it, so a block listed twice cancels out. */
+    private static java.util.Set<BlockPos> cells(Zone zone) {
+        java.util.Set<BlockPos> cells = new java.util.LinkedHashSet<>();
         for (BlockBox box : zone.boxes()) {
             BlockPos.betweenClosed(box.min(), box.max()).forEach(p -> cells.add(p.immutable()));
         }

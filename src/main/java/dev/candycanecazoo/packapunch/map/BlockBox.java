@@ -61,6 +61,10 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
         return contains(pos.getX(), pos.getY(), pos.getZ());
     }
 
+    public boolean contains(BlockBox o) {
+        return contains(o.minX, o.minY, o.minZ) && contains(o.maxX, o.maxY, o.maxZ);
+    }
+
     public boolean intersects(BlockBox o) {
         return minX <= o.maxX && maxX >= o.minX && minY <= o.maxY && maxY >= o.minY && minZ <= o.maxZ && maxZ >= o.minZ;
     }
