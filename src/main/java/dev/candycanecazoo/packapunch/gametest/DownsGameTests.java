@@ -55,7 +55,7 @@ public final class DownsGameTests {
                 helper.assertTrue(cancelled, "lethal damage should be cancelled");
                 helper.assertTrue(downed(active, alice), "alice should be down");
                 helper.assertTrue(alice.isAlive() && alice.getHealth() > 0, "alice died");
-                helper.assertTrue(alice.getForcedPose() == Pose.SWIMMING, "alice should crawl, pose " + alice.getForcedPose());
+                helper.assertTrue(alice.getPose() == Pose.SWIMMING, "alice should crawl, pose " + alice.getPose());
                 helper.assertTrue(alice.getAttributeValue(Attributes.MOVEMENT_SPEED) < baseSpeed, "alice should be slowed");
                 helper.assertTrue(TaczBridge.inspect(alice.getMainHandItem()).map(i -> "pistol".equals(i.type())).orElse(false),
                         "alice should hold a pistol, holds " + alice.getMainHandItem());

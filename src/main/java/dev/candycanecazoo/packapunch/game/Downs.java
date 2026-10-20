@@ -9,6 +9,7 @@ import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -42,7 +43,7 @@ public final class Downs {
 
     public static void knockDown(ServerPlayer player, GameSettings.Players settings) {
         Perks.clearBuffs(player);
-        player.setForcedPose(Pose.SWIMMING);
+        crawl(player);
         player.setSprinting(false);
         AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speed != null && speed.getModifier(SLOW) == null) {
@@ -74,11 +75,21 @@ public final class Downs {
         player.inventoryMenu.broadcastChanges();
     }
 
+    /**
+     * Puts a downed player in the crawl, on either side. Called after each player tick: TacZ's own crawl clears the forced
+     * pose of anyone holding a gun who isn't crawling by its key, partway through the tick and before vanilla applies
+     * the forced pose, so a forced pose alone never takes.
+     */
+    public static void crawl(Player player) {
+        player.setForcedPose(Pose.SWIMMING);
+        if (player.getPose() != Pose.SWIMMING) {
+            player.setPose(Pose.SWIMMING);
+        }
+    }
+
     /** Every tick while down: still crawling, still holding the pistol. */
     public static void enforce(ServerPlayer player) {
-        if (player.getForcedPose() != Pose.SWIMMING) {
-            player.setForcedPose(Pose.SWIMMING);
-        }
+        crawl(player);
         if (!isPistol(player.getMainHandItem())) {
             holdPistol(player);
         }

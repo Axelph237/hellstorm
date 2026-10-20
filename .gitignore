@@ -27,3 +27,4 @@ run-data
 logs
 .claude/worktrees
 run-client2
+src/main/java/dev/candycanecazoo/packapunch/DevLan.java
