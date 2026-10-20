@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
@@ -18,8 +19,12 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** The item in a Pack-a-Punch machine: spinning low inside it while it works, then raised and turning slowly once ready. */
+/**
+ * The item in a Pack-a-Punch machine, lying flat along the top of both halves across the seam: the item going in while
+ * the fire spreads over it, then the upgraded item waiting to be taken.
+ */
 public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineBlock.Entity> {
+    private static final float SCALE = 1.1f;
     private final ItemRenderer items;
 
     public PapMachineRenderer(BlockEntityRendererProvider.Context context) {
@@ -32,12 +37,13 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
         if (stack.isEmpty() || machine.getLevel() == null) {
             return;
         }
-        float time = machine.getLevel().getGameTime() + partialTick;
-        boolean ready = machine.ready();
+        Direction facing = machine.getBlockState().getValue(PapMachineBlock.FACING);
         pose.pushPose();
-        pose.translate(0.5, ready ? 0.95 + 0.04 * Math.sin(time / 8.0) : 0.75, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees((time * (ready ? 2.0f : 18.0f)) % 360));
-        pose.scale(0.6f, 0.6f, 0.6f);
+        pose.translate(0.5 + facing.getStepX() * 0.5, PapMachineBlock.TOP + 0.03, 0.5 + facing.getStepZ() * 0.5);
+        // Items draw their long side along x; turn it to run along the machine, then lay it face up.
+        pose.mulPose(Axis.YP.rotationDegrees(facing.getAxis() == Direction.Axis.Z ? 90 : 0));
+        pose.mulPose(Axis.XP.rotationDegrees(-90));
+        pose.scale(SCALE, SCALE, SCALE);
         items.renderStatic(stack, ItemDisplayContext.FIXED, LevelRenderer.getLightColor(machine.getLevel(), machine.getBlockPos().above()),
                 OverlayTexture.NO_OVERLAY, pose, buffers, machine.getLevel(), (int) machine.getBlockPos().asLong());
         pose.popPose();

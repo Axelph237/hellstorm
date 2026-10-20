@@ -25,8 +25,18 @@ public interface FeatureBlock {
     /** One line for map makers: what the machine is set to. */
     Component describe(ServerLevel level, BlockPos pos);
 
-    static void use(ServerPlayer player, BlockPos pos) {
+    /** The block that holds a machine's settings and that the map indexes, for machines more than one block big. */
+    default BlockPos mainPos(BlockState state, BlockPos pos) {
+        return pos;
+    }
+
+    static void use(ServerPlayer player, BlockPos clicked) {
         ServerLevel level = player.serverLevel();
+        BlockState clickedState = level.getBlockState(clicked);
+        if (!(clickedState.getBlock() instanceof FeatureBlock clickedBlock)) {
+            return;
+        }
+        BlockPos pos = clickedBlock.mainPos(clickedState, clicked);
         BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof FeatureBlock block)) {
             return;

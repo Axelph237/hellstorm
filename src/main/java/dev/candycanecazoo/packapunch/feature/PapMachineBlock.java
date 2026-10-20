@@ -18,6 +18,23 @@ import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import dev.candycanecazoo.packapunch.util.Codecs;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -43,11 +60,19 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Upgrades the item a player is holding. The machine takes it, works on it for {@code pap.process_ticks}, then offers the
- * result to that player alone for {@code pap.collect_ticks}. Uncollected results are lost, as in CoD. A refused item is
- * never taken and costs nothing.
+ * Upgrades the item a player is holding. Two blocks long, like a bed: {@code FACING} points from the foot, which holds
+ * the machine's block entity and is the one the map indexes, to the head. The machine lays the item across its top, a
+ * spark catches, fire creeps along it for {@code pap.process_ticks}, and then the upgraded item lies there for that
+ * player alone for {@code pap.collect_ticks}. Uncollected results are lost, as in CoD. A refused item is never taken
+ * and costs nothing.
  */
-public final class PapMachineBlock extends Block implements EntityBlock, FeatureBlock {
+public final class PapMachineBlock extends HorizontalDirectionalBlock implements EntityBlock, FeatureBlock {
+    public static final EnumProperty<BedPart> PART = BlockStateProperties.BED_PART;
+    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
+    /** Where the item lies, above the machine's floor, and how far it reaches either side of the middle. */
+    public static final double TOP = 12.0 / 16;
+    public static final double ITEM_HALF_LENGTH = 0.55;
+
     /** {@code cost} replaces {@code pap.default_cost} for this machine. A {@code PunchDef}'s own cost still wins. */
     public record Config(Optional<Integer> cost) {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -55,14 +80,18 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
         ).apply(i, Config::new));
     }
 
-    /** An item in the machine. {@code until} is the game time it finishes processing, or, once ready, expires. */
-    record Job(UUID owner, ItemStack input, ItemStack result, boolean ready, long until, int collectTicks) {
+    /**
+     * An item in the machine. {@code until} is the game time it finishes processing, or, once ready, expires; {@code started}
+     * is when it went in, so clients can draw how far the fire has spread.
+     */
+    record Job(UUID owner, ItemStack input, ItemStack result, boolean ready, long started, long until, int collectTicks) {
         CompoundTag save() {
             CompoundTag tag = new CompoundTag();
             tag.putUUID("owner", owner);
             tag.put("input", input.save(new CompoundTag()));
             tag.put("result", result.save(new CompoundTag()));
             tag.putBoolean("ready", ready);
+            tag.putLong("started", started);
             tag.putLong("until", until);
             tag.putInt("collect_ticks", collectTicks);
             return tag;
@@ -70,7 +99,7 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
 
         static Job load(CompoundTag tag) {
             return new Job(tag.getUUID("owner"), ItemStack.of(tag.getCompound("input")), ItemStack.of(tag.getCompound("result")),
-                    tag.getBoolean("ready"), tag.getLong("until"), tag.getInt("collect_ticks"));
+                    tag.getBoolean("ready"), tag.getLong("started"), tag.getLong("until"), tag.getInt("collect_ticks"));
         }
     }
 
@@ -144,10 +173,13 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
                 public Optional<Refusal> deliver(GameManager.Active g, ServerPlayer p) {
                     ItemStack input = held.split(1);
                     long now = g.level().getGameTime();
-                    job = Optional.of(new Job(p.getUUID(), input, result.get(), false, now + settings.pap().processTicks(),
+                    job = Optional.of(new Job(p.getUUID(), input, result.get(), false, now, now + settings.pap().processTicks(),
                             settings.pap().collectTicks()));
                     changed();
+                    Vec3 spark = along(-1);
+                    g.level().sendParticles(ParticleTypes.ELECTRIC_SPARK, spark.x, spark.y, spark.z, 12, 0.05, 0.05, 0.05, 0.2);
                     g.level().playSound(null, worldPosition, SoundEvents.SMITHING_TABLE_USE, SoundSource.BLOCKS, 1.0f, 0.8f);
+                    g.level().playSound(null, worldPosition, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0f, 1.0f);
                     g.game().events().emit(new GameEvent.PapUsed(p.getUUID(), describe(input)));
                     return Optional.empty();
                 }
@@ -215,8 +247,12 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
             }
             Job current = job.get();
             if (!current.ready()) {
-                job = Optional.of(new Job(current.owner(), current.input(), current.result(), true,
+                job = Optional.of(new Job(current.owner(), current.input(), current.result(), true, current.started(),
                         level.getGameTime() + current.collectTicks(), current.collectTicks()));
+                Vec3 middle = along(0);
+                level.sendParticles(ParticleTypes.FLAME, middle.x, middle.y, middle.z, 40, ITEM_HALF_LENGTH / 2, 0.08, ITEM_HALF_LENGTH / 2, 0.04);
+                level.sendParticles(ParticleTypes.LAVA, middle.x, middle.y, middle.z, 6, ITEM_HALF_LENGTH / 2, 0.05, ITEM_HALF_LENGTH / 2, 0);
+                level.playSound(null, worldPosition, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.0f, 0.9f);
                 level.playSound(null, worldPosition, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 1.0f, 1.2f);
             } else {
                 job = Optional.empty();
@@ -226,6 +262,43 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
                 }
             }
             changed();
+        }
+
+        /**
+         * A point on the line the item lies along, from {@code -1} (its end over the foot) through {@code 0} (the seam
+         * between the halves) to {@code 1} (its end over the head).
+         */
+        public Vec3 along(double t) {
+            Direction facing = getBlockState().getValue(FACING);
+            return Vec3.atLowerCornerOf(worldPosition).add(0.5, TOP + 0.08, 0.5)
+                    .add(Vec3.atLowerCornerOf(facing.getNormal()).scale(0.5 + t * ITEM_HALF_LENGTH));
+        }
+
+        /** How far the fire has spread along the item, from 0 to 1. 1 once it's done. */
+        public float progress(long now) {
+            if (job.isEmpty() || job.get().ready()) {
+                return 1;
+            }
+            Job j = job.get();
+            return j.until() <= j.started() ? 1 : Mth.clamp((float) (now - j.started()) / (j.until() - j.started()), 0, 1);
+        }
+
+        /** Fire creeping along the item from the spark at the foot end, flames behind the front and sparks at it. */
+        void clientTick(Level level) {
+            if (job.isEmpty() || job.get().ready()) {
+                return;
+            }
+            RandomSource random = level.random;
+            double front = -1 + 2 * progress(level.getGameTime());
+            Vec3 at = along(front);
+            level.addParticle(ParticleTypes.SMALL_FLAME, at.x, at.y, at.z, 0, 0.01, 0);
+            if (random.nextInt(3) == 0) {
+                level.addParticle(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, (random.nextDouble() - 0.5) * 0.1, 0.05, (random.nextDouble() - 0.5) * 0.1);
+            }
+            for (int i = 0; i < 2; i++) {
+                Vec3 burning = along(-1 + random.nextDouble() * (front + 1)).add((random.nextDouble() - 0.5) * 0.15, 0, (random.nextDouble() - 0.5) * 0.15);
+                level.addParticle(ParticleTypes.FLAME, burning.x, burning.y, burning.z, 0, 0.015, 0);
+            }
         }
 
         void clear() {
@@ -252,18 +325,76 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
 
     public PapMachineBlock(Properties properties) {
         super(properties);
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(PART, BedPart.FOOT));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING, PART);
+    }
+
+    /** The head goes one block the way the player faces, so there has to be room for it there. */
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        Direction facing = context.getHorizontalDirection();
+        BlockPos head = context.getClickedPos().relative(facing);
+        Level level = context.getLevel();
+        return level.getBlockState(head).canBeReplaced(context) && level.getWorldBorder().isWithinBounds(head)
+                ? defaultBlockState().setValue(FACING, facing) : null;
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (!level.isClientSide) {
+            level.setBlock(pos.relative(state.getValue(FACING)), state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
+        }
+    }
+
+    /** Places a whole machine, foot at {@code foot}, for code that doesn't go through a player placing the item. */
+    public static void place(Level level, BlockPos foot, Direction facing) {
+        BlockState state = PapRegistries.PAP_MACHINE.get().defaultBlockState().setValue(FACING, facing);
+        level.setBlock(foot, state, Block.UPDATE_ALL);
+        level.setBlock(foot.relative(facing), state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
+    }
+
+    private static Direction towardOtherHalf(BlockState state) {
+        return state.getValue(PART) == BedPart.FOOT ? state.getValue(FACING) : state.getValue(FACING).getOpposite();
+    }
+
+    /** One half without the other is gone too, as with a bed. */
+    @Override
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighbor, LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
+        if (direction == towardOtherHalf(state)) {
+            boolean matched = neighbor.is(this) && neighbor.getValue(PART) != state.getValue(PART) && neighbor.getValue(FACING) == state.getValue(FACING);
+            return matched ? state : Blocks.AIR.defaultBlockState();
+        }
+        return super.updateShape(state, direction, neighbor, level, pos, neighborPos);
+    }
+
+    @Override
+    public BlockPos mainPos(BlockState state, BlockPos pos) {
+        return state.getValue(PART) == BedPart.HEAD ? pos.relative(state.getValue(FACING).getOpposite()) : pos;
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
     }
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new Entity(pos, state);
+        return state.getValue(PART) == BedPart.FOOT ? new Entity(pos, state) : null;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide || type != PapRegistries.PAP_MACHINE_ENTITY.get()
-                ? null
+        if (type != PapRegistries.PAP_MACHINE_ENTITY.get()) {
+            return null;
+        }
+        return level.isClientSide
+                ? (BlockEntityTicker<T>) (BlockEntityTicker<Entity>) (l, pos, s, machine) -> machine.clientTick(l)
                 : (BlockEntityTicker<T>) (BlockEntityTicker<Entity>) (l, pos, s, machine) -> machine.tick((ServerLevel) l);
     }
 
@@ -306,12 +437,16 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
     @Override
     public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
         super.onPlace(state, level, pos, oldState, movedByPiston);
-        FeatureBlock.placed(level, pos, state, oldState, featureKind());
+        if (state.getValue(PART) == BedPart.FOOT) {
+            FeatureBlock.placed(level, pos, state, oldState, featureKind());
+        }
     }
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        FeatureBlock.removed(level, pos, state, newState);
+        if (state.getValue(PART) == BedPart.FOOT) {
+            FeatureBlock.removed(level, pos, state, newState);
+        }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
 }

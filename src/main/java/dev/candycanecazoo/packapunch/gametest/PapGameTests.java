@@ -55,7 +55,7 @@ public final class PapGameTests {
 
     private static BlockPos machine(GameTestHelper helper) {
         BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
-        helper.getLevel().setBlockAndUpdate(at, PapRegistries.PAP_MACHINE.get().defaultBlockState());
+        PapMachineBlock.place(helper.getLevel(), at, net.minecraft.core.Direction.EAST);
         return at;
     }
 
@@ -93,6 +93,50 @@ public final class PapGameTests {
         helper.assertTrue(ItemStack.matches(item, player.getMainHandItem()), what + ": the item should come back unchanged, have " + player.getMainHandItem().getTag());
         helper.assertTrue(PurchaseGameTests.points(active, player) == points, what + ": charged for a refusal");
         helper.assertTrue(entity(helper, at).empty(), what + ": the machine took it");
+    }
+
+    /**
+     * The machine is two blocks: either half sells, the gun lies across both while the fire spreads over it, and
+     * breaking one half takes the other with it and the machine off the map.
+     */
+    @GameTest(template = "floor", timeoutTicks = 400, batch = "pap_two_blocks")
+    public static void eitherHalfSellsTheFireSpreadsAndBreakingOneHalfRemovesBoth(GameTestHelper helper) {
+        BlockPos foot = machine(helper);
+        BlockPos head = foot.east();
+        helper.assertTrue(helper.getLevel().getBlockState(head).is(PapRegistries.PAP_MACHINE.get())
+                && helper.getLevel().getBlockState(head).getValue(PapMachineBlock.PART) == net.minecraft.world.level.block.state.properties.BedPart.HEAD,
+                "the head should be one block the machine's way");
+        helper.assertTrue(helper.getLevel().getBlockEntity(head) == null, "only the foot holds the machine");
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_two_blocks");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, foot);
+        GameSettings.Pap settings = active.game().settings().pap();
+        long started = helper.getLevel().getGameTime();
+        try {
+            active.game().refund(player.getUUID(), settings.defaultCost());
+            player.setItemInHand(InteractionHand.MAIN_HAND, ak());
+            FeatureBlock.use(player, head);
+            helper.assertTrue(player.getMainHandItem().isEmpty() && !entity(helper, foot).empty(), "using the head should put the gun in the machine");
+            helper.assertTrue(entity(helper, foot).progress(started) < 0.05f, "the fire starts at nothing, is " + entity(helper, foot).progress(started));
+        } catch (RuntimeException | AssertionError e) {
+            GameManager.end(active);
+            throw e;
+        }
+        helper.runAfterDelay(settings.processTicks() / 2, () -> step(active, () -> {
+            float half = entity(helper, foot).progress(helper.getLevel().getGameTime());
+            helper.assertTrue(half > 0.3f && half < 0.7f, "halfway through, the fire should be halfway along, is " + half);
+        }));
+        helper.runAfterDelay(settings.processTicks() + 1, () -> step(active, () -> {
+            helper.assertTrue(entity(helper, foot).ready(), "not ready after process_ticks");
+            FeatureBlock.use(player, head);
+            CompoundTag pap = player.getMainHandItem().getTagElement(ItemSpec.PAP);
+            helper.assertTrue(pap != null && pap.getInt(PunchResolver.TIER) == 1, "taking it from the head should give the upgraded gun, have " + pap);
+            GameManager.end(active);
+            helper.getLevel().setBlockAndUpdate(head, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+            helper.assertTrue(helper.getLevel().getBlockState(foot).isAir(), "breaking the head should take the foot too");
+            helper.assertFalse(dev.candycanecazoo.packapunch.map.MapSavedData.get(helper.getLevel()).map()
+                    .features(dev.candycanecazoo.packapunch.map.FeatureKind.PAP_MACHINE).contains(foot), "the machine should leave the map");
+            helper.succeed();
+        }));
     }
 
     @GameTest(template = "floor", timeoutTicks = 400, batch = "pap_gun")

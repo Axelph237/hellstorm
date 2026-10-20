@@ -1,7 +1,34 @@
 {
   "variants": {
-    "": {
-      "model": "packapunch:block/pap_machine"
+    "facing=north,part=foot": {
+      "model": "packapunch:block/pap_machine_foot"
+    },
+    "facing=north,part=head": {
+      "model": "packapunch:block/pap_machine_head"
+    },
+    "facing=east,part=foot": {
+      "model": "packapunch:block/pap_machine_foot",
+      "y": 90
+    },
+    "facing=east,part=head": {
+      "model": "packapunch:block/pap_machine_head",
+      "y": 90
+    },
+    "facing=south,part=foot": {
+      "model": "packapunch:block/pap_machine_foot",
+      "y": 180
+    },
+    "facing=south,part=head": {
+      "model": "packapunch:block/pap_machine_head",
+      "y": 180
+    },
+    "facing=west,part=foot": {
+      "model": "packapunch:block/pap_machine_foot",
+      "y": 270
+    },
+    "facing=west,part=head": {
+      "model": "packapunch:block/pap_machine_head",
+      "y": 270
     }
   }
 }

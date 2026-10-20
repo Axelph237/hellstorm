@@ -2,6 +2,7 @@ package dev.candycanecazoo.packapunch.client;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.ClientConfig;
+import dev.candycanecazoo.packapunch.feature.FeatureBlock;
 import dev.candycanecazoo.packapunch.feature.Prompted;
 import dev.candycanecazoo.packapunch.map.DoorDef;
 import net.minecraft.ChatFormatting;
@@ -11,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -69,16 +71,22 @@ public final class PromptOverlay {
             return Optional.of(new Target(new Prompted.Prompt(door.get().style() == DoorDef.Style.DEBRIS ? "Debris" : "Door",
                     door.get().cost(), door.get().requiresPower()), nearFace(door.get(), mc.gameRenderer.getMainCamera().getPosition())));
         }
-        if (!(mc.level.getBlockEntity(pos) instanceof Prompted prompted)) {
+        BlockState state = mc.level.getBlockState(pos);
+        BlockPos main = state.getBlock() instanceof FeatureBlock feature ? feature.mainPos(state, pos) : pos;
+        if (!(mc.level.getBlockEntity(main) instanceof Prompted prompted)) {
             return Optional.empty();
         }
-        VoxelShape shape = mc.level.getBlockState(pos).getShape(mc.level, pos);
-        AABB box = shape.isEmpty() ? new AABB(pos) : shape.bounds().move(pos);
+        AABB box = bounds(mc, pos).minmax(bounds(mc, main));
         Vec3 above = new Vec3((box.minX + box.maxX) / 2, box.maxY + ABOVE, (box.minZ + box.maxZ) / 2);
         // A wall-buy's plate sits against the wall; pulled toward the viewer, its text doesn't sink into the wall when seen from the side.
         Vec3 toward = mc.gameRenderer.getMainCamera().getPosition().subtract(above).multiply(1, 0, 1);
         Vec3 anchor = toward.lengthSqr() > TOWARD_VIEWER * TOWARD_VIEWER ? above.add(toward.normalize().scale(TOWARD_VIEWER)) : above;
         return prompted.prompt().map(p -> new Target(p, anchor));
+    }
+
+    private static AABB bounds(Minecraft mc, BlockPos pos) {
+        VoxelShape shape = mc.level.getBlockState(pos).getShape(mc.level, pos);
+        return shape.isEmpty() ? new AABB(pos) : shape.bounds().move(pos);
     }
 
     /** The middle of the side of the door's blocks that faces the camera, along the door's thinnest axis. */
