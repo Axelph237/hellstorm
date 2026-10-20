@@ -533,8 +533,9 @@ public final class Game {
             PowerUpDrops.roll(settings.powerUps(), dropsThisRound, pointsDue, content.powerUps(), random).ifPresent(powerUp -> {
                 dropsThisRound++;
                 if (pointsDue) {
-                    nextDropAt = earned + Math.round(dropIncrement);
+                    // As CoD does: grow the increment, then measure the next threshold from here with it.
                     dropIncrement *= settings.powerUps().dropIncrementGrowth();
+                    nextDropAt = earned + Math.round(dropIncrement);
                 }
                 pendingDrops.add(new Drop(powerUp, pos));
             });

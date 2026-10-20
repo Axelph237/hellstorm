@@ -93,7 +93,7 @@ class PowerUpGameTest {
         assertEquals(3, world.drops.size(), "round 2 can drop again");
     }
 
-    /** Kills are worth 60. The first drop is due at 100 team points; then 100 further on, and the gap doubles each time. */
+    /** Kills are worth 60. The first drop is due at 100 team points; each drop doubles the gap, then measures the next from there. */
     @Test
     void theTeamsPointsTriggerDropsAtAGrowingThresholdWithoutAnyChance() {
         Game game = game(settings(0.0, 10, 100, 2.0));
@@ -107,10 +107,10 @@ class PowerUpGameTest {
         assertEquals(1, world.drops.size(), "120 points passed 100");
         game.onMobDied(mobs.get(2), Optional.of(alice), false, false, BlockPos.ZERO);
         tick(game, 1);
-        assertEquals(1, world.drops.size(), "180: the next is due at 120 + 100 = 220");
+        assertEquals(1, world.drops.size(), "180: the next is due at 120 + 200 = 320");
         game.onMobDied(mobs.get(3), Optional.of(alice), false, false, BlockPos.ZERO);
         tick(game, 1);
-        assertEquals(2, world.drops.size(), "240 passed 220");
+        assertEquals(1, world.drops.size(), "240: still short of 320, since the gap grew before the threshold moved");
     }
 
     @Test
