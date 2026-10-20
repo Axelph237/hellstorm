@@ -19,6 +19,7 @@ final class FakeWorld implements GameWorld {
     final List<UUID> respawned = new ArrayList<>();
     final List<UUID> spectated = new ArrayList<>();
     final List<String> announcements = new ArrayList<>();
+    final List<net.minecraft.resources.ResourceLocation> timedEnded = new ArrayList<>();
     boolean refuseSpawns;
     java.util.function.BiPredicate<net.minecraft.resources.ResourceLocation, BlockPos> canSpawn = (profile, marker) -> true;
 
@@ -66,4 +67,9 @@ final class FakeWorld implements GameWorld {
 
     @Override
     public void showStatus(UUID player, Status status) {}
+
+    @Override
+    public void timedEffectEnded(net.minecraft.resources.ResourceLocation effect) {
+        timedEnded.add(effect);
+    }
 }

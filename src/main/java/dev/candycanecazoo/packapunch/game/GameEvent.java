@@ -36,4 +36,20 @@ public sealed interface GameEvent {
     record MysteryBoxMoved(BlockPos from, BlockPos to) implements GameEvent {}
     /** {@code item} is the gun id for a TacZ gun, the item id otherwise. */
     record PapUsed(UUID player, String item) implements GameEvent {}
+
+    record PlayerDowned(UUID player, BlockPos pos) implements GameEvent {}
+
+    /** {@code by} is the teammate who revived them, or empty for a solo Quick Revive self-revive. */
+    record PlayerRevived(UUID player, Optional<UUID> by) implements GameEvent {}
+
+    record PlayerBledOut(UUID player) implements GameEvent {}
+
+    record PowerUpSpawned(net.minecraft.resources.ResourceLocation powerUp, BlockPos pos) implements GameEvent {}
+
+    record PowerUpCollected(net.minecraft.resources.ResourceLocation powerUp, UUID player) implements GameEvent {}
+
+    record TrapActivated(UUID player, BlockPos pos) implements GameEvent {}
+
+    /** Fires as the special round starts, just before its {@code round_start}. */
+    record WaveEventStarted(net.minecraft.resources.ResourceLocation waveEvent, int round) implements GameEvent {}
 }

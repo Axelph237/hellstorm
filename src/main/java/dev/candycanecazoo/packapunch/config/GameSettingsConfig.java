@@ -56,6 +56,23 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.DoubleValue papDamage;
     private final ForgeConfigSpec.DoubleValue papMagazine;
     private final ForgeConfigSpec.DoubleValue papRpm;
+    private final ForgeConfigSpec.IntValue bleedOutTicks;
+    private final ForgeConfigSpec.IntValue reviveTicks;
+    private final ForgeConfigSpec.DoubleValue reviveRange;
+    private final ForgeConfigSpec.IntValue soloSelfRevives;
+    private final ForgeConfigSpec.IntValue regenDelayTicks;
+    private final ForgeConfigSpec.DoubleValue regenPerSecond;
+    private final ForgeConfigSpec.DoubleValue dropChance;
+    private final ForgeConfigSpec.IntValue maxPowerUpsPerRound;
+    private final ForgeConfigSpec.IntValue powerUpLifetimeTicks;
+    private final ForgeConfigSpec.IntValue powerUpBlinkTicks;
+    private final ForgeConfigSpec.IntValue nukeBonus;
+    private final ForgeConfigSpec.IntValue carpenterBonus;
+    private final ForgeConfigSpec.IntValue trapDefaultCost;
+    private final ForgeConfigSpec.IntValue trapDefaultActiveTicks;
+    private final ForgeConfigSpec.IntValue trapDefaultCooldownTicks;
+    private final ForgeConfigSpec.BooleanValue waveEventsEnabled;
+    private final ForgeConfigSpec.ConfigValue<List<? extends String>> waveEventsDisabled;
 
     GameSettingsConfig(ForgeConfigSpec.Builder b) {
         GameSettings d = GameSettings.DEFAULT;
@@ -136,6 +153,32 @@ public final class GameSettingsConfig {
         papMagazine = b.comment("Magazine and reserve multiplier per upgrade tier.").defineInRange("magazine_multiplier", d.pap().magazineMultiplier(), 0.1, 100.0);
         papRpm = b.comment("Fire rate multiplier per upgrade tier.").defineInRange("rpm_multiplier", d.pap().rpmMultiplier(), 0.1, 100.0);
         b.pop();
+        b.push("downs");
+        bleedOutTicks = b.comment("How long a downed player has before bleeding out and spectating until the next round.")
+                .defineInRange("bleed_out_ticks", d.downs().bleedOutTicks(), 20, 12000);
+        reviveTicks = b.comment("How long a teammate holds use to revive.").defineInRange("revive_ticks", d.downs().reviveTicks(), 1, 1200);
+        reviveRange = b.comment("How close a reviver must stay, in blocks.").defineInRange("revive_range", d.downs().reviveRange(), 0.5, 16.0);
+        soloSelfRevives = b.comment("Self-revives Quick Revive gives a player playing alone.").defineInRange("solo_self_revives", d.downs().soloSelfRevives(), 0, 100);
+        regenDelayTicks = b.comment("Ticks without damage before health starts coming back.").defineInRange("regen_delay_ticks", d.downs().regenDelayTicks(), 0, 1200);
+        regenPerSecond = b.comment("Health regained per second once regen starts.").defineInRange("regen_per_second", d.downs().regenPerSecond(), 0.0, 100.0);
+        b.pop();
+        b.push("powerups");
+        dropChance = b.comment("Chance a zombie kill drops a power-up.").defineInRange("drop_chance", d.powerUps().dropChance(), 0.0, 1.0);
+        maxPowerUpsPerRound = b.defineInRange("max_per_round", d.powerUps().maxPerRound(), 0, 100);
+        powerUpLifetimeTicks = b.comment("How long a dropped power-up waits to be picked up.").defineInRange("lifetime_ticks", d.powerUps().lifetimeTicks(), 20, 12000);
+        powerUpBlinkTicks = b.comment("It blinks for this long before it disappears.").defineInRange("blink_ticks", d.powerUps().blinkTicks(), 0, 12000);
+        nukeBonus = b.comment("Points each player gets from a Nuke.").defineInRange("nuke_bonus", d.powerUps().nukeBonus(), 0, 1_000_000);
+        carpenterBonus = b.comment("Points each player gets from a Carpenter.").defineInRange("carpenter_bonus", d.powerUps().carpenterBonus(), 0, 1_000_000);
+        b.pop();
+        b.push("traps");
+        trapDefaultCost = b.defineInRange("default_cost", d.traps().defaultCost(), 0, 1_000_000);
+        trapDefaultActiveTicks = b.comment("How long a new trap's redstone signal stays on.").defineInRange("default_active_ticks", d.traps().defaultActiveTicks(), 1, 12000);
+        trapDefaultCooldownTicks = b.defineInRange("default_cooldown_ticks", d.traps().defaultCooldownTicks(), 0, 72000);
+        b.pop();
+        b.push("wave_events");
+        waveEventsEnabled = b.comment("Special rounds from datapack wave events.").define("enabled", d.waveEvents().enabled());
+        waveEventsDisabled = b.comment("Wave event ids to leave out.").defineListAllowEmpty("disabled", List.of(), GameSettingsConfig::isId);
+        b.pop();
     }
 
     private static boolean isId(Object o) {
@@ -178,6 +221,12 @@ public final class GameSettingsConfig {
                 new GameSettings.Box(r.read(boxCost), r.read(boxFireSaleCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),
                         r.read(boxMoveChance)),
                 new GameSettings.Pap(r.read(papDefaultCost), r.read(papProcessTicks), r.read(papCollectTicks), r.read(papMaxTier), r.read(papDamage),
-                        r.read(papMagazine), r.read(papRpm)));
+                        r.read(papMagazine), r.read(papRpm)),
+                new GameSettings.Downs(r.read(bleedOutTicks), r.read(reviveTicks), r.read(reviveRange), r.read(soloSelfRevives),
+                        r.read(regenDelayTicks), r.read(regenPerSecond)),
+                new GameSettings.PowerUps(r.read(dropChance), r.read(maxPowerUpsPerRound), r.read(powerUpLifetimeTicks), r.read(powerUpBlinkTicks),
+                        r.read(nukeBonus), r.read(carpenterBonus)),
+                new GameSettings.Traps(r.read(trapDefaultCost), r.read(trapDefaultActiveTicks), r.read(trapDefaultCooldownTicks)),
+                new GameSettings.WaveEvents(r.read(waveEventsEnabled), ids(r.read(waveEventsDisabled))));
     }
 }

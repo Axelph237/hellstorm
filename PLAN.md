@@ -58,6 +58,7 @@ The feature files:
 - [`traps.md`](features/traps.md)
 - [`wave-events.md`](features/wave-events.md)
 - [`hud-and-prompts.md`](features/hud-and-prompts.md)
+- [`survival-foundation.md`](features/survival-foundation.md)
 - [`sessions-and-multiplayer.md`](features/sessions-and-multiplayer.md)
 - [`map-export-import.md`](features/map-export-import.md)
 - [`scripting-and-events.md`](features/scripting-and-events.md)

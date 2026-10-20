@@ -231,9 +231,9 @@ public final class ForgeGameWorld implements GameWorld {
         player(id).ifPresent(p -> {
             List<dev.candycanecazoo.packapunch.net.HudSyncPacket.Line> lines = status.standings().stream().map(s -> new dev.candycanecazoo.packapunch.net.HudSyncPacket.Line(
                     player(s.player()).map(o -> o.getGameProfile().getName()).orElse("?"),
-                    s.points(), s.alive(), s.player().equals(id))).toList();
+                    s.points(), s.alive(), s.downed(), s.player().equals(id))).toList();
             dev.candycanecazoo.packapunch.net.PapNetwork.send(p, new dev.candycanecazoo.packapunch.net.HudSyncPacket(
-                    status.round(), status.phase(), status.zombiesLeft(), status.powerOn(), status.points(), lines));
+                    status.round(), status.phase(), status.zombiesLeft(), status.powerOn(), status.points(), lines, status.timers(), status.bar()));
         });
     }
 }

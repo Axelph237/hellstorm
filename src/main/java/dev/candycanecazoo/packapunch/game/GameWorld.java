@@ -12,10 +12,21 @@ public interface GameWorld {
     /** Round-scaled base stats. The world applies the profile's own multipliers on top. */
     record ZombieSpec(ResourceLocation profile, double health, double speed) {}
 
-    record Standing(UUID player, int points, boolean alive) {}
+    /** {@code downed} players aren't alive but can still be revived; spectators are neither. */
+    record Standing(UUID player, int points, boolean alive, boolean downed) {}
 
-    /** {@code standings} lists every player in the game, in join order. */
-    record Status(int round, int points, int zombiesLeft, String phase, boolean powerOn, List<Standing> standings) {}
+    /** A team-wide effect counting down, such as Insta-Kill. {@code name} is a lang key. */
+    record Timer(String name, int ticksLeft, int totalTicks) {}
+
+    /** A progress bar in the middle of one player's screen: reviving, being revived, bleeding out. {@code progress} is 0 to 1. */
+    record Bar(String label, float progress, int color) {}
+
+    /**
+     * {@code standings} lists every player in the game, in join order. {@code timers} are the team's timed effects, and
+     * {@code bar} is this player's own progress bar, if any.
+     */
+    record Status(int round, int points, int zombiesLeft, String phase, boolean powerOn, List<Standing> standings,
+                  List<Timer> timers, Optional<Bar> bar) {}
 
     /** Empty when the player is offline or not in this level. */
     Optional<BlockPos> playerPosition(UUID player);
@@ -36,4 +47,7 @@ public interface GameWorld {
     void announce(String message);
 
     void showStatus(UUID player, Status status);
+
+    /** A timed effect ran out (see {@link Game#startTimed}). Features that changed the world for it undo that here. */
+    default void timedEffectEnded(ResourceLocation effect) {}
 }

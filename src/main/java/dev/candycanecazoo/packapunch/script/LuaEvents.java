@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /** Event names scripts can listen for, and the Lua table each event arrives as. */
 public final class LuaEvents {
-    /** The full catalogue from the plan. Later phases fire the ones not produced yet, so scripts can be written against them now. */
+    /** The full catalogue from the plan. */
     public static final Set<String> NAMES = Set.of(
             "game_start", "game_end", "round_start", "round_end",
             "zombie_spawned", "zombie_killed",
@@ -37,6 +37,13 @@ public final class LuaEvents {
         if (event instanceof GameEvent.MysteryBoxOpened) return "mystery_box_opened";
         if (event instanceof GameEvent.MysteryBoxMoved) return "mystery_box_moved";
         if (event instanceof GameEvent.PapUsed) return "pap_used";
+        if (event instanceof GameEvent.PlayerDowned) return "player_downed";
+        if (event instanceof GameEvent.PlayerRevived) return "player_revived";
+        if (event instanceof GameEvent.PlayerBledOut) return "player_bled_out";
+        if (event instanceof GameEvent.PowerUpSpawned) return "powerup_spawned";
+        if (event instanceof GameEvent.PowerUpCollected) return "powerup_collected";
+        if (event instanceof GameEvent.TrapActivated) return "trap_activated";
+        if (event instanceof GameEvent.WaveEventStarted) return "wave_event_started";
         throw new IllegalArgumentException("No script name for " + event);
     }
 
@@ -48,6 +55,7 @@ public final class LuaEvents {
         if (event instanceof GameEvent.RoundStart e) return java.util.OptionalInt.of(e.round());
         if (event instanceof GameEvent.RoundEnd e) return java.util.OptionalInt.of(e.round());
         if (event instanceof GameEvent.GameEnd e) return java.util.OptionalInt.of(e.roundReached());
+        if (event instanceof GameEvent.WaveEventStarted e) return java.util.OptionalInt.of(e.round());
         return java.util.OptionalInt.empty();
     }
 
@@ -102,6 +110,26 @@ public final class LuaEvents {
         } else if (event instanceof GameEvent.PapUsed e) {
             t.set("player", e.player().toString());
             t.set("item", e.item());
+        } else if (event instanceof GameEvent.PlayerDowned e) {
+            t.set("player", e.player().toString());
+            pos(t, e.pos());
+        } else if (event instanceof GameEvent.PlayerRevived e) {
+            t.set("player", e.player().toString());
+            e.by().ifPresent(p -> t.set("by", p.toString()));
+        } else if (event instanceof GameEvent.PlayerBledOut e) {
+            t.set("player", e.player().toString());
+        } else if (event instanceof GameEvent.PowerUpSpawned e) {
+            t.set("powerup", e.powerUp().toString());
+            pos(t, e.pos());
+        } else if (event instanceof GameEvent.PowerUpCollected e) {
+            t.set("powerup", e.powerUp().toString());
+            t.set("player", e.player().toString());
+        } else if (event instanceof GameEvent.TrapActivated e) {
+            t.set("player", e.player().toString());
+            pos(t, e.pos());
+        } else if (event instanceof GameEvent.WaveEventStarted e) {
+            t.set("wave_event", e.waveEvent().toString());
+            t.set("round", e.round());
         }
         return t;
     }

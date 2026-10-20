@@ -41,6 +41,7 @@ public final class Game {
     private dev.candycanecazoo.packapunch.map.ZoneGraph graph;
     private Set<ZoneId> unlocked;
     private final Set<String> openDoors = new LinkedHashSet<>();
+    private final Map<ResourceLocation, GameWorld.Timer> timed = new LinkedHashMap<>();
 
     public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
         this.settings = settings;
@@ -132,6 +133,32 @@ public final class Game {
         return player == null ? Map.of() : player.takePerks();
     }
 
+    /**
+     * Starts a team-wide timed effect (Insta-Kill, Double Points, Fire Sale), or restarts it if it's already running.
+     * {@code name} is the lang key the HUD shows. When it runs out the world hears {@link GameWorld#timedEffectEnded}.
+     */
+    public void startTimed(ResourceLocation effect, String name, int ticks) {
+        timed.put(effect, new GameWorld.Timer(name, ticks, ticks));
+    }
+
+    public boolean timedActive(ResourceLocation effect) {
+        return timed.containsKey(effect);
+    }
+
+    private void tickTimed(GameWorld world) {
+        List<ResourceLocation> ended = new ArrayList<>();
+        timed.replaceAll((effect, timer) -> new GameWorld.Timer(timer.name(), timer.ticksLeft() - 1, timer.totalTicks()));
+        timed.forEach((effect, timer) -> {
+            if (timer.ticksLeft() <= 0) {
+                ended.add(effect);
+            }
+        });
+        ended.forEach(effect -> {
+            timed.remove(effect);
+            world.timedEffectEnded(effect);
+        });
+    }
+
     public void refund(UUID buyer, int cost) {
         PlayerState player = players.get(buyer);
         if (player != null && !Cheats.has(buyer, Cheats.Cheat.INFINITE_MONEY)) {
@@ -212,6 +239,9 @@ public final class Game {
         ticks++;
         if (!(phase instanceof GamePhase.Lobby)) {
             phase = advance(world);
+        }
+        if (phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) {
+            tickTimed(world);
         }
         if (ticks % STATUS_INTERVAL == 0) {
             players.keySet().forEach(id -> world.showStatus(id, status(id)));
@@ -344,6 +374,10 @@ public final class Game {
     private GamePhase enterGameOver(GameWorld world, int roundReached) {
         List<UUID> remaining = List.copyOf(mobs);
         mobs.clear();
+        List.copyOf(timed.keySet()).forEach(effect -> {
+            timed.remove(effect);
+            world.timedEffectEnded(effect);
+        });
         remaining.forEach(world::removeMob);
         events.emit(new GameEvent.GameEnd(roundReached));
         world.announce("Game over. You survived " + roundReached + (roundReached == 1 ? " round" : " rounds"));
@@ -401,24 +435,33 @@ public final class Game {
     }
 
     private List<GameWorld.Standing> standings() {
-        return players.values().stream().map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive())).toList();
+        return players.values().stream().map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive(), p.life() instanceof LifeState.Downed)).toList();
+    }
+
+    /** This player's progress bar. */
+    private Optional<GameWorld.Bar> bar(UUID id) {
+        return Optional.empty();
     }
 
     public GameWorld.Status status(UUID id) {
         PlayerState player = players.get(id);
         int points = player == null ? 0 : player.points();
         if (phase instanceof GamePhase.Countdown c) {
-            return new GameWorld.Status(0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1), powerOn, standings());
+            return status(id, 0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1));
         }
         if (phase instanceof GamePhase.RoundActive r) {
-            return new GameWorld.Status(r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round(), powerOn, standings());
+            return status(id, r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round());
         }
         if (phase instanceof GamePhase.Intermission i) {
-            return new GameWorld.Status(i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1), powerOn, standings());
+            return status(id, i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1));
         }
         if (phase instanceof GamePhase.GameOver o) {
-            return new GameWorld.Status(o.roundReached(), points, 0, "Game over", powerOn, standings());
+            return status(id, o.roundReached(), points, 0, "Game over");
         }
-        return new GameWorld.Status(0, points, 0, "Waiting to start", powerOn, standings());
+        return status(id, 0, points, 0, "Waiting to start");
+    }
+
+    private GameWorld.Status status(UUID id, int round, int points, int zombiesLeft, String phase) {
+        return new GameWorld.Status(round, points, zombiesLeft, phase, powerOn, standings(), List.copyOf(timed.values()), bar(id));
     }
 }

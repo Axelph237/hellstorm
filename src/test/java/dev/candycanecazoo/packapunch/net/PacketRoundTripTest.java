@@ -50,8 +50,11 @@ class PacketRoundTripTest {
 
     @Test
     void hud() {
-        for (HudSyncPacket packet : List.of(HudSyncPacket.NONE, new HudSyncPacket(7, "Round 7", 12, true, 2350,
-                List.of(new HudSyncPacket.Line("alice", 2350, true, true), new HudSyncPacket.Line("bob", 90, false, false))))) {
+        HudSyncPacket full = new HudSyncPacket(7, "Round 7", 12, true, 2350,
+                List.of(new HudSyncPacket.Line("alice", 2350, true, false, true), new HudSyncPacket.Line("bob", 90, false, true, false)),
+                List.of(new dev.candycanecazoo.packapunch.game.GameWorld.Timer("powerup.packapunch.insta_kill", 412, 600)),
+                Optional.of(new dev.candycanecazoo.packapunch.game.GameWorld.Bar("Reviving bob", 0.4f, 0xFFFFFF)));
+        for (HudSyncPacket packet : List.of(HudSyncPacket.NONE, full)) {
             assertEquals(packet, roundTrip(packet, HudSyncPacket::encode, HudSyncPacket::decode));
         }
     }

@@ -11,7 +11,8 @@ import java.util.List;
  * so a map can override any value by name with partial JSON. To make something configurable, add a field here,
  * a line in {@link GameSettingsConfig}, and a default.
  */
-public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Players players, Windows windows, Doors doors, Box box, Pap pap) {
+public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Players players, Windows windows, Doors doors, Box box, Pap pap,
+                           Downs downs, PowerUps powerUps, Traps traps, WaveEvents waveEvents) {
     public record Rounds(
             int baseCount, double countPerRound, double playerFactor,
             double healthScale, int sprintFromRound, double walkSpeed, double sprintSpeed, double healthGrowth, double speedGrowth,
@@ -115,6 +116,56 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
         ).apply(i, Pap::new));
     }
 
+    /**
+     * Going down instead of dying. A teammate holding use within {@code reviveRange} for {@code reviveTicks} revives;
+     * {@code bleedOutTicks} later a downed player spectates until the next round. Solo players with Quick Revive get
+     * {@code soloSelfRevives}. Vanilla regen is off in a game; health comes back at {@code regenPerSecond} once the player
+     * has gone {@code regenDelayTicks} without damage.
+     */
+    public record Downs(int bleedOutTicks, int reviveTicks, double reviveRange, int soloSelfRevives, int regenDelayTicks, double regenPerSecond) {
+        public static final Codec<Downs> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.INT.fieldOf("bleed_out_ticks").forGetter(Downs::bleedOutTicks),
+                Codec.INT.fieldOf("revive_ticks").forGetter(Downs::reviveTicks),
+                Codec.DOUBLE.fieldOf("revive_range").forGetter(Downs::reviveRange),
+                Codec.INT.fieldOf("solo_self_revives").forGetter(Downs::soloSelfRevives),
+                Codec.INT.fieldOf("regen_delay_ticks").forGetter(Downs::regenDelayTicks),
+                Codec.DOUBLE.fieldOf("regen_per_second").forGetter(Downs::regenPerSecond)
+        ).apply(i, Downs::new));
+    }
+
+    /** Power-up drops from zombie kills: a chance per kill, at most {@code maxPerRound} a round. */
+    public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int nukeBonus, int carpenterBonus) {
+        public static final Codec<PowerUps> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.DOUBLE.fieldOf("drop_chance").forGetter(PowerUps::dropChance),
+                Codec.INT.fieldOf("max_per_round").forGetter(PowerUps::maxPerRound),
+                Codec.INT.fieldOf("lifetime_ticks").forGetter(PowerUps::lifetimeTicks),
+                Codec.INT.fieldOf("blink_ticks").forGetter(PowerUps::blinkTicks),
+                Codec.INT.fieldOf("nuke_bonus").forGetter(PowerUps::nukeBonus),
+                Codec.INT.fieldOf("carpenter_bonus").forGetter(PowerUps::carpenterBonus)
+        ).apply(i, PowerUps::new));
+    }
+
+    /** Defaults for new trap controllers; each trap stores its own values. */
+    public record Traps(int defaultCost, int defaultActiveTicks, int defaultCooldownTicks) {
+        public static final Codec<Traps> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.INT.fieldOf("default_cost").forGetter(Traps::defaultCost),
+                Codec.INT.fieldOf("default_active_ticks").forGetter(Traps::defaultActiveTicks),
+                Codec.INT.fieldOf("default_cooldown_ticks").forGetter(Traps::defaultCooldownTicks)
+        ).apply(i, Traps::new));
+    }
+
+    /** Special rounds from datapack wave events. {@code disabled} turns off single events by id, for example on one map. */
+    public record WaveEvents(boolean enabled, List<ResourceLocation> disabled) {
+        public static final Codec<WaveEvents> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.BOOL.fieldOf("enabled").forGetter(WaveEvents::enabled),
+                ResourceLocation.CODEC.listOf().fieldOf("disabled").forGetter(WaveEvents::disabled)
+        ).apply(i, WaveEvents::new));
+
+        public WaveEvents {
+            disabled = List.copyOf(disabled);
+        }
+    }
+
     public static final Codec<GameSettings> CODEC = RecordCodecBuilder.create(i -> i.group(
             Rounds.CODEC.fieldOf("rounds").forGetter(GameSettings::rounds),
             Spawning.CODEC.fieldOf("spawning").forGetter(GameSettings::spawning),
@@ -123,7 +174,11 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             Windows.CODEC.fieldOf("windows").forGetter(GameSettings::windows),
             Doors.CODEC.fieldOf("doors").forGetter(GameSettings::doors),
             Box.CODEC.fieldOf("box").forGetter(GameSettings::box),
-            Pap.CODEC.fieldOf("pap").forGetter(GameSettings::pap)
+            Pap.CODEC.fieldOf("pap").forGetter(GameSettings::pap),
+            Downs.CODEC.fieldOf("downs").forGetter(GameSettings::downs),
+            PowerUps.CODEC.fieldOf("powerups").forGetter(GameSettings::powerUps),
+            Traps.CODEC.fieldOf("traps").forGetter(GameSettings::traps),
+            WaveEvents.CODEC.fieldOf("wave_events").forGetter(GameSettings::waveEvents)
     ).apply(i, GameSettings::new));
 
     public static final GameSettings DEFAULT = new GameSettings(
@@ -134,5 +189,9 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             new Windows(5, 4, 30, 15, 6.0),
             new Doors(750),
             new Box(950, 10, 80, 240, 4, 0.15),
-            new Pap(5000, 60, 240, 1, 2.0, 1.5, 1.2));
+            new Pap(5000, 60, 240, 1, 2.0, 1.5, 1.2),
+            new Downs(600, 60, 2.5, 3, 80, 4.0),
+            new PowerUps(0.03, 4, 600, 100, 400, 200),
+            new Traps(1000, 200, 600),
+            new WaveEvents(true, List.of()));
 }

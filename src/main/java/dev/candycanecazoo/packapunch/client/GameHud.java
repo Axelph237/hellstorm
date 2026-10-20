@@ -1,5 +1,8 @@
 package dev.candycanecazoo.packapunch.client;
 
+import dev.candycanecazoo.packapunch.game.GameWorld;
+import net.minecraft.network.chat.Component;
+import java.util.List;
 import dev.candycanecazoo.packapunch.config.ClientConfig;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.net.HudSyncPacket;
@@ -25,6 +28,10 @@ public final class GameHud {
     private static final int GREY = 0x8A8A8A;
     private static final int MARGIN = 8;
     private static final float ROUND_SCALE = 3.0f;
+    private static final int TIMER_GAP = 12;
+    private static final int ENDING_TICKS = 100;
+    private static final int BAR_WIDTH = 100;
+    private static final int BAR_HEIGHT = 5;
 
     private GameHud() {}
 
@@ -60,6 +67,34 @@ public final class GameHud {
         Font font = mc.font;
         drawRound(graphics, font, hud, height);
         drawPoints(graphics, font, hud, width, height);
+        drawTimers(graphics, font, hud, width);
+        hud.bar().ifPresent(bar -> drawBar(graphics, font, bar, width, height));
+    }
+
+    /** The team's timed effects across the top: "Insta-Kill 23", counting down in seconds. */
+    private static void drawTimers(GuiGraphics graphics, Font font, HudSyncPacket hud, int width) {
+        if (hud.timers().isEmpty()) {
+            return;
+        }
+        List<String> labels = hud.timers().stream()
+                .map(t -> Component.translatable(t.name()).getString() + " " + (t.ticksLeft() + 19) / 20).toList();
+        int total = labels.stream().mapToInt(font::width).sum() + TIMER_GAP * (labels.size() - 1);
+        int x = (width - total) / 2;
+        for (int i = 0; i < labels.size(); i++) {
+            GameWorld.Timer timer = hud.timers().get(i);
+            boolean ending = timer.ticksLeft() < ENDING_TICKS && (timer.ticksLeft() / 5) % 2 == 0;
+            graphics.drawString(font, labels.get(i), x, MARGIN, ending ? GREY : GOLD);
+            x += font.width(labels.get(i)) + TIMER_GAP;
+        }
+    }
+
+    /** This player's progress bar above the crosshair, with its label over it. */
+    private static void drawBar(GuiGraphics graphics, Font font, GameWorld.Bar bar, int width, int height) {
+        int left = (width - BAR_WIDTH) / 2;
+        int top = height / 2 - 28;
+        graphics.fill(left - 1, top - 1, left + BAR_WIDTH + 1, top + BAR_HEIGHT + 1, 0xA0000000);
+        graphics.fill(left, top, left + Math.round(BAR_WIDTH * Math.max(0, Math.min(1, bar.progress()))), top + BAR_HEIGHT, 0xFF000000 | bar.color());
+        WrappedText.drawCenteredAbove(graphics, font, Component.literal(bar.label()), width / 2, top - 2, width, WHITE);
     }
 
     /** The line under the round number, if any: the phase while it isn't a plain round, else the zombies left. */
@@ -102,7 +137,7 @@ public final class GameHud {
         for (HudSyncPacket.Line line : hud.players()) {
             String points = String.valueOf(line.points());
             int x = width - MARGIN - font.width(points);
-            int color = !line.alive() ? GREY : line.you() ? GOLD : WHITE;
+            int color = line.downed() ? RED : !line.alive() ? GREY : line.you() ? GOLD : WHITE;
             graphics.drawString(font, points, x, y, color);
             String name = line.name();
             graphics.drawString(font, name, x - 6 - font.width(name), y, line.alive() ? GREY : 0x555555);

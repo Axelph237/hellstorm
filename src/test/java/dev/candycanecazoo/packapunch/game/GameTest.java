@@ -32,7 +32,11 @@ class GameTest {
             GameSettings.DEFAULT.windows(),
             GameSettings.DEFAULT.doors(),
             GameSettings.DEFAULT.box(),
-            GameSettings.DEFAULT.pap());
+            GameSettings.DEFAULT.pap(),
+            GameSettings.DEFAULT.downs(),
+            GameSettings.DEFAULT.powerUps(),
+            GameSettings.DEFAULT.traps(),
+            GameSettings.DEFAULT.waveEvents());
 
     private static final MobRoster ROSTER = new MobRoster(List.of(
             new MobRoster.Entry(net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty())));
@@ -135,7 +139,8 @@ class GameTest {
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
                 new GameSettings.Rounds(10, 0, 0, 0.15, 100, 0.23, 0.32, 0.004, 0.0001, 2, 5, 3, 0, 2),
-                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap());
+                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap(),
+                SETTINGS.downs(), SETTINGS.powerUps(), SETTINGS.traps(), SETTINGS.waveEvents());
         Game game = newGame(capped);
         game.join(alice);
         game.start();
@@ -207,6 +212,33 @@ class GameTest {
         tick(game, world, 5);
         assertTrue(game.player(bob).orElseThrow().alive(), "bob is in for round 2");
         assertTrue(world.respawned.contains(bob));
+    }
+
+    @Test
+    void timedEffectsCountDownShowOnTheHudAndEndOnce() {
+        Game game = startedGame();
+        net.minecraft.resources.ResourceLocation instaKill = net.minecraft.resources.ResourceLocation.tryBuild("packapunch", "insta_kill");
+        game.startTimed(instaKill, "powerup.packapunch.insta_kill", 5);
+        assertTrue(game.timedActive(instaKill));
+        tick(game, world, 2);
+        assertEquals(List.of(new GameWorld.Timer("powerup.packapunch.insta_kill", 3, 5)), game.status(alice).timers());
+        game.startTimed(instaKill, "powerup.packapunch.insta_kill", 5);
+        tick(game, world, 4);
+        assertTrue(game.timedActive(instaKill), "picking it up again restarts the timer");
+        tick(game, world, 1);
+        assertFalse(game.timedActive(instaKill));
+        assertEquals(List.of(instaKill), world.timedEnded);
+        assertEquals(List.of(), game.status(alice).timers());
+    }
+
+    @Test
+    void gameOverEndsRunningTimedEffects() {
+        Game game = startedGame();
+        net.minecraft.resources.ResourceLocation fireSale = net.minecraft.resources.ResourceLocation.tryBuild("packapunch", "fire_sale");
+        game.startTimed(fireSale, "powerup.packapunch.fire_sale", 600);
+        game.stop(world);
+        assertFalse(game.timedActive(fireSale));
+        assertEquals(List.of(fireSale), world.timedEnded);
     }
 
     @Test
