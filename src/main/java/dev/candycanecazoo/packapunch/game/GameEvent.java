@@ -22,4 +22,7 @@ public sealed interface GameEvent {
     record PowerOn(java.util.Optional<UUID> by) implements GameEvent {}
 
     record ZombieKilled(UUID mob, Optional<UUID> killer, boolean headshot, boolean melee, BlockPos pos) implements GameEvent {}
+
+    /** {@code item} is the gun id for a TacZ gun, the item id otherwise. */
+    record PapUsed(UUID player, String item) implements GameEvent {}
 }

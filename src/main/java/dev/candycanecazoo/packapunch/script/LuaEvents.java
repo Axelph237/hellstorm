@@ -31,6 +31,7 @@ public final class LuaEvents {
         if (event instanceof GameEvent.ZombieSpawned) return "zombie_spawned";
         if (event instanceof GameEvent.ZombieKilled) return "zombie_killed";
         if (event instanceof GameEvent.PowerOn) return "power_on";
+        if (event instanceof GameEvent.PapUsed) return "pap_used";
         throw new IllegalArgumentException("No script name for " + event);
     }
 
@@ -68,6 +69,9 @@ public final class LuaEvents {
             t.set("headshot", LuaValue.valueOf(e.headshot()));
             t.set("melee", LuaValue.valueOf(e.melee()));
             pos(t, e.pos());
+        } else if (event instanceof GameEvent.PapUsed e) {
+            t.set("player", e.player().toString());
+            t.set("item", e.item());
         }
         return t;
     }

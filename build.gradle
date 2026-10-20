@@ -30,6 +30,8 @@ minecraft {
             // TacZ and Ponder ship mixins with SRG refmaps; remap them to dev names.
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            // Our mixin config (in the jar it comes from the manifest below). Its mixins target TacZ only, unremapped, so no refmap.
+            args '--mixin.config', "${mod_id}.mixins.json"
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -130,6 +132,7 @@ tasks.named('jar', Jar).configure {
                 'Implementation-Title'    : project.name,
                 'Implementation-Version'  : project.jar.archiveVersion,
                 'Implementation-Vendor'   : mod_authors,
+                'MixinConfigs'            : "${mod_id}.mixins.json",
         ])
     }
     finalizedBy 'reobfJar'

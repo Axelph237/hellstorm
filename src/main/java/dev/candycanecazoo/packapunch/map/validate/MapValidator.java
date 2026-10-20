@@ -68,6 +68,7 @@ public final class MapValidator {
         Map<BlockPos, SpawnLinks.Link> links = SpawnLinks.resolve(map, context.windows().linkRange());
         checkSpawns(map, links, problems);
         checkWindows(map, links, context, problems);
+        problems.addAll(context.itemProblems());
         return new ValidationReport(problems);
     }
 

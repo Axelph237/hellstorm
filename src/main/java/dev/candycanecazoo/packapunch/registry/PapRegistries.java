@@ -2,6 +2,7 @@ package dev.candycanecazoo.packapunch.registry;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
+import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.packapunch.tools.ZoneWandItem;
@@ -41,9 +42,16 @@ public final class PapRegistries {
     public static final RegistryObject<BlockEntityType<PowerSwitchBlock.Entity>> POWER_SWITCH_ENTITY = BLOCK_ENTITIES.register("power_switch",
             () -> BlockEntityType.Builder.of(PowerSwitchBlock.Entity::new, POWER_SWITCH.get()).build(null));
 
+    public static final RegistryObject<Block> PAP_MACHINE = BLOCKS.register("pap_machine", () -> new PapMachineBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable()
+                    .lightLevel(s -> 6).sound(SoundType.ANVIL)));
+    public static final RegistryObject<BlockEntityType<PapMachineBlock.Entity>> PAP_MACHINE_ENTITY = BLOCK_ENTITIES.register("pap_machine",
+            () -> BlockEntityType.Builder.of(PapMachineBlock.Entity::new, PAP_MACHINE.get()).build(null));
+
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));
     public static final RegistryObject<Item> POWER_SWITCH_ITEM = ITEMS.register("power_switch", () -> new BlockItem(POWER_SWITCH.get(), new Item.Properties()));
+    public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.packapunch"))
@@ -52,6 +60,7 @@ public final class PapRegistries {
                 output.accept(ZONE_WAND.get());
                 output.accept(SPAWN_MARKER_ITEM.get());
                 output.accept(POWER_SWITCH_ITEM.get());
+                output.accept(PAP_MACHINE_ITEM.get());
             })
             .build());
 

@@ -1,5 +1,6 @@
 package dev.candycanecazoo.packapunch.game;
 
+import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
@@ -12,5 +13,6 @@ public final class MapReset {
     public static void reset(ServerLevel level, ZombiesMap map) {
         WindowOps.resetAll(level, map);
         PowerSwitchBlock.setAll(level, map.features(FeatureKind.POWER_SWITCH), false);
+        PapMachineBlock.resetAll(level, map.features(FeatureKind.PAP_MACHINE));
     }
 }

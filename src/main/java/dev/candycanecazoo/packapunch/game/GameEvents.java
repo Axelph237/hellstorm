@@ -12,7 +12,7 @@ public final class GameEvents {
         listeners.add(listener);
     }
 
-    void emit(GameEvent event) {
+    public void emit(GameEvent event) {
         for (Consumer<GameEvent> listener : listeners) {
             listener.accept(event);
         }
