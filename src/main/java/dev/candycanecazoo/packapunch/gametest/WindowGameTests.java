@@ -174,9 +174,9 @@ public final class WindowGameTests {
             helper.assertTrue(!zombies.isEmpty(), "no game zombie yet");
             helper.assertTrue(zombies.stream().anyMatch(z -> east.contains(z.blockPosition())),
                     "no zombie in the east room yet; positions " + zombies.stream().map(z -> z.blockPosition().toShortString()).toList());
-            int followed = active.pathing().plansFollowed();
+            int steps = active.pathing().flowSteps();
             GameManager.end(active);
-            helper.assertTrue(followed > 0, "the zombie got there without following a cross-zone plan");
+            helper.assertTrue(steps > 0, "the zombie got there without steering on a flow field");
         });
     }
 

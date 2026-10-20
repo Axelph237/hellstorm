@@ -162,6 +162,13 @@ public final class GameLoopGameTests {
         int[] hitsLanded = {0};
         Zombie[] target = {null};
         helper.onEachTick(() -> {
+            // The round's other zombies would walk into the line of fire and die, so only the target is kept.
+            helper.getLevel().getEntitiesOfClass(Zombie.class, area, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG) && z != target[0])
+                    .forEach(z -> {
+                        if (target[0] != null) {
+                            z.discard();
+                        }
+                    });
             if (target[0] == null) {
                 List<Zombie> zombies = helper.getLevel().getEntitiesOfClass(Zombie.class, area, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG));
                 if (zombies.isEmpty()) {

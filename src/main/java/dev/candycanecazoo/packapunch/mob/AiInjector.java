@@ -26,7 +26,7 @@ public final class AiInjector {
      * clearing their goals leaves the brain in charge anyway. Returns the AI mode actually used.
      */
     public static MobProfile.Ai inject(Mob mob, MobProfile profile, Stats stats, Supplier<? extends Collection<? extends Player>> targets) {
-        return inject(mob, profile, stats, targets, Navigator.VANILLA);
+        return inject(mob, profile, stats, targets, Navigator.vanilla());
     }
 
     public static MobProfile.Ai inject(Mob mob, MobProfile profile, Stats stats, Supplier<? extends Collection<? extends Player>> targets,

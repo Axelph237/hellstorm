@@ -12,13 +12,11 @@ import java.util.EnumSet;
  */
 public final class GameMeleeGoal extends Goal {
     private static final int ATTACK_INTERVAL = 20;
-    private static final int REPATH_TICKS = 10;
 
     private final PathfinderMob mob;
     private final float damage;
     private final Navigator navigator;
     private int attackCooldown;
-    private int repathCooldown;
 
     public GameMeleeGoal(PathfinderMob mob, float damage, Navigator navigator) {
         this.mob = mob;
@@ -50,10 +48,7 @@ public final class GameMeleeGoal extends Goal {
             return;
         }
         mob.getLookControl().setLookAt(target, 30f, 30f);
-        if (--repathCooldown <= 0) {
-            repathCooldown = REPATH_TICKS;
-            navigator.moveToward(mob, target);
-        }
+        navigator.tick(mob, target);
         attackCooldown = Math.max(0, attackCooldown - 1);
         if (attackCooldown == 0 && mob.isWithinMeleeAttackRange(target) && mob.getSensing().hasLineOfSight(target)) {
             attackCooldown = ATTACK_INTERVAL;

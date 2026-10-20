@@ -86,3 +86,20 @@ None.
   - **Why only the doorway.** Following the whole planned block path made every zombie queue along the same line. Vanilla re-paths from each mob's position and cuts corners, so a crowd spreads out and pushes past itself.
   - The worker shuts down with the game.
 - **Not built yet.** The "next portal toward zone" cache isn't built yet. With small portal graphs, plans are cheap enough without it.
+
+## Flow fields (replaced the hierarchical planner, after play testing)
+
+In play, zombies reached the end of the planned route and stopped. Two pathfinders disagreed about where a zombie can walk: our planner picked a doorway, but vanilla navigation couldn't always reach it and quietly returned a partial path. Every zombie also followed the same route in single file. The hierarchical planner, its edge cache, and `PortalNavigator` were removed and replaced:
+- **`FlowGraph`** (one per movement class, `mob/path`). It covers every walkable node of one grid over all unlocked zones plus the doorway cells between them (`ZonePathing.unionGrid`). Moves come from `BlockAStar`'s rules, stored as forward and reverse edge arrays. It is immutable.
+- **`FlowField`** (one per chased player). A reverse Dijkstra from the player's cell gives every node's true walking cost to the player, drops included (they're one-way). Unit tests check it against a reference Dijkstra.
+  - **`next`** steps to the cheapest neighbour. Ties are split per zombie, so a crowd fans out.
+  - **`lookahead`** picks the farthest downhill cell reachable in a straight line on the same level, so zombies cut corners instead of following the grid's staircase.
+- **`GamePathing`.** Graphs are built on the server thread the first time a zombie of that size needs one. A player's field is recomputed on the game's worker thread when the player moves to another cell, at most once every 5 ticks. Zombies always read the latest finished field and never wait.
+- **`FlowNavigator`** (one per zombie, run every tick).
+  - **Steering.** It moves straight at the lookahead point with the move control, plus a fixed per-zombie sideways offset.
+  - **Close range.** Within 2 blocks with line of sight, it goes straight for the target.
+  - **Doors.** It opens a closed wooden door in its next two cells.
+  - **Stuck.** It falls back to vanilla navigation for 2 seconds if it hasn't moved half a block in 2 seconds, or while no field is ready.
+- **Doorway portals** (`ZonePathing.portals`) remain for `/pap map paths` and `show_paths`. They no longer drive movement.
+- **`show_paths`** draws each zombie's downhill walk from its current cell.
+- **What one field costs.** One Dijkstra per player per cell change, shared by every zombie chasing that player, so cost doesn't grow with the number of zombies.

@@ -77,6 +77,9 @@ public final class PathDebug {
         GameManager.get(level).ifPresent(active -> {
             for (UUID id : active.game().mobs()) {
                 Entity entity = level.getEntity(id);
+                if (entity instanceof Mob mob && flowTrail(active.pathing(), mob).map(t -> paths.add(new DebugPathsPacket.MobPath(mob.getId(), t))).isPresent()) {
+                    continue;
+                }
                 if (entity instanceof Mob mob && mob.getNavigation().getPath() != null) {
                     Path path = mob.getNavigation().getPath();
                     List<BlockPos> nodes = new ArrayList<>();
@@ -91,9 +94,26 @@ public final class PathDebug {
         return paths;
     }
 
+    /** The downhill walk a flow-field zombie is following toward its target, from where it stands. */
+    private static java.util.Optional<List<BlockPos>> flowTrail(dev.candycanecazoo.packapunch.game.GamePathing pathing, Mob mob) {
+        if (mob.getTarget() == null) {
+            return java.util.Optional.empty();
+        }
+        MovementClass size = MovementClass.ofHitbox(mob.getBbWidth(), mob.getBbHeight());
+        var graph = pathing.graph(size);
+        var from = dev.candycanecazoo.packapunch.game.FlowNavigator.snap(graph, mob.blockPosition());
+        var goal = dev.candycanecazoo.packapunch.game.FlowNavigator.snap(graph, mob.getTarget().blockPosition());
+        return from.flatMap(f -> goal.flatMap(g -> pathing.field(size, mob.getTarget(), g)).map(field -> {
+            List<BlockPos> trail = new ArrayList<>();
+            trail.add(f);
+            trail.addAll(field.descent(f, MAX_NODES, 0));
+            return trail;
+        }));
+    }
+
     private static List<BlockPos> doorways(ServerLevel level) {
         List<Portal> portals = GameManager.get(level)
-                .map(active -> active.pathing().planner(ZOMBIE).portals())
+                .map(active -> active.pathing().doorways(ZOMBIE))
                 .orElseGet(() -> {
                     ZombiesMap map = MapSavedData.get(level).map();
                     CachedPortals cached = NO_GAME_PORTALS.get(level.dimension());

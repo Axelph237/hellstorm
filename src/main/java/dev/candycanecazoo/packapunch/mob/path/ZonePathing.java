@@ -40,6 +40,27 @@ public final class ZonePathing {
         return grids;
     }
 
+    /**
+     * One grid over every zone in {@code zones} plus the doorway cells between them, for flow fields that span the whole
+     * map. Cells outside those zones and doorways read as solid.
+     */
+    public static PassabilityGrid unionGrid(ZombiesMap map, Set<ZoneId> zones, Passages.Result passages, CellQuery world, MovementClass mc) {
+        Set<BlockPos> doorways = new HashSet<>();
+        passages.gaps().forEach((link, cells) -> {
+            if (zones.contains(link.a()) && zones.contains(link.b())) {
+                doorways.addAll(cells);
+            }
+        });
+        List<BlockBox> boxes = map.zones().values().stream().filter(z -> zones.contains(z.id())).flatMap(z -> z.boxes().stream()).toList();
+        if (boxes.isEmpty()) {
+            return PassabilityGrid.build(new BlockBox(0, 0, 0, 0, 0, 0), (x, y, z) -> CellQuery.Cell.SOLID, mc);
+        }
+        CellQuery query = (x, y, z) -> boxes.stream().anyMatch(b -> b.contains(x, y, z)) || doorways.contains(new BlockPos(x, y, z))
+                ? world.at(x, y, z) : CellQuery.Cell.SOLID;
+        Zone union = new Zone(new ZoneId("union"), boxes, false);
+        return PassabilityGrid.build(bounds(union, doorways), query, mc);
+    }
+
     public static List<Portal> portals(Passages.Result passages, Map<ZoneId, PassabilityGrid> grids) {
         List<Portal> portals = new ArrayList<>();
         List<Passages.Link> links = new ArrayList<>(passages.open());
