@@ -73,7 +73,6 @@ class PerkDefTest {
                 "{\"type\": \"damage_multiplier\", \"multiplier\": 2}", new PerkEffect.DamageMultiplier(2),
                 "{\"type\": \"rpm_multiplier\", \"multiplier\": 1.33}", new PerkEffect.RpmMultiplier(1.33),
                 "{\"type\": \"weapon_slots\", \"slots\": 1}", new PerkEffect.WeaponSlots(1),
-                "{\"type\": \"revive_speed\", \"multiplier\": 0.5}", new PerkEffect.ReviveSpeed(0.5),
                 "{\"type\": \"self_revive\"}", new PerkEffect.SelfRevive());
         expected.forEach((json, effect) -> {
             PerkDef def = valid(withEffect(json));

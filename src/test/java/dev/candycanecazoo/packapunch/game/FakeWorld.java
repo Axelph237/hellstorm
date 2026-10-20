@@ -20,6 +20,11 @@ final class FakeWorld implements GameWorld {
     final List<UUID> spectated = new ArrayList<>();
     final List<String> announcements = new ArrayList<>();
     final List<net.minecraft.resources.ResourceLocation> timedEnded = new ArrayList<>();
+    final List<UUID> downed = new ArrayList<>();
+    final List<UUID> revived = new ArrayList<>();
+    final List<UUID> restocked = new ArrayList<>();
+    final Map<UUID, Float> healed = new HashMap<>();
+    final Map<UUID, Double> reviveSpeeds = new HashMap<>();
     boolean refuseSpawns;
     java.util.function.BiPredicate<net.minecraft.resources.ResourceLocation, BlockPos> canSpawn = (profile, marker) -> true;
 
@@ -67,6 +72,38 @@ final class FakeWorld implements GameWorld {
 
     @Override
     public void showStatus(UUID player, Status status) {}
+
+    @Override
+    public void down(UUID player) {
+        downed.add(player);
+    }
+
+    @Override
+    public void revive(UUID player) {
+        revived.add(player);
+    }
+
+    @Override
+    public void giveStartingLoadout(UUID player) {
+        restocked.add(player);
+    }
+
+    @Override
+    public void heal(UUID player, float amount) {
+        healed.merge(player, amount, Float::sum);
+    }
+
+    @Override
+    public double reviveSpeed(UUID player) {
+        return reviveSpeeds.getOrDefault(player, 1.0);
+    }
+
+    @Override
+    public double distance(UUID a, UUID b) {
+        BlockPos from = positions.get(a);
+        BlockPos to = positions.get(b);
+        return from == null || to == null ? Double.MAX_VALUE : Math.sqrt(from.distSqr(to));
+    }
 
     @Override
     public void timedEffectEnded(net.minecraft.resources.ResourceLocation effect) {

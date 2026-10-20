@@ -44,6 +44,12 @@ public final class HudState {
         return last.points();
     }
 
+    /** A teammate the HUD says is down, by name, so the crosshair on them can offer a revive. */
+    public static boolean downed(net.minecraft.world.entity.Entity entity) {
+        return entity instanceof net.minecraft.world.entity.player.Player player && inGame()
+                && hud().players().stream().anyMatch(line -> line.downed() && !line.you() && line.name().equals(player.getGameProfile().getName()));
+    }
+
     public static boolean powerOn() {
         return last.powerOn();
     }

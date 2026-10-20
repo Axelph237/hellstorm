@@ -61,14 +61,7 @@ public sealed interface PerkEffect {
         }
     }
 
-    /** Multiplies how long the player takes to revive others (Quick Revive). Stored for the downs feature; no effect yet. */
-    record ReviveSpeed(double multiplier) implements PerkEffect {
-        public String type() {
-            return "revive_speed";
-        }
-    }
-
-    /** Lets a solo player revive themselves (Quick Revive). Stored for the downs feature; no effect yet. */
+    /** Lets a solo player revive themselves when they go down (Quick Revive), up to {@code downs.solo_self_revives} times. */
     record SelfRevive() implements PerkEffect {
         public String type() {
             return "self_revive";
@@ -86,8 +79,6 @@ public sealed interface PerkEffect {
             "rpm_multiplier", RecordCodecBuilder.<RpmMultiplier>create(i -> i.group(
                     multiplier().fieldOf("multiplier").forGetter(RpmMultiplier::multiplier)).apply(i, RpmMultiplier::new)),
             "weapon_slots", WeaponSlots.CODEC,
-            "revive_speed", RecordCodecBuilder.<ReviveSpeed>create(i -> i.group(
-                    multiplier().fieldOf("multiplier").forGetter(ReviveSpeed::multiplier)).apply(i, ReviveSpeed::new)),
             "self_revive", Codec.unit(new SelfRevive()));
 
     Codec<PerkEffect> CODEC = Codec.STRING.partialDispatch("type",

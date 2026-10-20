@@ -116,7 +116,7 @@ public final class GameManager {
         Game game = new Game(settings, map, roster, RandomSource.create(), new GameEvents());
         GamePathing pathing = new GamePathing(level, map, passages);
         ForgeGameWorld world = new ForgeGameWorld(level, map, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup,
-                profiles, game::targetable, settings.windows().tearTicks(), pathing);
+                profiles, game::targetable, settings, pathing);
         Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)), pathing);
         GAMES.put(level.dimension(), active);
         dev.candycanecazoo.packapunch.feature.MysteryBoxes.start(active);
@@ -150,7 +150,10 @@ public final class GameManager {
         active.pathing().close();
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {
-            active.world().entity(player.id()).ifPresent(p -> Perks.removeAll(active, p));
+            active.world().entity(player.id()).ifPresent(p -> {
+                Perks.removeAll(active, p);
+                Downs.standUp(p);
+            });
             ServerPlayer online = active.level().getServer().getPlayerList().getPlayer(player.id());
             if (online != null) {
                 sessions.restore(online);

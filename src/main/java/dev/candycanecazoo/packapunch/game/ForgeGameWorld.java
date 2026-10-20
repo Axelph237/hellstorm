@@ -43,6 +43,7 @@ public final class ForgeGameWorld implements GameWorld {
     private final ServerLevel level;
     private final GameMap map;
     private final int tearTicks;
+    private final dev.candycanecazoo.packapunch.config.GameSettings settings;
     private final List<BlockPos> startCells;
     private final Supplier<Collection<UUID>> players;
     private final Function<UUID, ServerPlayer> lookup;
@@ -53,11 +54,12 @@ public final class ForgeGameWorld implements GameWorld {
 
     public ForgeGameWorld(ServerLevel level, GameMap map, List<BlockPos> startCells, Supplier<Collection<UUID>> players,
                           Function<UUID, ServerPlayer> lookup, Map<ResourceLocation, MobProfile> profiles, Predicate<UUID> targetable,
-                          int tearTicks, GamePathing pathing) {
+                          dev.candycanecazoo.packapunch.config.GameSettings settings, GamePathing pathing) {
         this.level = level;
+        this.settings = settings;
         this.pathing = pathing;
         this.map = map;
-        this.tearTicks = tearTicks;
+        this.tearTicks = settings.windows().tearTicks();
         this.startCells = List.copyOf(startCells);
         this.players = players;
         this.lookup = lookup;
@@ -210,14 +212,52 @@ public final class ForgeGameWorld implements GameWorld {
             }
             p.setGameMode(GameType.ADVENTURE);
             p.setHealth(p.getMaxHealth());
-            p.getFoodData().setFoodLevel(20);
+            p.getFoodData().setFoodLevel(Downs.FOOD_LEVEL);
             p.clearFire();
         });
     }
 
     @Override
     public void spectate(UUID id) {
-        player(id).ifPresent(p -> p.setGameMode(GameType.SPECTATOR));
+        player(id).ifPresent(p -> {
+            Downs.standUp(p);
+            p.setGameMode(GameType.SPECTATOR);
+        });
+    }
+
+    @Override
+    public void down(UUID id) {
+        player(id).ifPresent(p -> Downs.knockDown(p, settings.players()));
+    }
+
+    @Override
+    public void revive(UUID id) {
+        player(id).ifPresent(p -> {
+            Downs.standUp(p);
+            p.setHealth(p.getMaxHealth() / 2);
+        });
+    }
+
+    @Override
+    public void giveStartingLoadout(UUID id) {
+        player(id).ifPresent(p -> Loadout.give(p, settings.players()));
+    }
+
+    @Override
+    public void heal(UUID id, float amount) {
+        player(id).filter(p -> p.getHealth() < p.getMaxHealth()).ifPresent(p -> p.heal(amount));
+    }
+
+    @Override
+    public double reviveSpeed(UUID id) {
+        return player(id).map(p -> p.getAttributeValue(dev.candycanecazoo.packapunch.registry.PapRegistries.REVIVE_SPEED.get())).orElse(1.0);
+    }
+
+    @Override
+    public double distance(UUID a, UUID b) {
+        Optional<ServerPlayer> from = player(a);
+        Optional<ServerPlayer> to = player(b);
+        return from.isPresent() && to.isPresent() ? from.get().distanceTo(to.get()) : Double.MAX_VALUE;
     }
 
     @Override

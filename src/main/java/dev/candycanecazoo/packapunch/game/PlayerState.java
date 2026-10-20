@@ -19,6 +19,8 @@ public final class PlayerState {
     private Optional<ZoneId> lastZone = Optional.empty();
     private int repairPointsThisRound;
     private int bonusWeaponSlots;
+    private int selfRevivesUsed;
+    private long lastHurtTick;
     private final Map<ResourceLocation, PerkDef> perks = new LinkedHashMap<>();
 
     PlayerState(UUID id, int points) {
@@ -36,6 +38,27 @@ public final class PlayerState {
 
     public boolean alive() {
         return life instanceof LifeState.Alive;
+    }
+
+    /** Alive or down: still shooting, still earning points. */
+    public boolean inPlay() {
+        return !(life instanceof LifeState.Spectating);
+    }
+
+    public int selfRevivesUsed() {
+        return selfRevivesUsed;
+    }
+
+    void useSelfRevive() {
+        selfRevivesUsed++;
+    }
+
+    long lastHurtTick() {
+        return lastHurtTick;
+    }
+
+    void hurtAt(long tick) {
+        lastHurtTick = tick;
     }
 
     public int points() {

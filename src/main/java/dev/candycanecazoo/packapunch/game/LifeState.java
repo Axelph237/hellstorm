@@ -9,9 +9,21 @@ public sealed interface LifeState {
 
     /**
      * Down: crawling, with {@code bleedTicksLeft} until they bleed out. {@code reviver} is the teammate reviving them, with
-     * {@code reviveTicks} of progress; a solo Quick Revive self-revive has no reviver.
+     * {@code reviveTicks} of the {@code reviveNeeded} it takes; a solo Quick Revive self-revive has no reviver.
      */
-    record Downed(int bleedTicksLeft, Optional<UUID> reviver, int reviveTicks, boolean selfReviving) implements LifeState {}
+    record Downed(int bleedTicksLeft, Optional<UUID> reviver, int reviveTicks, int reviveNeeded, boolean selfReviving) implements LifeState {
+        public Downed bleed() {
+            return new Downed(bleedTicksLeft - 1, Optional.empty(), 0, 0, false);
+        }
+
+        public Downed revivedBy(Optional<UUID> by, int needed) {
+            return new Downed(bleedTicksLeft, by, reviveTicks + 1, needed, selfReviving);
+        }
+
+        public boolean revived() {
+            return reviveNeeded > 0 && reviveTicks >= reviveNeeded;
+        }
+    }
 
     record Spectating() implements LifeState {}
 }

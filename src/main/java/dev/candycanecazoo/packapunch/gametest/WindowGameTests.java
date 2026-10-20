@@ -378,7 +378,7 @@ public final class WindowGameTests {
                 golem, new dev.candycanecazoo.packapunch.mob.MobProfile(net.minecraft.resources.ResourceLocation.tryParse("minecraft:iron_golem"), 1, 1,
                         java.util.Optional.empty(), dev.candycanecazoo.packapunch.mob.MobProfile.Ai.REPLACE, java.util.Optional.empty(), 1, 1, 4, true, dev.candycanecazoo.packapunch.mob.MobProfile.Navigation.FLOW),
                 zombie, dev.candycanecazoo.packapunch.mob.MobProfile.FALLBACK);
-        ForgeGameWorld world = new ForgeGameWorld(helper.getLevel(), gameMap, List.of(), List::of, id -> null, profiles, id -> false, 30,
+        ForgeGameWorld world = new ForgeGameWorld(helper.getLevel(), gameMap, List.of(), List::of, id -> null, profiles, id -> false, dev.candycanecazoo.packapunch.config.GameSettings.DEFAULT,
                 new dev.candycanecazoo.packapunch.game.GamePathing(helper.getLevel(), gameMap,
                         Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2)));
         helper.assertTrue(gameMap.windowFor(marker).isPresent(), "marker should link to the window");

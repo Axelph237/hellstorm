@@ -1,5 +1,6 @@
 {
   "attribute.name.packapunch.reload_speed": "Reload Speed",
+  "attribute.name.packapunch.revive_speed": "Revive Speed",
   "itemGroup.packapunch": "Pack-a-Punch Map Tools",
   "item.packapunch.zone_wand": "Zone Wand",
   "block.packapunch.spawn_marker": "Zombie Spawn Marker",

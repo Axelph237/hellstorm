@@ -42,6 +42,10 @@ public final class PapRegistries {
     public static final RegistryObject<Attribute> RELOAD_SPEED = ATTRIBUTES.register("reload_speed",
             () -> new RangedAttribute("attribute.name.packapunch.reload_speed", 1.0, 0.1, 10.0).setSyncable(true));
 
+    /** How fast a player revives teammates, as a multiple of normal: 2 revives in half the time. Quick Revive adds 1. */
+    public static final RegistryObject<Attribute> REVIVE_SPEED = ATTRIBUTES.register("revive_speed",
+            () -> new RangedAttribute("attribute.name.packapunch.revive_speed", 1.0, 0.1, 10.0).setSyncable(true));
+
     public static final RegistryObject<Block> SPAWN_MARKER = BLOCKS.register("spawn_marker", () -> new SpawnMarkerBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED).strength(-1.0f, 3_600_000f)
                     .noCollission().noOcclusion().noLootTable().sound(SoundType.METAL)));
@@ -106,6 +110,9 @@ public final class PapRegistries {
         BLOCK_ENTITIES.register(modBus);
         TABS.register(modBus);
         ATTRIBUTES.register(modBus);
-        modBus.addListener((EntityAttributeModificationEvent event) -> event.add(EntityType.PLAYER, RELOAD_SPEED.get()));
+        modBus.addListener((EntityAttributeModificationEvent event) -> {
+            event.add(EntityType.PLAYER, RELOAD_SPEED.get());
+            event.add(EntityType.PLAYER, REVIVE_SPEED.get());
+        });
     }
 }

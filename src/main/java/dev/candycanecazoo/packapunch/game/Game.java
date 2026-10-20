@@ -4,6 +4,7 @@ import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.perk.PerkDef;
+import dev.candycanecazoo.packapunch.perk.PerkEffect;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -25,6 +26,8 @@ import java.util.UUID;
  */
 public final class Game {
     private static final int STATUS_INTERVAL = 4;
+    private static final int REVIVE_COLOR = 0xFFFFFF;
+    private static final int BLEED_COLOR = 0xC81E1E;
 
     private final GameSettings settings;
     private final GameMap map;
@@ -42,6 +45,13 @@ public final class Game {
     private Set<ZoneId> unlocked;
     private final Set<String> openDoors = new LinkedHashSet<>();
     private final Map<ResourceLocation, GameWorld.Timer> timed = new LinkedHashMap<>();
+    /** Downed player to the teammate holding use on them and the last tick they did. */
+    private final Map<UUID, ReviveHold> reviveHolds = new LinkedHashMap<>();
+
+    /** A revive survives this many ticks between presses, so right click's repeat rate (every 4 ticks) counts as holding. */
+    private static final int HOLD_GRACE_TICKS = 5;
+
+    private record ReviveHold(UUID reviver, long tick) {}
 
     public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
         this.settings = settings;
@@ -217,6 +227,8 @@ public final class Game {
 
     public void leave(UUID player) {
         players.remove(player);
+        reviveHolds.remove(player);
+        reviveHolds.values().removeIf(hold -> hold.reviver().equals(player));
     }
 
     /** Starts the countdown. Only from the lobby, with at least one player. */
@@ -242,6 +254,8 @@ public final class Game {
         }
         if (phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) {
             tickTimed(world);
+            tickDowns(world);
+            tickRegen(world);
         }
         if (ticks % STATUS_INTERVAL == 0) {
             players.keySet().forEach(id -> world.showStatus(id, status(id)));
@@ -264,7 +278,7 @@ public final class Game {
             finished = true;
             return over;
         }
-        if (players.values().stream().noneMatch(PlayerState::alive)) {
+        if (players.values().stream().noneMatch(Game::stillFighting)) {
             int reached = phase instanceof GamePhase.RoundActive active ? active.round()
                     : ((GamePhase.Intermission) phase).nextRound() - 1;
             return enterGameOver(world, reached);
@@ -281,9 +295,10 @@ public final class Game {
     private GamePhase beginRound(GameWorld world, int round) {
         for (PlayerState player : players.values()) {
             player.resetRoundCounters();
-            if (!player.alive()) {
+            if (player.life() instanceof LifeState.Spectating) {
                 player.setLife(new LifeState.Alive());
                 world.respawn(player.id());
+                world.giveStartingLoadout(player.id());
             }
         }
         events.emit(new GameEvent.RoundStart(round));
@@ -401,7 +416,7 @@ public final class Game {
     /** A game zombie took non-lethal damage from a player. */
     public void onMobHit(UUID mob, UUID attacker) {
         PlayerState player = players.get(attacker);
-        if (mobs.contains(mob) && player != null && player.alive()) {
+        if (mobs.contains(mob) && player != null && player.inPlay()) {
             player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), false));
         }
     }
@@ -411,7 +426,7 @@ public final class Game {
         if (!mobs.remove(mob)) {
             return;
         }
-        Optional<PlayerState> player = killer.map(players::get).filter(PlayerState::alive);
+        Optional<PlayerState> player = killer.map(players::get).filter(PlayerState::inPlay);
         player.ifPresent(p -> {
             p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), false));
             p.countKill(headshot);
@@ -426,11 +441,120 @@ public final class Game {
         }
     }
 
+    /** A death that skipped going down (the void, /kill): the player spectates until the next round. */
     public void onPlayerDied(UUID id, GameWorld world) {
         PlayerState player = players.get(id);
-        if (player != null && player.alive()) {
+        if (player != null && player.inPlay()) {
+            reviveHolds.remove(id);
             player.setLife(new LifeState.Spectating());
             world.spectate(id);
+        }
+    }
+
+    /**
+     * Damage that would kill a player in this game. Returns true if the game takes it instead (the caller cancels the
+     * damage): an alive player goes down, and a downed one takes no more. A solo player with Quick Revive and self-revives
+     * left starts reviving themselves at once.
+     */
+    public boolean onLethalDamage(UUID id, GameWorld world) {
+        PlayerState player = players.get(id);
+        if (player == null || !player.inPlay() || phase instanceof GamePhase.Lobby || phase instanceof GamePhase.GameOver) {
+            return false;
+        }
+        if (!player.alive()) {
+            return true;
+        }
+        boolean selfRevive = players.size() == 1 && hasSelfRevive(player) && player.selfRevivesUsed() < settings.downs().soloSelfRevives();
+        if (selfRevive) {
+            player.useSelfRevive();
+        }
+        player.setLife(new LifeState.Downed(settings.downs().bleedOutTicks(), Optional.empty(), 0, 0, selfRevive));
+        world.down(id);
+        events.emit(new GameEvent.PlayerDowned(id, world.playerPosition(id).orElse(BlockPos.ZERO)));
+        return true;
+    }
+
+    /** Any damage to a player: it stops their regen for a while, and stops a revive they're doing. */
+    public void onPlayerHurt(UUID id) {
+        PlayerState player = players.get(id);
+        if (player != null) {
+            player.hurtAt(ticks);
+            reviveHolds.values().removeIf(hold -> hold.reviver().equals(id));
+        }
+    }
+
+    /** {@code reviver} is holding use on {@code downed} this tick. Ignored unless both are in this game and it makes sense. */
+    public void holdRevive(UUID reviver, UUID downed) {
+        PlayerState helper = players.get(reviver);
+        PlayerState target = players.get(downed);
+        if (helper == null || !helper.alive() || target == null || !(target.life() instanceof LifeState.Downed down) || down.selfReviving()) {
+            return;
+        }
+        ReviveHold current = reviveHolds.get(downed);
+        if (current == null || current.reviver().equals(reviver) || ticks - current.tick() > HOLD_GRACE_TICKS) {
+            reviveHolds.put(downed, new ReviveHold(reviver, ticks));
+        }
+    }
+
+    private static boolean stillFighting(PlayerState player) {
+        return player.alive() || player.life() instanceof LifeState.Downed down && down.selfReviving();
+    }
+
+    private static boolean hasSelfRevive(PlayerState player) {
+        return player.perks().values().stream().anyMatch(def -> def.effects().stream().anyMatch(PerkEffect.SelfRevive.class::isInstance));
+    }
+
+    private void tickDowns(GameWorld world) {
+        for (PlayerState player : players.values()) {
+            if (!(player.life() instanceof LifeState.Downed down)) {
+                continue;
+            }
+            LifeState.Downed next;
+            if (down.selfReviving()) {
+                next = down.revivedBy(Optional.empty(), settings.downs().reviveTicks());
+            } else {
+                Optional<UUID> reviver = Optional.ofNullable(reviveHolds.get(player.id()))
+                        .filter(hold -> ticks - hold.tick() <= HOLD_GRACE_TICKS)
+                        .map(ReviveHold::reviver)
+                        .filter(id -> players.get(id) != null && players.get(id).alive()
+                                && world.distance(id, player.id()) <= settings.downs().reviveRange());
+                if (reviver.isPresent() && down.reviver().filter(r -> !r.equals(reviver.get())).isEmpty()) {
+                    next = down.revivedBy(reviver, reviveNeeded(world, reviver.get()));
+                } else if (reviver.isPresent()) {
+                    next = new LifeState.Downed(down.bleedTicksLeft(), reviver, 1, reviveNeeded(world, reviver.get()), false);
+                } else {
+                    reviveHolds.remove(player.id());
+                    next = down.bleed();
+                }
+            }
+            if (next.revived()) {
+                reviveHolds.remove(player.id());
+                player.setLife(new LifeState.Alive());
+                player.hurtAt(ticks);
+                world.revive(player.id());
+                events.emit(new GameEvent.PlayerRevived(player.id(), next.reviver()));
+            } else if (next.bleedTicksLeft() <= 0) {
+                reviveHolds.remove(player.id());
+                player.setLife(new LifeState.Spectating());
+                world.spectate(player.id());
+                events.emit(new GameEvent.PlayerBledOut(player.id()));
+            } else {
+                player.setLife(next);
+            }
+        }
+    }
+
+    /** {@code downs.revive_ticks}, divided by the reviver's revive speed (Quick Revive doubles it). */
+    private int reviveNeeded(GameWorld world, UUID reviver) {
+        return Math.max(1, (int) Math.ceil(settings.downs().reviveTicks() / Math.max(0.01, world.reviveSpeed(reviver))));
+    }
+
+    private void tickRegen(GameWorld world) {
+        float perTick = (float) (settings.downs().regenPerSecond() / 20.0);
+        for (PlayerState player : players.values()) {
+            if (player.alive() && perTick > 0 && ticks - player.lastHurtTick() >= settings.downs().regenDelayTicks()) {
+                world.heal(player.id(), perTick);
+            }
         }
     }
 
@@ -438,9 +562,23 @@ public final class Game {
         return players.values().stream().map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive(), p.life() instanceof LifeState.Downed)).toList();
     }
 
-    /** This player's progress bar. */
+    /** Downed players see how long they have or how far their revive is; a reviver sees their progress. */
     private Optional<GameWorld.Bar> bar(UUID id) {
-        return Optional.empty();
+        PlayerState player = players.get(id);
+        if (player != null && player.life() instanceof LifeState.Downed down) {
+            if (down.reviveTicks() > 0) {
+                return Optional.of(new GameWorld.Bar(down.selfReviving() ? "Reviving" : "Being revived", progress(down), REVIVE_COLOR));
+            }
+            return Optional.of(new GameWorld.Bar("Bleeding out", down.bleedTicksLeft() / (float) settings.downs().bleedOutTicks(), BLEED_COLOR));
+        }
+        return players.values().stream()
+                .filter(p -> p.life() instanceof LifeState.Downed d && d.reviver().filter(id::equals).isPresent() && d.reviveTicks() > 0)
+                .findFirst()
+                .map(p -> new GameWorld.Bar("Reviving", progress((LifeState.Downed) p.life()), REVIVE_COLOR));
+    }
+
+    private static float progress(LifeState.Downed down) {
+        return down.reviveNeeded() == 0 ? 0 : down.reviveTicks() / (float) down.reviveNeeded();
     }
 
     public GameWorld.Status status(UUID id) {

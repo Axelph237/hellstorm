@@ -4,7 +4,7 @@
   "requires_power": false,
   "color": "#4aa3df",
   "effects": [
-    { "type": "revive_speed", "multiplier": 0.5 },
+    { "type": "attribute_modifier", "attribute": "packapunch:revive_speed", "amount": 1, "operation": "addition" },
     { "type": "self_revive" }
   ]
 }

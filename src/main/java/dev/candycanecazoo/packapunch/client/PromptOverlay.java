@@ -39,8 +39,11 @@ public final class PromptOverlay {
         prompt(mc).ifPresent(prompt -> WrappedText.drawCentered(graphics, mc.font, text(prompt), width / 2, height / 2 + 14, width, 0xFFFFFF));
     }
 
-    /** What the crosshair is on, if it is a door or a machine with something to sell. */
+    /** What the crosshair is on, if it is a downed teammate, a door, or a machine with something to sell. */
     static Optional<Prompted.Prompt> prompt(Minecraft mc) {
+        if (mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult target && HudState.downed(target.getEntity())) {
+            return Optional.of(new Prompted.Prompt("Revive " + target.getEntity().getName().getString(), 0, false));
+        }
         if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
             return Optional.empty();
         }

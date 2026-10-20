@@ -51,3 +51,33 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 ## Phase
 
 6.
+
+## As built
+
+- **Rules** (pure, in `Game`, tested in `DownsTest`):
+  - `onLethalDamage(player, world)`: an alive player goes `Downed(bleedTicksLeft, reviver, reviveTicks, reviveNeeded, selfReviving)` and the caller cancels the damage. More damage while down is absorbed. Emits `player_downed`.
+  - **Solo Quick Revive.** A player alone in the game who holds a perk with `self_revive` and has used fewer than `downs.solo_self_revives` starts reviving themselves at once, taking `downs.revive_ticks`. Going down takes the perk, so each self-revive costs a fresh Quick Revive, as in CoD.
+  - **Reviving.** `holdRevive(reviver, downed)` marks a teammate holding use this tick. A hold carries over 5 ticks between presses, so right click's repeat rate counts as holding. Progress needs the reviver alive, within `downs.revive_range`, and the same reviver throughout. It takes `revive_ticks / revive speed` (the reviver's `packapunch:revive_speed` attribute: base 1, Quick Revive +1). Letting go, moving away, or the reviver taking damage (`onPlayerHurt`) resets it. Bleeding pauses while someone is reviving.
+  - **Bleeding out.** When `bleedTicksLeft` runs out the player spectates (`player_bled_out`), and comes back at the next round start with a fresh starting loadout (`GameWorld.giveStartingLoadout`).
+  - **Game over** when nobody is alive or self-reviving.
+  - Downed players still earn points for hits and kills, but can't buy.
+  - **Regen.** Alive players heal `downs.regen_per_second` once `downs.regen_delay_ticks` have passed since their last damage.
+  - **HUD.** The downed player sees "Bleeding out" (red, draining), "Being revived", or "Reviving" for a self-revive. The reviver sees "Reviving". Downed players' points show in red for everyone.
+- **On the player** (`game/Downs`, through `GameWorld.down` / `revive` / `spectate`):
+  - Going down removes perks, forces the crawl pose (`setForcedPose(SWIMMING)`), slows movement by 60%, sets health to 1, and selects a pistol (TacZ type `pistol`), swapping one into the hotbar if needed. A player with no pistol is lent the first starting pistol (else `tacz:m1911`), tagged `packapunch_downed_pistol`.
+  - Every tick while down they keep crawling and keep the pistol selected. Downed players take no damage at all.
+  - Getting up (revive, bleed out, leaving, game end) undoes all of that and takes back the lent pistol. A revive leaves them at half health.
+- **Food** is held at 17 for players in a game, so vanilla regen never runs and sprinting still works.
+- **Input.** Hold the use key (O) or right click on a downed teammate. The use key sends `RevivePacket(entity)` every 2 ticks; right click goes through `EntityInteract`. The crosshair on a downed teammate shows "Revive <name>".
+- **Tests.** JUnit `DownsTest`:
+  - lethal damage downs, absorbs more, and zombies stop targeting
+  - a teammate's hold revives in `revive_ticks`, and a revive speed of 2 halves it
+  - letting go, damage, and range reset
+  - bleeding out spectates, then respawns with a fresh loadout next round
+  - everyone down ends the game
+  - solo Quick Revive works 3 times and the 4th down ends it
+  - regen waits for the delay
+  - downed players earn kill points
+
+  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer (crawl pose, slowed, pistol held, Juggernog's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone.
+

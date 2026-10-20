@@ -42,7 +42,25 @@ public interface GameWorld {
     /** Puts the player back into play in a start zone. */
     void respawn(UUID player);
 
+    /** Out until the next round. Undoes being down first, if they were. */
     void spectate(UUID player);
+
+    /** Went down: crawling, pistol only, perks gone. */
+    void down(UUID player);
+
+    /** Back up from being down, at half health. */
+    void revive(UUID player);
+
+    /** After bleeding out: a fresh starting loadout for the next round. */
+    void giveStartingLoadout(UUID player);
+
+    void heal(UUID player, float amount);
+
+    /** How fast this player revives others, from the {@code packapunch:revive_speed} attribute: 1 is normal. */
+    double reviveSpeed(UUID player);
+
+    /** Blocks between two players, or {@link Double#MAX_VALUE} if either isn't here. */
+    double distance(UUID a, UUID b);
 
     void announce(String message);
 

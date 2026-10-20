@@ -1,5 +1,7 @@
 package dev.candycanecazoo.packapunch.client;
 
+import dev.candycanecazoo.packapunch.net.RevivePacket;
+import net.minecraft.world.phys.EntityHitResult;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.FeatureBlock;
@@ -22,8 +24,8 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * A second use button for windows and machines, for when right click is busy aiming a gun. Defaults to the same key as
- * TacZ's Interact (O), and can be rebound under Controls. Holding it repairs board after board; machines are used once
- * per press.
+ * TacZ's Interact (O), and can be rebound under Controls. Holding it repairs board after board and revives a downed
+ * teammate; machines are used once per press.
  */
 public final class UseKey {
     public static final KeyMapping KEY = new KeyMapping("key.packapunch.repair", KeyConflictContext.IN_GAME,
@@ -59,6 +61,13 @@ public final class UseKey {
             boolean down = KEY.isDown();
             boolean firstPress = down && !wasDown;
             wasDown = down;
+            if (down && mc.hitResult instanceof EntityHitResult target && HudState.downed(target.getEntity())) {
+                if (firstPress || sinceSent >= SEND_EVERY_TICKS) {
+                    sinceSent = 0;
+                    PapNetwork.CHANNEL.sendToServer(new RevivePacket(target.getEntity().getId()));
+                }
+                return;
+            }
             if (!down || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
                 return;
             }

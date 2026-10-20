@@ -96,10 +96,47 @@ public final class GameHooks {
         });
     }
 
+    /** Damage that would kill a player in a game downs them instead. */
+    @SubscribeEvent
+    public static void onPlayerDamage(net.minecraftforge.event.entity.living.LivingDamageEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && event.getAmount() >= player.getHealth()) {
+            GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == player.level())
+                    .filter(a -> a.game().onLethalDamage(player.getUUID(), a.world()))
+                    .ifPresent(a -> event.setCanceled(true));
+        }
+    }
+
+    /** Every tick for players in a game: no vanilla regen (food held at 17), and the downed stay down. */
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) {
+            return;
+        }
+        GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == player.level()).ifPresent(active -> {
+            player.getFoodData().setFoodLevel(Downs.FOOD_LEVEL);
+            player.getFoodData().setSaturation(0);
+            if (active.game().player(player.getUUID()).map(s -> s.life() instanceof LifeState.Downed).orElse(false)) {
+                Downs.enforce(player);
+            }
+        });
+    }
+
+    /** Right-clicking a downed teammate revives them while held; vanilla repeats the click every few ticks. */
+    @SubscribeEvent
+    public static void onInteractPlayer(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
+        if (event.getEntity() instanceof ServerPlayer reviver && event.getTarget() instanceof ServerPlayer downed
+                && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND) {
+            GameManager.forPlayer(reviver.getUUID()).ifPresent(a -> a.game().holdRevive(reviver.getUUID(), downed.getUUID()));
+        }
+    }
+
     /** Melee hits that don't kill. Gun hits come from TacZ's own event, whose damage arrives through a bullet, not the player. */
     @SubscribeEvent
     public static void onHurt(LivingHurtEvent event) {
         LivingEntity target = event.getEntity();
+        if (!target.level().isClientSide() && target instanceof ServerPlayer hurt) {
+            GameManager.forPlayer(hurt.getUUID()).ifPresent(a -> a.game().onPlayerHurt(hurt.getUUID()));
+        }
         if (!target.level().isClientSide() && event.getSource().getEntity() instanceof ServerPlayer player
                 && event.getSource().getDirectEntity() == player && event.getAmount() < target.getHealth()) {
             GameManager.forMob(target.getUUID()).ifPresent(a -> a.game().onMobHit(target.getUUID(), player.getUUID()));
@@ -133,7 +170,10 @@ public final class GameHooks {
         boolean burningZombie = isGameMob(event.getEntity()) && event.getSource().is(DamageTypeTags.IS_FIRE);
         // /pap debug god: the player takes no damage at all, in or out of a game.
         boolean god = event.getEntity() instanceof ServerPlayer player && Cheats.has(player.getUUID(), Cheats.Cheat.GOD);
-        if (burningZombie || god) {
+        // Downed players are out of the fight: nothing hurts them until they're revived or bleed out.
+        boolean downed = event.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID())
+                .flatMap(a -> a.game().player(player.getUUID())).map(s -> s.life() instanceof LifeState.Downed).orElse(false);
+        if (burningZombie || god || downed) {
             event.setCanceled(true);
         }
     }
@@ -170,6 +210,7 @@ public final class GameHooks {
         GameManager.forPlayer(event.getEntity().getUUID()).ifPresent(a -> {
             if (event.getEntity() instanceof ServerPlayer player) {
                 Perks.removeAll(a, player);
+                Downs.standUp(player);
             }
             a.game().leave(event.getEntity().getUUID());
         });

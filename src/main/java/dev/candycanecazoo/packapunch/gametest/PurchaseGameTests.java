@@ -38,6 +38,11 @@ public final class PurchaseGameTests {
 
     /** One start zone over the test floor, with {@code features} indexed, and a fake player joined to its game. */
     static GameManager.Active game(GameTestHelper helper, ServerPlayer player, BlockPos... features) {
+        return game(helper, List.of(player), features);
+    }
+
+    /** A one-room game with these players joined, all standing in the middle. */
+    static GameManager.Active game(GameTestHelper helper, List<ServerPlayer> joined, BlockPos... features) {
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
         ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_shop"), List.of(room), true));
         for (BlockPos pos : features) {
@@ -45,10 +50,10 @@ public final class PurchaseGameTests {
             map = map.withFeature(pos, ((FeatureBlock) state.getBlock()).featureKind());
         }
         BlockPos stand = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
-        player.moveTo(stand.getCenter());
+        joined.forEach(p -> p.moveTo(stand.getCenter()));
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
-                id -> id.equals(player.getUUID()) ? player : null);
-        active.game().join(player.getUUID());
+                id -> joined.stream().filter(p -> p.getUUID().equals(id)).findFirst().orElse(null));
+        joined.forEach(p -> active.game().join(p.getUUID()));
         return active;
     }
 

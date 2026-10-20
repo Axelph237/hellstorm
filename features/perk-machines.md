@@ -25,7 +25,7 @@ Effect types (codec dispatch on `type`):
 - Reload speed (Speed Cola): an `attribute_modifier` on the `packapunch:reload_speed` attribute; see As built
 - `rpm_multiplier` (Double Tap, through `AttachmentPropertyEvent`)
 - `damage_multiplier`
-- `revive_speed` and `self_revive` (Quick Revive)
+- Revive speed (Quick Revive): an `attribute_modifier` on the `packapunch:revive_speed` attribute; and `self_revive`
 - `weapon_slots` (Mule Kick)
 
 `PerkMachine` BlockEntity: `{ perkId }`.
@@ -64,7 +64,7 @@ Effect types (codec dispatch on `type`):
 
 ## As built (phase 5)
 
-- **Data.** `perk/PerkDef` and `perk/PerkEffect` (codec dispatch on `type`), loaded by `perk/PerkDefs` from `data/<ns>/packapunch/perks/`. `requires_power` defaults to true and `color` to white. A perk whose `attribute_modifier` names an unknown attribute is logged and skipped. Defaults ship under `data/packapunch/packapunch/perks/`: Juggernog 2500 (+20 max health), Speed Cola 3000 (+1 `packapunch:reload_speed`), Double Tap 2000 (`rpm_multiplier` 1.33), Stamin-Up 2000 (+7% movement speed, `multiply_base`), Quick Revive 1500 (`revive_speed` 0.5 and `self_revive`, no power needed), Mule Kick 4000 (`weapon_slots` 1). Names are `perk.packapunch.<id>` lang keys.
+- **Data.** `perk/PerkDef` and `perk/PerkEffect` (codec dispatch on `type`), loaded by `perk/PerkDefs` from `data/<ns>/packapunch/perks/`. `requires_power` defaults to true and `color` to white. A perk whose `attribute_modifier` names an unknown attribute is logged and skipped. Defaults ship under `data/packapunch/packapunch/perks/`: Juggernog 2500 (+20 max health), Speed Cola 3000 (+1 `packapunch:reload_speed`), Double Tap 2000 (`rpm_multiplier` 1.33), Stamin-Up 2000 (+7% movement speed, `multiply_base`), Quick Revive 1500 (+1 `packapunch:revive_speed`, solo self-revive), Mule Kick 4000 (`weapon_slots` 1). Names are `perk.packapunch.<id>` lang keys.
 - **Ledger in `PlayerState.perks`,** a map from perk id to the `PerkDef` as it was when bought. Removal undoes exactly what was applied, even after a `/reload` changes or deletes the perk mid-game. `Game.givePerk` records a perk and emits `GameEvent.PerkBought` (`perk_bought`, with `player` and `perk`); `Game.takePerks` clears them. `perk/Perks` applies and removes effects on the `ServerPlayer`.
 - **Buying** goes through `Shop` (the design's `Purchasable`). `Sale.check` refuses a perk the player has or a full list (`players.perk_limit`); `Game.charge` refuses without power.
 - **Effects.**
@@ -73,7 +73,7 @@ Effect types (codec dispatch on `type`):
   - `rpm_multiplier`: multiplies `ROUNDS_PER_MINUTE` in `AttachmentPropertyEvent`. The event only carries the stack, so the holder is found as the game player (server thread) or local player (client thread) whose main hand is that exact stack, which is how TacZ evaluates guns. TacZ times shots on the client too, so the client gets its multiplier through `PerkSyncPacket`. Buying or losing the perk re-evaluates the held gun on both sides (`AttachmentPropertyManager.postChangeEvent`). Both multiply what is there, so Pack-a-Punch's changes stack.
   - `weapon_slots`: adds to `PlayerState.bonusWeaponSlots` and subtracts on removal.
   - (`reload_speed` was its own effect type until it became an attribute; Speed Cola now uses `attribute_modifier`.)
-  - `revive_speed` and `self_revive`: parsed and stored with the perk for the downs feature; no effect yet.
+  - `self_revive`: a solo player who goes down holding the perk revives themselves (see `downs-and-revives.md`). Revive speed is the `packapunch:revive_speed` attribute (base 1, Quick Revive +1), replacing the old `revive_speed` effect type.
 - **Reload speed and Speed Cola** (`packapunch:reload_speed` in `PapRegistries`, `tacz/ReloadTimes`, two mixins in `tacz/mixin`).
   - **Why this seam.** TacZ 1.1.8 has no reload-time property, but every reload asks one method how long ago it started: `ModernKineticGunScriptAPI.getReloadTime()`. That covers the built-in `defaultTickReload` (magazine guns like the AK) and every gun pack's Lua `tick_reload` (shell-by-shell guns like the M870 read `api:getReloadTime()` for each shell and for interruptions). Reloads tick only on the server (`LivingEntityMixin.onTickServerSide`), and the client learns the state through TacZ's synced reload state.
   - **Server.** `ModernKineticGunScriptAPIMixin` scales the answer at `RETURN` by the shooter's `packapunch:reload_speed` attribute: `elapsed * speed` (`tacz/ReloadTimes`). Every player has the attribute at base 1 (added in `EntityAttributeModificationEvent`); Speed Cola adds 1 with an `addition` modifier, so it reloads twice as fast. Anything else (a perk, an item, `/attribute`) can modify it the same way, and the modifiers stack by vanilla's attribute rules. Range 0.1 to 10. Mobs without the attribute reload at normal speed.
