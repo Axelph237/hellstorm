@@ -1,0 +1,9 @@
+{
+  "name": "perk.packapunch.double_tap",
+  "cost": 2000,
+  "requires_power": true,
+  "color": "#e3a92b",
+  "effects": [
+    { "type": "rpm_multiplier", "multiplier": 1.33 }
+  ]
+}

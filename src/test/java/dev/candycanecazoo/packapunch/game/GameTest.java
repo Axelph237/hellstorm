@@ -6,6 +6,7 @@ import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
+import dev.candycanecazoo.packapunch.perk.PerkDef;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -290,6 +291,24 @@ class GameTest {
         game.refund(alice, 100);
         assertEquals(start, game.player(alice).orElseThrow().points());
         assertEquals(Optional.of(new Refusal.NotPlaying()), game.charge(UUID.randomUUID(), 0, false), "strangers can't buy");
+    }
+
+    @Test
+    void perksAreRecordedWithAnEventAndTakenTogether() {
+        Game game = newGame(SETTINGS);
+        game.join(alice);
+        ResourceLocation jug = ResourceLocation.tryBuild("packapunch", "juggernog");
+        ResourceLocation tap = ResourceLocation.tryBuild("packapunch", "double_tap");
+        PerkDef def = new PerkDef("perk.test", 100, true, 0, List.of());
+        game.givePerk(alice, jug, def);
+        game.givePerk(alice, tap, def);
+        game.givePerk(UUID.randomUUID(), tap, def);
+        assertEquals(List.of(jug, tap), List.copyOf(game.player(alice).orElseThrow().perks().keySet()), "in the order bought");
+        assertEquals(List.of(new GameEvent.PerkBought(alice, jug), new GameEvent.PerkBought(alice, tap)),
+                seen.stream().filter(e -> e instanceof GameEvent.PerkBought).toList(), "strangers get nothing and fire nothing");
+        assertEquals(List.of(jug, tap), List.copyOf(game.takePerks(alice).keySet()));
+        assertTrue(game.player(alice).orElseThrow().perks().isEmpty());
+        assertTrue(game.takePerks(alice).isEmpty());
     }
 
     @Test

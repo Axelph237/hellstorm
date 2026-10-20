@@ -2,6 +2,7 @@ package dev.candycanecazoo.packapunch.registry;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
+import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.packapunch.tools.DoorWandItem;
@@ -42,10 +43,16 @@ public final class PapRegistries {
     public static final RegistryObject<BlockEntityType<PowerSwitchBlock.Entity>> POWER_SWITCH_ENTITY = BLOCK_ENTITIES.register("power_switch",
             () -> BlockEntityType.Builder.of(PowerSwitchBlock.Entity::new, POWER_SWITCH.get()).build(null));
 
+    public static final RegistryObject<Block> PERK_MACHINE = BLOCKS.register("perk_machine", () -> new PerkMachineBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.QUARTZ).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.METAL)));
+    public static final RegistryObject<BlockEntityType<PerkMachineBlock.Entity>> PERK_MACHINE_ENTITY = BLOCK_ENTITIES.register("perk_machine",
+            () -> BlockEntityType.Builder.of(PerkMachineBlock.Entity::new, PERK_MACHINE.get()).build(null));
+
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> DOOR_WAND = ITEMS.register("door_wand", () -> new DoorWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));
     public static final RegistryObject<Item> POWER_SWITCH_ITEM = ITEMS.register("power_switch", () -> new BlockItem(POWER_SWITCH.get(), new Item.Properties()));
+    public static final RegistryObject<Item> PERK_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new BlockItem(PERK_MACHINE.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.packapunch"))
@@ -55,6 +62,7 @@ public final class PapRegistries {
                 output.accept(DOOR_WAND.get());
                 output.accept(SPAWN_MARKER_ITEM.get());
                 output.accept(POWER_SWITCH_ITEM.get());
+                output.accept(PERK_MACHINE_ITEM.get());
             })
             .build());
 

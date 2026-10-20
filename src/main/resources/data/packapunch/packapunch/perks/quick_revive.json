@@ -1,0 +1,10 @@
+{
+  "name": "perk.packapunch.quick_revive",
+  "cost": 1500,
+  "requires_power": false,
+  "color": "#4aa3df",
+  "effects": [
+    { "type": "revive_speed", "multiplier": 0.5 },
+    { "type": "self_revive" }
+  ]
+}

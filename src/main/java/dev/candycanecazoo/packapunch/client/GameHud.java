@@ -43,14 +43,30 @@ public final class GameHud {
         drawPoints(graphics, font, hud, width, height);
     }
 
+    /** The line under the round number, if any: the phase while it isn't a plain round, else the zombies left. */
+    private static java.util.Optional<String> subtitle(HudSyncPacket hud) {
+        if (!hud.phase().equals("Round " + hud.round())) {
+            return java.util.Optional.of(hud.phase());
+        }
+        return hud.zombiesLeft() > 0 ? java.util.Optional.of(hud.zombiesLeft() + " left") : java.util.Optional.empty();
+    }
+
+    /** The top of the bottom-left round block, so other bottom-left HUD rows (perks) can sit above it. */
+    public static int roundTop(Font font, int height) {
+        HudSyncPacket hud = HudState.hud();
+        int y = height - MARGIN - font.lineHeight;
+        if (subtitle(hud).isPresent()) {
+            y -= font.lineHeight + 2;
+        }
+        return hud.round() > 0 ? (int) (y - font.lineHeight * (ROUND_SCALE - 1)) : y + font.lineHeight;
+    }
+
     private static void drawRound(GuiGraphics graphics, Font font, HudSyncPacket hud, int height) {
         int y = height - MARGIN - font.lineHeight;
-        boolean plainRound = hud.phase().equals("Round " + hud.round());
-        if (!plainRound) {
-            graphics.drawString(font, hud.phase(), MARGIN, y, WHITE);
-            y -= font.lineHeight + 2;
-        } else if (hud.zombiesLeft() > 0) {
-            graphics.drawString(font, hud.zombiesLeft() + " left", MARGIN, y, GREY);
+        java.util.Optional<String> subtitle = subtitle(hud);
+        if (subtitle.isPresent()) {
+            boolean plainRound = hud.phase().equals("Round " + hud.round());
+            graphics.drawString(font, subtitle.get(), MARGIN, y, plainRound ? GREY : WHITE);
             y -= font.lineHeight + 2;
         }
         if (hud.round() > 0) {

@@ -10,6 +10,7 @@ import dev.candycanecazoo.packapunch.tools.Selection;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -79,6 +80,16 @@ class PacketRoundTripTest {
         for (List<Problem> value : List.of(List.<Problem>of(), problems)) {
             ProblemsPacket packet = new ProblemsPacket(value);
             assertEquals(packet, roundTrip(packet, ProblemsPacket::encode, ProblemsPacket::decode));
+        }
+    }
+
+    @Test
+    void perkSync() {
+        PerkSyncPacket full = new PerkSyncPacket(List.of(
+                new PerkSyncPacket.Badge(ResourceLocation.tryBuild("packapunch", "juggernog"), "perk.packapunch.juggernog", 0xd33a2c),
+                new PerkSyncPacket.Badge(ResourceLocation.tryBuild("other", "tap"), "Tap", 0)), 1.33f);
+        for (PerkSyncPacket packet : List.of(new PerkSyncPacket(List.of(), 1f), full)) {
+            assertEquals(packet, roundTrip(packet, PerkSyncPacket::encode, PerkSyncPacket::decode));
         }
     }
 
