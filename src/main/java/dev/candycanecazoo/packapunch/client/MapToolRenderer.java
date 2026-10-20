@@ -40,6 +40,9 @@ public final class MapToolRenderer {
     private static final int ERROR = 0xd9534f;
     private static final int WARNING = 0xf0ad4e;
     private static final int UNZONED = 0xffffff;
+    private static final int TRAP_READY = 0x55ff55;
+    private static final int TRAP_ACTIVE = 0xff5555;
+    private static final int TRAP_COOLDOWN = 0xffaa00;
 
     /** Cluster outlines are only rebuilt when the slot changes, so the slot carries the zone's geometry. */
     private record ZoneSlot(ZoneId zone, List<BlockBox> boxes) {}
@@ -53,6 +56,8 @@ public final class MapToolRenderer {
     private record ProblemSlot(int index) {}
 
     private record SpawnSlot(BlockPos pos) {}
+
+    private record TrapSlot(BlockPos pos) {}
 
     private record WindowSlot(String id) {}
 
@@ -125,6 +130,12 @@ public final class MapToolRenderer {
             AABB box = window.opening().toAabb();
             if (box.intersects(nearby)) {
                 ZoneOutlines.box(new WindowSlot(window.id()), box.inflate(0.02), zoneColor(window.zone()), ZoneOutlines.THICK);
+            }
+        }
+
+        for (BlockPos trap : ClientMapState.map().features(FeatureKind.TRAP)) {
+            if (nearby.contains(Vec3.atCenterOf(trap))) {
+                ZoneOutlines.box(new TrapSlot(trap), new AABB(trap).inflate(0.05), trapColor(player.level().getBlockEntity(trap)), ZoneOutlines.THICK);
             }
         }
 
@@ -208,5 +219,16 @@ public final class MapToolRenderer {
                 .anyMatch(z -> z.boxes().stream().anyMatch(b -> b.intersects(box)));
         int color = reachable && !overlaps ? SELECTION_OK : SELECTION_BLOCKED;
         ZoneOutlines.box(SELECTION_SLOT, box.toAabb(), color, ZoneOutlines.THICK);
+    }
+
+    private static int trapColor(net.minecraft.world.level.block.entity.BlockEntity entity) {
+        if (!(entity instanceof dev.candycanecazoo.packapunch.feature.TrapControllerBlock.Entity trap)) {
+            return UNZONED;
+        }
+        return switch (trap.cycle().phase()) {
+            case READY -> TRAP_READY;
+            case ACTIVE -> TRAP_ACTIVE;
+            case COOLDOWN -> TRAP_COOLDOWN;
+        };
     }
 }

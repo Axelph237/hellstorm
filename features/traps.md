@@ -51,8 +51,43 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
 
 - GameTest: buying a trap powers a redstone lamp placed next to it, and a lamp at the end of a dust line, for exactly `activeTicks`, then both turn off.
 - GameTest: the trap refuses while active or on cooldown, works again afterward, and refuses without power when `requiresPower` is set.
-- GameTest: `signalStrength` 5 carries exactly 4 blocks of dust.
+- GameTest: `signalStrength` 5 carries exactly 5 blocks of dust (the dust next to the trap gets 5, the fifth gets 1).
 - GameTest: reset leaves the trap unpowered and `READY`.
+
+## As built
+
+- **Block.** `feature/TrapControllerBlock` (`packapunch:trap_controller`, "Trap Controller" in the map tools tab): a full block with `facing` and `powered`. It's a `FeatureBlock` with a `ConfigBlockEntity<Config>`, indexed as `FeatureKind.TRAP`. Like the other machines, it can't be broken outside creative and drops nothing.
+- **Settings** (`Config`):
+  - `cost`, `active_ticks`, and `cooldown_ticks` are optional. Unset, they fall back to `traps.default_cost`, `traps.default_active_ticks`, and `traps.default_cooldown_ticks`.
+  - `requires_power` defaults to true, and `signal_strength` (1 to 15) defaults to 15.
+  - There's no display name yet; the prompt label is "Trap".
+  - Set them with these commands, or with the settings screen (`client/settings/TrapScreen`). Both go through `ConfigBlockEntity.trySet`.
+    - `/pap trap cost|active|cooldown <n|default>`
+    - `/pap trap power <bool>`
+    - `/pap trap signal <1-15>`
+    - `/pap trap describe`
+- **Cycle** (`feature/TrapCycle`, pure): `READY`, then `ACTIVE` until a game time, then `COOLDOWN` until a game time.
+  - The block entity's server ticker moves it from phase to phase.
+  - If a tick comes late, the cooldown still counts from when the signal should have ended.
+  - A cooldown of 0 goes straight back to ready.
+  - The cycle is saved and synced.
+- **Prompt.** "Trap [cost]" while ready, and no prompt while it's running or cooling down. Using it then says "The trap is already running" or "The trap is cooling down (Ns)".
+- **Buying** goes through `Shop.buy`. The sale checks the refusals above and takes `needsPower` from `requires_power`. Delivering calls `activate` and emits `GameEvent.TrapActivated(player, pos)`.
+- **Redstone.**
+  - While `powered`, `getSignal` and `getDirectSignal` return `signal_strength` on every side, so it strongly powers every block it touches.
+  - Turning on or off updates its own neighbours and the neighbours of each adjacent block. That way, blocks it strongly powers pass the change on.
+  - It gives off light level 9 while on.
+- **Reset.** `MapReset` calls `TrapControllerBlock.resetAll` for every `TRAP` feature, which leaves each trap ready with its signal off.
+- **Model.** Vanilla textures only: an `orientable` iron block with a redstone lamp face (`redstone_lamp`, or `redstone_lamp_on` while powered). The face points at the player who placed it.
+- **Map tools.** While a map tool is held, each trap in range gets an outline: green when ready, red when running, orange when cooling down.
+- **Tests.**
+  - JUnit `TrapCycleTest` covers the timing.
+  - GameTests in `TrapGameTests`:
+    - A bought trap charges, emits `trap_activated`, and keeps two lamps lit for exactly `active_ticks` ticks: one next to it and one at the end of a dust line. Then it cools down and the lamps go out.
+    - It refuses while running and while cooling down. Once ready it prompts again and sells again. Ending the game turns it off and makes it ready.
+    - A trap that needs power refuses until the power is on.
+    - At signal 5, the first dust carries 5, a lamp after 5 dust lights, and a lamp after 6 dust stays dark.
+    - A reset, run twice, leaves it ready and off, with its lamp dark.
 
 ## Phase
 

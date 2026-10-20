@@ -18,6 +18,7 @@
   "block.packapunch.wall_buy": "Wall-Buy",
   "block.packapunch.mystery_box": "Mystery Box",
   "block.packapunch.pap_machine": "Pack-a-Punch Machine",
+  "block.packapunch.trap_controller": "Trap Controller",
   "item.packapunch.upgraded": "Upgraded %s",
   "item.packapunch.punch.iron_sword": "Pack-a-Punched Sword"
 }

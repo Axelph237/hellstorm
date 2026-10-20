@@ -10,7 +10,8 @@ public enum FeatureKind implements StringRepresentable {
     WALL_BUY("wall_buy"),
     PERK_MACHINE("perk_machine"),
     MYSTERY_BOX("mystery_box"),
-    PAP_MACHINE("pap_machine");
+    PAP_MACHINE("pap_machine"),
+    TRAP("trap");
 
     public static final Codec<FeatureKind> CODEC = StringRepresentable.fromEnum(FeatureKind::values);
 
