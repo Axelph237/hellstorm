@@ -8,7 +8,6 @@ import dev.candycanecazoo.packapunch.game.GameManager;
 import dev.candycanecazoo.packapunch.net.OpenSettingsPacket;
 import dev.candycanecazoo.packapunch.net.PapNetwork;
 import dev.candycanecazoo.packapunch.perk.PerkDefs;
-import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -58,19 +57,14 @@ public final class MachineSettings {
     }
 
     static List<OpenSettingsPacket.Choice> choices(ConfigBlockEntity<?> entity) {
-        if (entity instanceof WallBuyBlock.Entity) {
-            return TaczBridge.allGuns().stream().sorted()
-                    .map(id -> new OpenSettingsPacket.Choice(id, TaczBridge.createGun(id, 0).map(ItemStack::getHoverName).orElse(Component.literal(id.toString()))))
-                    .toList();
-        }
         if (entity instanceof PerkMachineBlock.Entity) {
             return PerkDefs.all().entrySet().stream().sorted(Map.Entry.comparingByKey())
-                    .map(e -> new OpenSettingsPacket.Choice(e.getKey(), Component.translatable(e.getValue().name())))
+                    .map(e -> new OpenSettingsPacket.Choice(e.getKey(), Component.translatable(e.getValue().name()), e.getValue().cost()))
                     .toList();
         }
         if (entity instanceof MysteryBoxBlock.Entity) {
             return Stream.concat(Stream.of(BoxPool.DEFAULT_ID), BoxPools.all().keySet().stream()).distinct().sorted(Comparator.naturalOrder())
-                    .map(id -> new OpenSettingsPacket.Choice(id, Component.literal(id.toString())))
+                    .map(id -> new OpenSettingsPacket.Choice(id, Component.literal(id.toString()), 0))
                     .toList();
         }
         return List.of();

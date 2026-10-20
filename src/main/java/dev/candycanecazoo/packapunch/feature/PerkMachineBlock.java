@@ -40,10 +40,18 @@ import java.util.Optional;
 
 /** Sells one perk. The machine is tinted with its perk's color. */
 public final class PerkMachineBlock extends HorizontalDirectionalBlock implements EntityBlock, FeatureBlock {
-    public record Config(Optional<ResourceLocation> perk) {
+    /** {@code cost} replaces the perk's own cost at this machine; empty sells it at the perk's cost. */
+    public record Config(Optional<ResourceLocation> perk, Optional<Integer> cost) {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codecs.strictOptional(ResourceLocation.CODEC, "perk").forGetter(Config::perk)
+                Codecs.strictOptional(ResourceLocation.CODEC, "perk").forGetter(Config::perk),
+                Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "cost").forGetter(Config::cost)
         ).apply(i, Config::new));
+
+        public static final Config NONE = new Config(Optional.empty(), Optional.empty());
+
+        public int costOf(PerkDef def) {
+            return cost.orElse(def.cost());
+        }
     }
 
     /**
@@ -59,8 +67,8 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
                 Codec.BOOL.fieldOf("requires_power").forGetter(Display::requiresPower)
         ).apply(i, Display::new));
 
-        static Display of(ResourceLocation id, PerkDef def) {
-            return new Display(id, def.name(), def.color(), def.cost(), def.requiresPower());
+        static Display of(ResourceLocation id, PerkDef def, int cost) {
+            return new Display(id, def.name(), def.color(), cost, def.requiresPower());
         }
     }
 
@@ -71,7 +79,7 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
         private Optional<Display> synced = Optional.empty();
 
         public Entity(BlockPos pos, BlockState state) {
-            super(PapRegistries.PERK_MACHINE_ENTITY.get(), pos, state, Config.CODEC, new Config(Optional.empty()));
+            super(PapRegistries.PERK_MACHINE_ENTITY.get(), pos, state, Config.CODEC, Config.NONE);
         }
 
         @Override
@@ -84,7 +92,7 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
             if (level == null || level.isClientSide) {
                 return synced;
             }
-            return config().perk().flatMap(id -> PerkDefs.get(id).map(def -> Display.of(id, def)));
+            return config().perk().flatMap(id -> PerkDefs.get(id).map(def -> Display.of(id, def, config().costOf(def))));
         }
 
         public int color() {
@@ -160,28 +168,29 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
 
     @Override
     public void buy(ServerPlayer player, GameManager.Active game, BlockPos pos, BlockState state) {
-        Optional<ResourceLocation> id = config(game.level(), pos).perk();
-        Optional<PerkDef> def = id.flatMap(PerkDefs::get);
+        Config config = config(game.level(), pos);
+        Optional<PerkDef> def = config.perk().flatMap(PerkDefs::get);
         if (def.isEmpty()) {
             Shop.refuse(player, new Refusal.Because("This machine has nothing to sell"));
             return;
         }
-        Perks.buy(player, game, id.get(), def.get());
+        Perks.buy(player, game, config.perk().get(), def.get(), config.costOf(def.get()));
     }
 
     public static Config config(Level level, BlockPos pos) {
-        return level.getBlockEntity(pos) instanceof Entity entity ? entity.config() : new Config(Optional.empty());
+        return level.getBlockEntity(pos) instanceof Entity entity ? entity.config() : Config.NONE;
     }
 
     @Override
     public Component describe(ServerLevel level, BlockPos pos) {
-        Optional<ResourceLocation> id = config(level, pos).perk();
+        Config config = config(level, pos);
+        Optional<ResourceLocation> id = config.perk();
         if (id.isEmpty()) {
             return Component.literal("Perk machine: no perk set. Set with /pap perk set <perk>");
         }
         return PerkDefs.get(id.get()).<Component>map(def -> Component.literal("Perk machine: ").append(Component.translatable(def.name()))
-                        .append(" (" + id.get() + "), " + def.cost() + " points" + (def.requiresPower() ? ", needs power" : "")
-                                + ". Set with /pap perk set <perk>"))
+                        .append(" (" + id.get() + "), " + config.costOf(def) + " points" + (config.cost().isEmpty() ? " (the perk's cost)" : "")
+                                + (def.requiresPower() ? ", needs power" : "") + ". Set with /pap perk set <perk> and /pap perk cost <points|default>"))
                 .orElseGet(() -> Component.literal("Perk machine: " + id.get() + " is not a loaded perk. See /pap perk list"));
     }
 

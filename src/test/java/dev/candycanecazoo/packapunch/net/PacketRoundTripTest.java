@@ -115,7 +115,7 @@ class PacketRoundTripTest {
     void settings() {
         OpenSettingsPacket bare = new OpenSettingsPacket(new BlockPos(1, 2, 3), List.of(), Optional.empty(), 0);
         OpenSettingsPacket full = new OpenSettingsPacket(new BlockPos(-4, 70, 9),
-                List.of(new OpenSettingsPacket.Choice(ResourceLocation.tryBuild("tacz", "ak47"), net.minecraft.network.chat.Component.literal("AK-47"))),
+                List.of(new OpenSettingsPacket.Choice(ResourceLocation.tryBuild("packapunch", "juggernog"), net.minecraft.network.chat.Component.literal("Juggernog"), 2500)),
                 Optional.of(new OpenSettingsPacket.Held(new dev.candycanecazoo.packapunch.data.ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3,
                         Optional.empty()), net.minecraft.network.chat.Component.literal("Golden Apple"))), 5000);
         for (OpenSettingsPacket packet : List.of(bare, full)) {

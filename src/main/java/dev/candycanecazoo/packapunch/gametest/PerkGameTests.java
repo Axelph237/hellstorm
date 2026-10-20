@@ -53,7 +53,7 @@ public final class PerkGameTests {
     }
 
     private static void sell(GameTestHelper helper, BlockPos at, ResourceLocation perk) {
-        ((PerkMachineBlock.Entity) helper.getLevel().getBlockEntity(at)).setConfig(new PerkMachineBlock.Config(Optional.of(perk)));
+        ((PerkMachineBlock.Entity) helper.getLevel().getBlockEntity(at)).setConfig(new PerkMachineBlock.Config(Optional.of(perk), Optional.empty()));
     }
 
     private static PlayerState state(GameManager.Active active, ServerPlayer player) {
@@ -89,6 +89,24 @@ public final class PerkGameTests {
         helper.assertFalse(hasJuggernogModifier(player), "the modifier outlived the game");
         helper.assertTrue(player.getMaxHealth() == BASE_HEALTH, "max health after the game is " + player.getMaxHealth());
         helper.assertTrue(player.getHealth() <= BASE_HEALTH, "health above the restored max");
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "perk_machine_cost")
+    public static void aMachineWithItsOwnCostChargesThatInsteadOfThePerks(GameTestHelper helper) {
+        BlockPos at = machine(helper, JUGGERNOG);
+        ((PerkMachineBlock.Entity) helper.getLevel().getBlockEntity(at)).setConfig(new PerkMachineBlock.Config(Optional.of(JUGGERNOG), Optional.of(700)));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_cost");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+        try {
+            active.game().refund(player.getUUID(), 10_000);
+            int start = PurchaseGameTests.points(active, player);
+            FeatureBlock.use(player, at);
+            helper.assertTrue(state(active, player).perks().containsKey(JUGGERNOG), "Juggernog wasn't bought");
+            helper.assertTrue(PurchaseGameTests.points(active, player) == start - 700, "expected to pay 700, have " + PurchaseGameTests.points(active, player));
+        } finally {
+            GameManager.end(active);
+        }
         helper.succeed();
     }
 

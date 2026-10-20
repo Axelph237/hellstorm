@@ -5,37 +5,28 @@ import dev.candycanecazoo.packapunch.data.ItemSpec;
 import dev.candycanecazoo.packapunch.feature.WallBuy;
 import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
 import dev.candycanecazoo.packapunch.net.OpenSettingsPacket;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
-/** What a wall-buy sells (a TacZ gun found by name, or the item in hand), its price, and what buying it again does. */
+/**
+ * What a wall-buy sells (the item in hand when the screen opened), its price, and what buying it again does. The ammo
+ * costs only show when buying again refills ammo.
+ */
 final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
-    private static final int RESULTS = 3;
-
-    private final List<OpenSettingsPacket.Choice> guns;
     private final Optional<OpenSettingsPacket.Held> held;
-    private final List<Button> results = new ArrayList<>();
-    private final List<OpenSettingsPacket.Choice> matches = new ArrayList<>();
-    private final List<EditBox> ammoBoxes = new ArrayList<>();
     private ItemSpec item;
     private Component itemName;
     private WallBuy.Repurchase repurchase;
     private String cost;
     private String ammoCost;
     private String papAmmoCost;
-    private String search = "";
 
     WallBuyScreen(WallBuyBlock.Entity entity, OpenSettingsPacket packet) {
         super(Component.literal("Wall-buy"), entity);
         WallBuy.Config config = entity.config();
-        guns = packet.choices();
         held = packet.held();
         item = config.item();
         itemName = entity.display().isEmpty() ? Component.literal(item.describe()) : entity.display().getHoverName();
@@ -48,47 +39,25 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
     @Override
     protected void rows() {
         text(Component.literal("Sells"), () -> itemName);
-        held.ifPresent(h -> button(Component.empty(), Component.literal("Sell held: ").append(h.name()), () -> pick(h.item(), h.name())));
-        search(Component.literal("Find gun"), search, v -> {
-            search = v;
-            refreshResults();
-        });
-        results.clear();
-        for (int i = 0; i < RESULTS; i++) {
-            int index = i;
-            results.add(button(Component.empty(), Component.empty(), () -> pick(ItemSpec.Gun.of(matches.get(index).id()), matches.get(index).name())));
-        }
-        refreshResults();
+        held.ifPresentOrElse(
+                h -> button(Component.empty(), Component.literal("Sell held: ").append(h.name()), () -> sell(h)),
+                () -> text(Component.empty(), () -> Component.literal("Hold an item to sell it")));
         number(Component.literal("Cost"), cost, Component.empty(), v -> cost = v);
         choice(Component.literal("Buying again"), allowed(), repurchase, WallBuyScreen::name, v -> {
             repurchase = v;
-            ammoBoxes.forEach(box -> box.active = refills());
+            relayout();
         });
-        ammoBoxes.clear();
-        ammoBoxes.add(number(Component.literal("Ammo cost"), ammoCost, Component.empty(), v -> ammoCost = v));
-        ammoBoxes.add(number(Component.literal("Upgraded ammo"), papAmmoCost, Component.empty(), v -> papAmmoCost = v));
-        ammoBoxes.forEach(box -> box.active = refills());
-    }
-
-    private void refreshResults() {
-        String query = search.toLowerCase(Locale.ROOT);
-        matches.clear();
-        guns.stream().filter(g -> g.id().toString().contains(query) || g.name().getString().toLowerCase(Locale.ROOT).contains(query))
-                .limit(RESULTS).forEach(matches::add);
-        for (int i = 0; i < results.size(); i++) {
-            Button result = results.get(i);
-            result.visible = i < matches.size();
-            if (result.visible) {
-                result.setMessage(matches.get(i).name());
-            }
+        if (refills()) {
+            number(Component.literal("Ammo cost"), ammoCost, Component.empty(), v -> ammoCost = v);
+            number(Component.literal("Upgraded ammo"), papAmmoCost, Component.empty(), v -> papAmmoCost = v);
         }
     }
 
-    private void pick(ItemSpec chosen, Component name) {
-        item = chosen;
-        itemName = name;
-        repurchase = WallBuy.Repurchase.defaultFor(chosen);
-        rebuildWidgets();
+    private void sell(OpenSettingsPacket.Held held) {
+        item = held.item();
+        itemName = held.name();
+        repurchase = WallBuy.Repurchase.defaultFor(item);
+        relayout();
     }
 
     private List<WallBuy.Repurchase> allowed() {

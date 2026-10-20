@@ -28,7 +28,8 @@ import java.util.function.Supplier;
 
 /**
  * A machine's settings as a column of labelled rows with Done and Cancel. Subclasses keep the values being edited in
- * fields and lay out their rows in {@link #rows()}, which runs again whenever the screen is rebuilt. Done sends the
+ * fields and lay out their rows in {@link #rows()}, which runs again whenever the screen is rebuilt or {@link #relayout()}
+ * is called. Done sends the
  * settings to the server, which checks them and either closes the screen or sends back the problem.
  */
 abstract class SettingsScreen<C> extends Screen {
@@ -46,6 +47,7 @@ abstract class SettingsScreen<C> extends Screen {
     private int rows;
     private int top;
     private Optional<Component> problem = Optional.empty();
+    private boolean rebuild;
 
     private record Text(int x, int y, Supplier<Component> text) {}
 
@@ -81,6 +83,23 @@ abstract class SettingsScreen<C> extends Screen {
         }
     }
 
+    /**
+     * Lays the rows out again on the next tick, once the click that changed them has finished. A widget's own click
+     * handler must not rebuild the screen it's being clicked in.
+     */
+    protected void relayout() {
+        rebuild = true;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (rebuild) {
+            rebuild = false;
+            rebuildWidgets();
+        }
+    }
+
     private int left() {
         return (width - WIDTH) / 2;
     }
@@ -106,13 +125,6 @@ abstract class SettingsScreen<C> extends Screen {
         box.setFilter(text -> text.chars().allMatch(Character::isDigit));
         box.setValue(value);
         box.setHint(hint);
-        box.setResponder(changed);
-        return addRenderableWidget(box);
-    }
-
-    protected EditBox search(Component label, String value, Consumer<String> changed) {
-        EditBox box = new EditBox(font, fieldX(), row(label), fieldWidth(), HEIGHT, label);
-        box.setValue(value);
         box.setResponder(changed);
         return addRenderableWidget(box);
     }

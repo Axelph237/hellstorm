@@ -58,11 +58,11 @@ public final class Perks {
         return Language.getInstance().getOrDefault(def.name());
     }
 
-    public static boolean buy(ServerPlayer player, GameManager.Active game, ResourceLocation id, PerkDef def) {
+    public static boolean buy(ServerPlayer player, GameManager.Active game, ResourceLocation id, PerkDef def, int cost) {
         return Shop.buy(player, game, new Shop.Sale() {
             @Override
             public int cost() {
-                return def.cost();
+                return cost;
             }
 
             @Override

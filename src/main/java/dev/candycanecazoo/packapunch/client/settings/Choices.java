@@ -1,7 +1,6 @@
 package dev.candycanecazoo.packapunch.client.settings;
 
 import dev.candycanecazoo.packapunch.net.OpenSettingsPacket;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -22,9 +21,9 @@ final class Choices {
         return ids;
     }
 
-    static Map<ResourceLocation, Component> names(List<OpenSettingsPacket.Choice> choices) {
-        Map<ResourceLocation, Component> names = new LinkedHashMap<>();
-        choices.forEach(c -> names.put(c.id(), c.name()));
-        return names;
+    static Map<ResourceLocation, OpenSettingsPacket.Choice> byId(List<OpenSettingsPacket.Choice> choices) {
+        Map<ResourceLocation, OpenSettingsPacket.Choice> byId = new LinkedHashMap<>();
+        choices.forEach(c -> byId.put(c.id(), c));
+        return byId;
     }
 }

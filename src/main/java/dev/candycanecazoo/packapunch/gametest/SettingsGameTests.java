@@ -58,10 +58,11 @@ public final class SettingsGameTests {
     @GameTest(template = "floor")
     public static void machinesRefuseSettingsTheirCommandsWouldRefuseAndKeepTheOldOnes(GameTestHelper helper) {
         PerkMachineBlock.Entity perk = place(helper, 1, PapRegistries.PERK_MACHINE.get().defaultBlockState());
-        assertRefused(helper, perk, encode(perk, new PerkMachineBlock.Config(Optional.of(ResourceLocation.tryBuild("nope", "perk")))), "an unloaded perk");
+        assertRefused(helper, perk, encode(perk, new PerkMachineBlock.Config(Optional.of(ResourceLocation.tryBuild("nope", "perk")), Optional.empty())), "an unloaded perk");
         ResourceLocation juggernog = ResourceLocation.tryBuild(PackAPunch.MOD_ID, "juggernog");
-        helper.assertTrue(perk.trySet(encode(perk, new PerkMachineBlock.Config(Optional.of(juggernog)))).isEmpty(), "Juggernog should be accepted");
+        helper.assertTrue(perk.trySet(encode(perk, new PerkMachineBlock.Config(Optional.of(juggernog), Optional.of(1234)))).isEmpty(), "Juggernog should be accepted");
         helper.assertTrue(perk.config().perk().equals(Optional.of(juggernog)), "the perk machine should sell Juggernog");
+        helper.assertTrue(perk.display().map(d -> d.cost() == 1234).orElse(false), "the machine's own cost should replace Juggernog's, shows " + perk.display());
 
         MysteryBoxBlock.Entity box = place(helper, 3, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
         assertRefused(helper, box, encode(box, new MysteryBoxBlock.Config(ResourceLocation.tryBuild("nope", "pool"), Optional.empty())), "an unloaded box pool");
