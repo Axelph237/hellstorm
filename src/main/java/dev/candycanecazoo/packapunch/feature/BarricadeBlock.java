@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.EntityCollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -33,6 +34,17 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public final class BarricadeBlock extends Block {
     public static final IntegerProperty BOARDS = IntegerProperty.create("boards", 0, 6);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    private static final double PANEL = 3;
+
+    /** The boards' panel, like a trapdoor's, on the inside face (opposite {@code FACING}, which points outward). */
+    static VoxelShape panel(Direction outward) {
+        return switch (outward) {
+            case SOUTH -> Block.box(0, 0, 0, 16, 16, PANEL);
+            case EAST -> Block.box(0, 0, 0, PANEL, 16, 16);
+            case WEST -> Block.box(16 - PANEL, 0, 0, 16, 16, 16);
+            default -> Block.box(0, 0, 16 - PANEL, 16, 16, 16);
+        };
+    }
 
     public BarricadeBlock(Properties properties) {
         super(properties);
@@ -53,12 +65,24 @@ public final class BarricadeBlock extends Block {
         boolean bare = state.getValue(BOARDS) == 0;
         Entity entity = context instanceof EntityCollisionContext entityContext ? entityContext.getEntity() : null;
         if (entity == null) {
-            return bare ? Shapes.empty() : Shapes.block();
+            return bare ? Shapes.empty() : panel(state.getValue(FACING));
         }
         if (!(entity instanceof LivingEntity) || (bare && entity.getTags().contains(ForgeGameWorld.MOB_TAG))) {
             return Shapes.empty();
         }
-        return Shapes.block();
+        return panel(state.getValue(FACING));
+    }
+
+    /** What players aim at to repair: the panel, even with no boards left. */
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return panel(state.getValue(FACING));
+    }
+
+    /** Vanilla pathfinding never routes through windows; zombies use {@code BreakBarricadeGoal} to climb in. */
+    @Override
+    public boolean isPathfindable(BlockState state, BlockGetter level, BlockPos pos, PathComputationType type) {
+        return false;
     }
 
     @Override

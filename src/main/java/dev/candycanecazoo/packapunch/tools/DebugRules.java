@@ -1,4 +1,4 @@
-package dev.candycanecazoo.packapunch.script;
+package dev.candycanecazoo.packapunch.tools;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import net.minecraft.nbt.CompoundTag;
@@ -10,11 +10,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-/** Per-world scripting switches set with {@code /pap scripts rules}, saved like gamerules. */
-public final class ScriptRules extends SavedData {
+/** Per-world debugging switches set with {@code /pap debug}, saved like gamerules. */
+public final class DebugRules extends SavedData {
     public enum Rule {
-        /** Script errors still go to the log, but not to ops' chat. */
-        SILENCE_ERRORS(false);
+        /** Send script errors to ops' chat. They always go to the log. */
+        SHOW_ERRORS(true),
+        /** While holding the Zone Wand, see each game zombie's path and the doorways the pathfinder uses. */
+        SHOW_PATHS(false);
 
         private final boolean defaultValue;
 
@@ -36,12 +38,12 @@ public final class ScriptRules extends SavedData {
         }
     }
 
-    private static final String NAME = PackAPunch.MOD_ID + "_script_rules";
+    private static final String NAME = PackAPunch.MOD_ID + "_debug_rules";
 
     private final Map<Rule, Boolean> values = new EnumMap<>(Rule.class);
 
-    public static ScriptRules get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(ScriptRules::load, ScriptRules::new, NAME);
+    public static DebugRules get(MinecraftServer server) {
+        return server.overworld().getDataStorage().computeIfAbsent(DebugRules::load, DebugRules::new, NAME);
     }
 
     public boolean get(Rule rule) {
@@ -53,8 +55,8 @@ public final class ScriptRules extends SavedData {
         setDirty();
     }
 
-    private static ScriptRules load(CompoundTag tag) {
-        ScriptRules rules = new ScriptRules();
+    private static DebugRules load(CompoundTag tag) {
+        DebugRules rules = new DebugRules();
         for (Rule rule : Rule.values()) {
             if (tag.contains(rule.id())) {
                 rules.values.put(rule, tag.getBoolean(rule.id()));

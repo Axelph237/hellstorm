@@ -67,4 +67,15 @@ class PacketRoundTripTest {
             assertEquals(packet, roundTrip(packet, ProblemsPacket::encode, ProblemsPacket::decode));
         }
     }
+
+    @Test
+    void debugPaths() {
+        DebugPathsPacket empty = new DebugPathsPacket(List.of(), List.of());
+        DebugPathsPacket full = new DebugPathsPacket(
+                List.of(new DebugPathsPacket.MobPath(42, List.of(new BlockPos(1, 2, 3), new BlockPos(1, 2, 4))), new DebugPathsPacket.MobPath(7, List.of())),
+                List.of(new BlockPos(5, 0, 2)));
+        for (DebugPathsPacket packet : List.of(empty, full)) {
+            assertEquals(packet, roundTrip(packet, DebugPathsPacket::encode, DebugPathsPacket::decode));
+        }
+    }
 }

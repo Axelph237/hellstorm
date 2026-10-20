@@ -28,6 +28,8 @@ public final class PapNetwork {
                 .encoder(PreviewPacket::encode).decoder(PreviewPacket::decode).consumerMainThread(PreviewPacket::handle).add();
         CHANNEL.messageBuilder(ProblemsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(ProblemsPacket::encode).decoder(ProblemsPacket::decode).consumerMainThread(ProblemsPacket::handle).add();
+        CHANNEL.messageBuilder(DebugPathsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(DebugPathsPacket::encode).decoder(DebugPathsPacket::decode).consumerMainThread(DebugPathsPacket::handle).add();
     }
 
     public static void send(ServerPlayer player, Object packet) {

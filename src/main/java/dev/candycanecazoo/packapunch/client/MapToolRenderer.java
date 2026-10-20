@@ -58,6 +58,13 @@ public final class MapToolRenderer {
 
     private record LinkSlot(BlockPos marker) {}
 
+    private record PathSlot(int entity, int segment) {}
+
+    private record DoorwaySlot(BlockPos cell) {}
+
+    private static final int PATH = 0xff5555;
+    private static final int DOORWAY = 0xb06cff;
+
     private static final Object SELECTION_SLOT = new Object();
 
     private MapToolRenderer() {}
@@ -126,6 +133,18 @@ public final class MapToolRenderer {
         }
 
         drawSelection(player, reach);
+
+        ClientMapState.debugPaths().ifPresent(paths -> {
+            for (var path : paths.paths()) {
+                for (int i = 0; i + 1 < path.nodes().size(); i++) {
+                    ZoneOutlines.line(new PathSlot(path.entityId(), i), Vec3.atBottomCenterOf(path.nodes().get(i)).add(0, 0.1, 0),
+                            Vec3.atBottomCenterOf(path.nodes().get(i + 1)).add(0, 0.1, 0), PATH, ZoneOutlines.THIN * 3);
+                }
+            }
+            for (BlockPos cell : paths.doorways()) {
+                ZoneOutlines.box(new DoorwaySlot(cell), new AABB(cell).deflate(0.2), DOORWAY, ZoneOutlines.THICK);
+            }
+        });
 
         for (int i = 0; i < ClientMapState.preview().size(); i++) {
             ZoneOutlines.box(new PreviewSlot(i), ClientMapState.preview().get(i).toAabb(), PREVIEW, ZoneOutlines.THIN * 2);

@@ -24,14 +24,10 @@ import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
 import dev.candycanecazoo.packapunch.net.PapNetwork;
 import dev.candycanecazoo.packapunch.net.ProblemsPacket;
 import dev.candycanecazoo.packapunch.tools.LevelCellProbe;
-import dev.candycanecazoo.packapunch.map.CellProbe;
 import dev.candycanecazoo.packapunch.map.Passages;
-import dev.candycanecazoo.packapunch.mob.path.CellQuery;
-import dev.candycanecazoo.packapunch.mob.path.MovementClass;
 import dev.candycanecazoo.packapunch.mob.path.Portal;
-import dev.candycanecazoo.packapunch.mob.path.ZonePathing;
-import net.minecraft.core.BlockPos;
 import dev.candycanecazoo.packapunch.tools.MapEdits;
+import dev.candycanecazoo.packapunch.tools.PathDebug;
 import dev.candycanecazoo.packapunch.tools.RoomDetection;
 import dev.candycanecazoo.packapunch.tools.Selection;
 import dev.candycanecazoo.packapunch.tools.ToolState;
@@ -232,9 +228,7 @@ final class ZoneCommands {
         ServerLevel level = ctx.getSource().getLevel();
         ZombiesMap map = MapSavedData.get(level).map();
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get());
-        MovementClass zombie = MovementClass.ofHitbox(0.6f, 1.95f);
-        CellQuery world = (x, y, z) -> LevelCellProbe.classify(level, new BlockPos(x, y, z)) == CellProbe.Cell.OPEN ? CellQuery.Cell.OPEN : CellQuery.Cell.SOLID;
-        List<Portal> portals = ZonePathing.portals(passages, ZonePathing.grids(map, passages, world, zombie));
+        List<Portal> portals = PathDebug.portals(level, map);
         if (passages.open().isEmpty()) {
             ctx.getSource().sendSuccess(() -> Component.literal("No zone connects to another"), false);
         }

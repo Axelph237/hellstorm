@@ -86,6 +86,9 @@ public final class WindowGameTests {
             helper.assertTrue(!state.getCollisionShape(helper.getLevel(), cell, CollisionContext.of(wildZombie)).isEmpty(), "other mobs never pass");
             helper.assertTrue(!state.getCollisionShape(helper.getLevel(), cell, CollisionContext.of(player)).isEmpty(), "players never pass");
             helper.assertTrue(state.getCollisionShape(helper.getLevel(), cell, CollisionContext.of(arrow)).isEmpty(), "projectiles always pass");
+            var playerShape = state.getCollisionShape(helper.getLevel(), cell, CollisionContext.of(player)).bounds();
+            helper.assertTrue(playerShape.minZ >= 0.8 && playerShape.maxZ == 1.0 && playerShape.maxY == 1.0,
+                    "players should hit a thin panel on the inside (south) face of a north-facing window, got " + playerShape);
             boolean openWithoutContext = state.getCollisionShape(helper.getLevel(), cell, CollisionContext.empty()).isEmpty();
             helper.assertTrue(openWithoutContext == (boards == 0), "context-free collision (vanilla move control) open=" + openWithoutContext + " at " + boards + " boards");
         }

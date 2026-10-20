@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import dev.candycanecazoo.packapunch.map.ZoneIndex;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import dev.candycanecazoo.packapunch.map.validate.Problem;
+import dev.candycanecazoo.packapunch.net.DebugPathsPacket;
 import dev.candycanecazoo.packapunch.tools.Selection;
 
 import java.util.List;
@@ -20,6 +21,8 @@ public final class ClientMapState {
     private static Selection selection = Selection.NONE;
     private static List<BlockBox> preview = List.of();
     private static List<Problem> problems = List.of();
+    private static DebugPathsPacket debugPaths;
+    private static long debugPathsAt;
 
     private ClientMapState() {}
 
@@ -41,7 +44,18 @@ public final class ClientMapState {
         problems = List.copyOf(next);
     }
 
+    public static void setDebugPaths(DebugPathsPacket paths) {
+        debugPaths = paths;
+        debugPathsAt = net.minecraft.Util.getMillis();
+    }
+
+    /** The last {@code show_paths} update, if it arrived recently. The server stops sending when the rule is off. */
+    public static java.util.Optional<DebugPathsPacket> debugPaths() {
+        return debugPaths != null && net.minecraft.Util.getMillis() - debugPathsAt < 1500 ? java.util.Optional.of(debugPaths) : java.util.Optional.empty();
+    }
+
     public static void reset() {
+        debugPaths = null;
         setMap(ZombiesMap.EMPTY);
         selection = Selection.NONE;
         preview = List.of();

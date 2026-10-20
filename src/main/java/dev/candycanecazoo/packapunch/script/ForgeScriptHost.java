@@ -4,6 +4,7 @@ import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.game.Game;
 import dev.candycanecazoo.packapunch.game.GamePhase;
 import dev.candycanecazoo.packapunch.game.PlayerState;
+import dev.candycanecazoo.packapunch.tools.DebugRules;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -55,7 +56,7 @@ public final class ForgeScriptHost implements ScriptHost {
             case WARN -> PackAPunch.LOG.warn("Script {}", line);
             case ERROR -> {
                 PackAPunch.LOG.error("Script {}", line);
-                if (ScriptRules.get(level.getServer()).get(ScriptRules.Rule.SILENCE_ERRORS)) {
+                if (!DebugRules.get(level.getServer()).get(DebugRules.Rule.SHOW_ERRORS)) {
                     return;
                 }
                 Component text = Component.literal("Script error " + line).withStyle(ChatFormatting.RED);

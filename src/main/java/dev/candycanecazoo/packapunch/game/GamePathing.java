@@ -8,6 +8,7 @@ import dev.candycanecazoo.packapunch.mob.path.CellQuery;
 import dev.candycanecazoo.packapunch.mob.path.HierarchicalPlanner;
 import dev.candycanecazoo.packapunch.mob.path.MovementClass;
 import dev.candycanecazoo.packapunch.mob.path.PassabilityGrid;
+import dev.candycanecazoo.packapunch.mob.path.Portal;
 import dev.candycanecazoo.packapunch.mob.path.PortalPathCache;
 import dev.candycanecazoo.packapunch.mob.path.ZonePathing;
 import dev.candycanecazoo.packapunch.map.CellProbe;
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class GamePathing implements AutoCloseable {
     private static final int MAX_EXPANDED = 50_000;
 
-    public record Planner(HierarchicalPlanner planner, Map<ZoneId, PassabilityGrid> grids) {}
+    public record Planner(HierarchicalPlanner planner, Map<ZoneId, PassabilityGrid> grids, List<Portal> portals) {}
 
     private final ServerLevel level;
     private final GameMap map;
@@ -61,8 +62,9 @@ public final class GamePathing implements AutoCloseable {
                 ? CellQuery.Cell.OPEN : CellQuery.Cell.SOLID;
         Map<ZoneId, PassabilityGrid> grids = ZonePathing.grids(map.map(), passages, world, mc);
         HierarchicalPlanner planner = new HierarchicalPlanner(grids, cache);
-        ZonePathing.portals(passages, grids).forEach(planner::addPortal);
-        return new Planner(planner, grids);
+        List<Portal> portals = ZonePathing.portals(passages, grids);
+        portals.forEach(planner::addPortal);
+        return new Planner(planner, grids, List.copyOf(portals));
     }
 
     public CompletableFuture<Optional<List<BlockPos>>> plan(Planner planner, BlockPos start, ZoneId startZone, BlockPos goal, ZoneId goalZone) {

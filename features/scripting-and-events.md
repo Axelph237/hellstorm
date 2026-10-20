@@ -76,8 +76,7 @@ end)
 - `scripting.instruction_budget` (1,000,000).
 - `scripting.max_consecutive_errors` (5).
 - `scripting.max_string_length` (1,000,000).
-- Per world, `/pap scripts rules <rule> <true|false>` (saved like a gamerule; `/pap scripts rules` lists them):
-  - `silence_errors` (default false): script errors still go to the log, but not to ops' chat.
+- Per world, `/pap debug show_errors <true|false>` (default true, saved like a gamerule): send script errors to ops' chat. They always go to the log.
 
 ## Examples
 
