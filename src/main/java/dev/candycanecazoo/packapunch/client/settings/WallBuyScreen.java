@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * What a wall-buy sells (the item in hand when the screen opened), its price, and what buying it again does. The ammo
- * costs only show when buying again refills ammo.
+ * What a wall-buy or perk machine sells (the item in hand when the screen opened), its price, whether it needs power, and
+ * what buying it again does. The ammo costs only show when buying again refills ammo.
  */
 final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
     private final Optional<OpenSettingsPacket.Held> held;
@@ -23,9 +23,10 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
     private String cost;
     private String ammoCost;
     private String papAmmoCost;
+    private boolean requiresPower;
 
     WallBuyScreen(WallBuyBlock.Entity entity, OpenSettingsPacket packet) {
-        super(Component.literal("Wall-buy"), entity);
+        super(entity.getBlockState().getBlock().getName(), entity);
         WallBuy.Config config = entity.config();
         held = packet.held();
         item = config.item();
@@ -34,6 +35,7 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
         cost = String.valueOf(config.cost());
         ammoCost = String.valueOf(config.ammoCost());
         papAmmoCost = String.valueOf(config.papAmmoCost());
+        requiresPower = config.requiresPower();
     }
 
     @Override
@@ -43,6 +45,8 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
                 h -> button(Component.empty(), Component.literal("Sell held: ").append(h.name()), () -> sell(h)),
                 () -> text(Component.empty(), () -> Component.literal("Hold an item to sell it")));
         number(Component.literal("Cost"), cost, Component.empty(), v -> cost = v);
+        choice(Component.literal("Needs power"), List.of(true, false), requiresPower,
+                v -> Component.literal(v ? "Yes" : "No"), v -> requiresPower = v);
         choice(Component.literal("Buying again"), allowed(), repurchase, WallBuyScreen::name, v -> {
             repurchase = v;
             relayout();
@@ -81,6 +85,6 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
     @Override
     protected DataResult<WallBuy.Config> settings() {
         return cost(cost, "Cost").flatMap(price -> cost(ammoCost, "Ammo cost").flatMap(ammo -> cost(papAmmoCost, "Upgraded ammo")
-                .map(papAmmo -> new WallBuy.Config(item, price, repurchase, ammo, papAmmo))));
+                .map(papAmmo -> new WallBuy.Config(item, price, repurchase, ammo, papAmmo, requiresPower))));
     }
 }

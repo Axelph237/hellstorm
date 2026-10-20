@@ -7,6 +7,7 @@ import dev.candycanecazoo.packapunch.feature.WallBuy;
 import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
 import dev.candycanecazoo.packapunch.game.GameEvent;
 import dev.candycanecazoo.packapunch.game.GameManager;
+import dev.candycanecazoo.packapunch.perk.PerkEffects;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
@@ -16,6 +17,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -71,7 +73,7 @@ public final class WallBuyGameTests {
 
     @GameTest(template = "floor", batch = "wallbuy_gun")
     public static void aGunWallBuySellsTheGunThenRefillsItsAmmo(GameTestHelper helper) {
-        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 300, WallBuy.Repurchase.REFILL_AMMO, 100, 50));
+        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 300, WallBuy.Repurchase.REFILL_AMMO, 100, 50, false));
         ServerPlayer player = player(helper, "pap_wallbuy_gun");
         GameManager.Active active = game(helper, player, at);
         List<GameEvent> events = new ArrayList<>();
@@ -106,7 +108,7 @@ public final class WallBuyGameTests {
     @GameTest(template = "floor", batch = "wallbuy_top_up")
     public static void aTopUpWallBuyFillsTheStackBackToItsCount(GameTestHelper helper) {
         ItemSpec apples = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3, Optional.empty());
-        BlockPos at = wallBuy(helper, new WallBuy.Config(apples, 100, WallBuy.Repurchase.TOP_UP, 0, 0));
+        BlockPos at = wallBuy(helper, new WallBuy.Config(apples, 100, WallBuy.Repurchase.TOP_UP, 0, 0, false));
         ServerPlayer player = player(helper, "pap_wallbuy_apples");
         GameManager.Active active = game(helper, player, at);
         try {
@@ -126,16 +128,16 @@ public final class WallBuyGameTests {
     @GameTest(template = "floor", batch = "wallbuy_deny")
     public static void aDenyWallBuySellsOnceAndRefusesWithoutCharging(GameTestHelper helper) {
         ItemSpec sword = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "iron_sword"), 1, Optional.empty());
-        BlockPos at = wallBuy(helper, new WallBuy.Config(sword, 100, WallBuy.Repurchase.DENY, 0, 0));
+        BlockPos at = wallBuy(helper, new WallBuy.Config(sword, 100, WallBuy.Repurchase.DENY, 0, 0, false));
         ServerPlayer player = player(helper, "pap_wallbuy_deny");
         GameManager.Active active = game(helper, player, at);
         try {
-            entity(helper, at).setConfig(new WallBuy.Config(sword, 501, WallBuy.Repurchase.DENY, 0, 0));
+            entity(helper, at).setConfig(new WallBuy.Config(sword, 501, WallBuy.Repurchase.DENY, 0, 0, false));
             FeatureBlock.use(player, at);
             helper.assertTrue(player.getInventory().countItem(Items.IRON_SWORD) == 0, "sold without enough points");
             assertPoints(helper, active, player, 500, "too few points charges nothing");
 
-            entity(helper, at).setConfig(new WallBuy.Config(sword, 100, WallBuy.Repurchase.DENY, 0, 0));
+            entity(helper, at).setConfig(new WallBuy.Config(sword, 100, WallBuy.Repurchase.DENY, 0, 0, false));
             FeatureBlock.use(player, at);
             helper.assertTrue(player.getInventory().countItem(Items.IRON_SWORD) == 1, "the first purchase gives the sword");
             FeatureBlock.use(player, at);
@@ -149,7 +151,7 @@ public final class WallBuyGameTests {
 
     @GameTest(template = "floor", batch = "wallbuy_slots")
     public static void atTheWeaponSlotLimitBuyingReplacesTheHeldGun(GameTestHelper helper) {
-        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 100, WallBuy.Repurchase.REFILL_AMMO, 50, 50));
+        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 100, WallBuy.Repurchase.REFILL_AMMO, 50, 50, false));
         ServerPlayer player = player(helper, "pap_wallbuy_slots");
         GameManager.Active active = game(helper, player, at);
         try {
@@ -162,16 +164,16 @@ public final class WallBuyGameTests {
             helper.assertTrue(guns(player, M4A1).isEmpty() && guns(player, GLOCK).size() == 1, "the other gun stays, the held one goes");
             assertPoints(helper, active, player, 400, "the swap costs the price");
 
-            entity(helper, at).setConfig(new WallBuy.Config(ItemSpec.Gun.of(M4A1), 100, WallBuy.Repurchase.REFILL_AMMO, 50, 50));
+            entity(helper, at).setConfig(new WallBuy.Config(ItemSpec.Gun.of(M4A1), 100, WallBuy.Repurchase.REFILL_AMMO, 50, 50, false));
             player.getInventory().selected = 5;
             FeatureBlock.use(player, at);
             helper.assertTrue(guns(player, M4A1).isEmpty(), "not holding a gun at the limit is refused");
             assertPoints(helper, active, player, 400, "a refused swap charges nothing");
 
-            active.game().player(player.getUUID()).orElseThrow().setBonusWeaponSlots(1);
+            player.addEffect(new MobEffectInstance(PerkEffects.MULE_KICK.get(), MobEffectInstance.INFINITE_DURATION));
             FeatureBlock.use(player, at);
             helper.assertTrue(guns(player, M4A1).size() == 1 && guns(player, AK47).size() == 1 && guns(player, GLOCK).size() == 1,
-                    "a bonus slot (Mule Kick) holds a third gun");
+                    "Mule Kick's extra slot holds a third gun");
         } finally {
             GameManager.end(active);
         }

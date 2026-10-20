@@ -25,6 +25,8 @@ final class FakeWorld implements GameWorld {
     final List<UUID> restocked = new ArrayList<>();
     final Map<UUID, Float> healed = new HashMap<>();
     final Map<UUID, Double> reviveSpeeds = new HashMap<>();
+    /** Players with Quick Revive, or another effect in {@code packapunch:self_revive}. */
+    final java.util.Set<UUID> selfRevivers = new java.util.HashSet<>();
     final List<net.minecraft.resources.ResourceLocation> drops = new ArrayList<>();
     final List<Optional<Float>> fog = new ArrayList<>();
     boolean refuseSpawns;
@@ -75,9 +77,11 @@ final class FakeWorld implements GameWorld {
     @Override
     public void showStatus(UUID player, Status status) {}
 
+    /** Going down takes every buff, Quick Revive included, as on a real player. */
     @Override
     public void down(UUID player) {
         downed.add(player);
+        selfRevivers.remove(player);
     }
 
     @Override
@@ -98,6 +102,11 @@ final class FakeWorld implements GameWorld {
     @Override
     public double reviveSpeed(UUID player) {
         return reviveSpeeds.getOrDefault(player, 1.0);
+    }
+
+    @Override
+    public boolean canSelfRevive(UUID player) {
+        return selfRevivers.contains(player);
     }
 
     @Override

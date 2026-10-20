@@ -1,155 +1,93 @@
 package dev.candycanecazoo.packapunch.perk;
 
+import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.game.GameManager;
-import dev.candycanecazoo.packapunch.game.PlayerState;
 import dev.candycanecazoo.packapunch.game.Refusal;
 import dev.candycanecazoo.packapunch.game.Shop;
-import dev.candycanecazoo.packapunch.net.PapNetwork;
-import dev.candycanecazoo.packapunch.net.PerkSyncPacket;
-import dev.candycanecazoo.packapunch.tacz.PerkGunEffects;
-import net.minecraft.locale.Language;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.ToDoubleFunction;
 
-/** Buying perks, and putting their effects on a player and taking them off again. */
+/**
+ * Perks are mob effects in the {@code packapunch:perks} tag, usually drunk from a potion bought at a perk machine. A player
+ * in a game holds at most {@code players.perk_limit} of them, and loses every beneficial effect on going down.
+ */
+@Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID)
 public final class Perks {
     private Perks() {}
 
-    /** The perk rules checked before charging: one of each perk, and at most {@code limit} perks. */
-    public static Optional<Refusal> refusal(Collection<ResourceLocation> owned, ResourceLocation perk, String name, int limit) {
-        if (owned.contains(perk)) {
-            return Optional.of(new Refusal.Because("You already have " + name));
-        }
-        if (owned.size() >= limit) {
-            return Optional.of(new Refusal.Because("You can only hold " + limit + (limit == 1 ? " perk" : " perks")));
-        }
-        return Optional.empty();
+    public static boolean is(MobEffect effect, TagKey<MobEffect> tag) {
+        return ForgeRegistries.MOB_EFFECTS.getHolder(effect).map(holder -> holder.is(tag)).orElse(false);
     }
 
-    /** Every effect of type {@code type} across {@code perks}, multiplied together. 1 when there are none. */
-    public static <E extends PerkEffect> double product(Collection<PerkDef> perks, Class<E> type, ToDoubleFunction<E> factor) {
-        double product = 1;
-        for (PerkDef perk : perks) {
-            for (PerkEffect effect : perk.effects()) {
-                if (type.isInstance(effect)) {
-                    product *= factor.applyAsDouble(type.cast(effect));
-                }
+    public static boolean hasAny(LivingEntity entity, TagKey<MobEffect> tag) {
+        return entity.getActiveEffects().stream().anyMatch(instance -> is(instance.getEffect(), tag));
+    }
+
+    /** The perks the entity has active. */
+    public static List<MobEffect> held(LivingEntity entity) {
+        return entity.getActiveEffects().stream().map(MobEffectInstance::getEffect).filter(effect -> is(effect, PerkEffects.PERKS)).toList();
+    }
+
+    /** The perks drinking {@code stack} would give. None for anything that isn't a potion. */
+    public static List<MobEffect> given(ItemStack stack) {
+        return PotionUtils.getMobEffects(stack).stream().map(MobEffectInstance::getEffect).filter(effect -> is(effect, PerkEffects.PERKS)).distinct().toList();
+    }
+
+    /** Refuses gaining perks from {@code adding} that aren't {@code held} if that would take the player past {@code limit}. */
+    public static <P> Optional<Refusal> limitRefusal(Collection<P> held, Collection<P> adding, int limit) {
+        long gained = adding.stream().distinct().filter(perk -> !held.contains(perk)).count();
+        if (gained == 0 || held.size() + gained <= limit) {
+            return Optional.empty();
+        }
+        return Optional.of(new Refusal.Because("You can only hold " + limit + (limit == 1 ? " perk" : " perks")));
+    }
+
+    /** {@link #limitRefusal} for drinking {@code stack}, at the limit of the player's game. Never refused outside a game. */
+    public static Optional<Refusal> limitRefusal(ServerPlayer player, ItemStack stack) {
+        return GameManager.forPlayer(player.getUUID())
+                .flatMap(active -> limitRefusal(held(player), given(stack), active.game().settings().players().perkLimit()));
+    }
+
+    /** "You already have Juggernog" when {@code stack} is a potion and every one of its effects is already active. */
+    public static Optional<String> alreadyHas(LivingEntity entity, ItemStack stack) {
+        List<MobEffectInstance> effects = PotionUtils.getMobEffects(stack);
+        if (effects.isEmpty() || !effects.stream().allMatch(instance -> entity.hasEffect(instance.getEffect()))) {
+            return Optional.empty();
+        }
+        return Optional.of("You already have " + effects.get(0).getEffect().getDisplayName().getString());
+    }
+
+    /** Takes every beneficial effect off the player: on going down, dying, leaving, and when the game ends. */
+    public static void clearBuffs(LivingEntity entity) {
+        for (MobEffect effect : List.copyOf(entity.getActiveEffectsMap().keySet())) {
+            if (effect.getCategory() == MobEffectCategory.BENEFICIAL) {
+                entity.removeEffect(effect);
             }
         }
-        return product;
     }
 
-    /** The perks a player holds in their game, or none outside a game. */
-    public static Collection<PerkDef> held(ServerPlayer player) {
-        return GameManager.forPlayer(player.getUUID()).flatMap(a -> a.game().player(player.getUUID()))
-                .map(state -> state.perks().values()).orElse(List.of());
-    }
-
-    public static String displayName(PerkDef def) {
-        return Language.getInstance().getOrDefault(def.name());
-    }
-
-    public static boolean buy(ServerPlayer player, GameManager.Active game, ResourceLocation id, PerkDef def, int cost) {
-        return Shop.buy(player, game, new Shop.Sale() {
-            @Override
-            public int cost() {
-                return cost;
-            }
-
-            @Override
-            public boolean needsPower() {
-                return def.requiresPower();
-            }
-
-            @Override
-            public Optional<Refusal> check(GameManager.Active g, ServerPlayer p) {
-                return g.game().player(p.getUUID()).flatMap(state ->
-                        refusal(state.perks().keySet(), id, displayName(def), g.game().settings().players().perkLimit()));
-            }
-
-            @Override
-            public Optional<Refusal> deliver(GameManager.Active g, ServerPlayer p) {
-                PlayerState state = g.game().player(p.getUUID()).orElseThrow();
-                apply(p, state, id, def);
-                g.game().givePerk(p.getUUID(), id, def);
-                PerkGunEffects.refresh(p);
-                sync(p, state);
-                return Optional.empty();
-            }
-        });
-    }
-
-    /** Takes every perk from the player and undoes their effects: on going down, dying, leaving, and when the game ends. */
-    public static void removeAll(GameManager.Active game, ServerPlayer player) {
-        Optional<PlayerState> state = game.game().player(player.getUUID());
-        if (state.isEmpty()) {
-            return;
+    /** Refused before anything is drunk. The client keeps its drinking pose until the player lets go of use. */
+    @SubscribeEvent
+    public static void onStartUsing(LivingEntityUseItemEvent.Start event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            limitRefusal(player, event.getItem()).ifPresent(refusal -> {
+                event.setCanceled(true);
+                Shop.refuse(player, refusal);
+            });
         }
-        Map<ResourceLocation, PerkDef> taken = game.game().takePerks(player.getUUID());
-        taken.forEach((id, def) -> remove(player, state.get(), id, def));
-        if (!taken.isEmpty()) {
-            PerkGunEffects.refresh(player);
-        }
-        sync(player, state.get());
-    }
-
-    static void apply(ServerPlayer player, PlayerState state, ResourceLocation id, PerkDef def) {
-        float maxHealth = player.getMaxHealth();
-        for (int i = 0; i < def.effects().size(); i++) {
-            PerkEffect effect = def.effects().get(i);
-            if (effect instanceof PerkEffect.Attribute attribute) {
-                AttributeInstance instance = instance(player, attribute);
-                if (instance != null) {
-                    instance.removeModifier(PerkDef.modifierId(id, i));
-                    // Transient, so a modifier is never saved with the player if they disconnect mid-game.
-                    instance.addTransientModifier(new AttributeModifier(PerkDef.modifierId(id, i), "packapunch perk " + id,
-                            attribute.amount(), attribute.operation()));
-                }
-            } else if (effect instanceof PerkEffect.WeaponSlots slots) {
-                state.setBonusWeaponSlots(state.bonusWeaponSlots() + slots.slots());
-            }
-        }
-        if (player.getMaxHealth() > maxHealth) {
-            player.heal(player.getMaxHealth() - maxHealth);
-        }
-    }
-
-    static void remove(ServerPlayer player, PlayerState state, ResourceLocation id, PerkDef def) {
-        for (int i = 0; i < def.effects().size(); i++) {
-            PerkEffect effect = def.effects().get(i);
-            if (effect instanceof PerkEffect.Attribute attribute) {
-                AttributeInstance instance = instance(player, attribute);
-                if (instance != null) {
-                    instance.removeModifier(PerkDef.modifierId(id, i));
-                }
-            } else if (effect instanceof PerkEffect.WeaponSlots slots) {
-                state.setBonusWeaponSlots(Math.max(0, state.bonusWeaponSlots() - slots.slots()));
-            }
-        }
-        if (player.getHealth() > player.getMaxHealth()) {
-            player.setHealth(player.getMaxHealth());
-        }
-    }
-
-    private static AttributeInstance instance(ServerPlayer player, PerkEffect.Attribute effect) {
-        net.minecraft.world.entity.ai.attributes.Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(effect.attribute());
-        return attribute == null ? null : player.getAttribute(attribute);
-    }
-
-    /** Tells the player's client which perks they hold (the HUD row) and their fire rate multiplier (TacZ fires client side). */
-    public static void sync(ServerPlayer player, PlayerState state) {
-        List<PerkSyncPacket.Badge> badges = state.perks().entrySet().stream()
-                .map(e -> new PerkSyncPacket.Badge(e.getKey(), e.getValue().name(), e.getValue().color())).toList();
-        float rpm = (float) product(state.perks().values(), PerkEffect.RpmMultiplier.class, PerkEffect.RpmMultiplier::multiplier);
-        PapNetwork.send(player, new PerkSyncPacket(badges, rpm));
     }
 }

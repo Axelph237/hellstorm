@@ -199,7 +199,7 @@ public final class MysteryBoxes {
             Shop.refuse(player, new Refusal.NotPlaying());
             return;
         }
-        Optional<Refusal> refused = WallBuyBlock.give(player, state.get(), game.game().settings(), box.result().copy());
+        Optional<Refusal> refused = WallBuyBlock.give(player, game.game().settings(), box.result().copy());
         if (refused.isPresent()) {
             Shop.refuse(player, refused.get());
             return;

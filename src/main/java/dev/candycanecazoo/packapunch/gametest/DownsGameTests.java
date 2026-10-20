@@ -2,7 +2,6 @@ package dev.candycanecazoo.packapunch.gametest;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.FeatureBlock;
-import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.game.GameManager;
 import dev.candycanecazoo.packapunch.game.LifeState;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
@@ -10,7 +9,6 @@ import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -18,7 +16,6 @@ import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
-import java.util.Optional;
 
 import static dev.candycanecazoo.packapunch.gametest.TestLayout.ROOM_Y;
 
@@ -26,8 +23,6 @@ import static dev.candycanecazoo.packapunch.gametest.TestLayout.ROOM_Y;
 @GameTestHolder(PackAPunch.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class DownsGameTests {
-    private static final ResourceLocation JUGGERNOG = PackAPunch.id("juggernog");
-
     private DownsGameTests() {}
 
     private static boolean downed(GameManager.Active active, ServerPlayer player) {
@@ -38,7 +33,6 @@ public final class DownsGameTests {
     public static void lethalDamageDownsAPlayerAndATeammateRevivesThem(GameTestHelper helper) {
         BlockPos machine = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
         helper.getLevel().setBlockAndUpdate(machine, PapRegistries.PERK_MACHINE.get().defaultBlockState());
-        ((PerkMachineBlock.Entity) helper.getLevel().getBlockEntity(machine)).setConfig(new PerkMachineBlock.Config(Optional.of(JUGGERNOG), Optional.empty()));
         ServerPlayer alice = PurchaseGameTests.player(helper, "pap_downs_alice");
         ServerPlayer bob = PurchaseGameTests.player(helper, "pap_downs_bob");
         GameManager.Active active = PurchaseGameTests.game(helper, java.util.List.of(alice, bob), machine);
@@ -47,6 +41,7 @@ public final class DownsGameTests {
         double baseSpeed = alice.getAttributeValue(Attributes.MOVEMENT_SPEED);
         active.game().refund(alice.getUUID(), 10_000);
         FeatureBlock.use(alice, machine);
+        PerkGameTests.drink(alice, PerkGameTests.takePotion(alice));
         boolean bought = alice.getMaxHealth() > baseHealth;
         active.game().start();
         // However the test ends, the game mustn't outlive it.

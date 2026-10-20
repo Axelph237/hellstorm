@@ -1,16 +1,19 @@
 package dev.candycanecazoo.packapunch.game;
 
 import dev.candycanecazoo.packapunch.config.GameSettings;
+import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Optional;
 
 /**
- * How many TacZ guns a player can carry: {@code players.weapon_slots} plus perk bonuses (Mule Kick). Getting a gun at the
- * limit swaps out the gun in the player's hand. Wall-buys and the Mystery Box both give guns through here.
+ * How many TacZ guns a player can carry: {@code players.weapon_slots} plus their {@code packapunch:extra_weapon_slots}
+ * attribute (Mule Kick adds 1). Getting a gun at the limit swaps out the gun in the player's hand. Wall-buys and the
+ * Mystery Box both give guns through here.
  */
 public final class WeaponSlots {
     public sealed interface Plan {
@@ -34,8 +37,8 @@ public final class WeaponSlots {
         return holdingGun ? new Plan.Replace(selectedSlot) : new Plan.Refuse(SWAP);
     }
 
-    public static int limit(GameSettings settings, PlayerState player) {
-        return settings.players().weaponSlots() + player.bonusWeaponSlots();
+    public static int limit(GameSettings settings, Player player) {
+        return settings.players().weaponSlots() + (int) player.getAttributeValue(PapRegistries.EXTRA_WEAPON_SLOTS);
     }
 
     public static int guns(Inventory inventory) {
@@ -57,18 +60,18 @@ public final class WeaponSlots {
         return !stack.isEmpty() && TaczBridge.inspect(stack).isPresent();
     }
 
-    public static Plan plan(ServerPlayer player, PlayerState state, GameSettings settings) {
+    public static Plan plan(ServerPlayer player, GameSettings settings) {
         Inventory inventory = player.getInventory();
-        return plan(guns(inventory), limit(settings, state), isGun(inventory.getSelected()), inventory.selected, inventory.getFreeSlot() >= 0);
+        return plan(guns(inventory), limit(settings, player), isGun(inventory.getSelected()), inventory.selected, inventory.getFreeSlot() >= 0);
     }
 
     /** Why a gun can't be given right now, checked before charging. */
-    public static Optional<Refusal> check(ServerPlayer player, PlayerState state, GameSettings settings) {
-        return plan(player, state, settings) instanceof Plan.Refuse refuse ? Optional.of(new Refusal.Because(refuse.reason())) : Optional.empty();
+    public static Optional<Refusal> check(ServerPlayer player, GameSettings settings) {
+        return plan(player, settings) instanceof Plan.Refuse refuse ? Optional.of(new Refusal.Because(refuse.reason())) : Optional.empty();
     }
 
-    public static Optional<Refusal> give(ServerPlayer player, PlayerState state, GameSettings settings, ItemStack gun) {
-        Plan plan = plan(player, state, settings);
+    public static Optional<Refusal> give(ServerPlayer player, GameSettings settings, ItemStack gun) {
+        Plan plan = plan(player, settings);
         if (plan instanceof Plan.Refuse refuse) {
             return Optional.of(new Refusal.Because(refuse.reason()));
         }

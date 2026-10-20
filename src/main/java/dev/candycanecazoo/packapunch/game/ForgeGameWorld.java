@@ -21,6 +21,8 @@ import net.minecraft.world.phys.Vec3;
 import dev.candycanecazoo.packapunch.mob.MobFactory;
 import dev.candycanecazoo.packapunch.mob.MobProfile;
 import dev.candycanecazoo.packapunch.mob.SupportTier;
+import dev.candycanecazoo.packapunch.perk.PerkEffects;
+import dev.candycanecazoo.packapunch.perk.Perks;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.GameType;
 
@@ -250,7 +252,12 @@ public final class ForgeGameWorld implements GameWorld {
 
     @Override
     public double reviveSpeed(UUID id) {
-        return player(id).map(p -> p.getAttributeValue(dev.candycanecazoo.packapunch.registry.PapRegistries.REVIVE_SPEED.get())).orElse(1.0);
+        return player(id).map(p -> p.getAttributeValue(dev.candycanecazoo.packapunch.registry.PapRegistries.REVIVE_SPEED)).orElse(1.0);
+    }
+
+    @Override
+    public boolean canSelfRevive(UUID id) {
+        return player(id).map(p -> Perks.hasAny(p, PerkEffects.SELF_REVIVE)).orElse(false);
     }
 
     @Override

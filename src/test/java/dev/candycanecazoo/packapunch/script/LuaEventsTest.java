@@ -48,4 +48,13 @@ class LuaEventsTest {
         assertEquals("packapunch:hounds", wave.get("wave_event").tojstring());
         assertEquals(5, LuaEvents.round(events.get(6)).getAsInt());
     }
+
+    @Test
+    void aPerkPurchaseCarriesTheItemAndCost() {
+        LuaTable bought = LuaEvents.table(new GameEvent.PerkBought(ALICE, "packapunch:juggernog", 2500));
+        assertEquals("perk_bought", bought.get("event").tojstring());
+        assertEquals(ALICE.toString(), bought.get("player").tojstring());
+        assertEquals("packapunch:juggernog", bought.get("item").tojstring());
+        assertEquals(2500, bought.get("cost").toint());
+    }
 }

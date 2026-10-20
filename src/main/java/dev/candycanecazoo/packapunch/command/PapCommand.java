@@ -35,7 +35,6 @@ public final class PapCommand {
                 .then(WindowCommands.window().requires(PapCommand::op))
                 .then(PowerCommands.power().requires(PapCommand::op))
                 .then(DoorCommands.door().requires(PapCommand::op))
-                .then(PerkCommands.perk().requires(PapCommand::op))
                 .then(WallBuyCommands.wallbuy().requires(PapCommand::op))
                 .then(BoxCommands.box().requires(PapCommand::op))
                 .then(PapMachineCommands.pap().requires(PapCommand::op))

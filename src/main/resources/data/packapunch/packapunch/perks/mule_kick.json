@@ -1,9 +1,0 @@
-{
-  "name": "perk.packapunch.mule_kick",
-  "cost": 4000,
-  "requires_power": true,
-  "color": "#2f8f5b",
-  "effects": [
-    { "type": "weapon_slots", "slots": 1 }
-  ]
-}

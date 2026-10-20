@@ -2,7 +2,6 @@ package dev.candycanecazoo.packapunch.client.settings;
 
 import dev.candycanecazoo.packapunch.feature.MysteryBoxBlock;
 import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
-import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.TrapControllerBlock;
 import dev.candycanecazoo.packapunch.feature.WallBuyBlock;
@@ -24,8 +23,6 @@ public final class SettingsScreens {
         Screen screen = null;
         if (entity instanceof WallBuyBlock.Entity wallBuy) {
             screen = new WallBuyScreen(wallBuy, packet);
-        } else if (entity instanceof PerkMachineBlock.Entity perk) {
-            screen = new PerkMachineScreen(perk, packet);
         } else if (entity instanceof MysteryBoxBlock.Entity box) {
             screen = new MysteryBoxScreen(box, packet);
         } else if (entity instanceof PapMachineBlock.Entity pap) {

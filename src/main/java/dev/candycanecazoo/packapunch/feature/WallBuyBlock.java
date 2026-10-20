@@ -1,20 +1,23 @@
 package dev.candycanecazoo.packapunch.feature;
 
+import com.mojang.serialization.Codec;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.data.ItemSpec;
 import dev.candycanecazoo.packapunch.game.GameEvent;
 import dev.candycanecazoo.packapunch.game.GameManager;
-import dev.candycanecazoo.packapunch.game.PlayerState;
 import dev.candycanecazoo.packapunch.game.Refusal;
 import dev.candycanecazoo.packapunch.game.Shop;
 import dev.candycanecazoo.packapunch.game.WeaponSlots;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
+import dev.candycanecazoo.packapunch.perk.Perks;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -29,6 +32,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
@@ -39,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * A plate on a wall that sells one item, drawn on its face. {@code FACING} is the way the face points, away from the wall.
@@ -59,7 +64,12 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         private ItemStack synced = ItemStack.EMPTY;
 
         public Entity(BlockPos pos, BlockState state) {
-            super(PapRegistries.WALL_BUY_ENTITY.get(), pos, state, WallBuy.Config.CODEC, WallBuy.Config.DEFAULT);
+            this(PapRegistries.WALL_BUY_ENTITY.get(), pos, state, WallBuy.Config.CODEC, WallBuy.Config.DEFAULT);
+        }
+
+        /** A wall-buy on another block, with that block's defaults, such as the perk machine. */
+        public Entity(BlockEntityType<?> type, BlockPos pos, BlockState state, Codec<WallBuy.Config> codec, WallBuy.Config defaults) {
+            super(type, pos, state, codec, defaults);
         }
 
         @Override
@@ -106,11 +116,35 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         }
 
         @Override
-        public Optional<Prompt> prompt() {
-            Optional<Match> match = Viewer.get().flatMap(p -> find(p.getInventory(), config().item()));
-            WallBuy.Action action = WallBuy.decide(config(), match.map(Match::owned));
-            return action instanceof WallBuy.Action.Deny ? Optional.empty() : Optional.of(new Prompt(itemName(), action.cost(), false));
+        public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet) {
+            super.onDataPacket(net, packet);
+            // A perk machine is tinted from what it sells, so the chunk has to be redrawn when that changes.
+            if (level != null && level.isClientSide) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_IMMEDIATE);
+            }
         }
+
+        @Override
+        public Optional<Prompt> prompt() {
+            WallBuy.Action action = Viewer.get().map(p -> action(config(), display(), p, find(p.getInventory(), config().item())))
+                    .orElseGet(() -> WallBuy.decide(config(), Optional.empty()));
+            return action instanceof WallBuy.Action.Deny ? Optional.empty() : Optional.of(new Prompt(itemName(), action.cost(), config().requiresPower()));
+        }
+    }
+
+    /** What a purchase tells scripts: {@code wall_buy} from a wall-buy, {@code perk_bought} from a perk machine. */
+    @FunctionalInterface
+    public interface Receipt {
+        GameEvent of(UUID player, int cost, boolean refill);
+    }
+
+    /**
+     * What using the wall-buy would do for {@code player}: refused for a potion whose effects they all have already,
+     * otherwise the repurchase rule for what they carry ({@code match}).
+     */
+    public static WallBuy.Action action(WallBuy.Config config, ItemStack sold, Player player, Optional<Match> match) {
+        return Perks.alreadyHas(player, sold).<WallBuy.Action>map(WallBuy.Action.Deny::new)
+                .orElseGet(() -> WallBuy.decide(config, match.map(Match::owned)));
     }
 
     /** The stack a repurchase acts on (the held one first), and what the player has of the item in total. */
@@ -166,9 +200,9 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
      * Hands over a bought item: a gun through the weapon-slot rule, anything else into the inventory. Refuses without
      * giving anything if it can't all fit.
      */
-    public static Optional<Refusal> give(ServerPlayer player, PlayerState state, GameSettings settings, ItemStack stack) {
+    public static Optional<Refusal> give(ServerPlayer player, GameSettings settings, ItemStack stack) {
         if (WeaponSlots.isGun(stack)) {
-            return WeaponSlots.give(player, state, settings, stack);
+            return WeaponSlots.give(player, settings, stack);
         }
         if (!fits(player.getInventory(), stack)) {
             return Optional.of(new Refusal.Because(WeaponSlots.FULL));
@@ -179,9 +213,9 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
     }
 
     /** {@link #give}'s refusal, checked before charging. */
-    public static Optional<Refusal> canGive(ServerPlayer player, PlayerState state, GameSettings settings, ItemStack stack) {
+    public static Optional<Refusal> canGive(ServerPlayer player, GameSettings settings, ItemStack stack) {
         if (WeaponSlots.isGun(stack)) {
-            return WeaponSlots.check(player, state, settings);
+            return WeaponSlots.check(player, settings);
         }
         return fits(player.getInventory(), stack) ? Optional.empty() : Optional.of(new Refusal.Because(WeaponSlots.FULL));
     }
@@ -222,14 +256,17 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
 
     @Override
     public void buy(ServerPlayer player, GameManager.Active game, BlockPos pos, BlockState state) {
-        if (!(game.level().getBlockEntity(pos) instanceof Entity entity)) {
-            return;
-        }
+        entity(game.level(), pos).ifPresent(entity -> sell(player, game, entity,
+                (buyer, cost, refill) -> new GameEvent.WallBuy(buyer, entity.config().item().describe(), cost, refill)));
+    }
+
+    /** Sells what {@code entity} holds through {@link Shop}, for a wall-buy and any block that sells like one. */
+    public static void sell(ServerPlayer player, GameManager.Active game, Entity entity, Receipt receipt) {
         WallBuy.Config config = entity.config();
         GameSettings settings = game.game().settings();
-        Optional<PlayerState> buyer = game.game().player(player.getUUID());
+        boolean playing = game.game().player(player.getUUID()).isPresent();
         Optional<Match> match = find(player.getInventory(), config.item());
-        WallBuy.Action action = WallBuy.decide(config, match.map(Match::owned));
+        WallBuy.Action action = action(config, entity.display(), player, match);
         Optional<ItemStack> stock = config.item().build(settings.players().reserveMagazines());
         if (action instanceof WallBuy.Action.TopUp topUp) {
             stock.ifPresent(s -> s.setCount(topUp.missing()));
@@ -242,7 +279,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
 
             @Override
             public boolean needsPower() {
-                return false;
+                return config.requiresPower();
             }
 
             @Override
@@ -250,7 +287,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
                 if (action instanceof WallBuy.Action.Deny deny) {
                     return Optional.of(new Refusal.Because(deny.reason()));
                 }
-                if (buyer.isEmpty()) {
+                if (!playing) {
                     return Optional.of(new Refusal.NotPlaying());
                 }
                 if (action instanceof WallBuy.Action.Refill) {
@@ -259,7 +296,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
                 if (stock.isEmpty()) {
                     return Optional.of(new Refusal.Because(config.item().describe() + " isn't installed"));
                 }
-                return canGive(p, buyer.get(), settings, stock.get());
+                return Perks.limitRefusal(p, stock.get()).or(() -> canGive(p, settings, stock.get()));
             }
 
             @Override
@@ -271,12 +308,12 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
                     }
                     p.inventoryMenu.broadcastChanges();
                 } else {
-                    Optional<Refusal> refused = give(p, buyer.get(), settings, stock.get());
+                    Optional<Refusal> refused = give(p, settings, stock.get());
                     if (refused.isPresent()) {
                         return refused;
                     }
                 }
-                g.game().events().emit(new GameEvent.WallBuy(p.getUUID(), config.item().describe(), action.cost(), refill));
+                g.game().events().emit(receipt.of(p.getUUID(), action.cost(), refill));
                 return Optional.empty();
             }
         });
@@ -291,14 +328,16 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         return entity(level, pos).map(WallBuyBlock::describe).orElse(Component.literal("Wall-buy"));
     }
 
+    /** "Wall-Buy: ..." or "Perk Machine: ...", from the block's name. */
     public static Component describe(Entity entity) {
         WallBuy.Config c = entity.config();
         String again = c.effectiveRepurchase().getSerializedName();
         if (c.effectiveRepurchase() == WallBuy.Repurchase.REFILL_AMMO) {
             again += " (ammo " + c.ammoCost() + ", upgraded ammo " + c.papAmmoCost() + ")";
         }
-        return Component.literal("Wall-buy: " + c.item().describe() + " for " + c.cost() + "; buying again: " + again
-                + ". Set with /pap wallbuy set|ammo|repurchase");
+        return entity.getBlockState().getBlock().getName().append(": " + entity.itemName() + " (" + c.item().describe() + ") for "
+                + c.cost() + (c.requiresPower() ? ", needs power" : "") + "; buying again: " + again
+                + ". Set with /pap wallbuy set|ammo|repurchase|power");
     }
 
     @Override
