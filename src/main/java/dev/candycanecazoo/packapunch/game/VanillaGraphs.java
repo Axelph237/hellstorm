@@ -9,11 +9,13 @@ import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.PathNavigationRegion;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
+import net.minecraft.world.phys.AABB;
 
 import java.util.HashSet;
 import java.util.List;
@@ -79,7 +81,7 @@ final class VanillaGraphs {
                 for (int i = 0; i < count; i++) {
                     Node next = neighbours[i];
                     BlockPos to = new BlockPos(next.x, next.y, next.z);
-                    if (!inside.test(to)) {
+                    if (!inside.test(to) || !clear(region, template, from, to)) {
                         continue;
                     }
                     graph.move(from, to, cost(from, to, next.costMalus));
@@ -95,6 +97,52 @@ final class VanillaGraphs {
         PackAPunch.LOG.info("Built a {}-node zombie graph for {} in {} ms", built.nodeCount(),
                 template.getType().builtInRegistryHolder().key().location(), (System.nanoTime() - started) / 1_000_000);
         return built;
+    }
+
+    /**
+     * Whether the mob's box can slide from one node's centre to the other's without touching a block above step height.
+     * Vanilla's evaluator treats every open trapdoor as walkable whichever side its panel is on, and doesn't check a
+     * move's sweep against thin shapes, so a wall of open trapdoors looked like a doorway. Checks the first half of the
+     * move at the starting floor and the second half at the destination's. Moves through cells with no partial shapes
+     * skip the sweep.
+     */
+    private static boolean clear(PathNavigationRegion region, Mob mob, BlockPos from, BlockPos to) {
+        double fromFloor = WalkNodeEvaluator.getFloorLevel(region, from);
+        double toFloor = WalkNodeEvaluator.getFloorLevel(region, to);
+        double step = mob.maxUpStep();
+        double height = mob.getBbHeight();
+        int minY = Mth.floor(Math.min(fromFloor, toFloor) + step);
+        int maxY = Mth.floor(Math.max(fromFloor, toFloor) + height);
+        if (!anyShape(region, from.getX(), from.getZ(), minY, maxY) && !anyShape(region, to.getX(), to.getZ(), minY, maxY)
+                && !anyShape(region, from.getX(), to.getZ(), minY, maxY) && !anyShape(region, to.getX(), from.getZ(), minY, maxY)) {
+            return true;
+        }
+        double half = mob.getBbWidth() / 2 - 1.0E-3;
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        int samples = Math.max(2, (int) Math.ceil(Math.sqrt(dx * dx + dz * dz) / 0.2));
+        for (int i = 0; i <= samples; i++) {
+            double t = i / (double) samples;
+            double x = from.getX() + 0.5 + dx * t;
+            double z = from.getZ() + 0.5 + dz * t;
+            double floor = t < 0.5 ? fromFloor : toFloor;
+            AABB box = new AABB(x - half, floor + step, z - half, x + half, floor + height - 1.0E-3, z + half);
+            if (!region.noCollision(box)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean anyShape(PathNavigationRegion region, int x, int z, int minY, int maxY) {
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int y = minY; y <= maxY; y++) {
+            pos.set(x, y, z);
+            if (!region.getBlockState(pos).getCollisionShape(region, pos).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Vanilla would let this mob stand here: it isn't blocked, isn't mid-air, and isn't something the mob refuses. */

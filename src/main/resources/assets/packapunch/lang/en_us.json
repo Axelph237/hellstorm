@@ -3,5 +3,7 @@
   "item.packapunch.zone_wand": "Zone Wand",
   "block.packapunch.spawn_marker": "Zombie Spawn Marker",
   "generator.packapunch.builder": "Zombies Builder",
-  "block.packapunch.barricade": "Window Barricade"
+  "block.packapunch.barricade": "Window Barricade",
+  "key.categories.packapunch": "Pack-a-Punch",
+  "key.packapunch.repair": "Repair window"
 }

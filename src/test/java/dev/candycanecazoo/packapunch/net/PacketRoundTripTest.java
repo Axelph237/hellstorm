@@ -41,6 +41,12 @@ class PacketRoundTripTest {
     }
 
     @Test
+    void repair() {
+        RepairPacket packet = new RepairPacket(new BlockPos(-3, -60, 12));
+        assertEquals(packet, roundTrip(packet, RepairPacket::encode, RepairPacket::decode));
+    }
+
+    @Test
     void selection() {
         for (Selection value : List.of(Selection.NONE, Selection.NONE.click(new BlockPos(1, 2, 3)),
                 Selection.NONE.click(new BlockPos(1, 2, 3)).click(new BlockPos(-4, 5, 6)))) {

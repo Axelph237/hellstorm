@@ -1,7 +1,6 @@
 package dev.candycanecazoo.packapunch.game;
 
 import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
-import dev.candycanecazoo.packapunch.map.MapSavedData;
 import dev.candycanecazoo.packapunch.map.WindowDef;
 import dev.candycanecazoo.packapunch.map.ZombiesMap;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
@@ -57,8 +56,8 @@ public final class WindowOps {
      */
     public static boolean tryRepair(ServerLevel level, BlockPos pos, ServerPlayer player) {
         Optional<GameManager.Active> active = GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == level);
-        Optional<WindowDef> window = MapSavedData.get(level).map().windowAt(pos);
-        if (active.isEmpty() || window.isEmpty() || !active.get().game().targetable(player.getUUID())) {
+        Optional<WindowDef> window = active.flatMap(a -> a.game().map().map().windowAt(pos));
+        if (window.isEmpty() || !active.get().game().targetable(player.getUUID())) {
             return false;
         }
         long now = level.getGameTime();

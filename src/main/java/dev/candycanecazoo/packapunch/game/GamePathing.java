@@ -52,6 +52,7 @@ public final class GamePathing implements AutoCloseable {
     private final Map<EntityType<?>, FlowGraph> graphs = new ConcurrentHashMap<>();
     private final Map<FieldKey, FieldState> fields = new ConcurrentHashMap<>();
     private final AtomicInteger flowSteps = new AtomicInteger();
+    private final AtomicInteger stalls = new AtomicInteger();
     private volatile List<Portal> doorways;
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, PackAPunch.MOD_ID + "-pathing");
@@ -132,6 +133,15 @@ public final class GamePathing implements AutoCloseable {
 
     void countFlowStep() {
         flowSteps.incrementAndGet();
+    }
+
+    /** How many times a zombie on a flow field stopped making progress and needed vanilla navigation to get unstuck. */
+    public int stalls() {
+        return stalls.get();
+    }
+
+    void countStall() {
+        stalls.incrementAndGet();
     }
 
     @Override

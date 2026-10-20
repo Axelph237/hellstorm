@@ -112,3 +112,10 @@ Zombies walked into glass panes, trapdoors, and door panels. Our own grid called
 - **Cost.** Building is on the server thread the first time a zombie of that type needs a graph. Test rooms (about 80 nodes) take 2 to 9 ms. A full-size map hasn't been measured; the build stops at 400,000 nodes.
 - **Who uses it.** Only mobs whose navigation uses a `WalkNodeEvaluator` and whose profile says `navigation: flow`. Everything else uses its own vanilla navigation with a 128-block follow range (see `mob-profiles-and-ai-injection.md`).
 - **Removed.** `ZonePathing.unionGrid`. The per-zone grids remain only for the doorway portals in `/pap map paths`.
+
+## Real collision checks (after play testing)
+
+Zombies still walked into open trapdoors and clipped door jambs. Vanilla's walk evaluator counts every open trapdoor cell as walkable whichever side the panel is on, and our steering checked straight lines through block centres only.
+- **Graph edges are swept.** `VanillaGraphs` slides the mob's box from one node's centre to the next, above step height, against real block shapes, and drops moves that touch anything. Moves through cells with no shapes at all skip the sweep. A wall of open trapdoors is now a wall.
+- **Steering is swept.** `FlowNavigator` picks the farthest downhill cell on its level that its own box can slide to from where it actually stands, checked with the level's collision. The sideways spread is only applied when that is clear too. If not even the next cell is reachable directly, it re-centres in its own cell first. The aim is re-chosen every 4 ticks or when reached. `FlowField.lookahead` (grid-only) was removed.
+- **Stalls are counted.** `GamePathing.stalls()` counts the times a zombie stopped making progress and needed vanilla navigation. The chase GameTests require zero, including a decoy wall of open trapdoors beside the real doorway and a doorway at the end of a wall that forces a tight turn.

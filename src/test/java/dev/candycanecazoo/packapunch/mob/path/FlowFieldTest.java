@@ -67,23 +67,6 @@ class FlowFieldTest {
     }
 
     @Test
-    void lookaheadCutsCornersButNotThroughWalls() {
-        TestWorld world = TestWorld.room(12, 12);
-        FlowGraph graph = FlowGraph.build(world.grid(ZOMBIE), BlockAStar.DEFAULT);
-        FlowField field = graph.fieldTo(new BlockPos(10, 1, 10)).orElseThrow();
-        BlockPos from = new BlockPos(1, 1, 1);
-        BlockPos aim = field.lookahead(from, 8, 0).orElseThrow();
-        assertTrue(aim.distManhattan(from) > 1, "in an open room the aim point skips ahead");
-        TestWorld walled = TestWorld.floorPlan(
-                ".....",
-                "####.",
-                ".....");
-        FlowField around = FlowGraph.build(walled.grid(ZOMBIE), BlockAStar.DEFAULT).fieldTo(new BlockPos(0, 1, 2)).orElseThrow();
-        BlockPos corner = around.lookahead(new BlockPos(0, 1, 0), 12, 0).orElseThrow();
-        assertTrue(corner.getZ() == 0, "the aim must not cut through the wall, got " + corner.toShortString());
-    }
-
-    @Test
     void anUnreachableGoalOrCellReadsAsUnreachable() {
         TestWorld world = TestWorld.floorPlan(
                 "..#..",

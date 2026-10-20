@@ -131,6 +131,38 @@ public final class WindowGameTests {
         });
     }
 
+    /** The repair key's packet repairs a window in reach, one board per repair delay, and ignores one out of reach. */
+    @GameTest(template = "floor", batch = "game_repair_key")
+    public static void theRepairKeyRepairsOnlyWithinReach(GameTestHelper helper) {
+        for (int x = 0; x <= 8; x++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                helper.setBlock(new BlockPos(x, ROOM_Y + dy, 4), Blocks.STONE);
+            }
+        }
+        WindowDef w = window(helper, "repair_key", 4, 4, 2);
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w);
+        WindowOps.setBoards(helper.getLevel(), w, 0);
+        ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_repair_key_test"));
+        BlockPos stand = helper.absolutePos(new BlockPos(4, ROOM_Y, 6));
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : null);
+        active.game().join(player.getUUID());
+        BlockPos barricade = w.opening().min();
+        try {
+            player.moveTo(helper.absolutePos(new BlockPos(4, ROOM_Y, 8)).offset(0, 0, 20).getCenter());
+            helper.assertFalse(dev.candycanecazoo.packapunch.net.RepairPacket.apply(player, barricade), "repaired from 20 blocks away");
+            player.moveTo(stand.getCenter());
+            helper.assertTrue(dev.candycanecazoo.packapunch.net.RepairPacket.apply(player, barricade), "no repair from beside the window");
+            dev.candycanecazoo.packapunch.net.RepairPacket.apply(player, barricade);
+            helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 1, "holding the key repairs once per repair delay, got "
+                    + WindowOps.boards(helper.getLevel(), w));
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
     /**
      * A window whose bottom row sits one block up on {@code sill}, reached from a 1-wide, 3-high corridor outside, like a
      * window set in a wall above a step. The zombie has to jump onto the sill to climb in.
@@ -193,9 +225,19 @@ public final class WindowGameTests {
      */
     private static void chaseThroughDoorway(GameTestHelper helper, java.util.function.Consumer<BlockPos> doorway, net.minecraft.world.level.block.Block floor,
                                             int doorwayHeight) {
+        chase(helper, 4, doorwayHeight, doorway, floor, () -> {}, new BlockPos(0, ROOM_Y, 0), new BlockPos(8, ROOM_Y, 8));
+    }
+
+    /**
+     * The two rooms of {@link #chaseThroughDoorway} with the doorway at {@code doorZ}, {@code decorate} run after the
+     * walls are built, and the marker and player where given. Passes once a zombie reaches the east room steering on the
+     * flow field without ever stalling.
+     */
+    private static void chase(GameTestHelper helper, int doorZ, int doorwayHeight, java.util.function.Consumer<BlockPos> doorway,
+                              net.minecraft.world.level.block.Block floor, Runnable decorate, BlockPos markerAt, BlockPos standAt) {
         for (int z = 0; z <= 8; z++) {
             for (int dy = 0; dy <= 3; dy++) {
-                if (!(z == 4 && dy < doorwayHeight)) {
+                if (!(z == doorZ && dy < doorwayHeight)) {
                     helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), Blocks.STONE);
                 }
             }
@@ -205,16 +247,17 @@ public final class WindowGameTests {
                 }
             }
         }
-        doorway.accept(new BlockPos(4, ROOM_Y, 4));
+        doorway.accept(new BlockPos(4, ROOM_Y, doorZ));
+        decorate.run();
         BlockBox west = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(3, ROOM_Y + 2, 8)));
         BlockBox east = BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
-        BlockPos marker = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
+        BlockPos marker = helper.absolutePos(markerAt);
         ZombiesMap map = ZombiesMap.EMPTY
                 .withZone(new Zone(new ZoneId("gametest_west"), List.of(west), false))
                 .withZone(new Zone(new ZoneId("gametest_east"), List.of(east), true))
                 .withFeature(marker, FeatureKind.SPAWN);
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_chase_test"));
-        BlockPos stand = helper.absolutePos(new BlockPos(8, ROOM_Y, 8));
+        BlockPos stand = helper.absolutePos(standAt);
         player.moveTo(stand.getCenter());
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
         helper.assertTrue(!passages.open().isEmpty(), "the doorway should connect the rooms");
@@ -228,11 +271,40 @@ public final class WindowGameTests {
             List<Zombie> zombies = helper.getLevel().getEntitiesOfClass(Zombie.class, area, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG));
             helper.assertTrue(!zombies.isEmpty(), "no game zombie yet");
             helper.assertTrue(zombies.stream().anyMatch(z -> east.contains(z.blockPosition())),
-                    "no zombie in the east room yet; positions " + zombies.stream().map(z -> z.blockPosition().toShortString()).toList());
+                    "no zombie in the east room yet; stalls " + active.pathing().stalls() + ", positions relative to the test "
+                            + zombies.stream().map(z -> helper.relativeVec(z.position())).map(v -> String.format("(%.2f %.2f %.2f)", v.x, v.y, v.z)).toList());
             int steps = active.pathing().flowSteps();
+            int stalls = active.pathing().stalls();
             GameManager.end(active);
             helper.assertTrue(steps > 0, "the zombie got there without steering on a flow field");
+            helper.assertTrue(stalls == 0, "zombies stalled " + stalls + " times on the way");
         });
+    }
+
+    private static BlockState openTrapdoor(Direction facing) {
+        return Blocks.SPRUCE_TRAPDOOR.defaultBlockState().setValue(net.minecraft.world.level.block.TrapDoorBlock.OPEN, true)
+                .setValue(net.minecraft.world.level.block.TrapDoorBlock.FACING, facing);
+    }
+
+    /**
+     * The wall between the rooms is open trapdoors at z 0..3, their panels across the way, so it only looks open; the real
+     * doorway is at z = 8, with a trapdoor panel lining its south side. The straight line to the player crosses the decoy.
+     */
+    @GameTest(template = "floor", timeoutTicks = 1200, batch = "game_trapdoor_decoy")
+    public static void aZombieGoesRoundATrapdoorWallToTheRealDoorway(GameTestHelper helper) {
+        chase(helper, 8, 2, pos -> helper.setBlock(pos, openTrapdoor(Direction.NORTH)), Blocks.AIR, () -> {
+            for (int z = 0; z <= 3; z++) {
+                for (int dy = 0; dy <= 3; dy++) {
+                    helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), openTrapdoor(Direction.WEST));
+                }
+            }
+        }, new BlockPos(0, ROOM_Y, 1), new BlockPos(8, ROOM_Y, 1));
+    }
+
+    /** A doorway at the near end of the wall, so the zombie has to turn tightly round its jamb. */
+    @GameTest(template = "floor", timeoutTicks = 1200, batch = "game_tight_corner")
+    public static void aZombieTurnsTightlyRoundADoorJamb(GameTestHelper helper) {
+        chase(helper, 1, 2, pos -> {}, Blocks.AIR, () -> {}, new BlockPos(0, ROOM_Y, 7), new BlockPos(8, ROOM_Y, 0));
     }
 
     @GameTest(template = "floor", timeoutTicks = 1200, batch = "game_cross_zone")

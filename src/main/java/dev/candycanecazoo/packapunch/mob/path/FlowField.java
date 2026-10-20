@@ -80,38 +80,4 @@ public final class FlowField {
         }
         return cells;
     }
-
-    /**
-     * The farthest cell of the next {@code maxSteps} downhill cells that can be walked to in a straight line on one level,
-     * so zombies cut corners instead of following the grid's staircase. A cell on another level is never skipped past:
-     * steps and drops are taken one at a time.
-     */
-    public Optional<BlockPos> lookahead(BlockPos from, int maxSteps, int tieBreak) {
-        List<BlockPos> ahead = descent(from, maxSteps, tieBreak);
-        if (ahead.isEmpty()) {
-            return Optional.empty();
-        }
-        BlockPos chosen = ahead.get(0);
-        for (BlockPos cell : ahead) {
-            if (cell.getY() != from.getY() || !straightLineWalkable(from, cell)) {
-                break;
-            }
-            chosen = cell;
-        }
-        return Optional.of(chosen);
-    }
-
-    private boolean straightLineWalkable(BlockPos from, BlockPos to) {
-        double dx = to.getX() - from.getX();
-        double dz = to.getZ() - from.getZ();
-        int samples = (int) Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) * 4);
-        for (int i = 1; i <= samples; i++) {
-            double t = i / (double) samples;
-            BlockPos cell = BlockPos.containing(from.getX() + 0.5 + dx * t, from.getY(), from.getZ() + 0.5 + dz * t);
-            if (cell.getY() != from.getY() || graph.indexOf(cell) < 0) {
-                return false;
-            }
-        }
-        return true;
-    }
 }
