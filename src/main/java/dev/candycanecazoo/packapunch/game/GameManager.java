@@ -77,12 +77,14 @@ public final class GameManager {
                 settings().windows(), mobs);
     }
 
-    private static dev.candycanecazoo.packapunch.config.GameSettings settings() {
+    public static dev.candycanecazoo.packapunch.config.GameSettings settings() {
         return SettingsResolver.resolve(ServerConfig.GAME.get(), Optional.empty()).getOrThrow(false, IllegalStateException::new);
     }
 
     public static CreateResult create(ServerLevel level) {
         ZombiesMap map = MapSavedData.get(level).map();
+        // Before reading the world: a crash mid-game can leave doors open and windows bare.
+        MapReset.reset(level, map);
         ValidationContext context = validationContext(level);
         ValidationReport report = MapValidator.validate(map, context);
         if (!report.playable()) {
@@ -94,7 +96,6 @@ public final class GameManager {
         if (startCells.isEmpty()) {
             return new CreateResult.NoStartCells();
         }
-        MapReset.reset(level, map);
         return new CreateResult.Created(register(level, gameMap, passages, startCells, level.getServer().getPlayerList()::getPlayer));
     }
 
@@ -106,6 +107,7 @@ public final class GameManager {
     public static Active register(ServerLevel level, GameMap map, Passages.Result passages, List<net.minecraft.core.BlockPos> startCells,
                                   Function<UUID, ServerPlayer> lookup) {
         var settings = settings();
+        Doors.snapshot(level, map.map());
         Map<net.minecraft.resources.ResourceLocation, MobProfile> profiles = MobProfiles.all();
         MobRoster roster = new MobRoster(profiles.entrySet().stream()
                 .map(e -> new MobRoster.Entry(e.getKey(), e.getValue().weight(), e.getValue().minRound(), e.getValue().maxRound()))

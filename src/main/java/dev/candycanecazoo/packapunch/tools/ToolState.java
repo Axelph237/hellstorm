@@ -24,6 +24,7 @@ public final class ToolState {
 
     private static final Map<UUID, Selection> SELECTIONS = new ConcurrentHashMap<>();
     private static final Map<UUID, PendingDetection> DETECTIONS = new ConcurrentHashMap<>();
+    private static final Map<UUID, String> DOORS = new ConcurrentHashMap<>();
 
     private ToolState() {}
 
@@ -34,6 +35,16 @@ public final class ToolState {
     public static void setSelection(ServerPlayer player, Selection selection) {
         SELECTIONS.put(player.getUUID(), selection);
         PapNetwork.send(player, new SelectionPacket(selection));
+    }
+
+    /** The door this player's Door Wand is editing. */
+    public static Optional<String> door(ServerPlayer player) {
+        return Optional.ofNullable(DOORS.get(player.getUUID()));
+    }
+
+    public static void setDoor(ServerPlayer player, Optional<String> door) {
+        door.ifPresentOrElse(d -> DOORS.put(player.getUUID(), d), () -> DOORS.remove(player.getUUID()));
+        PapNetwork.send(player, new dev.candycanecazoo.packapunch.net.DoorSelectionPacket(door));
     }
 
     public static Optional<PendingDetection> detection(ServerPlayer player) {
@@ -53,5 +64,6 @@ public final class ToolState {
     public static void forget(UUID player) {
         SELECTIONS.remove(player);
         DETECTIONS.remove(player);
+        DOORS.remove(player);
     }
 }

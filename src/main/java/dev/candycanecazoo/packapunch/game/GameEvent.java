@@ -18,6 +18,9 @@ public sealed interface GameEvent {
 
     record ZombieSpawned(UUID mob, BlockPos pos) implements GameEvent {}
 
+    /** {@code unlocked} lists the zones the door made reachable, if any. */
+    record DoorOpened(String door, java.util.Optional<UUID> by, List<dev.candycanecazoo.packapunch.map.ZoneId> unlocked) implements GameEvent {}
+
     /** {@code by} is empty when the power came on without a player (a script, or a map that starts powered). */
     record PowerOn(java.util.Optional<UUID> by) implements GameEvent {}
 

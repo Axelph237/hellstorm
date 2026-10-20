@@ -62,8 +62,12 @@ public final class MapToolRenderer {
 
     private record DoorwaySlot(BlockPos cell) {}
 
+    private record DoorSlot(String id, java.util.Set<BlockPos> members) {}
+
     private static final int PATH = 0xff5555;
     private static final int DOORWAY = 0xb06cff;
+    private static final int DOOR = 0xd9a441;
+    private static final int DOOR_EDITING = 0xffe14d;
 
     private static final Object SELECTION_SLOT = new Object();
 
@@ -109,6 +113,15 @@ public final class MapToolRenderer {
                     ZoneOutlines.box(new ZoneBoxSlot(zone.id(), i), zone.boxes().get(i).toAabb(), color, width);
                 }
             }
+        }
+
+        for (dev.candycanecazoo.packapunch.map.DoorDef door : ClientMapState.map().doors().values()) {
+            if (door.members().isEmpty() || !new AABB(door.members().iterator().next()).intersects(nearby)) {
+                continue;
+            }
+            boolean editing = ClientMapState.selectedDoor().filter(door.id()::equals).isPresent();
+            ZoneOutlines.cluster(new DoorSlot(door.id(), door.members()), door::members, editing ? DOOR_EDITING : DOOR,
+                    editing ? ZoneOutlines.THICK : ZoneOutlines.THIN);
         }
 
         for (WindowDef window : ClientMapState.map().windows().values()) {

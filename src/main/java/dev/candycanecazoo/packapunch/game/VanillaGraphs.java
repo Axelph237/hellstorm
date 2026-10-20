@@ -40,9 +40,8 @@ final class VanillaGraphs {
 
     private VanillaGraphs() {}
 
-    static FlowGraph build(ServerLevel level, Mob template, GameMap map, Passages.Result passages) {
+    static FlowGraph build(ServerLevel level, Mob template, GameMap map, Set<ZoneId> zones, Passages.Result passages) {
         long started = System.nanoTime();
-        Set<ZoneId> zones = map.unlocked();
         Set<BlockPos> doorways = new HashSet<>();
         passages.gaps().forEach((link, cells) -> {
             if (zones.contains(link.a()) && zones.contains(link.b())) {

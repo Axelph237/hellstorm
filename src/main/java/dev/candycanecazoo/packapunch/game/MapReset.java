@@ -10,6 +10,7 @@ public final class MapReset {
     private MapReset() {}
 
     public static void reset(ServerLevel level, ZombiesMap map) {
+        Doors.restore(level);
         WindowOps.resetAll(level, map);
         PowerSwitchBlock.setAll(level, map.features(FeatureKind.POWER_SWITCH), false);
     }

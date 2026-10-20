@@ -36,6 +36,9 @@ public final class Game {
     private boolean warnedNoSpawns;
     private boolean finished;
     private boolean powerOn;
+    private dev.candycanecazoo.packapunch.map.ZoneGraph graph;
+    private Set<ZoneId> unlocked;
+    private final Set<String> openDoors = new LinkedHashSet<>();
 
     public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
         this.settings = settings;
@@ -45,6 +48,35 @@ public final class Game {
         this.events = events;
         // A map without a power switch is powered from the start.
         this.powerOn = map.map().features(dev.candycanecazoo.packapunch.map.FeatureKind.POWER_SWITCH).isEmpty();
+        this.graph = map.graph();
+        this.unlocked = Set.copyOf(map.unlocked());
+    }
+
+    /** Zones players can get to right now: reachable from a start zone without going through a closed door. */
+    public Set<ZoneId> unlocked() {
+        return unlocked;
+    }
+
+    public boolean doorOpen(String door) {
+        return openDoors.contains(door);
+    }
+
+    /**
+     * A door was bought and its blocks are gone. {@code graph} is the zone graph found in the world now, with the door's
+     * opening walkable. Unlocks whatever became reachable and returns those zones. Doors stay open until the game ends.
+     */
+    public Set<ZoneId> openDoor(String door, Optional<UUID> by, dev.candycanecazoo.packapunch.map.ZoneGraph graph) {
+        if (!openDoors.add(door)) {
+            return Set.of();
+        }
+        this.graph = graph;
+        Set<ZoneId> next = new LinkedHashSet<>(unlocked);
+        next.addAll(graph.reachableFrom(map.startZones()));
+        Set<ZoneId> added = new LinkedHashSet<>(next);
+        added.removeAll(unlocked);
+        unlocked = Set.copyOf(next);
+        events.emit(new GameEvent.DoorOpened(door, by, List.copyOf(added)));
+        return added;
     }
 
     public boolean powerOn() {
@@ -266,7 +298,7 @@ public final class Game {
             }
         }
         playerZones.removeIf(Objects::isNull);
-        Set<ZoneId> active = SpawnDirector.activeZones(playerZones, map.graph(), map.unlocked(), settings.spawning().adjacentHops());
+        Set<ZoneId> active = SpawnDirector.activeZones(playerZones, graph, unlocked, settings.spawning().adjacentHops());
         Optional<BlockPos> picked = SpawnDirector.pick(
                 SpawnDirector.candidates(markerZones(), active, positions, settings.spawning()), random);
         if (picked.isPresent()) {

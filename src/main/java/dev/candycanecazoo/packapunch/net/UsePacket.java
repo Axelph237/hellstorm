@@ -41,6 +41,9 @@ public record UsePacket(BlockPos pos, boolean firstPress) {
         if (state.is(PapRegistries.BARRICADE.get())) {
             return WindowOps.tryRepair(player.serverLevel(), pos, player);
         }
+        if (firstPress && dev.candycanecazoo.packapunch.game.Doors.use(player, pos)) {
+            return true;
+        }
         if (firstPress && state.getBlock() instanceof FeatureBlock) {
             FeatureBlock.use(player, pos);
             return true;

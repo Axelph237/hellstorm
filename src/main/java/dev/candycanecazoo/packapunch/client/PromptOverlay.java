@@ -41,10 +41,15 @@ public final class PromptOverlay {
         });
     }
 
-    /** What the crosshair is on, if it is a machine with something to sell. Doors join in through the map, not here. */
+    /** What the crosshair is on, if it is a door or a machine with something to sell. */
     static Optional<Prompted.Prompt> prompt(Minecraft mc) {
         if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
             return Optional.empty();
+        }
+        Optional<Prompted.Prompt> door = ClientMapState.map().doorAt(hit.getBlockPos()).map(d -> new Prompted.Prompt(
+                (d.style() == dev.candycanecazoo.packapunch.map.DoorDef.Style.DEBRIS ? "clear the debris" : "open the door"), d.cost(), d.requiresPower()));
+        if (door.isPresent()) {
+            return door;
         }
         return mc.level.getBlockEntity(hit.getBlockPos()) instanceof Prompted prompted ? prompted.prompt() : Optional.empty();
     }

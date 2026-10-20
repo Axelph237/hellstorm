@@ -306,4 +306,22 @@ class GameTest {
         assertEquals(Optional.empty(), game.charge(alice, 0, true));
         assertEquals(1, seen.stream().filter(e -> e instanceof GameEvent.PowerOn).count(), "power_on fires once");
     }
+
+    @Test
+    void openingADoorUnlocksTheZonesBeyondItOnce() {
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(ZONES.get(0), List.of(new BlockBox(0, 0, 0, 9, 3, 9)), true))
+                .withZone(new Zone(ZONES.get(1), List.of(new BlockBox(11, 0, 0, 19, 3, 9)), false))
+                .withZone(new Zone(ZONES.get(2), List.of(new BlockBox(20, 0, 0, 29, 3, 9)), false));
+        Game game = new Game(SETTINGS, GameMap.of(map, Set.of()), ROSTER, RandomSource.create(7), events);
+        assertEquals(Set.of(ZONES.get(0)), game.unlocked(), "b sits behind the door, and c is only reachable through b");
+        Set<ZoneId> added = game.openDoor("gate", Optional.of(alice),
+                dev.candycanecazoo.packapunch.map.ZoneGraph.of(map, Set.of(dev.candycanecazoo.packapunch.map.Passages.Link.of(ZONES.get(0), ZONES.get(1)))));
+        assertEquals(Set.of(ZONES.get(1), ZONES.get(2)), added, "c touches b, so it opens up too");
+        assertEquals(Set.of(ZONES.get(0), ZONES.get(1), ZONES.get(2)), game.unlocked());
+        assertTrue(game.doorOpen("gate"));
+        assertEquals(Set.of(), game.openDoor("gate", Optional.empty(), dev.candycanecazoo.packapunch.map.ZoneGraph.of(map, Set.of())));
+        assertEquals(List.of(new GameEvent.DoorOpened("gate", Optional.of(alice), List.of(ZONES.get(1), ZONES.get(2)))),
+                seen.stream().filter(e -> e instanceof GameEvent.DoorOpened).toList(), "door_opened fires once, listing what it unlocked");
+    }
 }

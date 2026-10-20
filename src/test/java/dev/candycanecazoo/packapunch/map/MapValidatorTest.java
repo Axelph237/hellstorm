@@ -138,4 +138,34 @@ class MapValidatorTest {
         assertEquals(1, StandingArea.pieces(stairs, pos -> pos.getY() == pos.getX()).size(), "a staircase is one piece");
         assertEquals(2, StandingArea.pieces(stairs, pos -> pos.getY() == (pos.getX() < 2 ? 0 : 2)).size(), "a two-block ledge splits");
     }
+
+    /** The start zone and a second zone with a one-block wall line between them at x = 10, so offline they don't connect. */
+    private static ZombiesMap separatedZones() {
+        return ZombiesMap.EMPTY
+                .withZone(new Zone(START, List.of(new BlockBox(0, 0, 0, 9, 3, 9)), true))
+                .withZone(new Zone(NEXT, List.of(new BlockBox(11, 0, 0, 19, 3, 9)), false))
+                .withFeature(new BlockPos(2, 0, 2), FeatureKind.SPAWN)
+                .withFeature(new BlockPos(12, 0, 2), FeatureKind.SPAWN);
+    }
+
+    @Test
+    void aDoorBetweenTwoZonesMakesTheFarOneReachable() {
+        assertTrue(MapValidator.validate(separatedZones()).has(MapValidator.UNREACHABLE_ZONE));
+        DoorDef door = DoorDef.empty("gate", 750).withMember(new BlockPos(10, 0, 2)).withMember(new BlockPos(10, 1, 2));
+        assertEquals(java.util.Set.of(START, NEXT), door.zones(ZoneIndex.of(separatedZones())));
+        ValidationReport report = MapValidator.validate(separatedZones().withDoor(door));
+        assertEquals(List.of(), report.problems());
+    }
+
+    @Test
+    void badDoorsAreReported() {
+        ZombiesMap empty = separatedZones().withDoor(DoorDef.empty("nothing", 750));
+        assertTrue(MapValidator.validate(empty).has(MapValidator.EMPTY_DOOR));
+        ZombiesMap oneSided = separatedZones().withDoor(DoorDef.empty("wall", 750).withMember(new BlockPos(30, 0, 2)).withMember(new BlockPos(5, 5, 5)));
+        assertTrue(MapValidator.validate(oneSided).has(MapValidator.DOOR_NOT_BETWEEN_ZONES), "borders only the start zone, from above");
+        ZombiesMap pointless = twoTouchingZonesWithSpawns().withDoor(DoorDef.empty("arch", 750).withMember(new BlockPos(9, 4, 2)).withMember(new BlockPos(10, 4, 2)));
+        ValidationReport report = MapValidator.validate(pointless);
+        assertTrue(report.has(MapValidator.DOOR_NOT_NEEDED), "touching zones are connected anyway: " + report.problems());
+        assertTrue(report.playable(), "only a warning");
+    }
 }

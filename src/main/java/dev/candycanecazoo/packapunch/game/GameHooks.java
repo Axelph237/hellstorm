@@ -43,6 +43,27 @@ public final class GameHooks {
         }
     }
 
+    /** Right-clicking any block of a door buys it; the click does nothing else. */
+    @SubscribeEvent
+    public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
+        if (event.getEntity() instanceof ServerPlayer player && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
+                && Doors.use(player, event.getPos())) {
+            event.setCanceled(true);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+        }
+    }
+
+    /** Outside a game, breaking a door's block takes it out of the door, and the last block takes the door with it. */
+    @SubscribeEvent
+    public static void onBreak(net.minecraftforge.event.level.BlockEvent.BreakEvent event) {
+        if (!(event.getLevel() instanceof net.minecraft.server.level.ServerLevel level) || GameManager.get(level).isPresent()) {
+            return;
+        }
+        dev.candycanecazoo.packapunch.map.MapSavedData.get(level).map().doorAt(event.getPos()).ifPresent(door ->
+                dev.candycanecazoo.packapunch.tools.MapEdits.apply(level, m -> door.members().size() <= 1
+                        ? m.withoutDoor(door.id()) : m.withDoor(door.withoutMember(event.getPos()))));
+    }
+
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
         GameManager.endAll();

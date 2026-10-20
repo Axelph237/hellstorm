@@ -2,6 +2,7 @@ package dev.candycanecazoo.packapunch.map.validate;
 
 import dev.candycanecazoo.packapunch.map.BlockBox;
 import dev.candycanecazoo.packapunch.map.CellProbe;
+import dev.candycanecazoo.packapunch.map.DoorDef;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.map.Passages;
 import dev.candycanecazoo.packapunch.map.SpawnLinks;
@@ -39,6 +40,9 @@ public final class MapValidator {
     public static final String WINDOW_WITHOUT_SPAWN = "window_without_spawn";
     public static final String MOB_TOO_BIG_FOR_WINDOW = "mob_too_big_for_window";
     public static final String SPLIT_START_ZONE = "split_start_zone";
+    public static final String EMPTY_DOOR = "empty_door";
+    public static final String DOOR_NOT_BETWEEN_ZONES = "door_not_between_zones";
+    public static final String DOOR_NOT_NEEDED = "door_not_needed";
 
     /** Passages are searched this many cells out from each zone unless the caller says otherwise. */
     public static final int DEFAULT_MAX_GAP = 2;
@@ -64,7 +68,9 @@ public final class MapValidator {
         }
         checkZones(map, problems);
         checkStartPieces(map, context, problems);
-        checkReachability(map, Passages.find(map, ZoneIndex.of(map), probe, maxGap), problems);
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), probe, maxGap);
+        checkDoors(map, passages, problems);
+        checkReachability(map, passages, problems);
         Map<BlockPos, SpawnLinks.Link> links = SpawnLinks.resolve(map, context.windows().linkRange());
         checkSpawns(map, links, problems);
         checkWindows(map, links, context, problems);
@@ -132,17 +138,40 @@ public final class MapValidator {
         }
     }
 
+    private static void checkDoors(ZombiesMap map, Passages.Result passages, List<Problem> problems) {
+        ZoneIndex index = ZoneIndex.of(map);
+        ZoneGraph open = ZoneGraph.of(map, passages.open());
+        for (DoorDef door : map.doors().values()) {
+            if (door.members().isEmpty()) {
+                problems.add(Problem.error(EMPTY_DOOR, "Door '" + door.id() + "' has no blocks. Add some with the Door Wand", null));
+                continue;
+            }
+            BlockPos at = door.members().iterator().next();
+            Set<ZoneId> zones = door.zones(index);
+            if (zones.size() < 2) {
+                problems.add(Problem.error(DOOR_NOT_BETWEEN_ZONES, "Door '" + door.id() + "' must stand between two zones, but it borders "
+                        + (zones.isEmpty() ? "none" : "only " + zones), at));
+            } else if (door.links(index).stream().allMatch(link -> open.neighbors(link.a()).contains(link.b()))) {
+                problems.add(Problem.warning(DOOR_NOT_NEEDED, "Door '" + door.id() + "' joins " + zones
+                        + ", but they're already connected without it, so buying it unlocks nothing", at));
+            }
+        }
+    }
+
     private static void checkReachability(ZombiesMap map, Passages.Result passages, List<Problem> problems) {
         List<ZoneId> starts = map.startZones().stream().map(Zone::id).toList();
         if (starts.isEmpty()) {
             return;
         }
         ZoneGraph graph = ZoneGraph.of(map, passages.open());
-        Set<ZoneId> reachable = graph.reachableFrom(starts);
+        Set<Passages.Link> withDoors = new HashSet<>(passages.open());
+        ZoneIndex index = ZoneIndex.of(map);
+        map.doors().values().forEach(door -> withDoors.addAll(door.links(index)));
+        Set<ZoneId> reachable = ZoneGraph.of(map, withDoors).reachableFrom(starts);
         passages.closedDoors().forEach((link, door) -> {
             if (!graph.neighbors(link.a()).contains(link.b())) {
                 problems.add(Problem.warning(CLOSED_DOOR_GAP, "Zones '" + link.a() + "' and '" + link.b()
-                        + "' are only joined through a closed door. Zombies can't open doors: open it, remove it, or make it a Pack-a-Punch door", door));
+                        + "' are only joined through a closed door. Zombies can't open it: open it, remove it, or make it a door players buy (/pap door)", door));
             }
         });
         for (Zone zone : map.zones().values()) {

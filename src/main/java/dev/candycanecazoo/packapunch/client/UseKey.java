@@ -65,7 +65,8 @@ public final class UseKey {
             BlockPos pos = hit.getBlockPos();
             BlockState state = mc.level.getBlockState(pos);
             boolean barricade = state.is(PapRegistries.BARRICADE.get());
-            if ((firstPress && state.getBlock() instanceof FeatureBlock) || (barricade && (firstPress || sinceSent >= SEND_EVERY_TICKS))) {
+            boolean buyable = state.getBlock() instanceof FeatureBlock || ClientMapState.map().doorAt(pos).isPresent();
+            if ((firstPress && buyable) || (barricade && (firstPress || sinceSent >= SEND_EVERY_TICKS))) {
                 sinceSent = 0;
                 PapNetwork.CHANNEL.sendToServer(new UsePacket(pos, firstPress));
             }

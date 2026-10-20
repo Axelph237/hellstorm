@@ -31,6 +31,7 @@ public final class LuaEvents {
         if (event instanceof GameEvent.ZombieSpawned) return "zombie_spawned";
         if (event instanceof GameEvent.ZombieKilled) return "zombie_killed";
         if (event instanceof GameEvent.PowerOn) return "power_on";
+        if (event instanceof GameEvent.DoorOpened) return "door_opened";
         throw new IllegalArgumentException("No script name for " + event);
     }
 
@@ -60,6 +61,14 @@ public final class LuaEvents {
         } else if (event instanceof GameEvent.ZombieSpawned e) {
             t.set("mob", e.mob().toString());
             pos(t, e.pos());
+        } else if (event instanceof GameEvent.DoorOpened e) {
+            t.set("door", e.door());
+            e.by().ifPresent(p -> t.set("player", p.toString()));
+            LuaTable zones = new LuaTable();
+            for (int i = 0; i < e.unlocked().size(); i++) {
+                zones.set(i + 1, e.unlocked().get(i).toString());
+            }
+            t.set("unlocked", zones);
         } else if (event instanceof GameEvent.PowerOn e) {
             e.by().ifPresent(p -> t.set("player", p.toString()));
         } else if (event instanceof GameEvent.ZombieKilled e) {

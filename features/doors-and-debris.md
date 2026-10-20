@@ -79,3 +79,36 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 ## Phase
 
 5.
+
+## As built (phase 5)
+
+- **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The zones aren't stored. `DoorDef.zones(index)` finds the zones its blocks border, looking up to 2 cells out from each block, so editing zones never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "open the door" or "clear the debris".
+- **Door Wand** (`tools/DoorWandItem`, golden axe look):
+  - Right-click a block to add it to the door being edited, or remove it.
+  - With no door being edited, right-click a door's block to start editing that door.
+  - Sneak-right-click stops editing.
+  - Every door shows as a gold cluster outline while a map tool is held; the one being edited is thicker and brighter.
+- **Commands** (`/pap door`):
+  - `create <id> [cost]` creates a door at `doors.default_cost` unless a cost is given, and starts editing it.
+  - `select <id>`.
+  - `fill` adds every non-air block in the Zone Wand selection to the door being edited.
+  - `set <id> cost <points> | power <bool> | style <door|debris>`.
+  - `remove <id>` (the blocks stay in the world).
+  - `list`, which shows each door's zones.
+- **Edit mode.** Outside a game, breaking a door's block removes it from the door. Breaking the last block deletes the door.
+- **Locked zones.** A game unlocks zones reachable from a start zone through open passages only. `Game.unlocked()` replaces the fixed `GameMap.unlocked` for spawning and pathing.
+- **Buying.** Right-click any block of a door, or press the use key on it (default O). Purchases go through `Shop` with the door's cost and power requirement, and an open door refuses.
+- **Opening** (`game/Doors.open`):
+  1. Set every block to air without drops or neighbour updates. Debris plays block-break particles, and doors play a door sound.
+  2. Find passages in the world again; the opening is now a doorway.
+  3. Unlock whatever became reachable through `Game.openDoor`, which emits `door_opened` with the door and the newly unlocked zones.
+  4. Rebuild zombie pathing over the bigger area with `GamePathing.reconnect`.
+- **Snapshot and reset.** `GameManager.register` saves every door block's state and block entity data to world saved data (`packapunch_door_snapshots`). `MapReset` puts them back and forgets them, so a crash mid-game is fixed by the next game's creation.
+- **Validation.**
+  - ERROR for a door with no blocks.
+  - ERROR for a door bordering fewer than two zones.
+  - WARNING for a door whose zones are already connected without it.
+  - Zones reachable only through doors count as reachable.
+- **Tests.**
+  - JUnit: zone inference and validation (`MapValidatorTest`), the codec (`ZombiesMapCodecTest`), and unlocking (`GameTest.openingADoorUnlocksTheZonesBeyondItOnce`).
+  - GameTests (`DoorGameTests`): buying a door removes its blocks, charges, unlocks the zone beyond, and extends pathing through the doorway; the reset bricks the doorway back up; a player who can't afford it gets nothing and pays nothing.

@@ -23,6 +23,7 @@ public final class ClientMapState {
     private static List<Problem> problems = List.of();
     private static DebugPathsPacket debugPaths;
     private static long debugPathsAt;
+    private static java.util.Optional<String> selectedDoor = java.util.Optional.empty();
 
     private ClientMapState() {}
 
@@ -34,6 +35,14 @@ public final class ClientMapState {
 
     public static void setSelection(Selection next) {
         selection = next;
+    }
+
+    public static void setSelectedDoor(java.util.Optional<String> door) {
+        selectedDoor = door;
+    }
+
+    public static java.util.Optional<String> selectedDoor() {
+        return selectedDoor;
     }
 
     public static void setPreview(List<BlockBox> next) {
@@ -58,6 +67,7 @@ public final class ClientMapState {
         debugPaths = null;
         setMap(ZombiesMap.EMPTY);
         selection = Selection.NONE;
+        selectedDoor = java.util.Optional.empty();
         preview = List.of();
         problems = List.of();
     }

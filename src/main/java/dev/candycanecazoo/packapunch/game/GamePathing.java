@@ -20,6 +20,7 @@ import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +49,8 @@ public final class GamePathing implements AutoCloseable {
 
     private final ServerLevel level;
     private final GameMap map;
-    private final Passages.Result passages;
+    private volatile Passages.Result passages;
+    private volatile Set<dev.candycanecazoo.packapunch.map.ZoneId> unlocked;
     private final Map<EntityType<?>, FlowGraph> graphs = new ConcurrentHashMap<>();
     private final Map<FieldKey, FieldState> fields = new ConcurrentHashMap<>();
     private final AtomicInteger flowSteps = new AtomicInteger();
@@ -64,6 +66,19 @@ public final class GamePathing implements AutoCloseable {
         this.level = level;
         this.map = map;
         this.passages = passages;
+        this.unlocked = map.unlocked();
+    }
+
+    /**
+     * A door opened: the walkable map grew. Graphs and fields are rebuilt as zombies next ask for them; zombies keep
+     * steering on the old fields until the new ones are ready.
+     */
+    public void reconnect(Passages.Result passages, Set<dev.candycanecazoo.packapunch.map.ZoneId> unlocked) {
+        this.passages = passages;
+        this.unlocked = Set.copyOf(unlocked);
+        graphs.clear();
+        fields.clear();
+        doorways = null;
     }
 
     private CellQuery world() {
@@ -77,7 +92,7 @@ public final class GamePathing implements AutoCloseable {
 
     /** Call on the server thread: the first call for a mob type reads the world, using {@code mob} as the template. */
     public FlowGraph graph(Mob mob) {
-        return graphs.computeIfAbsent(mob.getType(), type -> VanillaGraphs.build(level, mob, map, passages));
+        return graphs.computeIfAbsent(mob.getType(), type -> VanillaGraphs.build(level, mob, map, unlocked, passages));
     }
 
     /**
