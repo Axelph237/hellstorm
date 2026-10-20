@@ -17,5 +17,6 @@ public final class MapReset {
         PowerSwitchBlock.setAll(level, map.features(FeatureKind.POWER_SWITCH), false);
         MysteryBoxes.resetAll(level, map.features(FeatureKind.MYSTERY_BOX));
         PapMachineBlock.resetAll(level, map.features(FeatureKind.PAP_MACHINE));
+        level.getEntities(dev.candycanecazoo.packapunch.powerup.PowerUpRegistries.POWER_UP.get(), e -> true).forEach(net.minecraft.world.entity.Entity::discard);
     }
 }

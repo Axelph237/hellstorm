@@ -50,4 +50,7 @@ public interface GameWorld {
 
     /** A timed effect ran out (see {@link Game#startTimed}). Features that changed the world for it undo that here. */
     default void timedEffectEnded(ResourceLocation effect) {}
+
+    /** Puts a power-up pickup in the world at {@code pos}. */
+    default void dropPowerUp(ResourceLocation powerUp, BlockPos pos) {}
 }

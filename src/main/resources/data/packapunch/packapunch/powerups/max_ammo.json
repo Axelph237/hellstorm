@@ -1,0 +1,6 @@
+{
+  "name": "powerup.packapunch.max_ammo",
+  "weight": 10,
+  "item": "minecraft:spectral_arrow",
+  "effect": { "type": "max_ammo" }
+}

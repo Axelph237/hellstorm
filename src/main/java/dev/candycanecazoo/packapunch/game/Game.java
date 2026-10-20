@@ -4,6 +4,7 @@ import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.perk.PerkDef;
+import dev.candycanecazoo.packapunch.powerup.PowerUpDrops;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -42,13 +43,24 @@ public final class Game {
     private Set<ZoneId> unlocked;
     private final Set<String> openDoors = new LinkedHashSet<>();
     private final Map<ResourceLocation, GameWorld.Timer> timed = new LinkedHashMap<>();
+    private final SurvivalContent content;
+    private int dropsThisRound;
+    private final List<Drop> pendingDrops = new ArrayList<>();
+
+    /** A power-up waiting for the next tick to be put in the world. */
+    private record Drop(ResourceLocation powerUp, BlockPos pos) {}
 
     public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
+        this(settings, map, roster, random, events, SurvivalContent.NONE);
+    }
+
+    public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events, SurvivalContent content) {
         this.settings = settings;
         this.map = map;
         this.roster = roster;
         this.random = random;
         this.events = events;
+        this.content = content;
         // A map without a power switch is powered from the start.
         this.powerOn = map.map().features(dev.candycanecazoo.packapunch.map.FeatureKind.POWER_SWITCH).isEmpty();
         this.graph = map.graph();
@@ -243,6 +255,7 @@ public final class Game {
         if (phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) {
             tickTimed(world);
         }
+        spawnDrops(world);
         if (ticks % STATUS_INTERVAL == 0) {
             players.keySet().forEach(id -> world.showStatus(id, status(id)));
         }
@@ -286,6 +299,7 @@ public final class Game {
                 world.respawn(player.id());
             }
         }
+        dropsThisRound = 0;
         events.emit(new GameEvent.RoundStart(round));
         world.announce("Round " + round);
         return new GamePhase.RoundActive(round, RoundPlan.zombieCount(settings.rounds(), round, players.size()), 0);
@@ -391,7 +405,7 @@ public final class Game {
         if (player == null || !player.alive()) {
             return;
         }
-        int award = Economy.award(settings.economy(), new PointSource.Repair(), false);
+        int award = Economy.award(settings.economy(), new PointSource.Repair(), doublePoints());
         int room = settings.economy().repairCapPerRound() - player.repairPointsThisRound();
         if (room > 0) {
             player.addRepairPoints(Math.min(award, room));
@@ -402,7 +416,7 @@ public final class Game {
     public void onMobHit(UUID mob, UUID attacker) {
         PlayerState player = players.get(attacker);
         if (mobs.contains(mob) && player != null && player.alive()) {
-            player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), false));
+            player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), doublePoints()));
         }
     }
 
@@ -413,10 +427,49 @@ public final class Game {
         }
         Optional<PlayerState> player = killer.map(players::get).filter(PlayerState::alive);
         player.ifPresent(p -> {
-            p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), false));
+            p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), doublePoints()));
             p.countKill(headshot);
         });
         events.emit(new GameEvent.ZombieKilled(mob, player.map(PlayerState::id), headshot, melee, pos));
+        // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
+        if (player.isPresent()) {
+            PowerUpDrops.roll(settings.powerUps(), dropsThisRound, content.powerUps(), random).ifPresent(powerUp -> {
+                dropsThisRound++;
+                pendingDrops.add(new Drop(powerUp, pos));
+            });
+        }
+    }
+
+    private boolean doublePoints() {
+        return timedActive(TimedEffects.DOUBLE_POINTS);
+    }
+
+    /** Puts this tick's dropped power-ups in the world, a tick after the kills that dropped them. */
+    private void spawnDrops(GameWorld world) {
+        if (phase instanceof GamePhase.GameOver) {
+            pendingDrops.clear();
+            return;
+        }
+        for (Drop drop : pendingDrops) {
+            world.dropPowerUp(drop.powerUp(), drop.pos());
+            events.emit(new GameEvent.PowerUpSpawned(drop.powerUp(), drop.pos()));
+        }
+        pendingDrops.clear();
+    }
+
+    /** A player in this game touched a power-up. True if it counts: the player is alive and the game isn't over. */
+    public boolean collectPowerUp(ResourceLocation powerUp, UUID collector) {
+        PlayerState player = players.get(collector);
+        if (player == null || !player.alive() || phase instanceof GamePhase.GameOver) {
+            return false;
+        }
+        events.emit(new GameEvent.PowerUpCollected(powerUp, collector));
+        return true;
+    }
+
+    /** Points for every player in the game, such as a Nuke's or a Carpenter's bonus. Never doubled. */
+    public void awardEveryone(int points) {
+        players.values().forEach(p -> p.addPoints(points));
     }
 
     /** A game zombie left the world without dying (unloaded, discarded). It is spawned again. */

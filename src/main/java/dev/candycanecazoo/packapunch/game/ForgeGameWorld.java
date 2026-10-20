@@ -236,4 +236,15 @@ public final class ForgeGameWorld implements GameWorld {
                     status.round(), status.phase(), status.zombiesLeft(), status.powerOn(), status.points(), lines, status.timers(), status.bar()));
         });
     }
+
+    @Override
+    public void dropPowerUp(ResourceLocation powerUp, BlockPos pos) {
+        GameManager.get(level).ifPresent(game -> dev.candycanecazoo.packapunch.powerup.PowerUps.drop(level, game.game().settings().powerUps(), powerUp,
+                Vec3.atBottomCenterOf(pos)));
+    }
+
+    @Override
+    public void timedEffectEnded(ResourceLocation effect) {
+        GameManager.get(level).ifPresent(game -> dev.candycanecazoo.packapunch.powerup.PowerUps.ended(game, effect));
+    }
 }

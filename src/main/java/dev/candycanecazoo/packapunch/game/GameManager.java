@@ -113,7 +113,7 @@ public final class GameManager {
         MobRoster roster = new MobRoster(profiles.entrySet().stream()
                 .map(e -> new MobRoster.Entry(e.getKey(), e.getValue().weight(), e.getValue().minRound(), e.getValue().maxRound()))
                 .toList());
-        Game game = new Game(settings, map, roster, RandomSource.create(), new GameEvents());
+        Game game = new Game(settings, map, roster, RandomSource.create(), new GameEvents(), survivalContent());
         GamePathing pathing = new GamePathing(level, map, passages);
         ForgeGameWorld world = new ForgeGameWorld(level, map, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup,
                 profiles, game::targetable, settings.windows().tearTicks(), pathing);
@@ -121,6 +121,11 @@ public final class GameManager {
         GAMES.put(level.dimension(), active);
         dev.candycanecazoo.packapunch.feature.MysteryBoxes.start(active);
         return active;
+    }
+
+    /** The loaded power-ups, as a new game takes them. */
+    static SurvivalContent survivalContent() {
+        return new SurvivalContent(dev.candycanecazoo.packapunch.powerup.PowerUpDefs.table());
     }
 
     /** Where script commands run: the center of the first start zone, or the first start cell. */
