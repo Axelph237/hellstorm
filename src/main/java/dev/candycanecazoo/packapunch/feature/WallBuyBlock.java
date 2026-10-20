@@ -296,7 +296,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
                 if (stock.isEmpty()) {
                     return Optional.of(new Refusal.Because(config.item().describe() + " isn't installed"));
                 }
-                return Perks.limitRefusal(p, stock.get()).or(() -> canGive(p, settings, stock.get()));
+                return canGive(p, settings, stock.get());
             }
 
             @Override

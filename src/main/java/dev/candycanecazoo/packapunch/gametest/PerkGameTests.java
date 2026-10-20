@@ -183,7 +183,7 @@ public final class PerkGameTests {
     }
 
     @GameTest(template = "floor", batch = "perk_limit")
-    public static void atThePerkLimitANewPerkCanBeNeitherBoughtNorDrunk(GameTestHelper helper) {
+    public static void atThePerkLimitANewPerkCanBeBoughtButNotDrunk(GameTestHelper helper) {
         BlockPos at = machine(helper, PackAPunch.id("stamin_up"));
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_limit");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
@@ -194,12 +194,9 @@ public final class PerkGameTests {
             int limit = active.game().settings().players().perkLimit();
             held.subList(0, limit).forEach(effect -> give(player, effect));
 
-            int before = PurchaseGameTests.points(active, player);
             FeatureBlock.use(player, at);
-            helper.assertTrue(takePotion(player).isEmpty(), "the machine sold a perk past the limit");
-            helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused perk");
-
-            ItemStack staminUp = potion(PerkEffects.STAMIN_UP.get());
+            ItemStack staminUp = takePotion(player);
+            helper.assertFalse(staminUp.isEmpty(), "at the limit the machine still sells a perk you don't have");
             helper.assertFalse(drink(player, staminUp), "drinking a perk past the limit should be refused");
             helper.assertFalse(player.hasEffect(PerkEffects.STAMIN_UP.get()), "Stamin-Up was added past the limit");
             helper.assertTrue(player.getMainHandItem().is(Items.POTION), "the refused potion should not be used up");
@@ -207,6 +204,8 @@ public final class PerkGameTests {
             helper.assertTrue(drink(player, potion(PerkEffects.JUGGERNOG.get())), "drinking a perk already held isn't a new perk");
             helper.assertTrue(drink(player, PotionUtils.setPotion(new ItemStack(Items.POTION), net.minecraft.world.item.alchemy.Potions.SWIFTNESS)),
                     "potions that aren't perks don't count");
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(PerkEffects.STAMIN_UP.get(), net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION));
+            helper.assertTrue(player.hasEffect(PerkEffects.STAMIN_UP.get()), "only drinking is limited: a lingering cloud or any other source can go past it");
         } finally {
             GameManager.end(active);
         }

@@ -18,8 +18,8 @@ Machines sell perks like Juggernog, Speed Cola, Double Tap, Quick Revive, Stamin
 
 ## Implementation
 
-- **Buying** goes through the wall-buy sale. It refuses without power when `requires_power` is set. It refuses a potion whose effects the player already has, and a potion that would add a perk past `players.perk_limit`. On success the player gets the potion. Emit `perk_bought`.
-- **Drinking** is vanilla. A player in a game who would go past the perk limit is refused when they start drinking, so nothing is used up.
+- **Buying** goes through the wall-buy sale. It refuses without power when `requires_power` is set. It refuses only a potion whose effects the player already has; the perk limit isn't checked here. On success the player gets the potion. Emit `perk_bought`.
+- **Drinking** is vanilla. A player in a game who would go past the perk limit is refused when they start drinking, so nothing is used up. Only drinking is limited: splash and lingering potions, and any other source of an effect, may take a player past it.
 - **Losing perks.** Going `Downed` removes every beneficial effect. Quick Revive's solo self-revive is handled in `downs-and-revives.md`.
 - **Names.** Effect and potion names are lang keys, so trademarked names can be renamed in a resource pack.
 
@@ -42,7 +42,7 @@ Machines sell perks like Juggernog, Speed Cola, Double Tap, Quick Revive, Stamin
 
 - GameTest: buying a perk potion needs power, charges the cost, and emits `perk_bought`.
 - GameTest: drinking Juggernog gives an endless effect that raises max health and heals; going down takes it.
-- GameTest: the perk limit refuses buying and drinking a new perk.
+- GameTest: at the perk limit a new perk can be bought but not drunk, and other sources still add it.
 - GameTest: a machine refuses a potion whose effects the player already has.
 - GameTest: a machine saved with the old `{ perk, cost }` settings loads as that perk's potion.
 
@@ -75,7 +75,7 @@ Machines sell perks like Juggernog, Speed Cola, Double Tap, Quick Revive, Stamin
 - **Effect icons.** No textures ship. `client/PerkEffectIcon` (`IClientMobEffectExtensions`) draws each perk's icon in the HUD and inventory as a square in the effect's color with the first letter of its name, so nothing draws as a missing texture.
 - **What a perk is** (`perk/Perks`). An effect in `packapunch:perks`. `Perks.held` lists the ones a player has active, and `players.perk_limit` counts them.
   - `Perks.limitRefusal(held, adding, limit)` refuses a potion whose new perks would take the player past the limit: "You can only hold 4 perks". Perks the player already has and non-perk effects don't count. A potion of two new perks needs room for both.
-  - Drinking: `LivingEntityUseItemEvent.Start` is cancelled on the server for a player in a game when the potion would go past the limit, with the usual refusal notice. The client keeps its drinking pose until the player lets go of use, since it doesn't know the limit. Splash and lingering potions and `/effect` aren't checked.
+  - Drinking: `LivingEntityUseItemEvent.Start` is cancelled on the server for a player in a game when the potion would go past the limit, with the usual refusal notice. The client keeps its drinking pose until the player lets go of use, since it doesn't know the limit. Splash and lingering potions and `/effect` aren't checked, on purpose. A machine sells a perk potion at the limit too (it only refuses an effect you already have), since the potion can wait in the inventory.
 - **Losing buffs.** `Perks.clearBuffs(player)` removes every `BENEFICIAL` effect, perk or not. It runs on going down (`Downs.knockDown`), on dying in a game (`GameHooks.onDeath`), on `/pap leave`, on logout, and for every player when the game ends (`GameManager.end`). Harmful and neutral effects stay. Removing an effect undoes its attribute modifier, so Mule Kick's slot and Juggernog's health go with it.
 - **Fire rate on TacZ guns** (`tacz/PerkGunEffects`). `AttachmentPropertyEvent` multiplies `ROUNDS_PER_MINUTE` by the holder's `packapunch:fire_rate`. The event only carries the stack, so the holder is the player (server thread) or the local player (client thread) whose main hand is that exact stack; game players are searched too, since test players aren't in the server's player list. It multiplies what is there, so Pack-a-Punch's change stacks.
   - Server: any perk effect with a fire rate modifier re-evaluates the held gun when it is added or removed.
