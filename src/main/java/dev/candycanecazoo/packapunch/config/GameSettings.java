@@ -16,7 +16,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     public record Rounds(
             int baseCount, double countPerRound, double playerFactor,
             double healthScale, int sprintFromRound, double walkSpeed, double sprintSpeed, double healthGrowth, double speedGrowth,
-            int maxAlive, int spawnDelayTicks, int intermissionTicks, int countdownTicks, int gameOverTicks) {
+            int maxAlive, int spawnDelayTicks, int intermissionMs, int countdownTicks, int gameOverTicks) {
         public static final Codec<Rounds> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("base_count").forGetter(Rounds::baseCount),
                 Codec.DOUBLE.fieldOf("count_per_round").forGetter(Rounds::countPerRound),
@@ -29,10 +29,15 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
                 Codec.DOUBLE.fieldOf("speed_growth").forGetter(Rounds::speedGrowth),
                 Codec.INT.fieldOf("max_alive").forGetter(Rounds::maxAlive),
                 Codec.INT.fieldOf("spawn_delay_ticks").forGetter(Rounds::spawnDelayTicks),
-                Codec.INT.fieldOf("intermission_ticks").forGetter(Rounds::intermissionTicks),
+                Codec.INT.fieldOf("intermission_ms").forGetter(Rounds::intermissionMs),
                 Codec.INT.fieldOf("countdown_ticks").forGetter(Rounds::countdownTicks),
                 Codec.INT.fieldOf("game_over_ticks").forGetter(Rounds::gameOverTicks)
         ).apply(i, Rounds::new));
+
+        /** The break between rounds in whole ticks, rounded up so a short break is never skipped. */
+        public int intermissionTicks() {
+            return (intermissionMs + 49) / 50;
+        }
     }
 
     public record Spawning(int adjacentHops, double falloffBlocks, double minDistance) {
@@ -182,7 +187,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     ).apply(i, GameSettings::new));
 
     public static final GameSettings DEFAULT = new GameSettings(
-            new Rounds(6, 2.5, 0.5, 0.15, 6, 0.23, 0.32, 0.004, 0.0001, 24, 40, 20, 100, 200),
+            new Rounds(6, 2.5, 0.5, 0.15, 6, 0.23, 0.32, 0.004, 0.0001, 24, 40, 3000, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
             new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false, 2, 4),

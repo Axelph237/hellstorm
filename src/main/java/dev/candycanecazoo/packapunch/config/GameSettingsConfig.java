@@ -18,7 +18,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.DoubleValue sprintSpeed;
     private final ForgeConfigSpec.IntValue maxAlive;
     private final ForgeConfigSpec.IntValue spawnDelayTicks;
-    private final ForgeConfigSpec.IntValue intermissionTicks;
+    private final ForgeConfigSpec.IntValue intermissionMs;
     private final ForgeConfigSpec.IntValue countdownTicks;
     private final ForgeConfigSpec.IntValue gameOverTicks;
     private final ForgeConfigSpec.IntValue adjacentHops;
@@ -92,7 +92,7 @@ public final class GameSettingsConfig {
         maxAlive = b.comment("Most zombies alive at once.").defineInRange("max_alive", d.rounds().maxAlive(), 1, 500);
         spawnDelayTicks = b.comment("Ticks between spawns in round 1. Shrinks by 2 per round, to a minimum of 5.")
                 .defineInRange("spawn_delay_ticks", d.rounds().spawnDelayTicks(), 1, 1200);
-        intermissionTicks = b.defineInRange("intermission_ticks", d.rounds().intermissionTicks(), 0, 12000);
+        intermissionMs = b.comment("The break between rounds, in milliseconds.").defineInRange("intermission_ms", d.rounds().intermissionMs(), 0, 600_000);
         countdownTicks = b.defineInRange("countdown_ticks", d.rounds().countdownTicks(), 0, 12000);
         gameOverTicks = b.defineInRange("game_over_ticks", d.rounds().gameOverTicks(), 0, 12000);
         b.pop();
@@ -209,7 +209,7 @@ public final class GameSettingsConfig {
     private GameSettings read(ConfigValueReader r) {
         return new GameSettings(
                 new GameSettings.Rounds(r.read(baseCount), r.read(countPerRound), r.read(playerFactor), r.read(healthScale), r.read(sprintFromRound),
-                        r.read(walkSpeed), r.read(sprintSpeed), r.read(healthGrowth), r.read(speedGrowth), r.read(maxAlive), r.read(spawnDelayTicks), r.read(intermissionTicks),
+                        r.read(walkSpeed), r.read(sprintSpeed), r.read(healthGrowth), r.read(speedGrowth), r.read(maxAlive), r.read(spawnDelayTicks), r.read(intermissionMs),
                         r.read(countdownTicks), r.read(gameOverTicks)),
                 new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
