@@ -56,3 +56,7 @@ Nothing. Everything else depends on this.
 ## Phase
 
 0 (skeleton), grows in every phase.
+
+## Debug cheats
+
+`/pap debug infinite_money <true|false> [players]` and `/pap debug god <true|false> [players]`, op only. They default to the player running the command. Infinite money makes purchases cost nothing and never fail for lack of points. God mode cancels all damage, in or out of a game. They're kept in memory per player (`game/Cheats`) and cleared by a server restart.

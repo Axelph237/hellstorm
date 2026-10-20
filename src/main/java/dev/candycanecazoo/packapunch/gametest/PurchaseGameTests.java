@@ -93,4 +93,19 @@ public final class PurchaseGameTests {
         helper.assertFalse(helper.getLevel().getBlockState(at).getValue(LeverBlock.POWERED), "ending the game resets the switch");
         helper.succeed();
     }
+
+    /** Fake players ignore damage anyway, so this asks the damage event itself, which is what god mode cancels. */
+    @GameTest(template = "floor")
+    public static void godModeCancelsDamage(GameTestHelper helper) {
+        ServerPlayer player = player(helper, "pap_god_test");
+        var source = helper.getLevel().damageSources().generic();
+        helper.assertTrue(net.minecraftforge.common.ForgeHooks.onPlayerAttack(player, source, 10), "damage is cancelled without god mode");
+        dev.candycanecazoo.packapunch.game.Cheats.set(player.getUUID(), dev.candycanecazoo.packapunch.game.Cheats.Cheat.GOD, true);
+        try {
+            helper.assertFalse(net.minecraftforge.common.ForgeHooks.onPlayerAttack(player, source, 10), "god mode let damage through");
+        } finally {
+            dev.candycanecazoo.packapunch.game.Cheats.set(player.getUUID(), dev.candycanecazoo.packapunch.game.Cheats.Cheat.GOD, false);
+        }
+        helper.succeed();
+    }
 }

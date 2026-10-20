@@ -10,7 +10,9 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue baseCount;
     private final ForgeConfigSpec.DoubleValue countPerRound;
     private final ForgeConfigSpec.DoubleValue playerFactor;
-    private final ForgeConfigSpec.DoubleValue healthScale;
+    private final ForgeConfigSpec.DoubleValue baseHealth;
+    private final ForgeConfigSpec.DoubleValue healthGrowth;
+    private final ForgeConfigSpec.DoubleValue speedGrowth;
     private final ForgeConfigSpec.IntValue sprintFromRound;
     private final ForgeConfigSpec.DoubleValue walkSpeed;
     private final ForgeConfigSpec.DoubleValue sprintSpeed;
@@ -61,8 +63,12 @@ public final class GameSettingsConfig {
         baseCount = b.comment("Zombies in round 1 for one player.").defineInRange("base_count", d.rounds().baseCount(), 1, 1000);
         countPerRound = b.comment("Extra zombies per round.").defineInRange("count_per_round", d.rounds().countPerRound(), 0.0, 100.0);
         playerFactor = b.comment("Each extra player multiplies the count by (1 + this).").defineInRange("player_factor", d.rounds().playerFactor(), 0.0, 10.0);
-        healthScale = b.comment("Zombie health is the CoD curve (150 + 100 per round, x1.1 from round 10) times this, in Minecraft HP.")
-                .defineInRange("health_scale", d.rounds().healthScale(), 0.001, 100.0);
+        baseHealth = b.comment("Zombie health in round 1, in Minecraft HP, before a mob profile's own multiplier.")
+                .defineInRange("base_health", d.rounds().baseHealth(), 1.0, 100_000.0);
+        healthGrowth = b.comment("Zombie health grows by this fraction each round, compounding (0.002 = 0.2% per round).")
+                .defineInRange("health_growth", d.rounds().healthGrowth(), 0.0, 10.0);
+        speedGrowth = b.comment("Zombie walk and sprint speed grow by this fraction each round, compounding (0.0001 = 0.01% per round).")
+                .defineInRange("speed_growth", d.rounds().speedGrowth(), 0.0, 10.0);
         sprintFromRound = b.comment("First round where some zombies sprint.").defineInRange("sprint_from_round", d.rounds().sprintFromRound(), 1, 1000);
         walkSpeed = b.defineInRange("walk_speed", d.rounds().walkSpeed(), 0.01, 2.0);
         sprintSpeed = b.defineInRange("sprint_speed", d.rounds().sprintSpeed(), 0.01, 2.0);
@@ -159,8 +165,8 @@ public final class GameSettingsConfig {
 
     private GameSettings read(ConfigValueReader r) {
         return new GameSettings(
-                new GameSettings.Rounds(r.read(baseCount), r.read(countPerRound), r.read(playerFactor), r.read(healthScale), r.read(sprintFromRound),
-                        r.read(walkSpeed), r.read(sprintSpeed), r.read(maxAlive), r.read(spawnDelayTicks), r.read(intermissionTicks),
+                new GameSettings.Rounds(r.read(baseCount), r.read(countPerRound), r.read(playerFactor), r.read(baseHealth), r.read(sprintFromRound),
+                        r.read(walkSpeed), r.read(sprintSpeed), r.read(healthGrowth), r.read(speedGrowth), r.read(maxAlive), r.read(spawnDelayTicks), r.read(intermissionTicks),
                         r.read(countdownTicks), r.read(gameOverTicks)),
                 new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),

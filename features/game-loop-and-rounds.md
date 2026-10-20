@@ -36,7 +36,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
   - `GameOver → Lobby` after the timer. `MapReset` runs.
 - **Round formulas** (`RoundPlan`, pure):
   - Zombie count: `rounds.base_count + rounds.count_per_round * r`, times a player-count factor.
-  - Health: CoD-style, `150 + 100*(r-1)` up to round 9, then `x1.1` per round, times `rounds.health_scale` (TacZ damage is in Minecraft HP).
+  - Health: `rounds.base_health` (15 HP) growing `rounds.health_growth` (0.2%) per round, compounding; speed grows `rounds.speed_growth` (0.01%) per round. Formerly CoD-style `150 + 100*(r-1)`, then `x1.1` per round, times `rounds.health_scale` (TacZ damage is in Minecraft HP).
   - Speed: walkers until `rounds.sprint_from_round`, mixed after.
   - Max alive at once: `rounds.max_alive` (default 24).
 - **Events.** Emits `game_start`, `round_start`, `round_end`, `game_end`, `zombie_spawned`, `zombie_killed` on the game's `GameEvents` bus.
@@ -47,7 +47,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 
 ## Config surface
 
-`rounds.base_count`, `rounds.count_per_round`, `rounds.player_factor`, `rounds.health_scale`, `rounds.sprint_from_round`, `rounds.max_alive`, `rounds.spawn_delay_ticks`, `rounds.intermission_ticks`, `rounds.countdown_ticks`.
+`rounds.base_count`, `rounds.count_per_round`, `rounds.player_factor`, `rounds.base_health`, `rounds.health_growth`, `rounds.speed_growth`, `rounds.sprint_from_round`, `rounds.max_alive`, `rounds.spawn_delay_ticks`, `rounds.intermission_ticks`, `rounds.countdown_ticks`.
 
 ## Assets
 

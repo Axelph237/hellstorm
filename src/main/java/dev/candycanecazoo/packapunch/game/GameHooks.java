@@ -130,7 +130,10 @@ public final class GameHooks {
 
     @SubscribeEvent
     public static void onAttacked(LivingAttackEvent event) {
-        if (isGameMob(event.getEntity()) && event.getSource().is(DamageTypeTags.IS_FIRE)) {
+        boolean burningZombie = isGameMob(event.getEntity()) && event.getSource().is(DamageTypeTags.IS_FIRE);
+        // /pap debug god: the player takes no damage at all, in or out of a game.
+        boolean god = event.getEntity() instanceof ServerPlayer player && Cheats.has(player.getUUID(), Cheats.Cheat.GOD);
+        if (burningZombie || god) {
             event.setCanceled(true);
         }
     }

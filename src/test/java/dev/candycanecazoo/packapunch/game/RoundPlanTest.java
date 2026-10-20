@@ -17,11 +17,17 @@ class RoundPlanTest {
     }
 
     @Test
-    void healthFollowsTheCodCurveScaled() {
+    void healthGrowsByPointTwoPercentPerRound() {
         assertEquals(15.0, RoundPlan.zombieHealth(R, 1), 1e-9);
-        assertEquals(95.0, RoundPlan.zombieHealth(R, 9), 1e-9);
-        assertEquals(104.5, RoundPlan.zombieHealth(R, 10), 1e-9, "950 * 1.1 * 0.1");
-        assertEquals(950 * Math.pow(1.1, 21) * 0.1, RoundPlan.zombieHealth(R, 30), 1e-9);
+        assertEquals(15.0 * 1.002, RoundPlan.zombieHealth(R, 2), 1e-9);
+        assertEquals(15.0 * Math.pow(1.002, 99), RoundPlan.zombieHealth(R, 100), 1e-9, "about 18.3 HP by round 100");
+    }
+
+    @Test
+    void speedGrowsByAHundredthOfAPercentPerRound() {
+        assertEquals(0.23, RoundPlan.zombieSpeed(R, 1, false), 1e-12);
+        assertEquals(0.23 * 1.0001, RoundPlan.zombieSpeed(R, 2, false), 1e-12);
+        assertEquals(0.32 * Math.pow(1.0001, 49), RoundPlan.zombieSpeed(R, 50, true), 1e-12, "sprinters grow at the same rate");
     }
 
     @Test

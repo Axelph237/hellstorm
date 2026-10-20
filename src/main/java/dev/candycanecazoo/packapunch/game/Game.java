@@ -107,6 +107,9 @@ public final class Game {
         if (needsPower && !powerOn) {
             return Optional.of(new Refusal.NeedsPower());
         }
+        if (Cheats.has(buyer, Cheats.Cheat.INFINITE_MONEY)) {
+            return Optional.empty();
+        }
         if (player.points() < cost) {
             return Optional.of(new Refusal.NotEnoughPoints(cost, player.points()));
         }
@@ -131,7 +134,7 @@ public final class Game {
 
     public void refund(UUID buyer, int cost) {
         PlayerState player = players.get(buyer);
-        if (player != null) {
+        if (player != null && !Cheats.has(buyer, Cheats.Cheat.INFINITE_MONEY)) {
             player.addPoints(cost);
         }
     }
@@ -288,7 +291,7 @@ public final class Game {
         GameSettings.Rounds r = settings.rounds();
         boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
         return roster.pick(round, random, profile -> world.canSpawn(profile, marker)).map(profile ->
-                new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), sprints ? r.sprintSpeed() : r.walkSpeed()));
+                new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), RoundPlan.zombieSpeed(r, round, sprints)));
     }
 
     /** Players zombies may target: in this game and alive. */

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** The game loop against a fake world: four touching zones A-B-C-D along x, a spawn marker in each, A is the start. */
 class GameTest {
     private static final GameSettings SETTINGS = new GameSettings(
-            new GameSettings.Rounds(3, 1.0, 0.0, 0.1, 100, 0.23, 0.32, 24, 1, 3, 2, 2),
+            new GameSettings.Rounds(3, 1.0, 0.0, 15.0, 100, 0.23, 0.32, 0.002, 0.0001, 24, 1, 3, 2, 2),
             new GameSettings.Spawning(1, 24.0, 0.0),
             GameSettings.DEFAULT.economy(),
             GameSettings.DEFAULT.players(),
@@ -134,7 +134,7 @@ class GameTest {
     @Test
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
-                new GameSettings.Rounds(10, 0, 0, 0.1, 100, 0.23, 0.32, 2, 5, 3, 0, 2),
+                new GameSettings.Rounds(10, 0, 0, 15.0, 100, 0.23, 0.32, 0.002, 0.0001, 2, 5, 3, 0, 2),
                 SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap());
         Game game = newGame(capped);
         game.join(alice);
@@ -342,5 +342,22 @@ class GameTest {
         assertEquals(Set.of(), game.openDoor("gate", Optional.empty(), dev.candycanecazoo.packapunch.map.ZoneGraph.of(map, Set.of())));
         assertEquals(List.of(new GameEvent.DoorOpened("gate", Optional.of(alice), List.of(ZONES.get(1), ZONES.get(2)))),
                 seen.stream().filter(e -> e instanceof GameEvent.DoorOpened).toList(), "door_opened fires once, listing what it unlocked");
+    }
+
+    @Test
+    void infiniteMoneyBuysAnythingWithoutSpending() {
+        Game game = newGame(SETTINGS);
+        game.join(alice);
+        int start = game.player(alice).orElseThrow().points();
+        Cheats.set(alice, Cheats.Cheat.INFINITE_MONEY, true);
+        try {
+            assertEquals(Optional.empty(), game.charge(alice, start * 100, false));
+            game.refund(alice, start * 100);
+            assertEquals(start, game.player(alice).orElseThrow().points(), "nothing spent, nothing refunded");
+            assertEquals(Optional.of(new Refusal.NotPlaying()), game.charge(UUID.randomUUID(), 1, false));
+        } finally {
+            Cheats.set(alice, Cheats.Cheat.INFINITE_MONEY, false);
+        }
+        assertEquals(Optional.of(new Refusal.NotEnoughPoints(start * 100, start)), game.charge(alice, start * 100, false));
     }
 }
