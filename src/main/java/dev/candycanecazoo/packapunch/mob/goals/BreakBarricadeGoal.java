@@ -20,6 +20,9 @@ public final class BreakBarricadeGoal extends Goal {
         /** Where this zombie stands outside to tear boards. Each zombie gets its own spot, so a crowd spreads along the window. */
         Vec3 attackPoint();
 
+        /** Where this zombie stands in the opening itself: on top of the sill, if the window has one. */
+        Vec3 sillPoint();
+
         /** Where this zombie ends up after climbing through. */
         Vec3 insidePoint();
 
@@ -55,6 +58,12 @@ public final class BreakBarricadeGoal extends Goal {
         return true;
     }
 
+    private static double horizontalDistanceSqr(Vec3 a, Vec3 b) {
+        double dx = a.x - b.x;
+        double dz = a.z - b.z;
+        return dx * dx + dz * dz;
+    }
+
     @Override
     public void tick() {
         Vec3 attack = window.attackPoint();
@@ -62,7 +71,11 @@ public final class BreakBarricadeGoal extends Goal {
         mob.getLookControl().setLookAt(inside.x, inside.y + 1, inside.z);
         if (window.boards() == 0) {
             mob.getNavigation().stop();
-            mob.getMoveControl().setWantedPosition(inside.x, inside.y, inside.z, 1.0);
+            // Aim at the sill until the zombie is over it. A target above the zombie's feet is what makes vanilla's
+            // move control jump, so aiming straight at the inside floor would walk it into a raised sill forever.
+            Vec3 sill = window.sillPoint();
+            Vec3 aim = horizontalDistanceSqr(mob.position(), inside) <= horizontalDistanceSqr(sill, inside) + 0.05 ? inside : sill;
+            mob.getMoveControl().setWantedPosition(aim.x, aim.y, aim.z, 1.0);
             return;
         }
         if (mob.position().distanceToSqr(attack) > REACH_SQR) {

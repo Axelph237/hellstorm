@@ -69,3 +69,4 @@ record WindowState(
 - **Spawn markers outside zones** auto-link to the nearest window they stand in front of, within `windows.link_range` (default 6). Zombies from those markers get `BreakBarricadeGoal`. The visualizer draws a line from each marker to its window.
 - **Repair.** A player holding use on a barricade repairs one board per `windows.repair_ticks`, earning `economy.repair` points up to `economy.repair_cap_per_round` per round.
 - **Reset.** Windows are reset to full boards when a game's lobby opens and when the game ends.
+- **Sills.** At 0 boards a zombie first aims at the top of the sill in its column, then at the inside floor. A target above its feet is what makes vanilla's move control jump, so windows set a block (or a stair or slab) above the ground outside work. Standing points use the real height of the block underneath. GameTested with a full-block sill and a sideways stair sill under a 3-high corridor.

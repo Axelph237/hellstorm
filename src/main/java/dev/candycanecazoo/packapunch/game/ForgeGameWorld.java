@@ -130,11 +130,17 @@ public final class ForgeGameWorld implements GameWorld {
         Direction along = window.outward().getClockWise();
         Vec3 attack = ground(column.relative(window.outward())).add(along.getStepX() * sideways, 0, along.getStepZ() * sideways)
                 .add(window.outward().getStepX() * level.random.nextDouble() * 0.5, 0, window.outward().getStepZ() * level.random.nextDouble() * 0.5);
+        Vec3 sill = ground(column);
         Vec3 inside = ground(column.relative(window.outward().getOpposite()));
         return new BreakBarricadeGoal.Window() {
             @Override
             public Vec3 attackPoint() {
                 return attack;
+            }
+
+            @Override
+            public Vec3 sillPoint() {
+                return sill;
             }
 
             @Override
@@ -154,13 +160,18 @@ public final class ForgeGameWorld implements GameWorld {
         };
     }
 
-    /** The standing point at or below {@code cell}: windows with a sill have their bottom row above the ground outside. */
+    /**
+     * The standing point at or below {@code cell}, on top of whatever is underneath (a slab or stair counts by its real
+     * height): windows with a sill have their bottom row above the ground outside.
+     */
     private Vec3 ground(BlockPos cell) {
         BlockPos at = cell;
         for (int drop = 0; drop < 3 && level.getBlockState(at.below()).getCollisionShape(level, at.below()).isEmpty(); drop++) {
             at = at.below();
         }
-        return Vec3.atBottomCenterOf(at);
+        net.minecraft.world.phys.shapes.VoxelShape floor = level.getBlockState(at.below()).getCollisionShape(level, at.below());
+        double top = floor.isEmpty() ? 0 : floor.max(Direction.Axis.Y) - 1;
+        return Vec3.atBottomCenterOf(at).add(0, top, 0);
     }
 
     /** Online, alive players of this game in this level. */

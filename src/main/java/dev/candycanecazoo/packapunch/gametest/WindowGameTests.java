@@ -132,6 +132,61 @@ public final class WindowGameTests {
     }
 
     /**
+     * A window whose bottom row sits one block up on {@code sill}, reached from a 1-wide, 3-high corridor outside, like a
+     * window set in a wall above a step. The zombie has to jump onto the sill to climb in.
+     */
+    private static void breakInOverSill(GameTestHelper helper, BlockState sill) {
+        for (int x = 0; x <= 8; x++) {
+            for (int dy = 0; dy <= 3; dy++) {
+                helper.setBlock(new BlockPos(x, ROOM_Y + dy, 4), Blocks.STONE);
+            }
+        }
+        for (int z = 0; z <= 3; z++) {
+            for (int dy = 0; dy <= 3; dy++) {
+                helper.setBlock(new BlockPos(3, ROOM_Y + dy, z), Blocks.STONE_BRICKS);
+                helper.setBlock(new BlockPos(5, ROOM_Y + dy, z), Blocks.STONE_BRICKS);
+            }
+            helper.setBlock(new BlockPos(4, ROOM_Y + 3, z), Blocks.STONE_BRICKS);
+        }
+        helper.setBlock(new BlockPos(4, ROOM_Y, 4), sill);
+        WindowDef w = new WindowDef("sill", BlockBox.of(helper.absolutePos(new BlockPos(4, ROOM_Y + 1, 4)), helper.absolutePos(new BlockPos(4, ROOM_Y + 2, 4))),
+                Direction.NORTH, 6, new ZoneId("gametest_sill_room"));
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
+        BlockPos marker = helper.absolutePos(new BlockPos(4, ROOM_Y, 1));
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
+        WindowOps.setBoards(helper.getLevel(), w, 1);
+        ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_sill_test"));
+        BlockPos stand = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
+        player.moveTo(stand.getCenter());
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : null);
+        active.game().join(player.getUUID());
+        active.game().start();
+        AABB area = room.toAabb().minmax(new AABB(marker)).inflate(3);
+        helper.succeedWhen(() -> {
+            player.moveTo(stand.getCenter());
+            List<Zombie> zombies = helper.getLevel().getEntitiesOfClass(Zombie.class, area, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG));
+            helper.assertTrue(!zombies.isEmpty(), "no game zombie yet");
+            helper.assertTrue(zombies.stream().anyMatch(z -> room.contains(z.blockPosition())),
+                    "no zombie inside yet; boards " + WindowOps.boards(helper.getLevel(), w) + ", positions "
+                            + zombies.stream().map(z -> z.position().toString()).toList());
+            GameManager.end(active);
+        });
+    }
+
+    @GameTest(template = "floor", timeoutTicks = 600, batch = "game_sill_block")
+    public static void aZombieJumpsOntoABlockSillToClimbIn(GameTestHelper helper) {
+        breakInOverSill(helper, Blocks.STONE.defaultBlockState());
+    }
+
+    /** A stair sill turned sideways: half of it is a full block high, the other half a step. */
+    @GameTest(template = "floor", timeoutTicks = 600, batch = "game_sill_stair")
+    public static void aZombieClimbsInOverASidewaysStairSill(GameTestHelper helper) {
+        breakInOverSill(helper, Blocks.ANDESITE_STAIRS.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.StairBlock.FACING, Direction.WEST));
+    }
+
+    /**
      * Two walled rooms, x 0..3 and x 5..8, joined through the wall at x = 4 by a 1x2 doorway, which {@code doorway} fills
      * (or leaves empty). {@code floor} covers the room floors (or leaves bare stone). The zombie spawns in the west room
      * and the player waits in the east room, so the zombie must come through the doorway.
