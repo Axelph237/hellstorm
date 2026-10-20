@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "active=true": {
+      "model": "packapunch:block/mystery_box"
+    },
+    "active=false": {
+      "model": "packapunch:block/mystery_box_closed"
+    }
+  }
+}

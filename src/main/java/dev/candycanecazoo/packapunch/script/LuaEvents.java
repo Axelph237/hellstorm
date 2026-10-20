@@ -33,6 +33,9 @@ public final class LuaEvents {
         if (event instanceof GameEvent.PowerOn) return "power_on";
         if (event instanceof GameEvent.DoorOpened) return "door_opened";
         if (event instanceof GameEvent.PerkBought) return "perk_bought";
+        if (event instanceof GameEvent.WallBuy) return "wall_buy";
+        if (event instanceof GameEvent.MysteryBoxOpened) return "mystery_box_opened";
+        if (event instanceof GameEvent.MysteryBoxMoved) return "mystery_box_moved";
         throw new IllegalArgumentException("No script name for " + event);
     }
 
@@ -81,6 +84,20 @@ public final class LuaEvents {
             t.set("headshot", LuaValue.valueOf(e.headshot()));
             t.set("melee", LuaValue.valueOf(e.melee()));
             pos(t, e.pos());
+        } else if (event instanceof GameEvent.WallBuy e) {
+            t.set("player", e.player().toString());
+            t.set("item", e.item());
+            t.set("cost", e.cost());
+            t.set("refill", LuaValue.valueOf(e.refill()));
+        } else if (event instanceof GameEvent.MysteryBoxOpened e) {
+            t.set("player", e.player().toString());
+            t.set("item", e.item());
+            pos(t, e.pos());
+        } else if (event instanceof GameEvent.MysteryBoxMoved e) {
+            pos(t, e.from());
+            LuaTable to = new LuaTable();
+            pos(to, e.to());
+            t.set("to", to);
         }
         return t;
     }

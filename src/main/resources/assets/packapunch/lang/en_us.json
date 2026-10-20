@@ -14,5 +14,7 @@
   "perk.packapunch.double_tap": "Double Tap",
   "perk.packapunch.stamin_up": "Stamin-Up",
   "perk.packapunch.quick_revive": "Quick Revive",
-  "perk.packapunch.mule_kick": "Mule Kick"
+  "perk.packapunch.mule_kick": "Mule Kick",
+  "block.packapunch.wall_buy": "Wall-Buy",
+  "block.packapunch.mystery_box": "Mystery Box"
 }
