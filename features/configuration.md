@@ -60,3 +60,11 @@ Nothing. Everything else depends on this.
 ## Debug cheats
 
 `/pap debug infinite_money <true|false> [players]` and `/pap debug god <true|false> [players]`, op only. They default to the player running the command. Infinite money makes purchases cost nothing and never fail for lack of points. God mode cancels all damage, in or out of a game. They're kept in memory per player (`game/Cheats`) and cleared by a server restart.
+
+## Added in phase 7
+
+- `players.max_players` (4): most players in one game.
+- `players.reconnect_grace_ticks` (1200): how long a player who disconnects mid-game keeps their place, points, and perks (see `sessions-and-multiplayer.md`).
+- `rounds.intermission_ms` (3000): the break between rounds, in milliseconds, rounded up to whole ticks. Replaces `rounds.intermission_ticks`.
+- `export.margin` (6): blocks around the map's zones and machines that `/pap map export` saves when there's no Zone Wand selection (see `map-export-import.md`).
+- Per-map, not server config: `/pap map mode edit|play`, saved with the map.
