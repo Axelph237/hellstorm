@@ -46,7 +46,7 @@ public final class Shop {
     }
 
     public static void refuse(ServerPlayer player, Refusal refusal) {
-        player.displayClientMessage(Component.literal(refusal.message()).withStyle(ChatFormatting.RED), true);
+        Notices.show(player, Component.literal(refusal.message()).withStyle(ChatFormatting.RED));
         player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.0f);
     }
 }

@@ -2,7 +2,6 @@ package dev.candycanecazoo.packapunch.client;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.Prompted;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -36,8 +35,10 @@ public final class PromptOverlay {
             return;
         }
         prompt(mc).ifPresent(prompt -> {
-            Component line = line(mc, prompt);
-            graphics.drawCenteredString(mc.font, line, width / 2, height / 2 + 14, 0xFFFFFF);
+            Optional<String> reason = reason(prompt);
+            int top = height / 2 + 14;
+            int used = WrappedText.drawCentered(graphics, mc.font, action(mc, prompt), width / 2, top, width, reason.isPresent() ? 0xAAAAAA : 0xFFFFFF);
+            reason.ifPresent(r -> WrappedText.drawCentered(graphics, mc.font, Component.literal(r), width / 2, top + used, width, 0xFF5555));
         });
     }
 
@@ -54,16 +55,21 @@ public final class PromptOverlay {
         return mc.level.getBlockEntity(hit.getBlockPos()) instanceof Prompted prompted ? prompted.prompt() : Optional.empty();
     }
 
-    static Component line(Minecraft mc, Prompted.Prompt prompt) {
+    static Component action(Minecraft mc, Prompted.Prompt prompt) {
         MutableComponent line = Component.literal("Press ").append(mc.options.keyUse.getTranslatedKeyMessage())
                 .append(" or ").append(UseKey.KEY.getTranslatedKeyMessage())
                 .append(" to " + prompt.what() + (prompt.cost() > 0 ? " [" + prompt.cost() + "]" : ""));
+        return line;
+    }
+
+    /** Why the purchase would fail right now, shown on its own line under the action. */
+    static Optional<String> reason(Prompted.Prompt prompt) {
         if (prompt.needsPower() && !HudState.powerOn()) {
-            return line.withStyle(ChatFormatting.GRAY).append(Component.literal("  The power must be on").withStyle(ChatFormatting.RED));
+            return Optional.of("The power must be on");
         }
         if (HudState.points() < prompt.cost()) {
-            return line.withStyle(ChatFormatting.GRAY).append(Component.literal("  Not enough points").withStyle(ChatFormatting.RED));
+            return Optional.of("Not enough points");
         }
-        return line;
+        return Optional.empty();
     }
 }

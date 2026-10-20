@@ -222,7 +222,7 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
                 job = Optional.empty();
                 ServerPlayer owner = level.getServer().getPlayerList().getPlayer(current.owner());
                 if (owner != null) {
-                    owner.displayClientMessage(Component.literal("Your upgraded item was lost").withStyle(ChatFormatting.RED), true);
+                    dev.candycanecazoo.packapunch.game.Notices.show(owner, Component.literal("Your upgraded item was lost").withStyle(ChatFormatting.RED));
                 }
             }
             changed();

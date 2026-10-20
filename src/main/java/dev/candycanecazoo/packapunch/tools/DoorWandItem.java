@@ -31,7 +31,7 @@ public final class DoorWandItem extends Item implements MapTool {
             return InteractionResult.SUCCESS;
         }
         if (!player.hasPermissions(2)) {
-            player.displayClientMessage(Component.literal("Map tools need operator permission"), true);
+            dev.candycanecazoo.packapunch.game.Notices.show(player, Component.literal("Map tools need operator permission"));
             return InteractionResult.FAIL;
         }
         BlockPos pos = context.getClickedPos();
@@ -40,11 +40,11 @@ public final class DoorWandItem extends Item implements MapTool {
         Optional<DoorDef> editing = ToolState.door(player).flatMap(id -> Optional.ofNullable(map.doors().get(id)));
         if (player.isShiftKeyDown() || editing.isEmpty()) {
             ToolState.setDoor(player, clicked.map(DoorDef::id));
-            player.displayClientMessage(Component.literal(clicked.map(d -> "Editing door '" + d.id() + "' (" + d.members().size() + " blocks)")
-                    .orElse(player.isShiftKeyDown() ? "Stopped editing doors" : "Click a door's block, or start one with /pap door create <id>")), true);
+            dev.candycanecazoo.packapunch.game.Notices.show(player, Component.literal(clicked.map(d -> "Editing door '" + d.id() + "' (" + d.members().size() + " blocks)")
+                    .orElse(player.isShiftKeyDown() ? "Stopped editing doors" : "Click a door's block, or start one with /pap door create <id>")));
             return InteractionResult.SUCCESS;
         }
-        player.displayClientMessage(Component.literal(toggle(level, editing.get(), pos)), true);
+        dev.candycanecazoo.packapunch.game.Notices.show(player, Component.literal(toggle(level, editing.get(), pos)));
         return InteractionResult.SUCCESS;
     }
 

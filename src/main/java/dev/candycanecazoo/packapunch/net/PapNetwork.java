@@ -32,6 +32,8 @@ public final class PapNetwork {
                 .encoder(DebugPathsPacket::encode).decoder(DebugPathsPacket::decode).consumerMainThread(DebugPathsPacket::handle).add();
         CHANNEL.messageBuilder(DoorSelectionPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(DoorSelectionPacket::encode).decoder(DoorSelectionPacket::decode).consumerMainThread(DoorSelectionPacket::handle).add();
+        CHANNEL.messageBuilder(NoticePacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(NoticePacket::encode).decoder(NoticePacket::decode).consumerMainThread(NoticePacket::handle).add();
         CHANNEL.messageBuilder(HudSyncPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(HudSyncPacket::encode).decoder(HudSyncPacket::decode).consumerMainThread(HudSyncPacket::handle).add();
         CHANNEL.messageBuilder(UsePacket.class, id++, NetworkDirection.PLAY_TO_SERVER)

@@ -40,12 +40,12 @@ public final class ZoneWandItem extends Item implements MapTool {
             return InteractionResultHolder.success(stack);
         }
         if (!serverPlayer.hasPermissions(2)) {
-            serverPlayer.displayClientMessage(Component.literal("Map tools need operator permission"), true);
+            dev.candycanecazoo.packapunch.game.Notices.show(serverPlayer, Component.literal("Map tools need operator permission"));
             return InteractionResultHolder.fail(stack);
         }
         if (serverPlayer.isShiftKeyDown()) {
             ToolState.setSelection(serverPlayer, Selection.NONE);
-            serverPlayer.displayClientMessage(Component.literal("Selection cleared"), true);
+            dev.candycanecazoo.packapunch.game.Notices.show(serverPlayer, Component.literal("Selection cleared"));
             return InteractionResultHolder.success(stack);
         }
         Optional<BlockPos> cell = targetCell(serverPlayer, ServerConfig.TOOL_REACH.get());
@@ -54,9 +54,9 @@ public final class ZoneWandItem extends Item implements MapTool {
         }
         Selection next = ToolState.selection(serverPlayer).click(cell.get());
         ToolState.setSelection(serverPlayer, next);
-        serverPlayer.displayClientMessage(next.box()
+        dev.candycanecazoo.packapunch.game.Notices.show(serverPlayer, next.box()
                 .map(box -> Component.literal("Selected " + box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ() + ". /pap zone add <zone>"))
-                .orElse(Component.literal("First corner " + cell.get().toShortString())), true);
+                .orElse(Component.literal("First corner " + cell.get().toShortString())));
         return InteractionResultHolder.success(stack);
     }
 }

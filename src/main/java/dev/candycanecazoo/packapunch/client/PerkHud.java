@@ -36,11 +36,17 @@ public final class PerkHud {
         if (!HudState.inGame() || badges.isEmpty() || mc.options.hideGui) {
             return;
         }
-        int x = MARGIN + 4;
+        int left = MARGIN + 4;
+        int right = Math.max(left + 40, width / 2 - 100);
+        int x = left;
         int y = GameHud.roundTop(mc.font, height) - 6 - mc.font.lineHeight;
         for (PerkSyncPacket.Badge badge : badges) {
             Component name = Component.translatable(badge.name());
             int w = mc.font.width(name);
+            if (x > left && x + w > right) {
+                x = left;
+                y -= mc.font.lineHeight + 4;
+            }
             graphics.fill(x - 2, y - 2, x + w + 2, y + mc.font.lineHeight, 0x90000000);
             graphics.drawString(mc.font, name, x, y, 0xFF000000 | badge.color());
             x += w + 4 + GAP;

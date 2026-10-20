@@ -42,6 +42,13 @@ class PacketRoundTripTest {
     }
 
     @Test
+    void notice() {
+        NoticePacket packet = new NoticePacket(net.minecraft.network.chat.Component.literal("Not enough points: 4500 needed, you have 1200")
+                .withStyle(net.minecraft.ChatFormatting.RED));
+        assertEquals(packet, roundTrip(packet, NoticePacket::encode, NoticePacket::decode));
+    }
+
+    @Test
     void hud() {
         for (HudSyncPacket packet : List.of(HudSyncPacket.NONE, new HudSyncPacket(7, "Round 7", 12, true, 2350,
                 List.of(new HudSyncPacket.Line("alice", 2350, true, true), new HudSyncPacket.Line("bob", 90, false, false))))) {
