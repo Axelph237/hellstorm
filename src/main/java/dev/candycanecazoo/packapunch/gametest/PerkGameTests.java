@@ -1,7 +1,12 @@
 package dev.candycanecazoo.packapunch.gametest;
 
 import com.tacz.guns.api.GunProperties;
+import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
+import com.tacz.guns.api.entity.ReloadState;
+import com.tacz.guns.api.item.IGun;
+import com.tacz.guns.api.item.gun.AbstractGunItem;
+import com.tacz.guns.entity.shooter.ShooterDataHolder;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.FeatureBlock;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
@@ -21,6 +26,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -41,6 +47,8 @@ public final class PerkGameTests {
     private static final ResourceLocation MULE_KICK = PackAPunch.id("mule_kick");
     private static final ResourceLocation QUICK_REVIVE = PackAPunch.id("quick_revive");
     private static final ResourceLocation DOUBLE_TAP = PackAPunch.id("double_tap");
+    private static final ResourceLocation SPEED_COLA = PackAPunch.id("speed_cola");
+    private static final ResourceLocation AK47 = ResourceLocation.tryBuild("tacz", "ak47");
     private static final float BASE_HEALTH = 20;
 
     private PerkGameTests() {}
@@ -207,6 +215,59 @@ public final class PerkGameTests {
         }
         helper.assertTrue(rpm(player) == base, "rpm after the game is " + rpm(player) + ", not " + base);
         helper.succeed();
+    }
+
+    /**
+     * Drives TacZ's own reload: {@code reload()} starts it as the reload key does, then the start is moved back by
+     * three quarters of the AK's empty-reload feed time and TacZ ticks it once, as the player's tick would.
+     */
+    @GameTest(template = "floor", batch = "perk_speed_cola")
+    public static void speedColaFinishesFeedingAReloadInHalfTheTime(GameTestHelper helper) {
+        BlockPos at = machine(helper, SPEED_COLA);
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_cola");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+        try {
+            long feed = (long) (TimelessAPI.getCommonGunIndex(AK47).orElseThrow().getGunData().getReloadData().getFeed().getEmptyTime() * 1000);
+            long elapsed = feed * 3 / 4;
+            Reloaded before = reloadAfter(player, elapsed);
+            helper.assertTrue(before.state() == ReloadState.StateType.EMPTY_RELOAD_FEEDING && before.magazine() == 0,
+                    "without Speed Cola, " + elapsed + " of " + feed + " ms in should still be feeding, was " + before);
+
+            active.game().refund(player.getUUID(), 10_000);
+            FeatureBlock.use(player, at);
+            helper.assertTrue(state(active, player).perks().containsKey(SPEED_COLA), "Speed Cola wasn't bought");
+            Reloaded after = reloadAfter(player, elapsed);
+            helper.assertTrue(after.state() != ReloadState.StateType.EMPTY_RELOAD_FEEDING && after.magazine() > 0,
+                    "with Speed Cola, " + elapsed + " of " + feed + " ms in should have fed the magazine, was " + after);
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    private record Reloaded(ReloadState.StateType state, int magazine) {}
+
+    private static Reloaded reloadAfter(ServerPlayer player, long elapsedMillis) {
+        ItemStack gun = TaczBridge.createGun(AK47, 2).orElseThrow(() -> new IllegalStateException("tacz:ak47 missing"));
+        IGun iGun = IGun.getIGunOrNull(gun);
+        iGun.setCurrentAmmoCount(gun, 0);
+        iGun.setBulletInBarrel(gun, false);
+        player.setItemInHand(InteractionHand.MAIN_HAND, gun);
+        IGunOperator operator = IGunOperator.fromLivingEntity(player);
+        operator.initialData();
+        ShooterDataHolder data = operator.getDataHolder();
+        // Long ago, so neither the last shot nor drawing the gun blocks the reload.
+        data.shootTimestamp = -1_000_000L;
+        data.drawTimestamp = 0;
+        operator.reload();
+        if (!data.reloadStateType.isReloading()) {
+            throw new IllegalStateException("TacZ didn't start the reload: " + data.reloadStateType + ", can reload "
+                    + ((AbstractGunItem) gun.getItem()).canReload(player, gun) + ", reserve " + iGun.getDummyAmmoAmount(gun)
+                    + ", needs ammo " + operator.needCheckAmmo() + ", bolting " + data.isBolting);
+        }
+        data.reloadTimestamp -= elapsedMillis;
+        ReloadState state = ((AbstractGunItem) gun.getItem()).tickReload(data, gun, player);
+        return new Reloaded(state.getStateType(), iGun.getCurrentAmmoCount(gun));
     }
 
     private static int rpm(ServerPlayer player) {

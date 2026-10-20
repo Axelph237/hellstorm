@@ -69,7 +69,7 @@ public final class PerkHud {
 
         @SubscribeEvent
         public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
-            ClientPerks.update(new PerkSyncPacket(List.of(), 1f));
+            ClientPerks.update(PerkSyncPacket.NONE);
         }
     }
 }

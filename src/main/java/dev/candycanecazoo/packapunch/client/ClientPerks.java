@@ -7,7 +7,7 @@ import java.util.List;
 
 /** The perks the server last said this player holds. No client-only types, so machine prompts can ask it. */
 public final class ClientPerks {
-    private static PerkSyncPacket last = new PerkSyncPacket(List.of(), 1f);
+    private static PerkSyncPacket last = PerkSyncPacket.NONE;
 
     private ClientPerks() {}
 
@@ -25,5 +25,9 @@ public final class ClientPerks {
 
     public static float rpmMultiplier() {
         return last.rpmMultiplier();
+    }
+
+    public static float reloadMultiplier() {
+        return last.reloadMultiplier();
     }
 }

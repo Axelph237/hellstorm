@@ -94,8 +94,8 @@ class PacketRoundTripTest {
     void perkSync() {
         PerkSyncPacket full = new PerkSyncPacket(List.of(
                 new PerkSyncPacket.Badge(ResourceLocation.tryBuild("packapunch", "juggernog"), "perk.packapunch.juggernog", 0xd33a2c),
-                new PerkSyncPacket.Badge(ResourceLocation.tryBuild("other", "tap"), "Tap", 0)), 1.33f);
-        for (PerkSyncPacket packet : List.of(new PerkSyncPacket(List.of(), 1f), full)) {
+                new PerkSyncPacket.Badge(ResourceLocation.tryBuild("other", "tap"), "Tap", 0)), 1.33f, 0.5f);
+        for (PerkSyncPacket packet : List.of(PerkSyncPacket.NONE, full)) {
             assertEquals(packet, roundTrip(packet, PerkSyncPacket::encode, PerkSyncPacket::decode));
         }
     }
