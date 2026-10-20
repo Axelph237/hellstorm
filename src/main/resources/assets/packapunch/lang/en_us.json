@@ -6,5 +6,7 @@
   "block.packapunch.barricade": "Window Barricade",
   "key.categories.packapunch": "Pack-a-Punch",
   "key.packapunch.repair": "Use (repair windows, buy)",
-  "block.packapunch.power_switch": "Power Switch"
+  "block.packapunch.power_switch": "Power Switch",
+  "block.packapunch.wall_buy": "Wall-Buy",
+  "block.packapunch.mystery_box": "Mystery Box"
 }

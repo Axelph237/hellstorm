@@ -116,6 +116,7 @@ public final class GameManager {
                 profiles, game::targetable, settings.windows().tearTicks(), pathing);
         Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)), pathing);
         GAMES.put(level.dimension(), active);
+        dev.candycanecazoo.packapunch.feature.MysteryBoxes.start(active);
         return active;
     }
 

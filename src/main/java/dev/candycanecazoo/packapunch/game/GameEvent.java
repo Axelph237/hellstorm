@@ -22,4 +22,11 @@ public sealed interface GameEvent {
     record PowerOn(java.util.Optional<UUID> by) implements GameEvent {}
 
     record ZombieKilled(UUID mob, Optional<UUID> killer, boolean headshot, boolean melee, BlockPos pos) implements GameEvent {}
+
+    /** {@code refill} is true for an ammo refill of a gun the player already had. */
+    record WallBuy(UUID player, String item, int cost, boolean refill) implements GameEvent {}
+
+    record MysteryBoxOpened(UUID player, String item, BlockPos pos) implements GameEvent {}
+
+    record MysteryBoxMoved(BlockPos from, BlockPos to) implements GameEvent {}
 }

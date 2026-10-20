@@ -69,3 +69,16 @@ Default `repurchase`: `REFILL_AMMO` for TacZ guns, `TOP_UP` for stackables, `DEN
 ## Phase
 
 5.
+
+## As built (phase 5)
+
+- **Classes.** `feature/WallBuy` holds the pure rules: `Repurchase`, `Config` (codec'd, the block entity's settings), and `decide(config, owned)`, which returns `Buy`, `Refill`, `TopUp(missing)`, or `Deny`. `feature/WallBuyBlock` applies them through `Shop`. `game/WeaponSlots` is the gun-slot rule, shared with the Mystery Box.
+- **Block.** A thin directional plate (`FACING` points away from the wall), placed against the face you click. Its model is one 1/16-thick element textured `minecraft:block/dark_oak_planks`. `client/WallBuyRenderer` draws the item on the face the way an item frame does (`ItemDisplayContext.FIXED`, scale 0.8). The server builds the display stack and syncs it, so clients never build TacZ guns themselves. No new textures.
+- **Config.** `{ item, cost, repurchase, ammo_cost, pap_ammo_cost }`. If `repurchase` is missing, it defaults by item kind. `ammo_cost` defaults to half of `cost`, and `pap_ammo_cost` to 4500. `wallbuys.default_pap_ammo_cost` isn't a `GameSettings` field yet; the 4500 is `WallBuy.DEFAULT_PAP_AMMO_COST`. An unconfigured wall-buy sells `tacz:ak47` for 1200.
+- **Commands** (no config screen; all act on the looked-at wall-buy): `/pap wallbuy set <cost> held` (a TacZ gun in your main hand becomes a `tacz_gun` spec, keeping unlimited ammo; any other item becomes a plain spec with its count and NBT), `/pap wallbuy set <cost> gun <gunId>`, `/pap wallbuy ammo <cost> [papCost]`, `/pap wallbuy repurchase <refill_ammo|top_up|duplicate|deny>`, and `/pap wallbuy describe`. `set` resets `repurchase` to the item kind's default and the ammo costs to their defaults. `refill_ammo` is refused for non-guns. A `refill_ammo` config on a plain item (hand-edited NBT) acts as `top_up`.
+- **Owning.** The rule looks at the held stack first, then the rest of the inventory and the offhand. TOP_UP counts every matching stack and adds the missing count. A full stack is refused and nothing is charged. PaP detection reads `pap.tier > 0`.
+- **Refusals charge nothing.** Weapon slots, inventory room, and an uninstalled item are checked before charging. A gun at the slot limit replaces the gun in the selected hotbar slot. If the player isn't holding a gun, they get "Hold the gun you want to swap".
+- **Prompt.** The client reads the local player's inventory (`feature/Viewer`, set at client setup) and runs the same `decide`. So the prompt shows "buy AK-47", "buy ammo for AK-47", "buy upgraded ammo for AK-47", "top up Golden Apple", or nothing for a `deny` item you already have.
+- **Event.** `GameEvent.WallBuy(player, item, cost, refill)`, Lua `wall_buy` with `player`, `item` (the spec's id, such as `tacz:ak47`), `cost`, and `refill`. `GameEvents.emit` is now public, so features outside `game/` can emit events.
+- **Not built.** The `PunchAudit` check of wall-buy items (Pack-a-Punch's job).
+- **Tests.** JUnit: `WallBuyTest` (every repurchase decision, defaults, and the codec), `WeaponSlotsTest`. GameTests in `WallBuyGameTests`: buying a gun (id, charge, event), a refill at the ammo cost after emptying the gun, a refill at the PaP ammo cost, TOP_UP golden apples, DENY, too few points, the slot limit swapping the held gun, a refusal when not holding a gun, and a Mule Kick bonus slot.
