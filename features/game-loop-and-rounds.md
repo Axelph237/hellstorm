@@ -29,7 +29,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 - **`GameManager`** keeps one `Game` per map level. Nothing is static, so several maps (in several dimensions) can run at once.
 - **Tick.** `Game.tick()` switches on the phase and returns the next phase. Transitions:
   - `Lobby → Countdown` on `/pap start`. The first `/pap join` in a level runs `MapValidator` and refuses to open a lobby on any ERROR.
-  - `Countdown → RoundActive(1)` when the timer ends. Every player is moved to a standable cell in a start zone (`StartCells`) in adventure mode.
+  - `Countdown → RoundActive(1)` when the timer ends. Every player is moved to a standable cell in a start zone (`StartCells`) in adventure mode. Joining before that doesn't move anyone. Only the largest walkable piece of each start zone is used (`StandingArea`), so a box drawn past a wall never gets players.
   - `Intermission(r) → RoundActive(r)` after `rounds.intermission_ticks`.
   - `RoundActive(r) → Intermission(r+1)` when `toSpawn == 0 && alive == 0`.
   - any phase `→ GameOver` when no player is `Alive`.

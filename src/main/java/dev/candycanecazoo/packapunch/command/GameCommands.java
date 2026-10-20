@@ -68,9 +68,8 @@ final class GameCommands {
         }
         Sessions.get(player.server).save(player);
         Loadout.give(player, active.game().settings().players());
-        if (active.game().player(player.getUUID()).map(PlayerState::alive).orElse(false)) {
-            active.world().respawn(player.getUUID());
-        } else {
+        // Players stay where they are until the game starts, which moves everyone to the start zone.
+        if (!active.game().player(player.getUUID()).map(PlayerState::alive).orElse(false)) {
             active.world().spectate(player.getUUID());
         }
         String next = active.game().phase() instanceof GamePhase.Lobby ? " /pap start when everyone is in" : " You'll spawn next round";

@@ -5,6 +5,7 @@ import dev.candycanecazoo.packapunch.map.CellProbe;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.map.Passages;
 import dev.candycanecazoo.packapunch.map.SpawnLinks;
+import dev.candycanecazoo.packapunch.map.StandingArea;
 import dev.candycanecazoo.packapunch.map.WindowDef;
 import dev.candycanecazoo.packapunch.map.Zone;
 import dev.candycanecazoo.packapunch.map.ZoneGraph;
@@ -37,6 +38,7 @@ public final class MapValidator {
     public static final String WINDOW_UNKNOWN_ZONE = "window_unknown_zone";
     public static final String WINDOW_WITHOUT_SPAWN = "window_without_spawn";
     public static final String MOB_TOO_BIG_FOR_WINDOW = "mob_too_big_for_window";
+    public static final String SPLIT_START_ZONE = "split_start_zone";
 
     /** Passages are searched this many cells out from each zone unless the caller says otherwise. */
     public static final int DEFAULT_MAX_GAP = 2;
@@ -49,7 +51,7 @@ public final class MapValidator {
     }
 
     public static ValidationReport validate(ZombiesMap map, CellProbe probe, int maxGap) {
-        return validate(map, new ValidationContext(probe, maxGap, ValidationContext.OFFLINE.windows(), List.of()));
+        return validate(map, new ValidationContext(probe, ValidationContext.OFFLINE.standable(), maxGap, ValidationContext.OFFLINE.windows(), List.of()));
     }
 
     public static ValidationReport validate(ZombiesMap map, ValidationContext context) {
@@ -61,6 +63,7 @@ public final class MapValidator {
             return new ValidationReport(problems);
         }
         checkZones(map, problems);
+        checkStartPieces(map, context, problems);
         checkReachability(map, Passages.find(map, ZoneIndex.of(map), probe, maxGap), problems);
         Map<BlockPos, SpawnLinks.Link> links = SpawnLinks.resolve(map, context.windows().linkRange());
         checkSpawns(map, links, problems);
@@ -113,6 +116,18 @@ public final class MapValidator {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /** Players spawn only in a start zone's largest walkable piece, so any other piece is probably a box drawn by mistake. */
+    private static void checkStartPieces(ZombiesMap map, ValidationContext context, List<Problem> problems) {
+        for (Zone zone : map.startZones()) {
+            List<List<BlockPos>> pieces = StandingArea.pieces(zone, context.standable());
+            for (List<BlockPos> piece : pieces.subList(Math.min(1, pieces.size()), pieces.size())) {
+                problems.add(Problem.warning(SPLIT_START_ZONE, "Start zone '" + zone.id() + "' has " + piece.size()
+                        + " standing spots players can't walk to from the rest of it. Players won't spawn there; remove the box if it's a mistake",
+                        piece.get(0)));
             }
         }
     }

@@ -1,6 +1,7 @@
 package dev.candycanecazoo.packapunch.map;
 
 import dev.candycanecazoo.packapunch.map.validate.MapValidator;
+import dev.candycanecazoo.packapunch.map.validate.Problem;
 import dev.candycanecazoo.packapunch.map.validate.ValidationReport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -97,7 +98,7 @@ class MapValidatorTest {
                 .withWindow(new WindowDef("lost", new BlockBox(12, 0, -1, 12, 1, -1), Direction.NORTH, 6, new ZoneId("nowhere")))
                 .withFeature(new BlockPos(12, 0, -3), FeatureKind.SPAWN);
         ValidationReport report = MapValidator.validate(map, new dev.candycanecazoo.packapunch.map.validate.ValidationContext(
-                CellProbe.ALL_SOLID, 2, new dev.candycanecazoo.packapunch.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
+                CellProbe.ALL_SOLID, pos -> false, 2, new dev.candycanecazoo.packapunch.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
                 List.of(new dev.candycanecazoo.packapunch.map.validate.ValidationContext.MobSize("test:giant", 3.6f, 12f))));
         assertTrue(report.has(MapValidator.WINDOW_TOO_LARGE), "8 wide is over 5");
         assertTrue(report.has(MapValidator.WINDOW_UNKNOWN_ZONE));
@@ -105,5 +106,36 @@ class MapValidatorTest {
         assertFalse(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'lost'")),
                 "the marker in front of 'lost' links to it");
         assertTrue(report.has(MapValidator.MOB_TOO_BIG_FOR_WINDOW));
+    }
+
+    /** A start zone drawn as one room plus a stray box past its wall: floor everywhere at y = 0, a wall at x = 10. */
+    private static ZombiesMap startWithStrayBox() {
+        return twoTouchingZonesWithSpawns().withZone(new Zone(START,
+                List.of(new BlockBox(0, 0, 0, 9, 3, 9), new BlockBox(11, 0, -6, 15, 0, -2)), true));
+    }
+
+    private static boolean standable(BlockPos pos) {
+        return pos.getY() == 0 && pos.getX() != 10;
+    }
+
+    @Test
+    void aStartZoneSplitByAWallKeepsItsLargestPieceAndWarnsAboutTheRest() {
+        Zone start = startWithStrayBox().zones().get(START);
+        List<List<BlockPos>> pieces = StandingArea.pieces(start, MapValidatorTest::standable);
+        assertEquals(List.of(100, 25), pieces.stream().map(List::size).toList(), "the room first, then the stray box");
+
+        ValidationReport report = MapValidator.validate(startWithStrayBox(), new dev.candycanecazoo.packapunch.map.validate.ValidationContext(
+                CellProbe.ALL_SOLID, MapValidatorTest::standable, 2, dev.candycanecazoo.packapunch.config.GameSettings.DEFAULT.windows(), List.of()));
+        List<Problem> split = report.problems().stream().filter(p -> p.code().equals(MapValidator.SPLIT_START_ZONE)).toList();
+        assertEquals(1, split.size());
+        assertTrue(new BlockBox(11, 0, -6, 15, 0, -2).contains(split.get(0).pos().orElseThrow()), "points into the stray box");
+        assertTrue(report.playable(), "a warning, not an error");
+    }
+
+    @Test
+    void stepsUpAndDownOneBlockStayInOnePiece() {
+        Zone stairs = new Zone(START, List.of(new BlockBox(0, 0, 0, 3, 3, 0)), true);
+        assertEquals(1, StandingArea.pieces(stairs, pos -> pos.getY() == pos.getX()).size(), "a staircase is one piece");
+        assertEquals(2, StandingArea.pieces(stairs, pos -> pos.getY() == (pos.getX() < 2 ? 0 : 2)).size(), "a two-block ledge splits");
     }
 }

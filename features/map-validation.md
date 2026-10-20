@@ -28,6 +28,7 @@ record ValidationReport(List<Problem> problems) {
 - **Doors.** Every door links two distinct zones (ERROR).
 - **Windows.** Each window opening is within the configured max size. Each mob profile that can spawn at a window fits through that window's opening (WARNING per window and profile).
 - **Overlaps.** Zone boxes don't overlap other zones (ERROR).
+- **Split start zones.** A start zone whose standing spots fall into pieces a player can't walk between (a box drawn past a wall) gets a WARNING pointing at each smaller piece. Players only spawn in the largest one.
 - **Items.** `PunchAudit` results are merged in (see `pack-a-punch.md`): a punchable non-TacZ item with no `punch_id`, or a `punch_id` that doesn't resolve (ERROR).
 - **Wall-buys.** Every TacZ gun id named by a wall-buy exists in the installed gun packs (ERROR).
 

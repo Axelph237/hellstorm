@@ -1,6 +1,6 @@
 package dev.candycanecazoo.packapunch.game;
 
-import dev.candycanecazoo.packapunch.map.BlockBox;
+import dev.candycanecazoo.packapunch.map.StandingArea;
 import dev.candycanecazoo.packapunch.map.Zone;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -8,32 +8,29 @@ import net.minecraft.server.level.ServerLevel;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Cells in the start zones where a player can stand: solid ground below, two open blocks of headroom. */
+/**
+ * Where players spawn: the standing spots of the largest walkable piece of each start zone. Smaller pieces (a box drawn
+ * past a wall, say) are left out, and the validator warns about them.
+ */
 public final class StartCells {
-    private static final int MAX_CELLS = 4096;
-
     private StartCells() {}
 
     public static List<BlockPos> find(ServerLevel level, List<Zone> startZones) {
         List<BlockPos> cells = new ArrayList<>();
         for (Zone zone : startZones) {
-            for (BlockBox box : zone.boxes()) {
-                for (BlockPos pos : BlockPos.betweenClosed(box.min(), box.max())) {
-                    if (standable(level, pos)) {
-                        cells.add(pos.immutable());
-                        if (cells.size() >= MAX_CELLS) {
-                            return cells;
-                        }
-                    }
-                }
+            List<List<BlockPos>> pieces = StandingArea.pieces(zone, pos -> standable(level, pos));
+            if (!pieces.isEmpty()) {
+                cells.addAll(pieces.get(0));
             }
         }
         return cells;
     }
 
-    static boolean standable(ServerLevel level, BlockPos feet) {
+    /** Ground no taller than a full block below (not a fence or wall top), and two blocks of headroom. */
+    public static boolean standable(ServerLevel level, BlockPos feet) {
         BlockPos below = feet.below();
-        return !level.getBlockState(below).getCollisionShape(level, below).isEmpty()
+        net.minecraft.world.phys.shapes.VoxelShape ground = level.getBlockState(below).getCollisionShape(level, below);
+        return !ground.isEmpty() && ground.max(net.minecraft.core.Direction.Axis.Y) <= 1.0
                 && level.getBlockState(feet).getCollisionShape(level, feet).isEmpty()
                 && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty();
     }

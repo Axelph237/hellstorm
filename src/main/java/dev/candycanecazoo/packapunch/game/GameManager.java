@@ -73,7 +73,8 @@ public final class GameManager {
                 mobs.add(new ValidationContext.MobSize(id.toString(), type.getWidth(), type.getHeight()));
             }
         });
-        return new ValidationContext(LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get(), settings().windows(), mobs);
+        return new ValidationContext(LevelCellProbe.of(level), pos -> StartCells.standable(level, pos), ServerConfig.MAX_PASSAGE_GAP.get(),
+                settings().windows(), mobs);
     }
 
     private static dev.candycanecazoo.packapunch.config.GameSettings settings() {

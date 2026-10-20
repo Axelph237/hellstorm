@@ -16,7 +16,7 @@ Snapshots are stored in `MapSavedData` so they survive a crash.
 
 - **Joining** (`/pap join` or a join pad block):
   1. Save an `InventorySnapshot`.
-  2. Clear the inventory and effects, set adventure mode, teleport to the start zone.
+  2. Clear the inventory and effects. The player stays where they are until the game starts; the countdown ending moves everyone to the start zone in adventure mode.
   3. Give the starting loadout (configurable `ItemSpec` list, default a TacZ pistol and a knife).
   4. Set starting points.
 - **Late join.** Joining during `RoundActive` puts the player in `Spectating(respawnNextRound = true)`.
