@@ -34,4 +34,6 @@ public sealed interface GameEvent {
     record MysteryBoxOpened(UUID player, String item, BlockPos pos) implements GameEvent {}
 
     record MysteryBoxMoved(BlockPos from, BlockPos to) implements GameEvent {}
+    /** {@code item} is the gun id for a TacZ gun, the item id otherwise. */
+    record PapUsed(UUID player, String item) implements GameEvent {}
 }

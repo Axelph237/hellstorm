@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.registry;
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.BarricadeBlock;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
+import dev.candycanecazoo.packapunch.feature.PapMachineBlock;
 import dev.candycanecazoo.packapunch.feature.PowerSwitchBlock;
 import dev.candycanecazoo.packapunch.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.packapunch.tools.DoorWandItem;
@@ -58,6 +59,11 @@ public final class PapRegistries {
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.WOOD)));
     public static final RegistryObject<BlockEntityType<MysteryBoxBlock.Entity>> MYSTERY_BOX_ENTITY = BLOCK_ENTITIES.register("mystery_box",
             () -> BlockEntityType.Builder.of(MysteryBoxBlock.Entity::new, MYSTERY_BOX.get()).build(null));
+    public static final RegistryObject<Block> PAP_MACHINE = BLOCKS.register("pap_machine", () -> new PapMachineBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable()
+                    .lightLevel(s -> 6).sound(SoundType.ANVIL)));
+    public static final RegistryObject<BlockEntityType<PapMachineBlock.Entity>> PAP_MACHINE_ENTITY = BLOCK_ENTITIES.register("pap_machine",
+            () -> BlockEntityType.Builder.of(PapMachineBlock.Entity::new, PAP_MACHINE.get()).build(null));
 
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> DOOR_WAND = ITEMS.register("door_wand", () -> new DoorWandItem(new Item.Properties().stacksTo(1)));
@@ -66,6 +72,7 @@ public final class PapRegistries {
     public static final RegistryObject<Item> PERK_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new BlockItem(PERK_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> WALL_BUY_ITEM = ITEMS.register("wall_buy", () -> new BlockItem(WALL_BUY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MYSTERY_BOX_ITEM = ITEMS.register("mystery_box", () -> new BlockItem(MYSTERY_BOX.get(), new Item.Properties()));
+    public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.packapunch"))
@@ -78,6 +85,7 @@ public final class PapRegistries {
                 output.accept(PERK_MACHINE_ITEM.get());
                 output.accept(WALL_BUY_ITEM.get());
                 output.accept(MYSTERY_BOX_ITEM.get());
+                output.accept(PAP_MACHINE_ITEM.get());
             })
             .build());
 

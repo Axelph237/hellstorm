@@ -16,5 +16,8 @@
   "perk.packapunch.quick_revive": "Quick Revive",
   "perk.packapunch.mule_kick": "Mule Kick",
   "block.packapunch.wall_buy": "Wall-Buy",
-  "block.packapunch.mystery_box": "Mystery Box"
+  "block.packapunch.mystery_box": "Mystery Box",
+  "block.packapunch.pap_machine": "Pack-a-Punch Machine",
+  "item.packapunch.upgraded": "Upgraded %s",
+  "item.packapunch.punch.iron_sword": "Pack-a-Punched Sword"
 }

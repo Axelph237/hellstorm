@@ -75,7 +75,7 @@ public final class GameManager {
             }
         });
         return new ValidationContext(LevelCellProbe.of(level), pos -> StartCells.standable(level, pos), ServerConfig.MAX_PASSAGE_GAP.get(),
-                settings().windows(), mobs);
+                settings().windows(), mobs, dev.candycanecazoo.packapunch.pap.PunchAudit.problems(level));
     }
 
     public static dev.candycanecazoo.packapunch.config.GameSettings settings() {

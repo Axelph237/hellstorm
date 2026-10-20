@@ -36,6 +36,7 @@ public final class LuaEvents {
         if (event instanceof GameEvent.WallBuy) return "wall_buy";
         if (event instanceof GameEvent.MysteryBoxOpened) return "mystery_box_opened";
         if (event instanceof GameEvent.MysteryBoxMoved) return "mystery_box_moved";
+        if (event instanceof GameEvent.PapUsed) return "pap_used";
         throw new IllegalArgumentException("No script name for " + event);
     }
 
@@ -98,6 +99,9 @@ public final class LuaEvents {
             LuaTable to = new LuaTable();
             pos(to, e.to());
             t.set("to", to);
+        } else if (event instanceof GameEvent.PapUsed e) {
+            t.set("player", e.player().toString());
+            t.set("item", e.item());
         }
         return t;
     }

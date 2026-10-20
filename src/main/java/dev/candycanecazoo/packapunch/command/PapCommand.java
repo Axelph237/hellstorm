@@ -38,6 +38,7 @@ public final class PapCommand {
                 .then(PerkCommands.perk().requires(PapCommand::op))
                 .then(WallBuyCommands.wallbuy().requires(PapCommand::op))
                 .then(BoxCommands.box().requires(PapCommand::op))
+                .then(PapMachineCommands.pap().requires(PapCommand::op))
                 .then(MobTestCommand.mobtest().requires(PapCommand::op))
                 .then(DebugCommands.debug().requires(PapCommand::op))
                 .then(Commands.literal("give").requires(PapCommand::op)
