@@ -42,6 +42,8 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.BooleanValue startingGunsUnlimitedAmmo;
     private final ForgeConfigSpec.IntValue weaponSlots;
     private final ForgeConfigSpec.IntValue perkLimit;
+    private final ForgeConfigSpec.IntValue maxPlayers;
+    private final ForgeConfigSpec.IntValue reconnectGraceTicks;
     private final ForgeConfigSpec.IntValue doorDefaultCost;
     private final ForgeConfigSpec.IntValue boxCost;
     private final ForgeConfigSpec.IntValue boxFireSaleCost;
@@ -132,6 +134,9 @@ public final class GameSettingsConfig {
         weaponSlots = b.comment("TacZ guns a player can carry. Buying another replaces the held gun. Mule Kick adds one.")
                 .defineInRange("weapon_slots", d.players().weaponSlots(), 1, 9);
         perkLimit = b.comment("Most perks a player can hold at once.").defineInRange("perk_limit", d.players().perkLimit(), 0, 64);
+        maxPlayers = b.comment("Most players in one game.").defineInRange("max_players", d.players().maxPlayers(), 1, 64);
+        reconnectGraceTicks = b.comment("A player who disconnects mid-game keeps their place, points, and perks this long (20 ticks = 1 second).")
+                .defineInRange("reconnect_grace_ticks", d.players().reconnectGraceTicks(), 0, 72_000);
         b.pop();
         b.push("doors");
         doorDefaultCost = b.comment("What a new door costs until set otherwise.").defineInRange("default_cost", d.doors().defaultCost(), 0, 1_000_000);
@@ -215,7 +220,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
                         r.read(repair), r.read(repairCapPerRound)),
                 new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines),
-                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit)),
+                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks)),
                 new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),
                 new GameSettings.Doors(r.read(doorDefaultCost)),
                 new GameSettings.Box(r.read(boxCost), r.read(boxFireSaleCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),

@@ -73,14 +73,16 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
 
     /** {@code weaponSlots}: TacZ guns a player can carry before buying one replaces the held gun (Mule Kick adds one). */
     public record Players(List<ResourceLocation> startingGuns, List<ResourceLocation> startingItems, int reserveMagazines,
-                          boolean startingGunsUnlimitedAmmo, int weaponSlots, int perkLimit) {
+                          boolean startingGunsUnlimitedAmmo, int weaponSlots, int perkLimit, int maxPlayers, int reconnectGraceTicks) {
         public static final Codec<Players> CODEC = RecordCodecBuilder.create(i -> i.group(
                 ResourceLocation.CODEC.listOf().fieldOf("starting_guns").forGetter(Players::startingGuns),
                 ResourceLocation.CODEC.listOf().fieldOf("starting_items").forGetter(Players::startingItems),
                 Codec.INT.fieldOf("reserve_magazines").forGetter(Players::reserveMagazines),
                 Codec.BOOL.fieldOf("starting_guns_unlimited_ammo").forGetter(Players::startingGunsUnlimitedAmmo),
                 Codec.INT.fieldOf("weapon_slots").forGetter(Players::weaponSlots),
-                Codec.INT.fieldOf("perk_limit").forGetter(Players::perkLimit)
+                Codec.INT.fieldOf("perk_limit").forGetter(Players::perkLimit),
+                Codec.INT.fieldOf("max_players").forGetter(Players::maxPlayers),
+                Codec.INT.fieldOf("reconnect_grace_ticks").forGetter(Players::reconnectGraceTicks)
         ).apply(i, Players::new));
 
         public Players {
@@ -190,7 +192,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             new Rounds(6, 2.5, 0.5, 0.15, 6, 0.23, 0.32, 0.004, 0.0001, 24, 40, 3000, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
-            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false, 2, 4),
+            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false, 2, 4, 4, 1200),
             new Windows(5, 4, 30, 15, 6.0),
             new Doors(750),
             new Box(950, 10, 80, 240, 4, 0.15),

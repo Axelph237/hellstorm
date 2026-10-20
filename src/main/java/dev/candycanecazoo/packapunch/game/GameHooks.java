@@ -25,6 +25,7 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /** Forge events that feed running games: ticks, kills, deaths, joins and leaves, and keeping game mobs clean. */
 @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID)
@@ -207,21 +208,39 @@ public final class GameHooks {
         }
     }
 
+    /** Nobody is saved crawling. Someone still waiting to reconnect keeps their perks; someone who left the game doesn't. */
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        GameManager.forPlayer(event.getEntity().getUUID()).ifPresent(a -> {
+        UUID id = event.getEntity().getUUID();
+        GameManager.forPlayer(id).ifPresent(a -> {
+            a.game().disconnect(id);
             if (event.getEntity() instanceof ServerPlayer player) {
-                Perks.clearBuffs(player);
                 Downs.standUp(player);
+                if (a.game().player(id).isEmpty()) {
+                    Perks.clearBuffs(player);
+                }
             }
-            a.game().leave(event.getEntity().getUUID());
         });
     }
 
-    /** Someone who left mid-game (or was in a game when the server crashed) gets their normal state back here. */
+    /**
+     * Back in time: carry on in the game (a spectator still spectates). Otherwise, someone who left mid-game, outlasted
+     * the grace time, or was in a game when the server crashed gets their normal state back here.
+     */
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID()).isEmpty()) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        Optional<GameManager.Active> game = GameManager.forPlayer(player.getUUID());
+        if (game.isPresent() && game.get().game().reconnect(player.getUUID())) {
+            // The server may log them in with its own game mode (a LAN world's default, say), so put the game's back.
+            if (game.get().game().player(player.getUUID()).map(s -> s.life() instanceof LifeState.Spectating).orElse(false)) {
+                game.get().world().spectate(player.getUUID());
+            } else {
+                player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
+            }
+        } else if (game.isEmpty()) {
             Sessions.get(player.server).restore(player);
         }
     }

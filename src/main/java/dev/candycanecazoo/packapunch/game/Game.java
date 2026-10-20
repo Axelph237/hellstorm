@@ -213,9 +213,13 @@ public final class Game {
         return Set.copyOf(mobs);
     }
 
+    public boolean full() {
+        return players.size() >= settings.players().maxPlayers();
+    }
+
     /** Joining before the first round starts plays immediately; joining later spectates until the next round. */
     public boolean join(UUID player) {
-        if (players.containsKey(player) || phase instanceof GamePhase.GameOver) {
+        if (players.containsKey(player) || phase instanceof GamePhase.GameOver || full()) {
             return false;
         }
         PlayerState state = new PlayerState(player, settings.economy().startingPoints());
@@ -230,6 +234,44 @@ public final class Game {
         players.remove(player);
         reviveHolds.remove(player);
         reviveHolds.values().removeIf(hold -> hold.reviver().equals(player));
+    }
+
+    /**
+     * The player's connection dropped. In the lobby or after game over they simply leave. Otherwise their place, points,
+     * and perks wait {@code players.reconnect_grace_ticks} for them: someone down is out until the next round instead of
+     * bleeding out unseen, and someone up still counts as fighting, so a dropped connection isn't a lost game.
+     */
+    public void disconnect(UUID id) {
+        PlayerState player = players.get(id);
+        if (player == null) {
+            return;
+        }
+        if (phase instanceof GamePhase.Lobby || phase instanceof GamePhase.GameOver) {
+            leave(id);
+            return;
+        }
+        reviveHolds.remove(id);
+        reviveHolds.values().removeIf(hold -> hold.reviver().equals(id));
+        if (player.life() instanceof LifeState.Downed) {
+            player.setLife(new LifeState.Spectating());
+        }
+        player.disconnect(ticks);
+    }
+
+    /** Back within the grace time: true if they were waiting, and they carry on as they left. */
+    public boolean reconnect(UUID id) {
+        PlayerState player = players.get(id);
+        if (player == null || player.connected()) {
+            return false;
+        }
+        player.reconnect();
+        return true;
+    }
+
+    private void dropExpiredDisconnects() {
+        int grace = settings.players().reconnectGraceTicks();
+        List.copyOf(players.values()).stream().filter(p -> !p.connected() && ticks - p.disconnectedAt() >= grace)
+                .forEach(p -> leave(p.id()));
     }
 
     /** Starts the countdown. Only from the lobby, with at least one player. */
@@ -250,6 +292,7 @@ public final class Game {
 
     public void tick(GameWorld world) {
         ticks++;
+        dropExpiredDisconnects();
         if (!(phase instanceof GamePhase.Lobby)) {
             phase = advance(world);
         }
@@ -297,7 +340,8 @@ public final class Game {
     private GamePhase beginRound(GameWorld world, int round) {
         for (PlayerState player : players.values()) {
             player.resetRoundCounters();
-            if (player.life() instanceof LifeState.Spectating) {
+            // Someone away keeps spectating: respawning them would put an empty body in play.
+            if (player.life() instanceof LifeState.Spectating && player.connected()) {
                 player.setLife(new LifeState.Alive());
                 world.respawn(player.id());
                 world.giveStartingLoadout(player.id());

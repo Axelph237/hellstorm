@@ -50,3 +50,17 @@ None.
 ## Phase
 
 2 (join and leave), 7 (edge cases).
+
+## As built (phase 7)
+
+- **Joining and leaving** (built in phase 2): `/pap join` saves a snapshot (`game/Sessions`: inventory, effects, game mode, health, food, XP, position) once and clears the player; leaving, game end, or the next login outside a game restores it exactly.
+- **Late join.** Joining during a round or the break spectates until the next round (`Game.join`).
+- **Player cap.** `players.max_players` (4). `/pap join` on a full game says so; `Game.join` refuses too.
+- **Disconnect grace** (`Game.disconnect`, `Game.reconnect`, `players.reconnect_grace_ticks`, 1200 = one minute).
+  - In the lobby or after game over, a disconnect simply leaves the game.
+  - Otherwise the player keeps their place and points, and their perks and game inventory stay on their saved player. Someone down becomes a spectator instead of bleeding out unseen, and spectators who are away aren't respawned at the next round. Someone up still counts as fighting, so a dropped connection doesn't end the game by itself.
+  - Back within the grace time, they carry on: points as they left them, the game's adventure mode put back (a server may log them in with its own, a LAN world's default for one), or spectator mode if they were out. After it, `Game.tick` removes them; their next login outside a game restores their snapshot, which also takes away the game's perks.
+  - On logout nobody is saved crawling (`Downs.standUp`), and only someone who left the game for good loses their perks then.
+- **Not hurt outside the fight.** In the lobby, the countdown, and after game over, game players take no damage (`Game.protectsPlayers`).
+- **Tests.** JUnit `DisconnectTest`: back in time keeps the place and points; outlasting the grace time removes them; someone away still counts as fighting, until the grace runs out; someone down who drops spectates and isn't respawned while away; the lobby just leaves; a full game takes no more. Checked live over LAN with two clients: a player with 4,821 points disconnected mid-round, was kept (offline, 4,821, still alive) while the round went on, reconnected five seconds later into the same game with the same points and the HUD, in adventure mode.
+

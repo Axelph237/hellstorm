@@ -67,6 +67,10 @@ final class GameCommands {
             }
             active = ((GameManager.CreateResult.Created) result).active();
         }
+        if (active.game().full()) {
+            ctx.getSource().sendFailure(Component.literal("This game is full (" + active.game().settings().players().maxPlayers() + " players)"));
+            return 0;
+        }
         if (!active.game().join(player.getUUID())) {
             ctx.getSource().sendFailure(Component.literal("This game is ending. Try again in a moment"));
             return 0;

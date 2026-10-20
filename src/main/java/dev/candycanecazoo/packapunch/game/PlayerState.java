@@ -14,6 +14,8 @@ public final class PlayerState {
     private Optional<ZoneId> lastZone = Optional.empty();
     private int repairPointsThisRound;
     private int selfRevivesUsed;
+    /** The game tick they disconnected at, or -1 while connected. */
+    private long disconnectedAt = -1;
     private long lastHurtTick;
 
     PlayerState(UUID id, int points) {
@@ -36,6 +38,22 @@ public final class PlayerState {
     /** Alive or down: still shooting, still earning points. */
     public boolean inPlay() {
         return !(life instanceof LifeState.Spectating);
+    }
+
+    public boolean connected() {
+        return disconnectedAt < 0;
+    }
+
+    public long disconnectedAt() {
+        return disconnectedAt;
+    }
+
+    void disconnect(long tick) {
+        disconnectedAt = tick;
+    }
+
+    void reconnect() {
+        disconnectedAt = -1;
     }
 
     public int selfRevivesUsed() {
