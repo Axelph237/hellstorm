@@ -94,7 +94,7 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
         @Override
         public Optional<Prompt> prompt() {
             return display().filter(d -> !ClientPerks.owns(d.perk()))
-                    .map(d -> new Prompt("buy " + Language.getInstance().getOrDefault(d.name()), d.cost(), d.requiresPower()));
+                    .map(d -> new Prompt(Language.getInstance().getOrDefault(d.name()), d.cost(), d.requiresPower()));
         }
 
         @Override

@@ -42,7 +42,7 @@ public final class PowerSwitchBlock extends LeverBlock implements EntityBlock, F
 
         @Override
         public Optional<Prompt> prompt() {
-            return getBlockState().getValue(POWERED) ? Optional.empty() : Optional.of(new Prompt("turn on the power", config().cost(), false));
+            return getBlockState().getValue(POWERED) ? Optional.empty() : Optional.of(new Prompt("Power", config().cost(), false));
         }
     }
 

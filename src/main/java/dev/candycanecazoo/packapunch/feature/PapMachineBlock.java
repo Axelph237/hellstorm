@@ -99,9 +99,9 @@ public final class PapMachineBlock extends Block implements EntityBlock, Feature
         @Override
         public Optional<Prompt> prompt() {
             if (job.isEmpty()) {
-                return Optional.of(new Prompt("Pack-a-Punch the item you're holding", shownCost, true));
+                return Optional.of(new Prompt("Pack-A-Punch", shownCost, true));
             }
-            return job.get().ready() ? Optional.of(new Prompt("take " + job.get().result().getHoverName().getString(), 0, false)) : Optional.empty();
+            return job.get().ready() ? Optional.of(new Prompt(job.get().result().getHoverName().getString(), 0, false)) : Optional.empty();
         }
 
         void use(ServerPlayer player, GameManager.Active game) {

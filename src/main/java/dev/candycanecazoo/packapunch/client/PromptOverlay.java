@@ -2,10 +2,10 @@ package dev.candycanecazoo.packapunch.client;
 
 import dev.candycanecazoo.packapunch.PackAPunch;
 import dev.candycanecazoo.packapunch.feature.Prompted;
+import dev.candycanecazoo.packapunch.map.DoorDef;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
@@ -17,8 +17,8 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.Optional;
 
 /**
- * "Press [Use] to buy AK-47 [1000]" under the crosshair while a player in a game looks at something they can buy, in red
- * with the reason when they can't afford it or it needs power.
+ * "AK-47 1000" under the crosshair while a player in a game looks at something they can buy, in red when they can't
+ * afford it or it needs power.
  */
 @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class PromptOverlay {
@@ -34,12 +34,8 @@ public final class PromptOverlay {
         if (!HudState.inGame() || mc.level == null || mc.options.hideGui) {
             return;
         }
-        prompt(mc).ifPresent(prompt -> {
-            Optional<String> reason = reason(prompt);
-            int top = height / 2 + 14;
-            int used = WrappedText.drawCentered(graphics, mc.font, action(mc, prompt), width / 2, top, width, reason.isPresent() ? 0xAAAAAA : 0xFFFFFF);
-            reason.ifPresent(r -> WrappedText.drawCentered(graphics, mc.font, Component.literal(r), width / 2, top + used, width, 0xFF5555));
-        });
+        prompt(mc).ifPresent(prompt -> WrappedText.drawCentered(graphics, mc.font, text(prompt), width / 2, height / 2 + 14, width,
+                buyable(prompt) ? 0xFFFFFF : 0xFF5555));
     }
 
     /** What the crosshair is on, if it is a door or a machine with something to sell. */
@@ -48,28 +44,18 @@ public final class PromptOverlay {
             return Optional.empty();
         }
         Optional<Prompted.Prompt> door = ClientMapState.map().doorAt(hit.getBlockPos()).map(d -> new Prompted.Prompt(
-                (d.style() == dev.candycanecazoo.packapunch.map.DoorDef.Style.DEBRIS ? "clear the debris" : "open the door"), d.cost(), d.requiresPower()));
+                d.style() == DoorDef.Style.DEBRIS ? "Debris" : "Door", d.cost(), d.requiresPower()));
         if (door.isPresent()) {
             return door;
         }
         return mc.level.getBlockEntity(hit.getBlockPos()) instanceof Prompted prompted ? prompted.prompt() : Optional.empty();
     }
 
-    static Component action(Minecraft mc, Prompted.Prompt prompt) {
-        MutableComponent line = Component.literal("Press ").append(mc.options.keyUse.getTranslatedKeyMessage())
-                .append(" or ").append(UseKey.KEY.getTranslatedKeyMessage())
-                .append(" to " + prompt.what() + (prompt.cost() > 0 ? " [" + prompt.cost() + "]" : ""));
-        return line;
+    static Component text(Prompted.Prompt prompt) {
+        return Component.literal(prompt.cost() > 0 ? prompt.label() + " " + prompt.cost() : prompt.label());
     }
 
-    /** Why the purchase would fail right now, shown on its own line under the action. */
-    static Optional<String> reason(Prompted.Prompt prompt) {
-        if (prompt.needsPower() && !HudState.powerOn()) {
-            return Optional.of("The power must be on");
-        }
-        if (HudState.points() < prompt.cost()) {
-            return Optional.of("Not enough points");
-        }
-        return Optional.empty();
+    static boolean buyable(Prompted.Prompt prompt) {
+        return (!prompt.needsPower() || HudState.powerOn()) && HudState.points() >= prompt.cost();
     }
 }

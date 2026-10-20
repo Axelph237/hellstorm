@@ -104,18 +104,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         public Optional<Prompt> prompt() {
             Optional<Match> match = Viewer.get().flatMap(p -> find(p.getInventory(), config().item()));
             WallBuy.Action action = WallBuy.decide(config(), match.map(Match::owned));
-            String name = itemName();
-            if (action instanceof WallBuy.Action.Refill) {
-                String what = match.get().owned().punched() ? "buy upgraded ammo for " : "buy ammo for ";
-                return Optional.of(new Prompt(what + name, action.cost(), false));
-            }
-            if (action instanceof WallBuy.Action.TopUp) {
-                return Optional.of(new Prompt("top up " + name, action.cost(), false));
-            }
-            if (action instanceof WallBuy.Action.Buy) {
-                return Optional.of(new Prompt((match.isPresent() ? "buy another " : "buy ") + name, action.cost(), false));
-            }
-            return Optional.empty();
+            return action instanceof WallBuy.Action.Deny ? Optional.empty() : Optional.of(new Prompt(itemName(), action.cost(), false));
         }
     }
 

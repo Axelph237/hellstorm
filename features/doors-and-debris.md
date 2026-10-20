@@ -47,7 +47,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
   3. Add both zones to the game's unlocked set.
   4. Tell pathfinding to compute portal edges for the newly reachable zones (see `zombie-pathfinding.md`).
   5. Emit `door_opened` (see `scripting-and-events.md`).
-- **Prompts.** `DoorIndex` membership for nearby doors is synced to clients so the HUD can show "Press [Use] to open Door [750]" while looking at any member.
+- **Prompts.** `DoorIndex` membership for nearby doors is synced to clients so the HUD can show "Door 750" while looking at any member.
 
 **Interaction with other systems.**
 - Room detection (`zone detect`) treats door members as walls, so a closed door splits two zones.
@@ -82,7 +82,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 
 ## As built (phase 5)
 
-- **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The zones aren't stored. `DoorDef.zones(index)` finds the zones its blocks border, looking up to 2 cells out from each block, so editing zones never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "open the door" or "clear the debris".
+- **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The zones aren't stored. `DoorDef.zones(index)` finds the zones its blocks border, looking up to 2 cells out from each block, so editing zones never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "Door" or "Debris".
 - **Door Wand** (`tools/DoorWandItem`, golden axe look):
   - Right-click a block to add it to the door being edited, or remove it.
   - With no door being edited, right-click a door's block to start editing that door.
