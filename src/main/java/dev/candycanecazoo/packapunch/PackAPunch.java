@@ -27,6 +27,7 @@ public final class PackAPunch {
     public PackAPunch() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         PapRegistries.register(modBus);
+        dev.candycanecazoo.packapunch.powerup.PowerUpRegistries.register(modBus);
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(PapNetwork::register));
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);

@@ -19,5 +19,6 @@ public final class MapReset {
         MysteryBoxes.resetAll(level, map.features(FeatureKind.MYSTERY_BOX));
         PapMachineBlock.resetAll(level, map.features(FeatureKind.PAP_MACHINE));
         TrapControllerBlock.resetAll(level, map.features(FeatureKind.TRAP));
+        level.getEntities(dev.candycanecazoo.packapunch.powerup.PowerUpRegistries.POWER_UP.get(), e -> true).forEach(net.minecraft.world.entity.Entity::discard);
     }
 }

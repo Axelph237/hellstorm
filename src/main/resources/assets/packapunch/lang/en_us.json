@@ -1,4 +1,12 @@
 {
+  "wave.packapunch.hounds": "Something is coming. The hounds are loose.",
+  "entity.packapunch.power_up": "Power-Up",
+  "powerup.packapunch.max_ammo": "Max Ammo",
+  "powerup.packapunch.insta_kill": "Insta-Kill",
+  "powerup.packapunch.double_points": "Double Points",
+  "powerup.packapunch.nuke": "Kaboom!",
+  "powerup.packapunch.carpenter": "Carpenter",
+  "powerup.packapunch.fire_sale": "Fire Sale",
   "attribute.name.packapunch.reload_speed": "Reload Speed",
   "attribute.name.packapunch.revive_speed": "Revive Speed",
   "itemGroup.packapunch": "Pack-a-Punch Map Tools",

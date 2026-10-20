@@ -276,4 +276,27 @@ public final class ForgeGameWorld implements GameWorld {
                     status.round(), status.phase(), status.zombiesLeft(), status.powerOn(), status.points(), lines, status.timers(), status.bar()));
         });
     }
+
+    @Override
+    public void dropPowerUp(ResourceLocation powerUp, BlockPos pos) {
+        GameManager.get(level).ifPresent(game -> dev.candycanecazoo.packapunch.powerup.PowerUps.drop(level, game.game().settings().powerUps(), powerUp,
+                Vec3.atBottomCenterOf(pos)));
+    }
+
+    @Override
+    public void timedEffectEnded(ResourceLocation effect) {
+        GameManager.get(level).ifPresent(game -> dev.candycanecazoo.packapunch.powerup.PowerUps.ended(game, effect));
+    }
+
+    @Override
+    public void setFog(Optional<Float> density) {
+        dev.candycanecazoo.packapunch.net.FogPacket packet = new dev.candycanecazoo.packapunch.net.FogPacket(density.orElse(0f));
+        players.get().forEach(id -> entity(id).ifPresent(p -> dev.candycanecazoo.packapunch.net.PapNetwork.send(p, packet)));
+    }
+
+    @Override
+    public void announceKey(String key) {
+        Component text = Component.translatable(key).withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+        players.get().forEach(id -> player(id).ifPresent(p -> p.sendSystemMessage(text)));
+    }
 }

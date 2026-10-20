@@ -5,6 +5,9 @@ import dev.candycanecazoo.packapunch.config.GameSettings;
 import dev.candycanecazoo.packapunch.map.ZoneId;
 import dev.candycanecazoo.packapunch.perk.PerkDef;
 import dev.candycanecazoo.packapunch.perk.PerkEffect;
+import dev.candycanecazoo.packapunch.powerup.PowerUpDrops;
+import dev.candycanecazoo.packapunch.wave.RoundRules;
+import dev.candycanecazoo.packapunch.wave.WaveSchedule;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -52,13 +55,28 @@ public final class Game {
     private static final int HOLD_GRACE_TICKS = 5;
 
     private record ReviveHold(UUID reviver, long tick) {}
+    private final SurvivalContent content;
+    private int dropsThisRound;
+    private final List<Drop> pendingDrops = new ArrayList<>();
+    private final WaveSchedule waves;
+    /** The current round's wave event, if it is a special round. */
+    private Optional<RoundRules> rules = Optional.empty();
+
+    /** A power-up waiting for the next tick to be put in the world. */
+    private record Drop(ResourceLocation powerUp, BlockPos pos) {}
 
     public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
+        this(settings, map, roster, random, events, SurvivalContent.NONE);
+    }
+
+    public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events, SurvivalContent content) {
         this.settings = settings;
         this.map = map;
         this.roster = roster;
         this.random = random;
         this.events = events;
+        this.content = content;
+        this.waves = new WaveSchedule(content.waveEvents(), settings.waveEvents(), random);
         // A map without a power switch is powered from the start.
         this.powerOn = map.map().features(dev.candycanecazoo.packapunch.map.FeatureKind.POWER_SWITCH).isEmpty();
         this.graph = map.graph();
@@ -257,6 +275,7 @@ public final class Game {
             tickDowns(world);
             tickRegen(world);
         }
+        spawnDrops(world);
         if (ticks % STATUS_INTERVAL == 0) {
             players.keySet().forEach(id -> world.showStatus(id, status(id)));
         }
@@ -301,14 +320,23 @@ public final class Game {
                 world.giveStartingLoadout(player.id());
             }
         }
+        dropsThisRound = 0;
+        rules = waves.forRound(round);
+        rules.ifPresent(r -> {
+            events.emit(new GameEvent.WaveEventStarted(r.event(), round));
+            r.announce().ifPresent(world::announceKey);
+            r.fog().ifPresent(density -> world.setFog(Optional.of(density)));
+        });
         events.emit(new GameEvent.RoundStart(round));
         world.announce("Round " + round);
-        return new GamePhase.RoundActive(round, RoundPlan.zombieCount(settings.rounds(), round, players.size()), 0);
+        int count = RoundPlan.zombieCount(settings.rounds(), round, players.size());
+        return new GamePhase.RoundActive(round, rules.map(r -> Math.max(1, (int) Math.round(count * r.count()))).orElse(count), 0);
     }
 
     private GamePhase tickRound(GameWorld world, GamePhase.RoundActive round) {
         updatePlayerZones(world);
         if (round.toSpawn() == 0 && mobs.isEmpty()) {
+            endWave(world);
             events.emit(new GameEvent.RoundEnd(round.round()));
             world.announce("Round " + round.round() + " survived");
             return new GamePhase.Intermission(round.round() + 1, settings.rounds().intermissionTicks());
@@ -326,7 +354,8 @@ public final class Game {
             events.emit(new GameEvent.ZombieSpawned(mob, marker.get()));
         });
         // The spawn tick itself counts toward the delay, so a delay of N puts the next spawn N ticks later.
-        int cooldown = RoundPlan.spawnDelayTicks(settings.rounds(), round.round()) - 1;
+        int delay = RoundPlan.spawnDelayTicks(settings.rounds(), round.round());
+        int cooldown = rules.map(r -> Math.max(1, (int) Math.round(delay / r.spawnRate()))).orElse(delay) - 1;
         return spawned.isPresent()
                 ? new GamePhase.RoundActive(round.round(), round.toSpawn() - 1, cooldown)
                 : new GamePhase.RoundActive(round.round(), round.toSpawn(), cooldown);
@@ -335,8 +364,30 @@ public final class Game {
     private Optional<GameWorld.ZombieSpec> zombieSpec(int round, BlockPos marker, GameWorld world) {
         GameSettings.Rounds r = settings.rounds();
         boolean sprints = random.nextDouble() < RoundPlan.sprintChance(r, round);
-        return roster.pick(round, random, profile -> world.canSpawn(profile, marker)).map(profile ->
+        return pickProfile(round, marker, world).map(profile ->
                 new GameWorld.ZombieSpec(profile, RoundPlan.zombieHealth(r, round), RoundPlan.zombieSpeed(r, round, sprints)));
+    }
+
+    /** A special round's own profiles, if it has any that fit this marker, else the roster's pick. */
+    private Optional<ResourceLocation> pickProfile(int round, BlockPos marker, GameWorld world) {
+        List<ResourceLocation> special = rules.map(RoundRules::profiles).orElse(List.of()).stream()
+                .filter(profile -> world.canSpawn(profile, marker)).toList();
+        if (!special.isEmpty()) {
+            return Optional.of(special.get(random.nextInt(special.size())));
+        }
+        return roster.pick(round, random, profile -> world.canSpawn(profile, marker));
+    }
+
+    private void endWave(GameWorld world) {
+        if (rules.flatMap(RoundRules::fog).isPresent()) {
+            world.setFog(Optional.empty());
+        }
+        rules = Optional.empty();
+    }
+
+    /** The current round's wave event, if any. */
+    public Optional<RoundRules> waveEvent() {
+        return rules;
     }
 
     /** Players zombies may target: in this game and alive. */
@@ -394,6 +445,7 @@ public final class Game {
             world.timedEffectEnded(effect);
         });
         remaining.forEach(world::removeMob);
+        endWave(world);
         events.emit(new GameEvent.GameEnd(roundReached));
         world.announce("Game over. You survived " + roundReached + (roundReached == 1 ? " round" : " rounds"));
         phase = new GamePhase.GameOver(roundReached, settings.rounds().gameOverTicks());
@@ -406,7 +458,7 @@ public final class Game {
         if (player == null || !player.alive()) {
             return;
         }
-        int award = Economy.award(settings.economy(), new PointSource.Repair(), false);
+        int award = Economy.award(settings.economy(), new PointSource.Repair(), doublePoints());
         int room = settings.economy().repairCapPerRound() - player.repairPointsThisRound();
         if (room > 0) {
             player.addRepairPoints(Math.min(award, room));
@@ -417,7 +469,7 @@ public final class Game {
     public void onMobHit(UUID mob, UUID attacker) {
         PlayerState player = players.get(attacker);
         if (mobs.contains(mob) && player != null && player.inPlay()) {
-            player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), false));
+            player.addPoints(Economy.award(settings.economy(), new PointSource.Hit(), doublePoints()));
         }
     }
 
@@ -428,10 +480,52 @@ public final class Game {
         }
         Optional<PlayerState> player = killer.map(players::get).filter(PlayerState::inPlay);
         player.ifPresent(p -> {
-            p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), false));
+            p.addPoints(Economy.award(settings.economy(), new PointSource.Kill(headshot, melee), doublePoints()));
             p.countKill(headshot);
         });
         events.emit(new GameEvent.ZombieKilled(mob, player.map(PlayerState::id), headshot, melee, pos));
+        if (phase instanceof GamePhase.RoundActive round && round.toSpawn() == 0 && mobs.isEmpty()) {
+            rules.flatMap(RoundRules::lastKillDrop).ifPresent(powerUp -> pendingDrops.add(new Drop(powerUp, pos)));
+        }
+        // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
+        if (player.isPresent()) {
+            PowerUpDrops.roll(settings.powerUps(), dropsThisRound, content.powerUps(), random).ifPresent(powerUp -> {
+                dropsThisRound++;
+                pendingDrops.add(new Drop(powerUp, pos));
+            });
+        }
+    }
+
+    private boolean doublePoints() {
+        return timedActive(TimedEffects.DOUBLE_POINTS);
+    }
+
+    /** Puts this tick's dropped power-ups in the world, a tick after the kills that dropped them. */
+    private void spawnDrops(GameWorld world) {
+        if (phase instanceof GamePhase.GameOver) {
+            pendingDrops.clear();
+            return;
+        }
+        for (Drop drop : pendingDrops) {
+            world.dropPowerUp(drop.powerUp(), drop.pos());
+            events.emit(new GameEvent.PowerUpSpawned(drop.powerUp(), drop.pos()));
+        }
+        pendingDrops.clear();
+    }
+
+    /** A player in this game touched a power-up. True if it counts: the player is alive and the game isn't over. */
+    public boolean collectPowerUp(ResourceLocation powerUp, UUID collector) {
+        PlayerState player = players.get(collector);
+        if (player == null || !player.alive() || phase instanceof GamePhase.GameOver) {
+            return false;
+        }
+        events.emit(new GameEvent.PowerUpCollected(powerUp, collector));
+        return true;
+    }
+
+    /** Points for every player in the game, such as a Nuke's or a Carpenter's bonus. Never doubled. */
+    public void awardEveryone(int points) {
+        players.values().forEach(p -> p.addPoints(points));
     }
 
     /** A game zombie left the world without dying (unloaded, discarded). It is spawned again. */
