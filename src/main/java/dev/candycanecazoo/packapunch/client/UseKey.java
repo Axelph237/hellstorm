@@ -2,11 +2,14 @@ package dev.candycanecazoo.packapunch.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.candycanecazoo.packapunch.PackAPunch;
+import dev.candycanecazoo.packapunch.feature.FeatureBlock;
 import dev.candycanecazoo.packapunch.net.PapNetwork;
-import dev.candycanecazoo.packapunch.net.RepairPacket;
+import dev.candycanecazoo.packapunch.net.UsePacket;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
@@ -18,15 +21,16 @@ import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * A second way to repair windows, for when right click is busy aiming a gun. Defaults to the same key as TacZ's Interact
- * (O), and can be rebound under Controls. Holding it repairs board after board, like holding use.
+ * A second use button for windows and machines, for when right click is busy aiming a gun. Defaults to the same key as
+ * TacZ's Interact (O), and can be rebound under Controls. Holding it repairs board after board; machines are used once
+ * per press.
  */
-public final class RepairKey {
+public final class UseKey {
     public static final KeyMapping KEY = new KeyMapping("key.packapunch.repair", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, "key.categories.packapunch");
     private static final int SEND_EVERY_TICKS = 2;
 
-    private RepairKey() {}
+    private UseKey() {}
 
     @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static final class Registration {
@@ -41,6 +45,7 @@ public final class RepairKey {
     @Mod.EventBusSubscriber(modid = PackAPunch.MOD_ID, value = Dist.CLIENT)
     public static final class Ticks {
         private static int sinceSent;
+        private static boolean wasDown;
 
         private Ticks() {}
 
@@ -51,12 +56,18 @@ public final class RepairKey {
                 return;
             }
             sinceSent++;
-            if (!KEY.isDown() || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
+            boolean down = KEY.isDown();
+            boolean firstPress = down && !wasDown;
+            wasDown = down;
+            if (!down || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
                 return;
             }
-            if (mc.level.getBlockState(hit.getBlockPos()).is(PapRegistries.BARRICADE.get()) && sinceSent >= SEND_EVERY_TICKS) {
+            BlockPos pos = hit.getBlockPos();
+            BlockState state = mc.level.getBlockState(pos);
+            boolean barricade = state.is(PapRegistries.BARRICADE.get());
+            if ((firstPress && state.getBlock() instanceof FeatureBlock) || (barricade && (firstPress || sinceSent >= SEND_EVERY_TICKS))) {
                 sinceSent = 0;
-                PapNetwork.CHANNEL.sendToServer(new RepairPacket(hit.getBlockPos()));
+                PapNetwork.CHANNEL.sendToServer(new UsePacket(pos, firstPress));
             }
         }
     }

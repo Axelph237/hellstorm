@@ -94,7 +94,7 @@ public final class GameManager {
         if (startCells.isEmpty()) {
             return new CreateResult.NoStartCells();
         }
-        WindowOps.resetAll(level, map);
+        MapReset.reset(level, map);
         return new CreateResult.Created(register(level, gameMap, passages, startCells, level.getServer().getPlayerList()::getPlayer));
     }
 
@@ -142,7 +142,7 @@ public final class GameManager {
     /** Stops the game if needed, gives every player back their normal state, and removes the game. */
     public static void end(Active active) {
         active.game().stop(active.world());
-        WindowOps.resetAll(active.level(), active.game().map().map());
+        MapReset.reset(active.level(), active.game().map().map());
         active.pathing().close();
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {

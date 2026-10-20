@@ -35,6 +35,7 @@ public final class Game {
     private long ticks;
     private boolean warnedNoSpawns;
     private boolean finished;
+    private boolean powerOn;
 
     public Game(GameSettings settings, GameMap map, MobRoster roster, RandomSource random, GameEvents events) {
         this.settings = settings;
@@ -42,6 +43,48 @@ public final class Game {
         this.roster = roster;
         this.random = random;
         this.events = events;
+        // A map without a power switch is powered from the start.
+        this.powerOn = map.map().features(dev.candycanecazoo.packapunch.map.FeatureKind.POWER_SWITCH).isEmpty();
+    }
+
+    public boolean powerOn() {
+        return powerOn;
+    }
+
+    /** Turns the power on for the rest of the game. Returns false if it already was. */
+    public boolean turnPowerOn(Optional<UUID> by) {
+        if (powerOn) {
+            return false;
+        }
+        powerOn = true;
+        events.emit(new GameEvent.PowerOn(by));
+        return true;
+    }
+
+    /**
+     * Charges a player for a purchase, or says why not. Only alive players in this game can buy. Features check their own
+     * rules (already owned, a full inventory) before calling this, and {@link #refund} if delivery then fails.
+     */
+    public Optional<Refusal> charge(UUID buyer, int cost, boolean needsPower) {
+        PlayerState player = players.get(buyer);
+        if (player == null || !player.alive() || phase instanceof GamePhase.GameOver) {
+            return Optional.of(new Refusal.NotPlaying());
+        }
+        if (needsPower && !powerOn) {
+            return Optional.of(new Refusal.NeedsPower());
+        }
+        if (player.points() < cost) {
+            return Optional.of(new Refusal.NotEnoughPoints(cost, player.points()));
+        }
+        player.spend(cost);
+        return Optional.empty();
+    }
+
+    public void refund(UUID buyer, int cost) {
+        PlayerState player = players.get(buyer);
+        if (player != null) {
+            player.addPoints(cost);
+        }
     }
 
     public GamePhase phase() {
@@ -309,17 +352,17 @@ public final class Game {
         PlayerState player = players.get(id);
         int points = player == null ? 0 : player.points();
         if (phase instanceof GamePhase.Countdown c) {
-            return new GameWorld.Status(0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1));
+            return new GameWorld.Status(0, points, 0, "Starting in " + (c.ticksLeft() / 20 + 1), powerOn);
         }
         if (phase instanceof GamePhase.RoundActive r) {
-            return new GameWorld.Status(r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round());
+            return new GameWorld.Status(r.round(), points, r.toSpawn() + mobs.size(), "Round " + r.round(), powerOn);
         }
         if (phase instanceof GamePhase.Intermission i) {
-            return new GameWorld.Status(i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1));
+            return new GameWorld.Status(i.nextRound() - 1, points, 0, "Round " + (i.nextRound() - 1), powerOn);
         }
         if (phase instanceof GamePhase.GameOver o) {
-            return new GameWorld.Status(o.roundReached(), points, 0, "Game over");
+            return new GameWorld.Status(o.roundReached(), points, 0, "Game over", powerOn);
         }
-        return new GameWorld.Status(0, points, 0, "Waiting to start");
+        return new GameWorld.Status(0, points, 0, "Waiting to start", powerOn);
     }
 }

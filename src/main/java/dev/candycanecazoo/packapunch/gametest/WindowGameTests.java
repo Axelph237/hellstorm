@@ -151,10 +151,10 @@ public final class WindowGameTests {
         BlockPos barricade = w.opening().min();
         try {
             player.moveTo(helper.absolutePos(new BlockPos(4, ROOM_Y, 8)).offset(0, 0, 20).getCenter());
-            helper.assertFalse(dev.candycanecazoo.packapunch.net.RepairPacket.apply(player, barricade), "repaired from 20 blocks away");
+            helper.assertFalse(dev.candycanecazoo.packapunch.net.UsePacket.apply(player, barricade, false), "repaired from 20 blocks away");
             player.moveTo(stand.getCenter());
-            helper.assertTrue(dev.candycanecazoo.packapunch.net.RepairPacket.apply(player, barricade), "no repair from beside the window");
-            dev.candycanecazoo.packapunch.net.RepairPacket.apply(player, barricade);
+            helper.assertTrue(dev.candycanecazoo.packapunch.net.UsePacket.apply(player, barricade, false), "no repair from beside the window");
+            dev.candycanecazoo.packapunch.net.UsePacket.apply(player, barricade, false);
             helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 1, "holding the key repairs once per repair delay, got "
                     + WindowOps.boards(helper.getLevel(), w));
         } finally {

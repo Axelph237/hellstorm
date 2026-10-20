@@ -38,6 +38,22 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.ConfigValue<List<? extends String>> startingItems;
     private final ForgeConfigSpec.IntValue reserveMagazines;
     private final ForgeConfigSpec.BooleanValue startingGunsUnlimitedAmmo;
+    private final ForgeConfigSpec.IntValue weaponSlots;
+    private final ForgeConfigSpec.IntValue perkLimit;
+    private final ForgeConfigSpec.IntValue doorDefaultCost;
+    private final ForgeConfigSpec.IntValue boxCost;
+    private final ForgeConfigSpec.IntValue boxFireSaleCost;
+    private final ForgeConfigSpec.IntValue boxRollTicks;
+    private final ForgeConfigSpec.IntValue boxCollectTicks;
+    private final ForgeConfigSpec.IntValue boxMinUses;
+    private final ForgeConfigSpec.DoubleValue boxMoveChance;
+    private final ForgeConfigSpec.IntValue papDefaultCost;
+    private final ForgeConfigSpec.IntValue papProcessTicks;
+    private final ForgeConfigSpec.IntValue papCollectTicks;
+    private final ForgeConfigSpec.IntValue papMaxTier;
+    private final ForgeConfigSpec.DoubleValue papDamage;
+    private final ForgeConfigSpec.DoubleValue papMagazine;
+    private final ForgeConfigSpec.DoubleValue papRpm;
 
     GameSettingsConfig(ForgeConfigSpec.Builder b) {
         GameSettings d = GameSettings.DEFAULT;
@@ -90,6 +106,29 @@ public final class GameSettingsConfig {
         reserveMagazines = b.comment("Reserve ammo for starting guns, in magazines.").defineInRange("reserve_magazines", d.players().reserveMagazines(), 0, 100);
         startingGunsUnlimitedAmmo = b.comment("Give starting guns an endless reserve. The magazine still needs reloading.")
                 .define("starting_guns_unlimited_ammo", d.players().startingGunsUnlimitedAmmo());
+        weaponSlots = b.comment("TacZ guns a player can carry. Buying another replaces the held gun. Mule Kick adds one.")
+                .defineInRange("weapon_slots", d.players().weaponSlots(), 1, 9);
+        perkLimit = b.comment("Most perks a player can hold at once.").defineInRange("perk_limit", d.players().perkLimit(), 0, 64);
+        b.pop();
+        b.push("doors");
+        doorDefaultCost = b.comment("What a new door costs until set otherwise.").defineInRange("default_cost", d.doors().defaultCost(), 0, 1_000_000);
+        b.pop();
+        b.push("box");
+        boxCost = b.defineInRange("cost", d.box().cost(), 0, 1_000_000);
+        boxFireSaleCost = b.comment("What a roll costs during a Fire Sale.").defineInRange("fire_sale_cost", d.box().fireSaleCost(), 0, 1_000_000);
+        boxRollTicks = b.comment("How long the box cycles items before showing the result.").defineInRange("roll_ticks", d.box().rollTicks(), 1, 1200);
+        boxCollectTicks = b.comment("How long the roller has to take the result.").defineInRange("collect_ticks", d.box().collectTicks(), 1, 12000);
+        boxMinUses = b.comment("Rolls at one location before the box can move.").defineInRange("min_uses_before_move", d.box().minUsesBeforeMove(), 0, 1000);
+        boxMoveChance = b.comment("Chance per roll, after the minimum, that the box moves instead.").defineInRange("move_chance", d.box().moveChance(), 0.0, 1.0);
+        b.pop();
+        b.push("pap");
+        papDefaultCost = b.defineInRange("default_cost", d.pap().defaultCost(), 0, 1_000_000);
+        papProcessTicks = b.comment("How long the machine works on an item.").defineInRange("process_ticks", d.pap().processTicks(), 1, 1200);
+        papCollectTicks = b.comment("How long the owner has to take the upgraded item.").defineInRange("collect_ticks", d.pap().collectTicks(), 1, 12000);
+        papMaxTier = b.comment("How many times a TacZ gun with no punch_id can be upgraded.").defineInRange("max_tier", d.pap().maxTier(), 1, 10);
+        papDamage = b.comment("Damage multiplier per upgrade tier for TacZ guns.").defineInRange("damage_multiplier", d.pap().damageMultiplier(), 0.1, 100.0);
+        papMagazine = b.comment("Magazine and reserve multiplier per upgrade tier.").defineInRange("magazine_multiplier", d.pap().magazineMultiplier(), 0.1, 100.0);
+        papRpm = b.comment("Fire rate multiplier per upgrade tier.").defineInRange("rpm_multiplier", d.pap().rpmMultiplier(), 0.1, 100.0);
         b.pop();
     }
 
@@ -127,7 +166,12 @@ public final class GameSettingsConfig {
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
                         r.read(repair), r.read(repairCapPerRound)),
                 new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines),
-                        r.read(startingGunsUnlimitedAmmo)),
-                new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)));
+                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit)),
+                new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),
+                new GameSettings.Doors(r.read(doorDefaultCost)),
+                new GameSettings.Box(r.read(boxCost), r.read(boxFireSaleCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),
+                        r.read(boxMoveChance)),
+                new GameSettings.Pap(r.read(papDefaultCost), r.read(papProcessTicks), r.read(papCollectTicks), r.read(papMaxTier), r.read(papDamage),
+                        r.read(papMagazine), r.read(papRpm)));
     }
 }

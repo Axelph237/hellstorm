@@ -42,8 +42,8 @@ class PacketRoundTripTest {
 
     @Test
     void repair() {
-        RepairPacket packet = new RepairPacket(new BlockPos(-3, -60, 12));
-        assertEquals(packet, roundTrip(packet, RepairPacket::encode, RepairPacket::decode));
+        UsePacket packet = new UsePacket(new BlockPos(-3, -60, 12), true);
+        assertEquals(packet, roundTrip(packet, UsePacket::encode, UsePacket::decode));
     }
 
     @Test

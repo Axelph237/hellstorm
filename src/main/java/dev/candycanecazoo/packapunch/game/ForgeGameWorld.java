@@ -223,6 +223,7 @@ public final class ForgeGameWorld implements GameWorld {
 
     @Override
     public void showStatus(UUID id, Status status) {
+        player(id).ifPresent(p -> dev.candycanecazoo.packapunch.net.PapNetwork.send(p, new dev.candycanecazoo.packapunch.net.HudSyncPacket(status.points(), status.powerOn())));
         player(id).ifPresent(p -> p.displayClientMessage(Component.literal(status.phase()).withStyle(ChatFormatting.RED)
                 .append(Component.literal("   " + status.points() + " pts").withStyle(ChatFormatting.GOLD))
                 .append(status.zombiesLeft() > 0

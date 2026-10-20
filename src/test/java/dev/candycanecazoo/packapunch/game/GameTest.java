@@ -28,7 +28,10 @@ class GameTest {
             new GameSettings.Spawning(1, 24.0, 0.0),
             GameSettings.DEFAULT.economy(),
             GameSettings.DEFAULT.players(),
-            GameSettings.DEFAULT.windows());
+            GameSettings.DEFAULT.windows(),
+            GameSettings.DEFAULT.doors(),
+            GameSettings.DEFAULT.box(),
+            GameSettings.DEFAULT.pap());
 
     private static final MobRoster ROSTER = new MobRoster(List.of(
             new MobRoster.Entry(net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty())));
@@ -131,7 +134,7 @@ class GameTest {
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
                 new GameSettings.Rounds(10, 0, 0, 0.1, 100, 0.23, 0.32, 2, 5, 3, 0, 2),
-                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows());
+                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap());
         Game game = newGame(capped);
         game.join(alice);
         game.start();
@@ -273,5 +276,34 @@ class GameTest {
         tick(game, world, 60);
         assertFalse(world.specs.isEmpty());
         assertTrue(world.specs.stream().noneMatch(spec -> spec.profile().equals(big)), "the golem never fits, despite its weight");
+    }
+
+    @Test
+    void chargingTakesPointsOnlyFromAlivePlayersWhoCanAffordIt() {
+        Game game = newGame(SETTINGS);
+        game.join(alice);
+        int start = game.player(alice).orElseThrow().points();
+        assertEquals(Optional.of(new Refusal.NotEnoughPoints(start + 1, start)), game.charge(alice, start + 1, false));
+        assertEquals(start, game.player(alice).orElseThrow().points(), "a refusal charges nothing");
+        assertEquals(Optional.empty(), game.charge(alice, 100, false));
+        assertEquals(start - 100, game.player(alice).orElseThrow().points());
+        game.refund(alice, 100);
+        assertEquals(start, game.player(alice).orElseThrow().points());
+        assertEquals(Optional.of(new Refusal.NotPlaying()), game.charge(UUID.randomUUID(), 0, false), "strangers can't buy");
+    }
+
+    @Test
+    void aMapWithAPowerSwitchStartsUnpoweredAndPowerComesOnOnce() {
+        GameMap powered = map();
+        assertTrue(new Game(SETTINGS, powered, ROSTER, RandomSource.create(7), events).powerOn(), "no switch: powered from the start");
+        GameMap withSwitch = GameMap.of(powered.map().withFeature(new BlockPos(3, 0, 3), FeatureKind.POWER_SWITCH), Set.of());
+        Game game = new Game(SETTINGS, withSwitch, ROSTER, RandomSource.create(7), events);
+        game.join(alice);
+        assertFalse(game.powerOn());
+        assertEquals(Optional.of(new Refusal.NeedsPower()), game.charge(alice, 0, true));
+        assertTrue(game.turnPowerOn(Optional.of(alice)));
+        assertFalse(game.turnPowerOn(Optional.empty()), "already on");
+        assertEquals(Optional.empty(), game.charge(alice, 0, true));
+        assertEquals(1, seen.stream().filter(e -> e instanceof GameEvent.PowerOn).count(), "power_on fires once");
     }
 }

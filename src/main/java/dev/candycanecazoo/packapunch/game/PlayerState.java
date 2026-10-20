@@ -13,6 +13,7 @@ public final class PlayerState {
     private int headshots;
     private Optional<ZoneId> lastZone = Optional.empty();
     private int repairPointsThisRound;
+    private int bonusWeaponSlots;
 
     PlayerState(UUID id, int points) {
         this.id = id;
@@ -53,6 +54,19 @@ public final class PlayerState {
 
     void addPoints(int amount) {
         points += amount;
+    }
+
+    void spend(int amount) {
+        points -= amount;
+    }
+
+    /** Extra TacZ gun slots on top of {@code players.weapon_slots}, from perks such as Mule Kick. */
+    public int bonusWeaponSlots() {
+        return bonusWeaponSlots;
+    }
+
+    public void setBonusWeaponSlots(int slots) {
+        bonusWeaponSlots = slots;
     }
 
     void countKill(boolean headshot) {

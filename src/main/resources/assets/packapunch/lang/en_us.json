@@ -5,5 +5,6 @@
   "generator.packapunch.builder": "Zombies Builder",
   "block.packapunch.barricade": "Window Barricade",
   "key.categories.packapunch": "Pack-a-Punch",
-  "key.packapunch.repair": "Repair window"
+  "key.packapunch.repair": "Use (repair windows, buy)",
+  "block.packapunch.power_switch": "Power Switch"
 }

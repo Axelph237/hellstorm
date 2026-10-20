@@ -30,8 +30,10 @@ public final class PapNetwork {
                 .encoder(ProblemsPacket::encode).decoder(ProblemsPacket::decode).consumerMainThread(ProblemsPacket::handle).add();
         CHANNEL.messageBuilder(DebugPathsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(DebugPathsPacket::encode).decoder(DebugPathsPacket::decode).consumerMainThread(DebugPathsPacket::handle).add();
-        CHANNEL.messageBuilder(RepairPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(RepairPacket::encode).decoder(RepairPacket::decode).consumerMainThread(RepairPacket::handle).add();
+        CHANNEL.messageBuilder(HudSyncPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(HudSyncPacket::encode).decoder(HudSyncPacket::decode).consumerMainThread(HudSyncPacket::handle).add();
+        CHANNEL.messageBuilder(UsePacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(UsePacket::encode).decoder(UsePacket::decode).consumerMainThread(UsePacket::handle).add();
     }
 
     public static void send(ServerPlayer player, Object packet) {
