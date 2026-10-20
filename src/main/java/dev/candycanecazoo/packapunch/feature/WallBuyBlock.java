@@ -68,6 +68,11 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
             super.setConfig(config);
         }
 
+        @Override
+        protected Optional<String> problem(WallBuy.Config config) {
+            return WallBuy.problem(config);
+        }
+
         /** The item as players see it. Built on the server and synced, since a client can't always build TacZ guns. */
         public ItemStack display() {
             if (level != null && level.isClientSide) {

@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.feature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.candycanecazoo.packapunch.data.BoxPool;
+import dev.candycanecazoo.packapunch.data.BoxPools;
 import dev.candycanecazoo.packapunch.game.GameManager;
 import dev.candycanecazoo.packapunch.map.FeatureKind;
 import dev.candycanecazoo.packapunch.registry.PapRegistries;
@@ -76,6 +77,20 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
 
         public Entity(BlockPos pos, BlockState state) {
             super(PapRegistries.MYSTERY_BOX_ENTITY.get(), pos, state, Config.CODEC, Config.DEFAULT);
+        }
+
+        @Override
+        public void setConfig(Config config) {
+            super.setConfig(config);
+            if (level instanceof ServerLevel serverLevel) {
+                GameManager.get(serverLevel).ifPresent(game -> MysteryBoxes.refreshPrice(game, this));
+            }
+        }
+
+        @Override
+        protected Optional<String> problem(Config config) {
+            return BoxPools.get(config.pool()).isPresent() ? Optional.empty()
+                    : Optional.of("No box pool " + config.pool() + " is loaded (data/<ns>/packapunch/box_pools/<id>.json)");
         }
 
         public Phase phase() {

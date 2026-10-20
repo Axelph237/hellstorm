@@ -3,7 +3,6 @@ package dev.candycanecazoo.packapunch.command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import dev.candycanecazoo.packapunch.feature.PerkMachineBlock;
 import dev.candycanecazoo.packapunch.perk.PerkDef;
 import dev.candycanecazoo.packapunch.perk.PerkDefs;
@@ -21,9 +20,6 @@ import java.util.stream.Collectors;
 
 /** {@code /pap perk set <perk>} for the perk machine you're looking at, and {@code /pap perk list}. */
 final class PerkCommands {
-    private static final DynamicCommandExceptionType UNKNOWN_PERK =
-            new DynamicCommandExceptionType(id -> Component.literal("Unknown perk: " + id + ". See /pap perk list"));
-
     private PerkCommands() {}
 
     static LiteralArgumentBuilder<CommandSourceStack> perk() {
@@ -37,8 +33,8 @@ final class PerkCommands {
     private static int set(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PerkMachineBlock.Entity machine = Targets.lookedAt(ctx.getSource().getPlayerOrException(), PerkMachineBlock.Entity.class, "perk machine");
         ResourceLocation id = ResourceLocationArgument.getId(ctx, "perk");
-        PerkDef def = PerkDefs.get(id).orElseThrow(() -> UNKNOWN_PERK.create(id));
-        machine.setConfig(new PerkMachineBlock.Config(Optional.of(id)));
+        Targets.require(machine.trySet(new PerkMachineBlock.Config(Optional.of(id))));
+        PerkDef def = PerkDefs.get(id).orElseThrow();
         ctx.getSource().sendSuccess(() -> Component.literal("This machine now sells ").append(Component.translatable(def.name()))
                 .append(" for " + def.cost()), false);
         return 1;

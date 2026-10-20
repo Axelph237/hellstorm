@@ -74,6 +74,11 @@ public final class PerkMachineBlock extends HorizontalDirectionalBlock implement
             super(PapRegistries.PERK_MACHINE_ENTITY.get(), pos, state, Config.CODEC, new Config(Optional.empty()));
         }
 
+        @Override
+        protected Optional<String> problem(Config config) {
+            return config.perk().filter(id -> PerkDefs.get(id).isEmpty()).map(id -> "Unknown perk: " + id + ". See /pap perk list");
+        }
+
         /** Resolved from the datapack on the server, and from the last sync on the client. */
         public Optional<Display> display() {
             if (level == null || level.isClientSide) {

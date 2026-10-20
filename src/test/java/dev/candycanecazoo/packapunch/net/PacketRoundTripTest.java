@@ -110,4 +110,24 @@ class PacketRoundTripTest {
             assertEquals(packet, roundTrip(packet, DebugPathsPacket::encode, DebugPathsPacket::decode));
         }
     }
+
+    @Test
+    void settings() {
+        OpenSettingsPacket bare = new OpenSettingsPacket(new BlockPos(1, 2, 3), List.of(), Optional.empty(), 0);
+        OpenSettingsPacket full = new OpenSettingsPacket(new BlockPos(-4, 70, 9),
+                List.of(new OpenSettingsPacket.Choice(ResourceLocation.tryBuild("tacz", "ak47"), net.minecraft.network.chat.Component.literal("AK-47"))),
+                Optional.of(new OpenSettingsPacket.Held(new dev.candycanecazoo.packapunch.data.ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3,
+                        Optional.empty()), net.minecraft.network.chat.Component.literal("Golden Apple"))), 5000);
+        for (OpenSettingsPacket packet : List.of(bare, full)) {
+            assertEquals(packet, roundTrip(packet, OpenSettingsPacket::encode, OpenSettingsPacket::decode));
+        }
+        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+        tag.putInt("cost", 250);
+        SaveSettingsPacket save = new SaveSettingsPacket(new BlockPos(0, 64, 0), tag);
+        assertEquals(save, roundTrip(save, SaveSettingsPacket::encode, SaveSettingsPacket::decode));
+        for (SettingsResultPacket packet : List.of(new SettingsResultPacket(BlockPos.ZERO, Optional.empty()),
+                new SettingsResultPacket(BlockPos.ZERO, Optional.of("Unknown perk: x:y")))) {
+            assertEquals(packet, roundTrip(packet, SettingsResultPacket::encode, SettingsResultPacket::decode));
+        }
+    }
 }

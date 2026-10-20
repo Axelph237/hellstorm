@@ -98,6 +98,12 @@ public sealed interface ItemSpec {
             either -> either.map(gun -> (ItemSpec) gun, plain -> plain),
             spec -> spec instanceof Gun gun ? Either.left(gun) : Either.right((Plain) spec));
 
+    /** A spec that sells copies of {@code stack}: its TacZ gun, or the item with its count and NBT. */
+    static ItemSpec of(ItemStack stack) {
+        return TaczBridge.inspect(stack).<ItemSpec>map(info -> new Gun(info.gunId(), TaczBridge.hasUnlimitedAmmo(stack), true))
+                .orElseGet(() -> new Plain(ForgeRegistries.ITEMS.getKey(stack.getItem()), stack.getCount(), Optional.ofNullable(stack.getTag()).map(CompoundTag::copy)));
+    }
+
     /** Empty when the item or gun isn't installed. */
     Optional<ItemStack> build(int reserveMagazines);
 

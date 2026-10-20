@@ -40,6 +40,12 @@ public final class PapNetwork {
                 .encoder(UsePacket::encode).decoder(UsePacket::decode).consumerMainThread(UsePacket::handle).add();
         CHANNEL.messageBuilder(PerkSyncPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(PerkSyncPacket::encode).decoder(PerkSyncPacket::decode).consumerMainThread(PerkSyncPacket::handle).add();
+        CHANNEL.messageBuilder(OpenSettingsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(OpenSettingsPacket::encode).decoder(OpenSettingsPacket::decode).consumerMainThread(OpenSettingsPacket::handle).add();
+        CHANNEL.messageBuilder(SaveSettingsPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(SaveSettingsPacket::encode).decoder(SaveSettingsPacket::decode).consumerMainThread(SaveSettingsPacket::handle).add();
+        CHANNEL.messageBuilder(SettingsResultPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(SettingsResultPacket::encode).decoder(SettingsResultPacket::decode).consumerMainThread(SettingsResultPacket::handle).add();
     }
 
     public static void send(ServerPlayer player, Object packet) {

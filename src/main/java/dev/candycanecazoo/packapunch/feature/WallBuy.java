@@ -3,6 +3,7 @@ package dev.candycanecazoo.packapunch.feature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.candycanecazoo.packapunch.data.ItemSpec;
+import dev.candycanecazoo.packapunch.tacz.TaczBridge;
 import dev.candycanecazoo.packapunch.util.Codecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
@@ -65,6 +66,20 @@ public final class WallBuy {
         public Repurchase effectiveRepurchase() {
             return repurchase == Repurchase.REFILL_AMMO && !(item instanceof ItemSpec.Gun) ? Repurchase.TOP_UP : repurchase;
         }
+    }
+
+    /** Why a wall-buy can't sell this: an unknown gun or item, or refilling ammo on something that isn't a gun. */
+    public static Optional<String> problem(Config config) {
+        if (config.item() instanceof ItemSpec.Gun gun && !TaczBridge.gunExists(gun.gunId())) {
+            return Optional.of("Unknown TacZ gun: " + gun.gunId());
+        }
+        if (config.item() instanceof ItemSpec.Plain plain && !ForgeRegistries.ITEMS.containsKey(plain.item())) {
+            return Optional.of("Unknown item: " + plain.item());
+        }
+        if (config.repurchase() == Repurchase.REFILL_AMMO && !(config.item() instanceof ItemSpec.Gun)) {
+            return Optional.of("Only TacZ guns refill ammo; use top_up, duplicate, or deny");
+        }
+        return Optional.empty();
     }
 
     /** What the player already carries of the item: how many, and whether a gun is Pack-a-Punched. */

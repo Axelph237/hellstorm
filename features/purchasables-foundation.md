@@ -31,6 +31,11 @@ Every machine and door is bought the same way, so each feature only writes what 
 - **HUD sync.** Each status update (every 10 ticks) also sends `HudSyncPacket(points, powerOn)`. The client treats a status more than 2 seconds old as "not in a game".
 - **Reset.** `MapReset.reset(level, map)` runs when a game is created and when it ends: it restores windows and turns power switches off. Each feature adds its own reset there.
 - **Commands.** `/pap <feature> ...` subcommands act on the machine the player is looking at, through `command/Targets.lookedAt(player, BlockEntityClass, "name")`.
+- **Settings screens.** An op in creative mode who uses a machine outside a game gets its settings screen instead of the chat line (`feature/MachineSettings`):
+  - `OpenSettingsPacket` carries what only the server knows: the TacZ guns, loaded perks, or box pools to choose from, the item in hand (for "Sell held" on a wall-buy), and the default cost a blank cost falls back to.
+  - The screens (`client/settings/`) edit the machine's own `Config` record. Done encodes it with the block entity's codec and sends `SaveSettingsPacket`. The server re-checks op, creative mode, and reach, then calls `ConfigBlockEntity.trySet`, and answers with `SettingsResultPacket`: the screen closes, or stays open with the reason in red.
+  - `trySet` runs the machine's `problem` check (unknown perk, unloaded box pool, unknown gun or item, refilling ammo on a non-gun). The `/pap` commands go through the same `trySet`, so the screen and the commands accept exactly the same settings.
+  - Wall-buy: search guns by name or id, or sell the held item; cost; what buying again does; ammo and upgraded-ammo costs (greyed out unless it refills ammo). Perk machine: the perk, or none. Mystery Box: pool and cost (blank is the default). Pack-a-Punch: cost (blank is the default). Power switch: cost.
 - **Events.** A new event is a `GameEvent` record plus its name and Lua table in `script/LuaEvents` (`name` and `table`).
 - **Power switch** (`feature/PowerSwitchBlock`): a `LeverBlock` only a game can pull. Settings `{ cost }` (default 0), set with `/pap power cost <points>`. Pulling one charges the cost, turns the power on, flips every switch in the map, and powers redstone like a lever. It reuses vanilla's lever models.
 
@@ -41,6 +46,8 @@ Every machine and door is bought the same way, so each feature only writes what 
 ## Verification
 
 - JUnit: `GameTest` covers charging (refusal charges nothing, refund, strangers) and power (a map with a switch starts off, power comes on once). `ItemSpecTest` covers both spec forms, defaults, round trips, and invalid values.
+- GameTest `SettingsGameTests`: each machine refuses settings its command would refuse and keeps the old ones, accepts good ones, and a player who isn't an op can't open the screen or save. Removing the op check from `MachineSettings.save` fails it.
+- JUnit `PacketRoundTripTest.settings` covers the three settings packets.
 - GameTest `PurchaseGameTests.thePowerSwitchTurnsThePowerOnForItsCostAndResetsWhenTheGameEnds`:
   - A refusal for too few points.
   - The purchase, with every switch flipping and redstone powered.

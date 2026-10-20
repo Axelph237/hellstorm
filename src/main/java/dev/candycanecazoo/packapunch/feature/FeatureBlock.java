@@ -13,7 +13,8 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * A machine players buy from: wall-buy, perk machine, Mystery Box, Pack-a-Punch, power switch. The map indexes where
  * each one is, so a game knows about machines in unloaded chunks. Players in a game buy by right clicking or with the
- * Pack-a-Punch use key; anyone else (a map maker) gets the machine's settings in chat.
+ * Pack-a-Punch use key. Outside a game, ops in creative mode get the machine's settings screen and anyone else gets its
+ * settings in chat.
  */
 public interface FeatureBlock {
     FeatureKind featureKind();
@@ -32,7 +33,11 @@ public interface FeatureBlock {
         }
         GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == level).ifPresentOrElse(
                 game -> block.buy(player, game, pos, state),
-                () -> player.sendSystemMessage(block.describe(level, pos)));
+                () -> {
+                    if (!MachineSettings.open(player, pos)) {
+                        player.sendSystemMessage(block.describe(level, pos));
+                    }
+                });
     }
 
     /** Call from {@code onPlace}. */
