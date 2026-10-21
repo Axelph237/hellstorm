@@ -119,3 +119,18 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 - **Shipped default.** `hellstorm:iron_sword`: a diamond sword with Sharpness III, named "Pack-a-Punched Sword", for 2500. Try it with `/give @s iron_sword{pap:{punchable:1b,punch_id:"hellstorm:iron_sword"}}`.
 - **Not supported: multi-tier defs through `tacz_gun`.** `ItemSpec.Gun` has no `nbt` field, so a gun result can't carry its own `punch_id`. A `Plain` result can. Adding `nbt` to `Gun` would close this.
 - **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `TEXTURES_NEEDED.md`.
+
+## The upgrader model and the fire (phase 7)
+
+- **Model.** Your Blockbench model `hellfire_upgrader` (a table with a cloth, a skull at the foot end, and three lit candles at the head end) replaces the two plain halves. The whole model is on the foot block and reaches over the head (`models/block/hellfire_upgrader.json`, drawn toward +z and turned by the blockstate for each facing); the head block's model is empty, and both halves are 13 pixels tall. Its texture is `textures/block/hellfire_upgrader.png`; the skull uses vanilla's skeleton texture, added to the block atlas by `assets/minecraft/atlases/blocks.json` (block models can only use block-atlas textures).
+  - Minecraft 1.20.1 only allows element rotations of -45, -22.5, 0, 22.5, and 45 degrees on one axis, so on import the skull (-20) and the candles (27.5) were snapped to -22.5 and 22.5, the wick planes (-17.5) to -22.5, and the three wick planes in Blockbench's free-rotation format (y 72.5) rebuilt as the same plane turned 90 degrees at -22.5. Each candle and its wick stay 45 degrees apart, and the wicks stay crossed.
+- **Candles** burn like vanilla's: light level 9 (three candles' worth), a small flame at each wick, and now and then smoke and the candle crackle (`animateTick`, foot only, wick points turned with the model).
+- **The gun** lies on the 13-pixel table top, 3 pixels toward the side without the skull and candles, so its length clears both.
+- **The fire.**
+  1. Using the machine lays the gun down (the smithing-table sound) and lights it with a fire-charge woosh.
+  2. While it burns, columns of vanilla's animated fire sprites (`fire_0` and `fire_1`) engulf the gun: they rise from the table over half a second, flicker, face the camera, and light themselves, as a burning entity's flames do (`PapMachineRenderer.flames`). Embers and smoke rise off it.
+  3. When `pap.process_ticks` are up, the fire goes out: the fire-extinguish sound and a burst of sparks and smoke, and the upgraded gun lies there.
+  4. Half a second later a soft bell rings: it's ready.
+- **Rendering both halves.** The block entity's render box covers both blocks and the flames above, so the gun and the fire don't vanish when only the head half is on screen.
+- **Checked in a live client:** the model loads (165 quads) with every texture; the flames are 5 two-sided columns along the gun's line, from just under the table top to 1.54 blocks up; the candle flames land on the wicks for all four facings.
+

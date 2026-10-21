@@ -17,4 +17,3 @@ This mod never adds texture files. Anything that needs a custom texture is left 
 | `assets/hellstorm/textures/gui/points.png` | 16×16 | Points icon on the HUD | `hud-and-prompts.md` | No icon |
 | `assets/hellstorm/textures/gui/downed.png` | 16×16 | Downed player indicator | `downs-and-revives.md` | Red text |
 | `assets/hellstorm/textures/block/mystery_box.png` | 16×16 | Optional distinct box look | `mystery-box.md` | Vanilla barrel and chest textures |
-| `assets/hellstorm/textures/block/pap_machine.png` | 16×16 | Optional distinct PaP machine look | `pack-a-punch.md` | Vanilla textures |

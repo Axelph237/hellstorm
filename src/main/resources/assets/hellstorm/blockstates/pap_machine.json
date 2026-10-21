@@ -1,34 +1,31 @@
 {
   "variants": {
-    "facing=north,part=foot": {
-      "model": "hellstorm:block/pap_machine_foot"
-    },
-    "facing=north,part=head": {
-      "model": "hellstorm:block/pap_machine_head"
-    },
-    "facing=east,part=foot": {
-      "model": "hellstorm:block/pap_machine_foot",
-      "y": 90
-    },
-    "facing=east,part=head": {
-      "model": "hellstorm:block/pap_machine_head",
-      "y": 90
-    },
     "facing=south,part=foot": {
-      "model": "hellstorm:block/pap_machine_foot",
-      "y": 180
+      "model": "hellstorm:block/hellfire_upgrader"
     },
     "facing=south,part=head": {
-      "model": "hellstorm:block/pap_machine_head",
-      "y": 180
+      "model": "hellstorm:block/hellfire_upgrader_head"
     },
     "facing=west,part=foot": {
-      "model": "hellstorm:block/pap_machine_foot",
-      "y": 270
+      "model": "hellstorm:block/hellfire_upgrader",
+      "y": 90
     },
     "facing=west,part=head": {
-      "model": "hellstorm:block/pap_machine_head",
+      "model": "hellstorm:block/hellfire_upgrader_head"
+    },
+    "facing=north,part=foot": {
+      "model": "hellstorm:block/hellfire_upgrader",
+      "y": 180
+    },
+    "facing=north,part=head": {
+      "model": "hellstorm:block/hellfire_upgrader_head"
+    },
+    "facing=east,part=foot": {
+      "model": "hellstorm:block/hellfire_upgrader",
       "y": 270
+    },
+    "facing=east,part=head": {
+      "model": "hellstorm:block/hellfire_upgrader_head"
     }
   }
 }

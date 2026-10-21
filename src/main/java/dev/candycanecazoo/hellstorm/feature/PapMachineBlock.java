@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -71,10 +72,16 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
     public static final EnumProperty<BedPart> PART = BlockStateProperties.BED_PART;
     /** The machine's name, from the lang file so a resource pack can rename it. */
     public static final String NAME = "name.hellstorm.pack_a_punch";
-    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
+    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 13, 16);
     /** Where the item lies, above the machine's floor, and how far it reaches either side of the middle. */
-    public static final double TOP = 12.0 / 16;
+    public static final double TOP = 13.0 / 16;
     public static final double ITEM_HALF_LENGTH = 0.85;
+    /** The item lies this far to one side of the middle, clear of the skull and the candles on the other side. */
+    public static final double SIDE_OFFSET = 3.0 / 16;
+    /** The three candles' flames, in the model's pixels: from the foot's corner, with the head toward +z. */
+    private static final double[][] WICKS = {{4, 17.5, 30.5}, {2, 19.5, 28.5}, {5, 20.5, 27.5}};
+    /** The ding comes this long after the fire goes out. */
+    private static final int DING_DELAY = 10;
 
     /** {@code cost} replaces {@code pap.default_cost} for this machine. A {@code PunchDef}'s own cost still wins. */
     public record Config(Optional<Integer> cost) {
@@ -179,10 +186,8 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
                     job = Optional.of(new Job(p.getUUID(), input, result.get(), false, now, now + settings.pap().processTicks(),
                             settings.pap().collectTicks()));
                     changed();
-                    Vec3 spark = along(-1);
-                    g.level().sendParticles(ParticleTypes.ELECTRIC_SPARK, spark.x, spark.y, spark.z, 12, 0.05, 0.05, 0.05, 0.2);
                     g.level().playSound(null, worldPosition, SoundEvents.SMITHING_TABLE_USE, SoundSource.BLOCKS, 1.0f, 0.8f);
-                    g.level().playSound(null, worldPosition, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0f, 1.0f);
+                    g.level().playSound(null, worldPosition, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.0f, 0.9f);
                     g.game().events().emit(new GameEvent.PapUsed(p.getUUID(), describe(input)));
                     return Optional.empty();
                 }
@@ -245,6 +250,9 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
                 shownCost = cost;
                 changed();
             }
+            if (job.isPresent() && job.get().ready() && level.getGameTime() == job.get().until() - job.get().collectTicks() + DING_DELAY) {
+                level.playSound(null, worldPosition, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 0.6f, 1.5f);
+            }
             if (job.isEmpty() || level.getGameTime() < job.get().until()) {
                 return;
             }
@@ -253,10 +261,9 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
                 job = Optional.of(new Job(current.owner(), current.input(), current.result(), true, current.started(),
                         level.getGameTime() + current.collectTicks(), current.collectTicks()));
                 Vec3 middle = along(0);
-                level.sendParticles(ParticleTypes.FLAME, middle.x, middle.y, middle.z, 40, ITEM_HALF_LENGTH / 2, 0.08, ITEM_HALF_LENGTH / 2, 0.04);
-                level.sendParticles(ParticleTypes.LAVA, middle.x, middle.y, middle.z, 6, ITEM_HALF_LENGTH / 2, 0.05, ITEM_HALF_LENGTH / 2, 0);
-                level.playSound(null, worldPosition, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.0f, 0.9f);
-                level.playSound(null, worldPosition, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 1.0f, 1.2f);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, middle.x, middle.y + 0.1, middle.z, 30, ITEM_HALF_LENGTH / 2, 0.1, 0.15, 0.35);
+                level.sendParticles(ParticleTypes.SMOKE, middle.x, middle.y + 0.1, middle.z, 12, ITEM_HALF_LENGTH / 2, 0.05, 0.12, 0.02);
+                level.playSound(null, worldPosition, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 1.0f, 1.0f);
             } else {
                 job = Optional.empty();
                 ServerPlayer owner = level.getServer().getPlayerList().getPlayer(current.owner());
@@ -274,7 +281,19 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
         public Vec3 along(double t) {
             Direction facing = getBlockState().getValue(FACING);
             return Vec3.atLowerCornerOf(worldPosition).add(0.5, TOP + 0.08, 0.5)
-                    .add(Vec3.atLowerCornerOf(facing.getNormal()).scale(0.5 + t * ITEM_HALF_LENGTH));
+                    .add(Vec3.atLowerCornerOf(facing.getNormal()).scale(0.5 + t * ITEM_HALF_LENGTH))
+                    .add(Vec3.atLowerCornerOf(side(facing).getNormal()).scale(SIDE_OFFSET));
+        }
+
+        /** Ticks the item has been burning, or -1 when nothing is burning. */
+        public long burning(long now) {
+            return job.isPresent() && !job.get().ready() ? Math.max(0, now - job.get().started()) : -1;
+        }
+
+        @Override
+        public AABB getRenderBoundingBox() {
+            Direction facing = getBlockState().getValue(FACING);
+            return new AABB(worldPosition).minmax(new AABB(worldPosition.relative(facing))).expandTowards(0, 1, 0);
         }
 
         /** How far the fire has spread along the item, from 0 to 1. 1 once it's done. */
@@ -286,21 +305,18 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
             return j.until() <= j.started() ? 1 : Mth.clamp((float) (now - j.started()) / (j.until() - j.started()), 0, 1);
         }
 
-        /** Fire creeping along the item from the spark at the foot end, flames behind the front and sparks at it. */
+        /** While the item burns, embers and smoke rise off it. The flames themselves are drawn by the renderer. */
         void clientTick(Level level) {
-            if (job.isEmpty() || job.get().ready()) {
+            if (burning(level.getGameTime()) < 0) {
                 return;
             }
             RandomSource random = level.random;
-            double front = -1 + 2 * progress(level.getGameTime());
-            Vec3 at = along(front);
-            level.addParticle(ParticleTypes.SMALL_FLAME, at.x, at.y, at.z, 0, 0.01, 0);
-            if (random.nextInt(3) == 0) {
-                level.addParticle(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, (random.nextDouble() - 0.5) * 0.1, 0.05, (random.nextDouble() - 0.5) * 0.1);
+            Vec3 at = along(random.nextDouble() * 2 - 1).add(0, 0.25 + random.nextDouble() * 0.2, 0);
+            if (random.nextInt(2) == 0) {
+                level.addParticle(ParticleTypes.FLAME, at.x, at.y, at.z, 0, 0.02, 0);
             }
-            for (int i = 0; i < 2; i++) {
-                Vec3 burning = along(-1 + random.nextDouble() * (front + 1)).add((random.nextDouble() - 0.5) * 0.15, 0, (random.nextDouble() - 0.5) * 0.15);
-                level.addParticle(ParticleTypes.FLAME, burning.x, burning.y, burning.z, 0, 0.015, 0);
+            if (random.nextInt(4) == 0) {
+                level.addParticle(ParticleTypes.SMOKE, at.x, at.y + 0.2, at.z, 0, 0.03, 0);
             }
         }
 
@@ -384,6 +400,49 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
     public java.util.List<BlockPos> blocks(BlockState state, BlockPos pos) {
         BlockPos foot = mainPos(state, pos);
         return java.util.List.of(foot, foot.relative(state.getValue(FACING)));
+    }
+
+    /** The model's +x side, which the item shifts toward: the table's long side without the skull and candles. */
+    static Direction side(Direction facing) {
+        return facing.getCounterClockWise();
+    }
+
+    /** The candles burn like vanilla candles: a small flame at each wick, now and then smoke and a crackle. */
+    @Override
+    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+        if (state.getValue(PART) != BedPart.FOOT) {
+            return;
+        }
+        Direction facing = state.getValue(FACING);
+        for (double[] wick : WICKS) {
+            Vec3 at = modelPoint(pos, facing, wick[0], wick[1], wick[2]);
+            float roll = random.nextFloat();
+            if (roll < 0.3f) {
+                level.addParticle(ParticleTypes.SMOKE, at.x, at.y, at.z, 0, 0, 0);
+                if (roll < 0.17f) {
+                    level.playLocalSound(at.x, at.y, at.z, SoundEvents.CANDLE_AMBIENT, SoundSource.BLOCKS, 1.0f + random.nextFloat(), random.nextFloat() * 0.7f + 0.3f, false);
+                }
+            }
+            level.addParticle(ParticleTypes.SMALL_FLAME, at.x, at.y, at.z, 0, 0, 0);
+        }
+    }
+
+    /**
+     * A point of the model in the world: {@code x, y, z} in pixels from the foot's corner as the model is drawn (head
+     * toward +z), turned the way the blockstate turns the model for {@code facing}.
+     */
+    static Vec3 modelPoint(BlockPos foot, Direction facing, double x, double y, double z) {
+        double dx = x / 16 - 0.5;
+        double dz = z / 16 - 0.5;
+        double rx;
+        double rz;
+        switch (facing) {
+            case WEST -> { rx = -dz; rz = dx; }
+            case NORTH -> { rx = -dx; rz = -dz; }
+            case EAST -> { rx = dz; rz = -dx; }
+            default -> { rx = dx; rz = dz; }
+        }
+        return Vec3.atLowerCornerOf(foot).add(0.5 + rx, y / 16, 0.5 + rz);
     }
 
     @Override
