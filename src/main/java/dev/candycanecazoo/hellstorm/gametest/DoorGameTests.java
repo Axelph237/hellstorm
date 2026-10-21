@@ -190,6 +190,7 @@ public final class DoorGameTests {
             GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
                     id -> id.equals(player.getUUID()) ? player : null);
             active.game().join(player.getUUID());
+            PurchaseGameTests.play(active);
             return new Rooms(active, player, members);
         }
 
