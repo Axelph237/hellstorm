@@ -131,7 +131,71 @@ public final class WindowGameTests {
         });
     }
 
-    /** The repair key's packet repairs a window in reach, one board per repair delay, and ignores one out of reach. */
+    /**
+     * The repair key's packet, sent every 2 ticks while held, puts one board back each {@code windows.repair_ticks}, with
+     * the bar on the repairer's HUD filling toward it; the board pays, and the repairer alone hears the cha-ching.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "game_repair_bar")
+    public static void holdingTheRepairKeyRebuildsABoardEachTimeTheBarFills(GameTestHelper helper) {
+        for (int x = 0; x <= 8; x++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                helper.setBlock(new BlockPos(x, ROOM_Y + dy, 4), Blocks.STONE);
+            }
+        }
+        WindowDef w = window(helper, "repair_bar", 4, 4, 2);
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w);
+        WindowOps.setBoards(helper.getLevel(), w, 0);
+        ListeningPlayer player = new ListeningPlayer(helper.getLevel(), "pap_repair_bar_test");
+        ListeningPlayer teammate = new ListeningPlayer(helper.getLevel(), "pap_repair_bar_mate");
+        BlockPos stand = helper.absolutePos(new BlockPos(4, ROOM_Y, 6));
+        player.moveTo(stand.getCenter());
+        teammate.moveTo(stand.getCenter());
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : id.equals(teammate.getUUID()) ? teammate : null);
+        active.game().join(player.getUUID());
+        active.game().join(teammate.getUUID());
+        int perBoard = active.game().settings().windows().repairTicks();
+        int startPoints = PurchaseGameTests.points(active, player);
+        BlockPos barricade = w.opening().min();
+        helper.onEachTick(() -> {
+            if (helper.getTick() % 2 == 0 && helper.getTick() < 2L * perBoard + 6) {
+                dev.candycanecazoo.hellstorm.net.UsePacket.apply(player, barricade, false);
+            }
+        });
+        helper.runAfterDelay(perBoard / 2, () -> step(active, () -> {
+            helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 0, "a board went on before the bar filled");
+            float progress = active.game().status(player.getUUID()).bar().map(b -> b.label().equals("Rebuilding") ? b.progress() : -1f).orElse(-1f);
+            helper.assertTrue(progress > 0.2f && progress < 0.8f, "halfway through a board the bar should be about half full, is " + progress);
+        }));
+        helper.runAfterDelay(perBoard + 4, () -> step(active, () -> {
+            helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 1, "one board should be on after one board's time, got "
+                    + WindowOps.boards(helper.getLevel(), w));
+            helper.assertTrue(PurchaseGameTests.points(active, player) > startPoints, "the board didn't pay");
+            helper.assertTrue(player.heard.equals(List.of(PapRegistries.CHA_CHING.get())), "the repairer should hear one cha-ching, heard " + player.heard);
+            helper.assertTrue(teammate.heard.isEmpty(), "a teammate heard " + teammate.heard);
+        }));
+        helper.runAfterDelay(2 * perBoard + 5, () -> step(active, () -> {
+            helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 2, "two boards after two boards' time, got " + WindowOps.boards(helper.getLevel(), w));
+        }));
+        helper.runAfterDelay(3 * perBoard + 8, () -> step(active, () -> {
+            helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 2, "a board went on after letting go");
+            helper.assertTrue(active.game().status(player.getUUID()).bar().isEmpty(), "the bar stayed after letting go");
+            GameManager.end(active);
+            helper.succeed();
+        }));
+    }
+
+    private static void step(GameManager.Active active, Runnable body) {
+        try {
+            body.run();
+        } catch (RuntimeException | AssertionError e) {
+            GameManager.end(active);
+            throw e;
+        }
+    }
+
+    /** The repair key's packet holds a window in reach, and ignores one out of reach. */
     @GameTest(template = "floor", batch = "game_repair_key")
     public static void theRepairKeyRepairsOnlyWithinReach(GameTestHelper helper) {
         for (int x = 0; x <= 8; x++) {
@@ -154,9 +218,7 @@ public final class WindowGameTests {
             helper.assertFalse(dev.candycanecazoo.hellstorm.net.UsePacket.apply(player, barricade, false), "repaired from 20 blocks away");
             player.moveTo(stand.getCenter());
             helper.assertTrue(dev.candycanecazoo.hellstorm.net.UsePacket.apply(player, barricade, false), "no repair from beside the window");
-            dev.candycanecazoo.hellstorm.net.UsePacket.apply(player, barricade, false);
-            helper.assertTrue(WindowOps.boards(helper.getLevel(), w) == 1, "holding the key repairs once per repair delay, got "
-                    + WindowOps.boards(helper.getLevel(), w));
+            helper.assertTrue(active.game().status(player.getUUID()).bar().isPresent(), "repairing from beside the window shows no bar");
         } finally {
             GameManager.end(active);
         }

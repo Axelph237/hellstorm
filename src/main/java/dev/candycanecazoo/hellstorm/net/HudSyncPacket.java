@@ -51,6 +51,7 @@ public record HudSyncPacket(int round, String phase, int zombiesLeft, boolean po
             b.writeUtf(value.label());
             b.writeFloat(value.progress());
             b.writeInt(value.color());
+            b.writeFloat(value.perTick());
         });
     }
 
@@ -70,7 +71,7 @@ public record HudSyncPacket(int round, String phase, int zombiesLeft, boolean po
         for (int i = 0; i < timerCount; i++) {
             timers.add(new GameWorld.Timer(buf.readUtf(), buf.readVarInt(), buf.readVarInt()));
         }
-        Optional<GameWorld.Bar> bar = buf.readOptional(b -> new GameWorld.Bar(b.readUtf(), b.readFloat(), b.readInt()));
+        Optional<GameWorld.Bar> bar = buf.readOptional(b -> new GameWorld.Bar(b.readUtf(), b.readFloat(), b.readInt(), b.readFloat()));
         return new HudSyncPacket(round, phase, zombiesLeft, powerOn, points, players, timers, bar);
     }
 

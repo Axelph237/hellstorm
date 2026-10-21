@@ -88,12 +88,16 @@ public final class GameHud {
         }
     }
 
-    /** This player's progress bar above the crosshair, with its label over it. */
+    /**
+     * This player's progress bar above the crosshair, with its label over it. It keeps moving at the bar's own rate
+     * between updates, which come every few ticks, so a board's bar fills smoothly up to the moment the board goes on.
+     */
     private static void drawBar(GuiGraphics graphics, Font font, GameWorld.Bar bar, int width, int height) {
         int left = (width - BAR_WIDTH) / 2;
         int top = height / 2 - 28;
+        float progress = Math.max(0, Math.min(1, bar.progress() + bar.perTick() * HudState.ticksSinceUpdate()));
         graphics.fill(left - 1, top - 1, left + BAR_WIDTH + 1, top + BAR_HEIGHT + 1, 0xA0000000);
-        graphics.fill(left, top, left + Math.round(BAR_WIDTH * Math.max(0, Math.min(1, bar.progress()))), top + BAR_HEIGHT, 0xFF000000 | bar.color());
+        graphics.fill(left, top, left + Math.round(BAR_WIDTH * progress), top + BAR_HEIGHT, 0xFF000000 | bar.color());
         WrappedText.drawCenteredAbove(graphics, font, Component.literal(bar.label()), width / 2, top - 2, width, WHITE);
     }
 

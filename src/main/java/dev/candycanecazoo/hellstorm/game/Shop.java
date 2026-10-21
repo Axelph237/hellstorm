@@ -1,5 +1,6 @@
 package dev.candycanecazoo.hellstorm.game;
 
+import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,7 +28,11 @@ public final class Shop {
 
     private Shop() {}
 
-    /** Returns true if the purchase went through. Either way the player sees the result, and hears it unless they were short of points. */
+    /**
+     * Returns true if the purchase went through. Either way the player sees the result, and hears it unless they were
+     * short of points: the cha-ching when points were spent, a chime for something free (taking a finished upgrade, a
+     * free power switch), since no points moved.
+     */
     public static boolean buy(ServerPlayer player, GameManager.Active game, Sale sale) {
         Optional<Refusal> refusal = sale.check(game, player)
                 .or(() -> game.game().charge(player.getUUID(), sale.cost(), sale.needsPower()));
@@ -41,8 +46,21 @@ public final class Shop {
             refuse(player, refusal.get());
             return false;
         }
-        player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.8f, 0.7f);
+        if (sale.cost() > 0) {
+            chaChing(player);
+        } else {
+            player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.8f, 0.7f);
+        }
         return true;
+    }
+
+    /**
+     * The register's cha-ching, for points changing hands: spent here, or earned rebuilding a board. Only this player hears
+     * it, as in CoD: it is their points, and in a busy room everyone else's purchases would be noise. It plays where they
+     * stand.
+     */
+    public static void chaChing(ServerPlayer player) {
+        player.playNotifySound(PapRegistries.CHA_CHING.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
     }
 
     public static void refuse(ServerPlayer player, Refusal refusal) {

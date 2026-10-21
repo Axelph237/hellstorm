@@ -89,6 +89,8 @@ public final class PapRegistries {
     public static final RegistryObject<SoundEvent> VENDING_MACHINE_IDLE = sound("vending_machine.idle");
     public static final RegistryObject<SoundEvent> VENDING_MACHINE_SHAKE = sound("vending_machine.shake");
     public static final RegistryObject<SoundEvent> VENDING_MACHINE_BUTTON = sound("vending_machine.button");
+    /** Played to a player alone when they spend points or earn them rebuilding a board (see {@code Shop.chaChing}). */
+    public static final RegistryObject<SoundEvent> CHA_CHING = sound("cha_ching");
     public static final RegistryObject<Block> WALL_BUY = BLOCKS.register("wall_buy", () -> new WallBuyBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.WOOD)));
     public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> WALL_BUY_ENTITY = BLOCK_ENTITIES.register("wall_buy",

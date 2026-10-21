@@ -12,15 +12,10 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /** Reads and changes a window's boards. Every barricade block in an opening always shows the same count. */
 public final class WindowOps {
-    private static final Map<UUID, Long> NEXT_REPAIR = new ConcurrentHashMap<>();
-
     private WindowOps() {}
 
     public static int boards(ServerLevel level, WindowDef window) {
@@ -51,27 +46,29 @@ public final class WindowOps {
     }
 
     /**
-     * A player in a running game puts one board back, at most once per {@code windows.repair_ticks}. Holding use repeats
-     * this, since vanilla repeats block use while the button is held. Returns false if nothing happened.
+     * A board goes back on: the thud of landing on planks, from the middle of the opening. The repairer's cha-ching is
+     * {@link Game}'s to play, since it plays only while the round's repair cap still pays.
+     */
+    public static void addBoard(ServerLevel level, WindowDef window) {
+        int boards = boards(level, window);
+        if (boards < window.maxBoards()) {
+            setBoards(level, window, boards + 1);
+            level.playSound(null, window.opening().center(), SoundEvents.WOOD_FALL, SoundSource.BLOCKS, 1.0f, 1.0f);
+        }
+    }
+
+    /**
+     * A player in a running game is holding use on a window with boards missing. Vanilla repeats block use while the
+     * button is held, and so does the Hellstorm use key; the game puts a board back each {@code windows.repair_ticks} of
+     * holding (see {@link Game#holdRepair}). Returns false if there's nothing to rebuild.
      */
     public static boolean tryRepair(ServerLevel level, BlockPos pos, ServerPlayer player) {
         Optional<GameManager.Active> active = GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == level);
         Optional<WindowDef> window = active.flatMap(a -> a.game().map().map().windowAt(pos));
-        if (window.isEmpty() || !active.get().game().targetable(player.getUUID())) {
+        if (window.isEmpty() || !active.get().game().targetable(player.getUUID()) || boards(level, window.get()) >= window.get().maxBoards()) {
             return false;
         }
-        long now = level.getGameTime();
-        if (NEXT_REPAIR.getOrDefault(player.getUUID(), 0L) > now) {
-            return true;
-        }
-        int boards = boards(level, window.get());
-        if (boards >= window.get().maxBoards()) {
-            return false;
-        }
-        NEXT_REPAIR.put(player.getUUID(), now + active.get().game().settings().windows().repairTicks());
-        setBoards(level, window.get(), boards + 1);
-        level.playSound(null, pos, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 1.0f, 0.9f);
-        active.get().game().onRepair(player.getUUID());
+        active.get().game().holdRepair(player.getUUID(), window.get().id());
         return true;
     }
 }

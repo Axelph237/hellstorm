@@ -18,8 +18,12 @@ public interface GameWorld {
     /** A team-wide effect counting down, such as Insta-Kill. {@code name} is a lang key. */
     record Timer(String name, int ticksLeft, int totalTicks) {}
 
-    /** A progress bar in the middle of one player's screen: reviving, being revived, bleeding out. {@code progress} is 0 to 1. */
-    record Bar(String label, float progress, int color) {}
+    /**
+     * A progress bar in the middle of one player's screen: reviving, being revived, bleeding out, rebuilding a board.
+     * {@code progress} is 0 to 1. {@code perTick} is how far it moves each tick, so the client can move it smoothly
+     * between the HUD's updates, which come only every few ticks.
+     */
+    record Bar(String label, float progress, int color, float perTick) {}
 
     /**
      * {@code standings} lists every player in the game, in join order. {@code timers} are the team's timed effects, and
@@ -79,6 +83,17 @@ public interface GameWorld {
 
     /** A timed effect ran out (see {@link Game#startTimed}). Features that changed the world for it undo that here. */
     default void timedEffectEnded(ResourceLocation effect) {}
+
+    /** How many boards the map's window {@code window} is missing; 0 if there's no such window. */
+    default int boardsMissing(String window) {
+        return 0;
+    }
+
+    /** Puts one board back on {@code window}, with the sound of it going on. */
+    default void addBoard(String window) {}
+
+    /** {@code player} alone hears the cha-ching: points came to them. */
+    default void chaChing(UUID player) {}
 
     /** Puts a power-up pickup in the world at {@code pos}. */
     default void dropPowerUp(ResourceLocation powerUp, BlockPos pos) {}

@@ -47,6 +47,11 @@ public final class HudState {
         return last;
     }
 
+    /** Ticks, with fractions, since the last HUD arrived, for moving its bar on between updates. */
+    static float ticksSinceUpdate() {
+        return (Util.getMillis() - receivedAt) / 50f;
+    }
+
     public static int points() {
         return last.points();
     }

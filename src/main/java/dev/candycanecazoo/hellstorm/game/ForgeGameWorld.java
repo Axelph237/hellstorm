@@ -294,6 +294,21 @@ public final class ForgeGameWorld implements GameWorld {
     }
 
     @Override
+    public int boardsMissing(String window) {
+        return Optional.ofNullable(map.map().windows().get(window)).map(w -> w.maxBoards() - WindowOps.boards(level, w)).orElse(0);
+    }
+
+    @Override
+    public void addBoard(String window) {
+        Optional.ofNullable(map.map().windows().get(window)).ifPresent(w -> WindowOps.addBoard(level, w));
+    }
+
+    @Override
+    public void chaChing(UUID player) {
+        player(player).ifPresent(Shop::chaChing);
+    }
+
+    @Override
     public void dropPowerUp(ResourceLocation powerUp, BlockPos pos) {
         GameManager.get(level).ifPresent(game -> dev.candycanecazoo.hellstorm.powerup.PowerUps.drop(level, game.game().settings().powerUps(), powerUp,
                 Vec3.atBottomCenterOf(pos)));
