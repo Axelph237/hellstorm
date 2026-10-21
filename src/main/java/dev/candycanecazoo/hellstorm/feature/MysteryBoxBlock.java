@@ -67,6 +67,9 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
     /** How long the lid takes to open, and to close. The client fits the model's animation to it. */
     public static final int LID_TICKS = 20;
+    /** How long vanilla's chest sounds last at normal speed; the close sounds are all about the same. */
+    private static final float CHEST_OPEN_SECONDS = 0.515f;
+    private static final float CHEST_CLOSE_SECONDS = 0.625f;
     /** The middle of a gun as it rises: from inside the crate, under the portal, to where it hangs. In blocks above the floor. */
     public static final double GUN_LOW = 0.45;
     public static final double GUN_HIGH = 1.35;
@@ -203,7 +206,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             resultLabel = "";
             time(ticks);
             changed();
-            lidSound(SoundEvents.CHEST_OPEN);
+            lidSound(SoundEvents.CHEST_OPEN, CHEST_OPEN_SECONDS);
         }
 
         void offer(ItemStack result, String label, int ticks) {
@@ -226,12 +229,16 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             resultLabel = "";
             time(LID_TICKS);
             changed();
-            lidSound(SoundEvents.CHEST_CLOSE);
+            lidSound(SoundEvents.CHEST_CLOSE, CHEST_CLOSE_SECONDS);
         }
 
-        private void lidSound(SoundEvent sound) {
+        /**
+         * {@code sound}, {@code seconds} long, slowed to last as long as the lid moves. Pitch is playback speed, and the
+         * client won't go below half speed, so a lid slower than twice the sound's length outlasts it.
+         */
+        private void lidSound(SoundEvent sound, float seconds) {
             Vec3 at = gunAt(0.8);
-            level.playSound(null, at.x, at.y, at.z, sound, SoundSource.BLOCKS, 1.0f, 0.7f);
+            level.playSound(null, at.x, at.y, at.z, sound, SoundSource.BLOCKS, 1.0f, seconds / (LID_TICKS / 20f));
         }
 
         public void idle() {
