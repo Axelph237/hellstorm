@@ -80,6 +80,8 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
   - It gives off light level 9 while on.
 - **Reset.** `MapReset` calls `TrapControllerBlock.resetAll` for every `TRAP` feature, which leaves each trap ready with its signal off.
 - **Model.** Vanilla textures only: an `orientable` iron block with a redstone lamp face (`redstone_lamp`, or `redstone_lamp_on` while powered). The face points at the player who placed it.
+- **Look.** A map maker in creative, outside a game, uses the trap with a block in hand to draw the trap as that block on every side but its lamp face, so it blends into a wall. Sneaking and using it with an empty hand puts its own look back. The look is the block as it would be placed from that click, so logs keep the axis of the face clicked. Only full, solid blocks are accepted (`TrapControllerBlock.canLookLike`: solid-rendering, drawn by a block model, not another machine), so a trap never shows holes; anything else is refused with a notice. The look is saved on the block entity as `look` (a block state), so it travels with map exports, and the describe line names it.
+  - Client: `client/TrapLooks` wraps each trap state's baked model. With a look in the model data (`Entity.LOOK_PROPERTY`, from `getModelData`), it returns the look block's quads for every side but `facing` and the trap's own lamp quads for `facing`, in the union of both models' render types. Its color handler hands the look's tint through, so grass and leaves get their biome color, and break particles use the look's texture. When a new look arrives from the server, the block entity asks for fresh model data and has the block redrawn.
 - **Map tools.** While a map tool is held, each trap in range gets an outline: green when ready, red when running, orange when cooling down.
 - **Tests.**
   - JUnit `TrapCycleTest` covers the timing.
@@ -90,6 +92,7 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
     - A trap that needs power refuses until the power is on.
     - At signal 5, the first dust carries 5, a lamp after 5 dust lights, and a lamp after 6 dust stays dark.
     - A reset, run twice, leaves it ready and off, with its lamp dark.
+    - A look is set through `BlockState.use` as a click does: not by a survival player; by a creative one with stone bricks or an oak log; glass and a stone slab are refused and the old look stays; the look survives save and load; sneaking with an empty hand clears it. How it's drawn isn't covered.
 
 ## Phase
 

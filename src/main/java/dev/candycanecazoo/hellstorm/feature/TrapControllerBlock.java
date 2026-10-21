@@ -5,13 +5,17 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.game.Notices;
 import dev.candycanecazoo.hellstorm.game.Refusal;
 import dev.candycanecazoo.hellstorm.game.Shop;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.util.Codecs;
 import net.minecraft.core.BlockPos;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -21,12 +25,15 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -35,6 +42,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.client.model.data.ModelData;
+import net.minecraftforge.client.model.data.ModelProperty;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -105,10 +114,15 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
 
     public static final class Entity extends ConfigBlockEntity<Config> implements Prompted {
         private static final String CYCLE = "cycle";
+        private static final String LOOK = "look";
+        /** The block the trap is drawn as, for the client's model. */
+        public static final ModelProperty<BlockState> LOOK_PROPERTY = new ModelProperty<>();
 
         private TrapCycle cycle = TrapCycle.READY;
         /** The trap's cost as the running game sees it, synced for the prompt. */
         private int shownCost;
+        /** What the trap is drawn as, besides its lamp: a map maker's choice, so it blends into the wall. */
+        private Optional<BlockState> look = Optional.empty();
 
         public Entity(BlockPos pos, BlockState state) {
             super(PapRegistries.TRAP_CONTROLLER_ENTITY.get(), pos, state, Config.CODEC, Config.DEFAULT);
@@ -116,6 +130,20 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
 
         public TrapCycle cycle() {
             return cycle;
+        }
+
+        public Optional<BlockState> look() {
+            return look;
+        }
+
+        public void setLook(Optional<BlockState> look) {
+            this.look = look;
+            changed();
+        }
+
+        @Override
+        public ModelData getModelData() {
+            return look.map(state -> ModelData.builder().with(LOOK_PROPERTY, state).build()).orElse(ModelData.EMPTY);
         }
 
         @Override
@@ -179,6 +207,14 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
             }
             cycle = new TrapCycle(phase, saved.getLong("until"));
             shownCost = tag.getInt("shown_cost");
+            Optional<BlockState> before = look;
+            look = tag.contains(LOOK) ? Optional.of(NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound(LOOK)))
+                    .filter(state -> !state.isAir()) : Optional.empty();
+            if (level != null && level.isClientSide && !look.equals(before)) {
+                // The chunk is drawn from model data, so it has to be fetched again and the block redrawn.
+                requestModelDataUpdate();
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_IMMEDIATE);
+            }
         }
 
         @Override
@@ -189,6 +225,7 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
             saved.putLong("until", cycle.until());
             tag.put(CYCLE, saved);
             tag.putInt("shown_cost", shownCost);
+            look.ifPresent(state -> tag.put(LOOK, NbtUtils.writeBlockState(state)));
         }
     }
 
@@ -254,10 +291,50 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (player instanceof ServerPlayer serverPlayer && hand == InteractionHand.MAIN_HAND) {
+        if (player instanceof ServerPlayer serverPlayer && hand == InteractionHand.MAIN_HAND && !restyle(serverPlayer, pos, hit)) {
             FeatureBlock.use(serverPlayer, pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    /**
+     * Outside a game, in creative: using the trap with a block in hand draws the trap as that block, all but its lamp face,
+     * and sneaking with an empty hand puts its own look back. Returns whether the click was taken for that.
+     */
+    static boolean restyle(ServerPlayer player, BlockPos pos, BlockHitResult hit) {
+        if (!player.isCreative() || GameManager.forPlayer(player.getUUID()).isPresent()
+                || !(player.level().getBlockEntity(pos) instanceof Entity trap)) {
+            return false;
+        }
+        ItemStack held = player.getMainHandItem();
+        if (held.isEmpty() && player.isShiftKeyDown() && trap.look().isPresent()) {
+            trap.setLook(Optional.empty());
+            Notices.show(player, Component.literal("The trap looks like itself again"));
+            return true;
+        }
+        if (!(held.getItem() instanceof BlockItem item)) {
+            return false;
+        }
+        BlockState placed = item.getBlock().getStateForPlacement(new BlockPlaceContext(player, InteractionHand.MAIN_HAND, held, hit));
+        BlockState look = placed == null ? item.getBlock().defaultBlockState() : placed;
+        if (!canLookLike(look, player.level(), pos)) {
+            Notices.show(player, Component.literal(look.getBlock().getName().getString() + " can't be a trap's look: only full, solid blocks can")
+                    .withStyle(ChatFormatting.RED));
+            return true;
+        }
+        trap.setLook(Optional.of(look));
+        Notices.show(player, Component.literal("The trap now looks like " + look.getBlock().getName().getString()
+                + ". Sneak and use it with an empty hand to undo"));
+        player.level().playSound(null, pos, look.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0f, 0.8f);
+        return true;
+    }
+
+    /**
+     * Only full, solid blocks, so the trap still hides what's behind it, and nothing drawn by its own renderer or another
+     * machine.
+     */
+    public static boolean canLookLike(BlockState look, BlockGetter level, BlockPos pos) {
+        return !(look.getBlock() instanceof FeatureBlock) && look.getRenderShape() == RenderShape.MODEL && look.isSolidRender(level, pos);
     }
 
     @Override
@@ -314,6 +391,7 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
                 + (c.requiresPower() ? ", needs power" : "") + ", signal " + c.signalStrength() + " for " + c.activeTicks(defaults) + " ticks"
                 + (c.activeTicks().isEmpty() ? " (default)" : "") + ", cooldown " + c.cooldownTicks(defaults) + " ticks"
                 + (c.cooldownTicks().isEmpty() ? " (default)" : "") + ", " + trap.cycle().phase().getSerializedName()
+                + trap.look().map(look -> ", looks like " + look.getBlock().getName().getString()).orElse("")
                 + ". Set with /hs trap name|cost|power|active|cooldown|signal");
     }
 

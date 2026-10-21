@@ -15,11 +15,17 @@ import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -145,6 +151,43 @@ public final class TrapGameTests {
             helper.assertTrue(trap.cycle().phase() == TrapCycle.Phase.READY, "ending the game makes it ready");
             helper.succeed();
         }));
+    }
+
+    /** Uses the trap at {@code at} with {@code held} in the main hand, as a right click does. */
+    private static void useWith(GameTestHelper helper, ServerPlayer player, BlockPos at, ItemStack held) {
+        player.setItemInHand(InteractionHand.MAIN_HAND, held);
+        BlockState state = helper.getLevel().getBlockState(at);
+        state.use(helper.getLevel(), player, InteractionHand.MAIN_HAND, new BlockHitResult(at.getCenter(), Direction.NORTH, at, false));
+    }
+
+    @GameTest(template = "floor", batch = "trap_look")
+    public static void aMapMakerChoosesWhatATrapLooksLikeWithABlockAndItKeepsIt(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        TrapControllerBlock.Entity trap = trap(helper, at, config(100, false, 5, 10, 15));
+        ServerPlayer player = player(helper, "trap_look");
+        player.setGameMode(GameType.SURVIVAL);
+        useWith(helper, player, at, new ItemStack(Items.STONE_BRICKS));
+        helper.assertTrue(trap.look().isEmpty(), "outside creative a block in hand shouldn't restyle the trap");
+
+        player.setGameMode(GameType.CREATIVE);
+        useWith(helper, player, at, new ItemStack(Items.STONE_BRICKS));
+        helper.assertTrue(trap.look().equals(Optional.of(Blocks.STONE_BRICKS.defaultBlockState())), "the trap should look like stone bricks, was " + trap.look());
+        useWith(helper, player, at, new ItemStack(Items.GLASS));
+        helper.assertTrue(trap.look().equals(Optional.of(Blocks.STONE_BRICKS.defaultBlockState())), "glass isn't solid, so the look should stay, was " + trap.look());
+        useWith(helper, player, at, new ItemStack(Items.STONE_SLAB));
+        helper.assertTrue(trap.look().equals(Optional.of(Blocks.STONE_BRICKS.defaultBlockState())), "a slab isn't full, so the look should stay, was " + trap.look());
+
+        TrapControllerBlock.Entity copy = new TrapControllerBlock.Entity(at, helper.getLevel().getBlockState(at));
+        copy.load(trap.saveWithoutMetadata());
+        helper.assertTrue(copy.look().equals(trap.look()), "the look should be saved with the trap, loaded " + copy.look());
+
+        useWith(helper, player, at, new ItemStack(Items.OAK_LOG));
+        helper.assertTrue(trap.look().map(look -> look.is(Blocks.OAK_LOG)).orElse(false), "a log should do too, was " + trap.look());
+        player.setShiftKeyDown(true);
+        useWith(helper, player, at, ItemStack.EMPTY);
+        player.setShiftKeyDown(false);
+        helper.assertTrue(trap.look().isEmpty(), "sneaking with an empty hand should put the trap's own look back, was " + trap.look());
+        helper.succeed();
     }
 
     @GameTest(template = "floor", batch = "trap_name")
