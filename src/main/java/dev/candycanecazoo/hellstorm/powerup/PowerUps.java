@@ -61,20 +61,20 @@ public final class PowerUps {
         switch (def.effect()) {
             case MAX_AMMO -> players(game).forEach(PowerUps::refillEveryGun);
             case FIRE_SALE -> MysteryBoxes.setFireSale(game, true);
-            case FISSION -> {
+            case NUKE -> {
                 // Killed by nobody: no points per zombie and no drops, only the bonus.
                 for (UUID mob : game.game().mobs()) {
                     if (game.level().getEntity(mob) instanceof LivingEntity living) {
                         living.kill();
                     }
                 }
-                game.game().awardEveryone(settings.fissionBonus());
+                game.game().awardEveryone(settings.nukeBonus());
             }
-            case PAX_ROMANA -> {
+            case CARPENTER -> {
                 for (WindowDef window : game.game().map().map().windows().values()) {
                     WindowOps.setBoards(game.level(), window, window.maxBoards());
                 }
-                game.game().awardEveryone(settings.paxRomanaBonus());
+                game.game().awardEveryone(settings.carpenterBonus());
             }
             case INSTA_KILL, DOUBLE_POINTS -> {
             }

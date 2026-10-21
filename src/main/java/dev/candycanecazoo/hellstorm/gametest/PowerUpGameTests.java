@@ -129,11 +129,11 @@ public final class PowerUpGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "powerup_pax_romana")
-    public static void paxRomanaBoardsEveryWindowAndPaysEveryone(GameTestHelper helper) {
+    @GameTest(template = "floor", batch = "powerup_carpenter")
+    public static void carpenterBoardsEveryWindowAndPaysEveryone(GameTestHelper helper) {
         BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
         BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8));
-        ZoneId zone = new ZoneId("gametest_pax_romana");
+        ZoneId zone = new ZoneId("gametest_carpenter");
         List<WindowDef> windows = List.of(
                 new WindowDef("left", BlockBox.of(helper.absolutePos(new BlockPos(2, ROOM_Y, 9)), helper.absolutePos(new BlockPos(2, ROOM_Y + 1, 9))),
                         Direction.SOUTH, 6, zone),
@@ -143,7 +143,7 @@ public final class PowerUpGameTests {
         for (WindowDef window : windows) {
             map = map.withWindow(window);
         }
-        ServerPlayer player = player(helper, "pap_powerup_pax_romana");
+        ServerPlayer player = player(helper, "pap_powerup_carpenter");
         BlockPos stand = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
         player.moveTo(stand.getCenter());
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()), List.of(stand),
@@ -152,12 +152,12 @@ public final class PowerUpGameTests {
         try {
             windows.forEach(w -> WindowOps.setBoards(helper.getLevel(), w, 0));
             int before = points(active, player);
-            helper.assertTrue(collect(active, player, "pax_romana"), "Pax Romana wasn't collected");
+            helper.assertTrue(collect(active, player, "carpenter"), "Carpenter wasn't collected");
             for (WindowDef window : windows) {
                 helper.assertTrue(WindowOps.boards(helper.getLevel(), window) == window.maxBoards(),
                         window.id() + " has " + WindowOps.boards(helper.getLevel(), window) + " of " + window.maxBoards() + " boards");
             }
-            int bonus = active.game().settings().powerUps().paxRomanaBonus();
+            int bonus = active.game().settings().powerUps().carpenterBonus();
             helper.assertTrue(points(active, player) == before + bonus, "expected the " + bonus + " bonus, got " + (points(active, player) - before));
         } finally {
             GameManager.end(active);
@@ -226,25 +226,25 @@ public final class PowerUpGameTests {
         });
     }
 
-    @GameTest(template = "floor", timeoutTicks = 600, batch = "powerup_fission")
-    public static void fissionKillsEveryZombieForTheBonusOnly(GameTestHelper helper) {
-        ServerPlayer player = player(helper, "pap_powerup_fission");
+    @GameTest(template = "floor", timeoutTicks = 600, batch = "powerup_nuke")
+    public static void nukeKillsEveryZombieForTheBonusOnly(GameTestHelper helper) {
+        ServerPlayer player = player(helper, "pap_powerup_nuke");
         GameManager.Active active = fightingGame(helper, player);
         List<GameEvent> events = new ArrayList<>();
         active.game().events().subscribe(events::add);
         helper.succeedWhen(() -> {
             helper.assertTrue(zombies(helper).size() >= 2, "waiting for two game zombies, have " + zombies(helper).size());
             int before = points(active, player);
-            boolean collected = collect(active, player, "fission");
+            boolean collected = collect(active, player, "nuke");
             int left = zombies(helper).size();
             int tracked = active.game().mobs().size();
             int earned = points(active, player) - before;
-            int bonus = active.game().settings().powerUps().fissionBonus();
+            int bonus = active.game().settings().powerUps().nukeBonus();
             long kills = events.stream().filter(e -> e instanceof GameEvent.ZombieKilled k && k.killer().isEmpty()).count();
             GameManager.end(active);
-            helper.assertTrue(collected, "Fission wasn't collected");
+            helper.assertTrue(collected, "Nuke wasn't collected");
             helper.assertTrue(left == 0 && tracked == 0, left + " zombies still standing, " + tracked + " still tracked");
-            helper.assertTrue(earned == bonus, "a Fission paid " + earned + ", expected only the " + bonus + " bonus");
+            helper.assertTrue(earned == bonus, "a Nuke paid " + earned + ", expected only the " + bonus + " bonus");
             helper.assertTrue(kills >= 2, "the zombies should die as kills nobody made, saw " + kills);
         });
     }

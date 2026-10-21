@@ -71,8 +71,8 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue maxPowerUpsPerRound;
     private final ForgeConfigSpec.IntValue powerUpLifetimeTicks;
     private final ForgeConfigSpec.IntValue powerUpBlinkTicks;
-    private final ForgeConfigSpec.IntValue fissionBonus;
-    private final ForgeConfigSpec.IntValue paxRomanaBonus;
+    private final ForgeConfigSpec.IntValue nukeBonus;
+    private final ForgeConfigSpec.IntValue carpenterBonus;
     private final ForgeConfigSpec.IntValue trapDefaultCost;
     private final ForgeConfigSpec.IntValue trapDefaultActiveTicks;
     private final ForgeConfigSpec.IntValue trapDefaultCooldownTicks;
@@ -178,8 +178,8 @@ public final class GameSettingsConfig {
         maxPowerUpsPerRound = b.defineInRange("max_per_round", d.powerUps().maxPerRound(), 0, 100);
         powerUpLifetimeTicks = b.comment("How long a dropped power-up waits to be picked up.").defineInRange("lifetime_ticks", d.powerUps().lifetimeTicks(), 20, 12000);
         powerUpBlinkTicks = b.comment("It blinks for this long before it disappears.").defineInRange("blink_ticks", d.powerUps().blinkTicks(), 0, 12000);
-        fissionBonus = b.comment("Points each player gets from a Fission.").defineInRange("fission_bonus", d.powerUps().fissionBonus(), 0, 1_000_000);
-        paxRomanaBonus = b.comment("Points each player gets from a Pax Romana.").defineInRange("pax_romana_bonus", d.powerUps().paxRomanaBonus(), 0, 1_000_000);
+        nukeBonus = b.comment("Points each player gets from a Nuke.").defineInRange("nuke_bonus", d.powerUps().nukeBonus(), 0, 1_000_000);
+        carpenterBonus = b.comment("Points each player gets from a Carpenter.").defineInRange("carpenter_bonus", d.powerUps().carpenterBonus(), 0, 1_000_000);
         dropIncrement = b.comment("CoD's points-triggered drops: the next kill drops a power-up once the team has earned this many points since the last one.")
                 .defineInRange("drop_increment", d.powerUps().dropIncrement(), 1, Integer.MAX_VALUE);
         dropIncrementGrowth = b.comment("Each points-triggered drop makes the next threshold this much bigger (CoD: 1.14).")
@@ -240,7 +240,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Downs(r.read(bleedOutTicks), r.read(reviveTicks), r.read(reviveRange), r.read(soloSelfRevives),
                         r.read(regenDelayTicks), r.read(regenPerSecond)),
                 new GameSettings.PowerUps(r.read(dropChance), r.read(maxPowerUpsPerRound), r.read(powerUpLifetimeTicks), r.read(powerUpBlinkTicks),
-                        r.read(fissionBonus), r.read(paxRomanaBonus), r.read(dropIncrement), r.read(dropIncrementGrowth)),
+                        r.read(nukeBonus), r.read(carpenterBonus), r.read(dropIncrement), r.read(dropIncrementGrowth)),
                 new GameSettings.Traps(r.read(trapDefaultCost), r.read(trapDefaultActiveTicks), r.read(trapDefaultCooldownTicks)),
                 new GameSettings.WaveEvents(r.read(waveEventsEnabled), ids(r.read(waveEventsDisabled))));
     }

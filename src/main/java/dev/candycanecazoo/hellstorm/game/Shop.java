@@ -27,7 +27,7 @@ public final class Shop {
 
     private Shop() {}
 
-    /** Returns true if the purchase went through. Either way the player sees the result, and hears it unless they were short of points. */
+    /** Returns true if the purchase went through. Either way the player sees the result; only a purchase makes a sound. */
     public static boolean buy(ServerPlayer player, GameManager.Active game, Sale sale) {
         Optional<Refusal> refusal = sale.check(game, player)
                 .or(() -> game.game().charge(player.getUUID(), sale.cost(), sale.needsPower()));
@@ -50,9 +50,5 @@ public final class Shop {
                 ? Component.translatable(t.key(), t.nameKeys().stream().map(Component::translatable).toArray())
                 : Component.literal(refusal.message());
         Notices.show(player, text.copy().withStyle(ChatFormatting.RED));
-        if (refusal instanceof Refusal.NotEnoughPoints) {
-            return;
-        }
-        player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.0f);
     }
 }

@@ -34,13 +34,13 @@ class PowerUpDefTest {
                         parse(Files.readString(file)).getOrThrow(false, AssertionError::new));
             }
         }
-        assertEquals(java.util.Set.of("max_ammo", "insta_kill", "double_points", "fission", "pax_romana", "fire_sale"), defaults.keySet());
+        assertEquals(java.util.Set.of("max_ammo", "insta_kill", "double_points", "nuke", "carpenter", "fire_sale"), defaults.keySet());
         defaults.forEach((id, def) -> {
             assertEquals(id, def.effect().getSerializedName(), "each default carries the effect it's named for");
             assertEquals("powerup.hellstorm." + id, def.name(), "names are lang keys");
         });
         assertEquals(Optional.of(TimedEffects.INSTA_KILL), defaults.get("insta_kill").effect().timer());
-        assertEquals(Optional.empty(), defaults.get("fission").effect().timer());
+        assertEquals(Optional.empty(), defaults.get("nuke").effect().timer());
     }
 
     @Test
@@ -51,6 +51,6 @@ class PowerUpDefTest {
         assertEquals(ResourceLocation.tryBuild("minecraft", "nether_star"), def.item());
         assertTrue(parse("{\"name\": \"x\", \"effect\": {\"type\": \"free_pizza\"}}").error().isPresent(), "unknown effect");
         assertTrue(parse("{\"name\": \"x\"}").error().isPresent(), "no effect");
-        assertTrue(parse("{\"name\": \"x\", \"weight\": -1, \"effect\": {\"type\": \"fission\"}}").error().isPresent(), "negative weight");
+        assertTrue(parse("{\"name\": \"x\", \"weight\": -1, \"effect\": {\"type\": \"nuke\"}}").error().isPresent(), "negative weight");
     }
 }

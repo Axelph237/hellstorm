@@ -13,6 +13,6 @@ This mod never adds texture files. Anything that needs a custom texture is left 
 | `assets/hellstorm/textures/mob_effect/off_hand.png` | 18×18 | Off-Hand's effect icon | `perk-machines.md` | Dark green square with "M" |
 | `assets/hellstorm/textures/mob_effect/jockey_energy.png` | 18×18 | Jockey Energy's effect icon | `perk-machines.md` | Yellow square with "S" |
 | `assets/hellstorm/textures/gui/powerup/<id>.png` | 16×16 | HUD timer icon for timed power-ups (insta_kill, double_points, fire_sale) | `power-ups.md`, `hud-and-prompts.md` | Text timer across the top of the HUD |
-| `assets/hellstorm/textures/entity/powerup/<id>.png` | 16×16 | Floating power-up sprite (max_ammo, insta_kill, double_points, fission, pax_romana, fire_sale) | `power-ups.md` | Renders each power-up's `item` (defaults: spectral arrow, skeleton skull, gold ingot, TNT, oak planks, emerald) |
+| `assets/hellstorm/textures/entity/powerup/<id>.png` | 16×16 | Floating power-up sprite (max_ammo, insta_kill, double_points, nuke, carpenter, fire_sale) | `power-ups.md` | Renders each power-up's `item` (defaults: spectral arrow, skeleton skull, gold ingot, TNT, oak planks, emerald) |
 | `assets/hellstorm/textures/gui/points.png` | 16×16 | Points icon on the HUD | `hud-and-prompts.md` | No icon |
 | `assets/hellstorm/textures/gui/downed.png` | 16×16 | Downed player indicator | `downs-and-revives.md` | Red text |

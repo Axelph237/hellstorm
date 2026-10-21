@@ -1,6 +1,0 @@
-{
-  "name": "powerup.hellstorm.fission",
-  "weight": 6,
-  "item": "minecraft:tnt",
-  "effect": { "type": "fission" }
-}

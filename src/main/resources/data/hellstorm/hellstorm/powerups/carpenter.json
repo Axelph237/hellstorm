@@ -1,0 +1,6 @@
+{
+  "name": "powerup.hellstorm.carpenter",
+  "weight": 6,
+  "item": "minecraft:oak_planks",
+  "effect": { "type": "carpenter" }
+}

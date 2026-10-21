@@ -527,7 +527,7 @@ public final class Game {
         if (phase instanceof GamePhase.RoundActive round && round.toSpawn() == 0 && mobs.isEmpty()) {
             rules.flatMap(RoundRules::lastKillDrop).ifPresent(powerUp -> pendingDrops.add(new Drop(powerUp, pos)));
         }
-        // Only kills a player makes drop power-ups: not traps, falls, or a Fission.
+        // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
         if (player.isPresent()) {
             boolean pointsDue = earned >= nextDropAt;
             PowerUpDrops.roll(settings.powerUps(), dropsThisRound, pointsDue, content.powerUps(), random).ifPresent(powerUp -> {
@@ -569,7 +569,7 @@ public final class Game {
         return true;
     }
 
-    /** Points for every player in the game, such as a Fission's or a Pax Romana's bonus. Never doubled. */
+    /** Points for every player in the game, such as a Nuke's or a Carpenter's bonus. Never doubled. */
     public void awardEveryone(int points) {
         players.values().forEach(p -> earn(p, points));
     }

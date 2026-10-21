@@ -26,7 +26,7 @@ record WindowState(
 - **Collision.** `getCollisionShape(state, level, pos, CollisionContext)` returns empty when `boards == 0` and the context entity carries the `GameMob` capability. Otherwise it returns the full shape. Players can never walk out through a window.
 - **Breaking in.** `BreakBarricadeGoal` walks a game mob to the controller's outside face. It removes one board every `windows.tear_ticks` while in range. At 0 boards the mob climbs through and switches to `PortalNavigateGoal`.
 - **Repairing.** A player holding use near a window with missing boards adds one board every `windows.repair_ticks` and earns repair points (see `economy-and-points.md`), capped per round.
-- **Pax Romana** power-up sets every window to `maxBoards`.
+- **Carpenter** power-up sets every window to `maxBoards`.
 - **Validation.** For each mob profile that can spawn at a window, `MapValidator` checks the mob's bounding box against the opening (see `map-validation.md`).
 
 ## Config surface
@@ -49,7 +49,7 @@ record WindowState(
   - All members show the same board count after each tear and repair.
   - A game mob can't pass while boards are above 0 and can pass at 0.
   - A player can't pass at any board count.
-- GameTest: Pax Romana restores every window to full.
+- GameTest: Carpenter restores every window to full.
 - In game: a zombie tears a 3×2 window down board by board and climbs in.
 
 ## Phase

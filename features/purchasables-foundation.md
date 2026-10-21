@@ -25,7 +25,7 @@ Every machine and door is bought the same way, so each feature only writes what 
 - **Buying.** `Shop.buy(player, game, sale)`:
   1. `sale.check`, then `Game.charge(player, cost, needsPower)`, which refuses strangers, downed players, a game that's over, no power, or too few points.
   2. Then `sale.deliver`. A refusal there refunds the cost.
-  3. A refusal shows on the action bar with a "no" sound, except too few points, which is silent. Success plays a pickup sound.
+  3. A refusal shows on the action bar, silently, and short: too few points is just "Not enough points". Success plays a pickup sound.
 - **Power.** `Game.powerOn()` starts true when the map has no `POWER_SWITCH` feature. `Game.turnPowerOn(by)` emits `power_on` once.
 - **Using a machine.** Right click calls the block's `use`, which calls `FeatureBlock.use`. The Hellstorm use key (`client/UseKey`, default O, the same key as TacZ Interact) sends `UsePacket(pos, firstPress)`. A machine is used only on the first packet of a press; barricades repair while the key is held. The server checks reach.
 - **HUD sync.** Each status update (every 10 ticks) also sends `HudSyncPacket(points, powerOn)`. The client treats a status more than 2 seconds old as "not in a game".

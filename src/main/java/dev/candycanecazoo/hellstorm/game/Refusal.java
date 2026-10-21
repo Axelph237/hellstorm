@@ -12,7 +12,7 @@ public sealed interface Refusal {
 
     record NotEnoughPoints(int cost, int points) implements Refusal {
         public String message() {
-            return "Not enough points: " + cost + " needed, you have " + points;
+            return "Not enough points";
         }
     }
 
