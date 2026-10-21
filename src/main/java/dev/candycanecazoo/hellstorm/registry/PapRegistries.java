@@ -3,7 +3,6 @@ package dev.candycanecazoo.hellstorm.registry;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.BarricadeBlock;
@@ -115,13 +114,11 @@ public final class PapRegistries {
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));
     public static final RegistryObject<Item> POWER_SWITCH_ITEM = ITEMS.register("power_switch", () -> new BlockItem(POWER_SWITCH.get(), new Item.Properties()));
-    public static final RegistryObject<Item> VENDING_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new GeoBlockItem(VENDING_MACHINE.get(), new Item.Properties(),
-            VendingMachineBlock.MODEL, VendingMachineBlock.ITEM_OFFSET));
+    public static final RegistryObject<Item> VENDING_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new BlockItem(VENDING_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> WALL_BUY_ITEM = ITEMS.register("wall_buy", () -> new BlockItem(WALL_BUY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MYSTERY_BOX_ITEM = ITEMS.register("mystery_crate", () -> new GeoBlockItem(MYSTERY_BOX.get(), new Item.Properties(),
             MysteryBoxBlock.MODEL, MysteryBoxBlock.MODEL_OFFSET));
-    public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new GeoBlockItem(PAP_MACHINE.get(), new Item.Properties(),
-            PapMachineBlock.MODEL, Vec3.ZERO));
+    public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()

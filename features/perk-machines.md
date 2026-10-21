@@ -121,6 +121,6 @@ Machines sell perks like Vigorade, RE:Load, Hellfire, Saint's Brew, Jockey Energ
   - `vending_machine.idle`: 12 seconds of your idle recording (from 20 s in), made to loop seamlessly by crossfading its last second into its first; 12 seconds is a whole number of the hum's 120 Hz cycles. Raised to peak at half volume, since the recording is very quiet. `client/VendingMachineHum` loops it from the machine's middle while it is lit, at a volume that follows the fade.
   - `vending_machine.shake`: the first 0.6 seconds of your shake recording, from where the sound starts (1.06 s in), faded out. A later, louder stretch (6.375 s in) didn't sound like rattling.
   - `vending_machine.button`: your button recording from just before its press click. Its release click follows 0.17 s later, which is how long the animation's keys take to spring back.
-- **Item.** Drawn with the same model, unlit (`GeoBlockItem`), centered in the slot.
+- **Item.** A flat item with your 16-pixel texture, `textures/item/vending_machine.png` (`models/item/perk_machine.json`, `item/generated`), not the block's model.
 - **Check in game** (not covered by tests): the model's position on its blocks and its front facing you, the fade and the lit animation's speed, the glass, the stock's size and spots (TacZ guns may sit off center), the keys' clicks against the animation, the rattle, the hum's loop and volume, and the item in a slot and in hand.
 

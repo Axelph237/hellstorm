@@ -68,8 +68,6 @@ public final class VendingMachineBlock extends TwoBlockMachine {
     public static final String MODEL = "vending_machine";
     /** The model is 24 pixels wide, with its middle 4 pixels toward the foot from the seam between its blocks. */
     public static final Vec3 MODEL_OFFSET = new Vec3(4, 0, 0);
-    /** Its item moves the model the other way, so the model's middle is the item's. */
-    public static final Vec3 ITEM_OFFSET = MODEL_OFFSET.reverse();
     /**
      * The model's use animation, and how long a vend takes: until its last movement, the end of the shake, 1.58 seconds in.
      * The item is handed over then. The animation itself runs to 4 seconds, still after that.
