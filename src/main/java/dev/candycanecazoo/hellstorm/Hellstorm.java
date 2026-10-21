@@ -1,7 +1,7 @@
 package dev.candycanecazoo.hellstorm;
 
 import com.mojang.logging.LogUtils;
-import dev.candycanecazoo.hellstorm.command.PapCommand;
+import dev.candycanecazoo.hellstorm.command.HellstormCommand;
 import dev.candycanecazoo.hellstorm.config.ClientConfig;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.net.PapNetwork;
@@ -31,7 +31,7 @@ public final class Hellstorm {
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(PapNetwork::register));
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
-        MinecraftForge.EVENT_BUS.addListener(PapCommand::register);
+        MinecraftForge.EVENT_BUS.addListener(HellstormCommand::register);
     }
 
     public static ResourceLocation id(String path) {

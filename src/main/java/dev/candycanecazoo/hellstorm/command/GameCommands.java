@@ -29,12 +29,12 @@ final class GameCommands {
                 Commands.literal("join").executes(GameCommands::join),
                 Commands.literal("leave").executes(GameCommands::leave),
                 Commands.literal("start").requires(GameCommands::opOrPlayerInGame).executes(GameCommands::start),
-                Commands.literal("stop").requires(PapCommand::op).executes(GameCommands::stop),
+                Commands.literal("stop").requires(HellstormCommand::op).executes(GameCommands::stop),
                 Commands.literal("status").executes(GameCommands::status));
     }
 
     private static boolean opOrPlayerInGame(CommandSourceStack source) {
-        return PapCommand.op(source)
+        return HellstormCommand.op(source)
                 || (source.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID()).isPresent());
     }
 
