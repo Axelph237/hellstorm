@@ -22,12 +22,11 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A trap with a look ({@link TrapControllerBlock.Entity#look}) is drawn as that block, tinted as it would be there,
- * except for its lamp face. Without one it is drawn as itself.
+ * A trap with a look ({@link TrapControllerBlock.Entity#look}) is drawn as that block on every side, tinted as it would
+ * be there. Without one it is drawn as itself.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class TrapLooks {
@@ -67,23 +66,16 @@ public final class TrapLooks {
             if (look == null || state == null) {
                 return super.getQuads(state, side, rand, data, renderType);
             }
-            List<BakedQuad> quads = new ArrayList<>();
-            boolean lamp = side == state.getValue(TrapControllerBlock.FACING);
-            if (lamp && (renderType == null || originalModel.getRenderTypes(state, rand, data).contains(renderType))) {
-                quads.addAll(super.getQuads(state, side, rand, data, renderType));
-            }
             BakedModel lookModel = modelOf(look);
-            if (!lamp && (renderType == null || lookModel.getRenderTypes(look, rand, ModelData.EMPTY).contains(renderType))) {
-                quads.addAll(lookModel.getQuads(look, side, rand, ModelData.EMPTY, renderType));
-            }
-            return quads;
+            return renderType == null || lookModel.getRenderTypes(look, rand, ModelData.EMPTY).contains(renderType)
+                    ? lookModel.getQuads(look, side, rand, ModelData.EMPTY, renderType)
+                    : List.of();
         }
 
         @Override
         public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
             BlockState look = data.get(TrapControllerBlock.Entity.LOOK_PROPERTY);
-            ChunkRenderTypeSet own = super.getRenderTypes(state, rand, data);
-            return look == null ? own : ChunkRenderTypeSet.union(own, modelOf(look).getRenderTypes(look, rand, ModelData.EMPTY));
+            return look == null ? super.getRenderTypes(state, rand, data) : modelOf(look).getRenderTypes(look, rand, ModelData.EMPTY);
         }
 
         @Override

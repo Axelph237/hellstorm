@@ -121,7 +121,7 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
         private TrapCycle cycle = TrapCycle.READY;
         /** The trap's cost as the running game sees it, synced for the prompt. */
         private int shownCost;
-        /** What the trap is drawn as, besides its lamp: a map maker's choice, so it blends into the wall. */
+        /** What the trap is drawn as: a map maker's choice, so it blends into the wall. */
         private Optional<BlockState> look = Optional.empty();
 
         public Entity(BlockPos pos, BlockState state) {
@@ -298,8 +298,7 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
     }
 
     /**
-     * Outside a game, in creative: using the trap with a block in hand draws the trap as that block, all but its lamp face,
-     * and sneaking with an empty hand puts its own look back. Returns whether the click was taken for that.
+     * Outside a game, in creative: using the trap with a block in hand draws the trap as that block, and sneaking with an empty hand puts its own look back. Returns whether the click was taken for that.
      */
     static boolean restyle(ServerPlayer player, BlockPos pos, BlockHitResult hit) {
         if (!player.isCreative() || GameManager.forPlayer(player.getUUID()).isPresent()
