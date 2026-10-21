@@ -26,7 +26,7 @@ record WindowState(
 - **Collision.** `getCollisionShape(state, level, pos, CollisionContext)` returns empty when `boards == 0` and the context entity carries the `GameMob` capability. Otherwise it returns the full shape. Players can never walk out through a window.
 - **Breaking in.** `BreakBarricadeGoal` walks a game mob to the controller's outside face. It removes one board every `windows.tear_ticks` while in range. At 0 boards the mob climbs through and switches to `PortalNavigateGoal`.
 - **Repairing.** A player holding use near a window with missing boards adds one board every `windows.repair_ticks` and earns repair points (see `economy-and-points.md`), capped per round.
-- **Carpenter** power-up sets every window to `maxBoards`.
+- **Pax Romana** power-up sets every window to `maxBoards`.
 - **Validation.** For each mob profile that can spawn at a window, `MapValidator` checks the mob's bounding box against the opening (see `map-validation.md`).
 
 ## Config surface
@@ -49,7 +49,7 @@ record WindowState(
   - All members show the same board count after each tear and repair.
   - A game mob can't pass while boards are above 0 and can pass at 0.
   - A player can't pass at any board count.
-- GameTest: Carpenter restores every window to full.
+- GameTest: Pax Romana restores every window to full.
 - In game: a zombie tears a 3×2 window down board by board and climbs in.
 
 ## Phase
@@ -59,7 +59,7 @@ record WindowState(
 ## As built (phase 4)
 
 - **Window data lives in the map,** the same way door data does. A `WindowDef` holds the id, the opening box, the outward facing, the max boards, and the inside zone, and lives in `ZombiesMap`. It doesn't use a `WindowController` BlockEntity. The barricade blocks stay plain. The current board count is their shared `boards` blockstate, which `WindowOps` reads and writes.
-- **No separate Window Tool.** Select the hole with the Zone Wand: a corner is the air cell in front of the face you click, which is exactly the opening. Then run `/pap window add <id> [boards]`. The facing is inferred: the side of the opening that lies in a zone is the inside. The opening must be one block thick, within `windows.max_width` / `max_height`, and must not overlap another window. Also `/pap window remove <id>` and `/pap window list`.
+- **No separate Window Tool.** Select the hole with the Zone Wand: a corner is the air cell in front of the face you click, which is exactly the opening. Then run `/hs window add <id> [boards]`. The facing is inferred: the side of the opening that lies in a zone is the inside. The opening must be one block thick, within `windows.max_width` / `max_height`, and must not overlap another window. Also `/hs window remove <id>` and `/hs window list`.
 - **Collision depends on the entity.** Game mobs pass at 0 boards. Projectiles always pass (GameTested with a vanilla arrow), so players should be able to shoot through windows. Whether TacZ bullets hit blocks through the same per-entity collision is not yet checked in game. Players and other mobs are always blocked.
 - **Boards face the zone.** They sit on the opening's inside face. The block's outline and its collision for anything blocked are a 3/16-thick panel there, like a trapdoor, rather than the whole block. Barricades are never pathfindable for vanilla navigation; zombies climb in with `BreakBarricadeGoal`.
 - **Zombies spread along a window.** Each zombie picks its own column of the opening, plus a small random offset, for where it stands to tear boards. Its attack and inside points drop to the ground, so windows with a sill work. Several zombies can work one window at once.

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "hellstorm:block/wall_buy"
+    },
+    "facing=east": {
+      "model": "hellstorm:block/wall_buy",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "hellstorm:block/wall_buy",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "hellstorm:block/wall_buy",
+      "y": 270
+    }
+  }
+}

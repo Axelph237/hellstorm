@@ -56,17 +56,17 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
 
 ## As built
 
-- **Block.** `feature/TrapControllerBlock` (`packapunch:trap_controller`, "Trap Controller" in the map tools tab): a full block with `facing` and `powered`. It's a `FeatureBlock` with a `ConfigBlockEntity<Config>`, indexed as `FeatureKind.TRAP`. Like the other machines, it can't be broken outside creative and drops nothing.
+- **Block.** `feature/TrapControllerBlock` (`hellstorm:trap_controller`, "Trap Controller" in the map tools tab): a full block with `facing` and `powered`. It's a `FeatureBlock` with a `ConfigBlockEntity<Config>`, indexed as `FeatureKind.TRAP`. Like the other machines, it can't be broken outside creative and drops nothing.
 - **Settings** (`Config`):
   - `cost`, `active_ticks`, and `cooldown_ticks` are optional. Unset, they fall back to `traps.default_cost`, `traps.default_active_ticks`, and `traps.default_cooldown_ticks`.
   - `requires_power` defaults to true, and `signal_strength` (1 to 15) defaults to 15.
   - `name` (optional, 1 to 32 characters) is what players see. Without one, the label is "Trap".
   - Set them with these commands, or with the settings screen (`client/settings/TrapScreen`). Both go through `ConfigBlockEntity.trySet`.
-    - `/pap trap name <text|default>`
-    - `/pap trap cost|active|cooldown <n|default>`
-    - `/pap trap power <bool>`
-    - `/pap trap signal <1-15>`
-    - `/pap trap describe`
+    - `/hs trap name <text|default>`
+    - `/hs trap cost|active|cooldown <n|default>`
+    - `/hs trap power <bool>`
+    - `/hs trap signal <1-15>`
+    - `/hs trap describe`
 - **Cycle** (`feature/TrapCycle`, pure): `READY`, then `ACTIVE` until a game time, then `COOLDOWN` until a game time.
   - The block entity's server ticker moves it from phase to phase.
   - If a tick comes late, the cooldown still counts from when the signal should have ended.

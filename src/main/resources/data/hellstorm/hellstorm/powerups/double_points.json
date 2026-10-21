@@ -1,0 +1,7 @@
+{
+  "name": "powerup.hellstorm.double_points",
+  "weight": 10,
+  "duration_ticks": 600,
+  "item": "minecraft:gold_ingot",
+  "effect": { "type": "double_points" }
+}

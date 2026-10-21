@@ -33,7 +33,7 @@ record ValidationReport(List<Problem> problems) {
 - **Wall-buys.** Every TacZ gun id named by a wall-buy exists in the installed gun packs (ERROR).
 
 Entry points:
-- `/pap map validate` prints the report.
+- `/hs map validate` prints the report.
 - Game start runs it and refuses to start if `playable()` is false.
 - While a map tool is held, problems with positions draw as red outlines (see `zone-tools-and-outlines.md`).
 

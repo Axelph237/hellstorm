@@ -1,0 +1,7 @@
+{
+  "name": "powerup.hellstorm.insta_kill",
+  "weight": 10,
+  "duration_ticks": 600,
+  "item": "minecraft:skeleton_skull",
+  "effect": { "type": "insta_kill" }
+}

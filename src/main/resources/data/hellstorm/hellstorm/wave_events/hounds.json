@@ -1,0 +1,11 @@
+{
+  "trigger": { "type": "interval", "every": 5, "start": 5 },
+  "effects": [
+    { "type": "mob_override", "profiles": ["hellstorm:hellhound"] },
+    { "type": "count", "multiplier": 0.75 },
+    { "type": "spawn_rate", "multiplier": 1.5 },
+    { "type": "fog", "density": 0.6 },
+    { "type": "last_kill_drop", "powerup": "hellstorm:max_ammo" }
+  ],
+  "announce": "wave.hellstorm.hounds"
+}

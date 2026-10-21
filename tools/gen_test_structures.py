@@ -4,7 +4,7 @@ import struct
 from pathlib import Path
 
 DATA_VERSION = 3465  # Minecraft 1.20.1
-OUT = Path(__file__).resolve().parent.parent / "src/main/resources/data/packapunch/structures"
+OUT = Path(__file__).resolve().parent.parent / "src/main/resources/data/hellstorm/structures"
 
 
 def string(s):

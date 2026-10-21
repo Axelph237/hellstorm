@@ -6,14 +6,14 @@ Killed zombies sometimes drop a floating power-up. Any player who touches it tri
 
 ## Data shape
 
-`data/<ns>/packapunch/powerups/<id>.json`:
+`data/<ns>/hellstorm/powerups/<id>.json`:
 
 ```json
-{ "name": "powerup.packapunch.insta_kill", "weight": 10, "duration_ticks": 600,
+{ "name": "powerup.hellstorm.insta_kill", "weight": 10, "duration_ticks": 600,
   "effect": { "type": "insta_kill" } }
 ```
 
-Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `nuke`, `carpenter`, `fire_sale`.
+Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `fat_man`, `pax_romana`, `black_friday`.
 
 `PowerUpEntity`: `{ powerUpId, ticksLeft }`.
 `Game.activePowerUps`: `Map<ResourceLocation, Integer>` of remaining ticks for timed effects.
@@ -26,9 +26,9 @@ Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `nuke`
   - `max_ammo`: `TaczBridge.refillAmmo` on every gun of every player.
   - `insta_kill`: timed. The damage hook sets damage to the target's health.
   - `double_points`: timed. `Economy` doubles awards.
-  - `nuke`: kills every game mob, awards a flat bonus, and the kills award no points.
-  - `carpenter`: sets every window to full boards and awards a bonus.
-  - `fire_sale`: timed. Box cost drops, and every box location is active.
+  - `fat_man`: kills every game mob, awards a flat bonus, and the kills award no points.
+  - `pax_romana`: sets every window to full boards and awards a bonus.
+  - `black_friday`: timed. Box cost drops, and every box location is active.
 - **Wave events** can force a drop (for example Max Ammo on the last kill of a special round).
 
 ## Config surface
@@ -48,7 +48,7 @@ Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `nuke`
 ## Verification
 
 - JUnit: drop roll respects the per-round cap and resets each round.
-- GameTest, one per effect: Max Ammo refills, Insta-Kill one-shots, Double Points doubles, Nuke clears mobs, Carpenter boards every window, Fire Sale lowers the box cost.
+- GameTest, one per effect: Max Ammo refills, Insta-Kill one-shots, Double Points doubles, Fat Man clears mobs, Pax Romana boards every window, Black Friday lowers the box cost.
 - GameTest: timed effects expire after their duration.
 
 ## Phase
@@ -57,23 +57,23 @@ Effect types (codec dispatch): `max_ammo`, `insta_kill`, `double_points`, `nuke`
 
 ## As built
 
-- **Definitions** (`powerup/PowerUpDef`, loaded by `powerup/PowerUpDefs` from `data/<ns>/packapunch/powerups/`): `name` (lang key), `weight` (10; 0 never drops at random), `duration_ticks` (600, for timed effects), `item` (the vanilla item the pickup shows, default `minecraft:nether_star`; an unknown item rejects the file), `effect: {"type": ...}`. Effects are `powerup/PowerUpEffect`; the timed ones run under a fixed `game/TimedEffects` id (`packapunch:insta_kill`, `double_points`, `fire_sale`), so two power-ups with the same effect share one timer.
-- **Defaults** (`data/packapunch/packapunch/powerups/`): Max Ammo (spectral arrow, weight 10), Insta-Kill (skeleton skull, 10, 30 s), Double Points (gold ingot, 10, 30 s), Nuke "Kaboom!" (TNT, 6), Carpenter (oak planks, 6), Fire Sale (emerald, 4, 30 s).
-- **Drops** (`powerup/PowerUpDrops`, pure): `roll(settings, droppedThisRound, table, random)` returns nothing once `max_per_round` have dropped, else `drop_chance` of a weighted pick. A game takes its table when it is created (`SurvivalContent`, a new `Game` constructor argument; the old constructor uses none). `Game.onMobDied` rolls only for kills a player made, so traps, falls, and a Nuke drop nothing. The count resets at each round start. Drops are queued and put in the world on the next game tick through `GameWorld.dropPowerUp`, which emits `powerup_spawned`.
-- **Pickup** (`powerup/PowerUpEntity`, registered in `powerup/PowerUpRegistries` as `packapunch:power_up`): floats half a block above where the zombie died, counts down `powerups.lifetime_ticks`, blinks for its last `blink_ticks`, and removes itself when the level has no game. Each tick it checks the game's own players (not the level's entity list), so any non-spectator player of the game touching it collects it through `Game.collectPowerUp`, which emits `powerup_collected` and refuses players who aren't alive or a game that's over. `MapReset` removes every pickup in the level.
+- **Definitions** (`powerup/PowerUpDef`, loaded by `powerup/PowerUpDefs` from `data/<ns>/hellstorm/powerups/`): `name` (lang key), `weight` (10; 0 never drops at random), `duration_ticks` (600, for timed effects), `item` (the vanilla item the pickup shows, default `minecraft:nether_star`; an unknown item rejects the file), `effect: {"type": ...}`. Effects are `powerup/PowerUpEffect`; the timed ones run under a fixed `game/TimedEffects` id (`hellstorm:insta_kill`, `double_points`, `black_friday`), so two power-ups with the same effect share one timer.
+- **Defaults** (`data/hellstorm/hellstorm/powerups/`): Max Ammo (spectral arrow, weight 10), Insta-Kill (skeleton skull, 10, 30 s), Double Points (gold ingot, 10, 30 s), Fat Man (TNT, 6), Pax Romana (oak planks, 6), Black Friday (emerald, 4, 30 s).
+- **Drops** (`powerup/PowerUpDrops`, pure): `roll(settings, droppedThisRound, table, random)` returns nothing once `max_per_round` have dropped, else `drop_chance` of a weighted pick. A game takes its table when it is created (`SurvivalContent`, a new `Game` constructor argument; the old constructor uses none). `Game.onMobDied` rolls only for kills a player made, so traps, falls, and a Fat Man drop nothing. The count resets at each round start. Drops are queued and put in the world on the next game tick through `GameWorld.dropPowerUp`, which emits `powerup_spawned`.
+- **Pickup** (`powerup/PowerUpEntity`, registered in `powerup/PowerUpRegistries` as `hellstorm:power_up`): floats half a block above where the zombie died, counts down `powerups.lifetime_ticks`, blinks for its last `blink_ticks`, and removes itself when the level has no game. Each tick it checks the game's own players (not the level's entity list), so any non-spectator player of the game touching it collects it through `Game.collectPowerUp`, which emits `powerup_collected` and refuses players who aren't alive or a game that's over. `MapReset` removes every pickup in the level.
 - **Rendering** (`client/PowerUpRenderer`): the def's item, full bright, bobbing and spinning, skipped on the blink's dark beats. No textures.
 - **Effects** (`powerup/PowerUps.apply`), each for the whole team, with the name shown to every player through `Notices` and a beacon sound:
   - Max Ammo: `TaczBridge.refillAmmo` on every inventory and offhand gun of every player.
   - Insta-Kill: while running, a `LivingHurtEvent` (high priority) sets any damage a player of the game does to one of its zombies to five times the zombie's remaining health, which survives armor. Guns and melee alike, and the kill still pays as usual.
   - Double Points: `Game` passes `timedActive(DOUBLE_POINTS)` to `Economy.award` for hits, kills, and repairs. Bonuses aren't doubled.
-  - Nuke: `kill()`s every game zombie (no killer, so no points and no drops), then `Game.awardEveryone(powerups.nuke_bonus)`.
-  - Carpenter: every window of the map to its max boards, then `awardEveryone(powerups.carpenter_bonus)`.
-  - Fire Sale: `MysteryBoxes.setFireSale(true)`; `GameWorld.timedEffectEnded` turns it off when the timer runs out or the game ends.
+  - Fat Man: `kill()`s every game zombie (no killer, so no points and no drops), then `Game.awardEveryone(powerups.fat_man_bonus)`.
+  - Pax Romana: every window of the map to its max boards, then `awardEveryone(powerups.pax_romana_bonus)`.
+  - Black Friday: `MysteryBoxes.setBlackFriday(true)`; `GameWorld.timedEffectEnded` turns it off when the timer runs out or the game ends.
 - **HUD.** Timed effects show in the foundation's timer row ("Insta-Kill 23").
-- **Tests.** JUnit: `PowerUpDropsTest` (the cap, the chance and weights over many kills, zero weight), `PowerUpDefTest` (the six defaults, field defaults, bad files), `game/PowerUpGameTest` (player kills drop up to the cap and it resets next round, kills nobody made don't drop, Double Points doubles hits and kills and stops with its timer, collecting needs an alive player and a running game). GameTests (`PowerUpGameTests`): Max Ammo refills a held and a stowed gun; Double Points doubles a repair and shows its timer; Carpenter boards two windows and pays the bonus; Fire Sale opens both box locations at the Fire Sale price and closes all but the home when its 20-tick timer ends; Insta-Kill makes a 1-damage punch kill a real game zombie and pay a melee kill; Nuke kills every game zombie as kills nobody made and pays only the bonus; walking into a dropped pickup collects it once and removes it.
+- **Tests.** JUnit: `PowerUpDropsTest` (the cap, the chance and weights over many kills, zero weight), `PowerUpDefTest` (the six defaults, field defaults, bad files), `game/PowerUpGameTest` (player kills drop up to the cap and it resets next round, kills nobody made don't drop, Double Points doubles hits and kills and stops with its timer, collecting needs an alive player and a running game). GameTests (`PowerUpGameTests`): Max Ammo refills a held and a stowed gun; Double Points doubles a repair and shows its timer; Pax Romana boards two windows and pays the bonus; Black Friday opens both box locations at the Black Friday price and closes all but the home when its 20-tick timer ends; Insta-Kill makes a 1-damage punch kill a real game zombie and pay a melee kill; Fat Man kills every game zombie as kills nobody made and pays only the bonus; walking into a dropped pickup collects it once and removes it.
 - **Not built:** per-power-up sounds and the HUD icons (`TEXTURES_NEEDED.md`).
 
 ## CoD drop scaling (phase 7)
 
-Drops follow Black Ops: a 2% chance on any player's kill (`drop_chance`), plus points-triggered drops. The game keeps the team's earned points (hits, kills, repairs, and Nuke and Carpenter bonuses; not refunds). Once they reach the next threshold, the next player kill drops a power-up even without the chance, the threshold moves `drop_increment` further on from the current total, and the increment grows by `drop_increment_growth`: 2000 points, then 2280 more, 2599 more, and so on. `max_per_round` still caps both kinds. `PowerUpDrops.roll(settings, droppedThisRound, pointsDue, table, random)` decides; `Game` tracks the points. Tests: `PowerUpDropsTest.pointsReachingTheThresholdDropEvenWithNoChanceButNotPastTheCap` and `PowerUpGameTest.theTeamsPointsTriggerDropsAtAGrowingThresholdWithoutAnyChance`.
+Drops follow Black Ops: a 2% chance on any player's kill (`drop_chance`), plus points-triggered drops. The game keeps the team's earned points (hits, kills, repairs, and Fat Man and Pax Romana bonuses; not refunds). Once they reach the next threshold, the next player kill drops a power-up even without the chance, the threshold moves `drop_increment` further on from the current total, and the increment grows by `drop_increment_growth`: 2000 points, then 2280 more, 2599 more, and so on. `max_per_round` still caps both kinds. `PowerUpDrops.roll(settings, droppedThisRound, pointsDue, table, random)` decides; `Game` tracks the points. Tests: `PowerUpDropsTest.pointsReachingTheThresholdDropEvenWithNoChanceButNotPastTheCap` and `PowerUpGameTest.theTeamsPointsTriggerDropsAtAGrowingThresholdWithoutAnyChance`.
 

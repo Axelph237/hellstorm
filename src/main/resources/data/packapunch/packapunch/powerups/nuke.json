@@ -1,6 +1,0 @@
-{
-  "name": "powerup.packapunch.nuke",
-  "weight": 6,
-  "item": "minecraft:tnt",
-  "effect": { "type": "nuke" }
-}

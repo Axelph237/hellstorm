@@ -100,7 +100,7 @@ In play, zombies reached the end of the planned route and stopped. Two pathfinde
   - **Close range.** Within 2 blocks with line of sight, it goes straight for the target.
   - **Doors.** It opens a closed wooden door in its next two cells.
   - **Stuck.** It falls back to vanilla navigation for 2 seconds if it hasn't moved half a block in 2 seconds, or while no field is ready.
-- **Doorway portals** (`ZonePathing.portals`) remain for `/pap map paths` and `show_paths`. They no longer drive movement.
+- **Doorway portals** (`ZonePathing.portals`) remain for `/hs map paths` and `show_paths`. They no longer drive movement.
 - **`show_paths`** draws each zombie's downhill walk from its current cell.
 - **What one field costs.** One Dijkstra per player per cell change, shared by every zombie chasing that player, so cost doesn't grow with the number of zombies.
 
@@ -111,7 +111,7 @@ Zombies walked into glass panes, trapdoors, and door panels. Our own grid called
 - **What this buys.** Panes, bars, fences, walls, trapdoors, doors, slabs, carpet, and modded blocks behave exactly as vanilla pathfinding sees them, for that mob's size and penalties. GameTested with a wall of panes, bars, and fences that has a gap: wall cells aren't nodes and the walking cost goes round through the gap.
 - **Cost.** Building is on the server thread the first time a zombie of that type needs a graph. Test rooms (about 80 nodes) take 2 to 9 ms. A full-size map hasn't been measured; the build stops at 400,000 nodes.
 - **Who uses it.** Only mobs whose navigation uses a `WalkNodeEvaluator` and whose profile says `navigation: flow`. Everything else uses its own vanilla navigation with a 128-block follow range (see `mob-profiles-and-ai-injection.md`).
-- **Removed.** `ZonePathing.unionGrid`. The per-zone grids remain only for the doorway portals in `/pap map paths`.
+- **Removed.** `ZonePathing.unionGrid`. The per-zone grids remain only for the doorway portals in `/hs map paths`.
 
 ## Real collision checks (after play testing)
 

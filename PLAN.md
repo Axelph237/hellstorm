@@ -1,8 +1,8 @@
-# Pack-a-Punch: a CoD Zombies mode for Minecraft on TacZ
+# Hellstorm: a round-based zombie survival mode for Minecraft on TacZ
 
 ## Context
 
-The goal is a Forge mod that turns Minecraft worlds into Call of Duty: Zombies maps. That covers round-based waves, points, doors, wall-buys, a Mystery Box, perk machines, Pack-a-Punch, downs and revives, power-ups, a power switch, traps, and wave events. In the MVP, maps are built by hand with map-maker tools. The tools' zone visuals are modeled on Create's selection outlines. Procedural map generation comes after the MVP, but the map model is designed now so the generator can be added without changing anything else. The mod depends on TacZ for guns. Co-op on dedicated servers is a v1 requirement. Any mob, including mobs from other mods, can be configured as a "zombie".
+The goal is a Forge mod that turns Minecraft worlds into Call of Duty: Zombies maps. That covers round-based waves, points, doors, wall-buys, a Mystery Crate, perk machines, Pack-a-Punch, downs and revives, power-ups, a power switch, traps, and wave events. In the MVP, maps are built by hand with map-maker tools. The tools' zone visuals are modeled on Create's selection outlines. Procedural map generation comes after the MVP, but the map model is designed now so the generator can be added without changing anything else. The mod depends on TacZ for guns. Co-op on dedicated servers is a v1 requirement. Any mob, including mobs from other mods, can be configured as a "zombie".
 
 The project directory `pack-a-punch` is empty, so this is a greenfield build.
 
@@ -87,7 +87,7 @@ The feature files:
    - **Reserve ammo.** It uses TacZ "dummy ammo" through `IGun.setDummyAmmoAmount` and `setMaxDummyAmmoAmount`, so no ammo items clutter the inventory. Max Ammo and wall-buy refills set these values.
    - **Points.** It listens to `EntityHurtByGunEvent.Pre` and `EntityKillByGunEvent`, server side only. These events carry the attacker, the gun id, and `isHeadShot()`, and the bridge maps them to internal `GunHit` and `GunKill` records. TacZ posts both events on the server and again on the client, so the bridge filters on `getLogicalSide()`.
    - **Damage changes.** Insta-Kill, PaP, and perk damage multipliers call `EntityHurtByGunEvent.Pre#setBaseAmount`, which TacZ reads back after the event is posted.
-   - **Per-stack gun stats.** PaP mag size and Double Tap fire rate change `GunProperties` (`DAMAGE`, `ROUNDS_PER_MINUTE`, and so on) through `AttachmentPropertyEvent`. That cache class sits outside TacZ's `api` package, so this is the most fragile seam and it stays isolated in the bridge.
+   - **Per-stack gun stats.** PaP mag size and Hellfire fire rate change `GunProperties` (`DAMAGE`, `ROUNDS_PER_MINUTE`, and so on) through `AttachmentPropertyEvent`. That cache class sits outside TacZ's `api` package, so this is the most fragile seam and it stays isolated in the bridge.
    - **Dependency.** The build uses `maven.modrinth:timeless-and-classics-zero:1.1.8-hotfix2` through `fg.deobf`. `mods.toml` declares a mandatory `tacz` dependency with range `[1.1.8,)`.
    - **License.** TacZ is GPL3 (assets are CC BY-NC-ND). Pick a GPL-compatible license for this mod.
 6. **Configuration has three layers, all resolved into one `GameSettings` record.** The precedence is a per-map override, then the server config (`ForgeConfigSpec` SERVER, per world, synced to clients), then built-in defaults. Content definitions are datapack JSON loaded through `AddReloadListenerEvent`, so `/reload` picks up edits. That content covers mob profiles, perks, power-ups, wave events, box pools, and weapon tiers. Each definition has a codec, and the same codec serves JSON, NBT, and network sync. Making a new value configurable later means adding one codec field.
@@ -114,7 +114,7 @@ Support tiers:
 - **Unsupported for navigation.** Mobs that aren't `PathfinderMob` (ghast, phantom) or that rebuild their goals every tick. The profile loader warns about these. They still count as zombies and can target players.
 - **Hitbox.** Windows vary in size, so `MapValidator` checks each mob's bounding box against the openings of the windows it can spawn at.
 
-The main risk is behavior parity across arbitrary mods, not the injection code. `/pap mobtest <profile>` spawns a profile in a test pen so a pack author can check it.
+The main risk is behavior parity across arbitrary mods, not the injection code. `/hs mobtest <profile>` spawns a profile in a test pen so a pack author can check it.
 
 ## Zombie pathfinding
 
@@ -147,10 +147,10 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
 **Fallbacks.** Some mobs don't use ground navigation, such as flyers or modded mobs with custom navigators. They take the portal sequence from the high-level search as waypoints and use their own navigation for each leg.
 
-## Package layout (`src/main/java/<group>/packapunch/`)
+## Package layout (`src/main/java/<group>/hellstorm/`)
 
 - `config/` holds `GameSettings` (a record with a codec), the `ServerConfig` spec, and the override resolver.
-- `data/` holds the reload listeners and codecs for `ItemSpec`, `PunchDef`, `MobProfile`, `PowerUpDef`, `WaveEventDef`, `BoxPool`, and `WeaponTier`. `PunchResolver` and `PunchAudit` live here too. Power-up effects use codec dispatch into a small registry of effect types: `max_ammo`, `insta_kill`, `nuke`, and so on. Perks are mob effects (see `perk-machines.md`).
+- `data/` holds the reload listeners and codecs for `ItemSpec`, `PunchDef`, `MobProfile`, `PowerUpDef`, `WaveEventDef`, `BoxPool`, and `WeaponTier`. `PunchResolver` and `PunchAudit` live here too. Power-up effects use codec dispatch into a small registry of effect types: `max_ammo`, `insta_kill`, `fat_man`, and so on. Perks are mob effects (see `perk-machines.md`).
 - `map/` holds `ZombiesMap`, `Zone`, `Door`, `Window`, `SpawnPoint`, `MapSavedData`, `ZoneIndex` (a spatial lookup from chunk section to zone), `MapCompiler` (feature index to compiled map), and `MapValidator`. The validator checks that every zone is reachable from the start, that power and PaP are reachable, that every zone has a spawn point, and that every door links two zones.
 - `game/` holds `GameManager` (one game per map level), the `Game` state machine, `RoundPlan`, `Economy`, `SpawnDirector`, `DownedSystem`, `PowerUpSystem`, `WaveEventRunner`, and the inventory snapshot and restore logic.
 - `mob/` holds the `GameMob` capability, `AiInjector`, the goals, and the health and spawn-count formulas.
@@ -161,11 +161,11 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
   - **Collision.** A member returns an empty collision shape to game mobs once boards reach 0 and a full shape to players, using the entity collision context.
   - **Zombie targeting and validation.** Zombies target the controller's attack face. Spawn markers link to the controller. `MapValidator` checks every mob profile that can spawn at a window against that window's opening, so a profile whose hitbox doesn't fit gets flagged per window. The other features are `WallBuy`, `MysteryBox`, `PerkMachine`, `PapMachine`, `PowerSwitch`, `TrapController`, and `SpawnMarker`. All purchases go through a single `Purchasable` path that checks distance, points, power, and state on the server.
 - `tacz/` holds `TaczBridge`.
-- `tools/` holds the map-maker items, the `/pap` commands, room detection, and map and room export.
+- `tools/` holds the map-maker items, the `/hs` commands, room detection, and map and room export.
 - `script/` holds `GameEvents` with the sealed `GameEvent` type, `EventDef` loading, `LuaRuntime` (sandboxed globals, instruction hook, `require` searcher), and the Lua API bindings.
 - `net/` holds the `SimpleChannel` packets.
 - `client/` holds the HUD overlays, look-at purchase prompts, feature config screens, and `outline/ZoneOutlines` (the only place that uses Ponder).
-- Datapack resources live in `src/main/resources/data/packapunch/` and cover the default mob profiles, power-ups, wave events, box pool, and the perk mob effect tags. A void "Zombies Builder" world preset gives map makers an empty world to build in.
+- Datapack resources live in `src/main/resources/data/hellstorm/` and cover the default mob profiles, power-ups, wave events, box pool, and the perk mob effect tags. A void "Zombies Builder" world preset gives map makers an empty world to build in.
 
 ## Gameplay systems
 
@@ -178,14 +178,14 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
   - `duplicate` sells another copy.
   - `deny` refuses the sale.
 
-  The weapon-slot limit (2, or 3 with Mule Kick) counts TacZ guns only. When the slots are full, buying a new gun replaces the held one.
-- **Mystery Box.** A weighted `BoxPool` of `ItemSpec`s. By default it holds every TacZ gun index entry minus the wall-buys, with per-entry overrides. The box relocates after a configurable number of uses, and Fire Sale lowers its cost.
+  The weapon-slot limit (2, or 3 with Off-Hand) counts TacZ guns only. When the slots are full, buying a new gun replaces the held one.
+- **Mystery Crate.** A weighted `BoxPool` of `ItemSpec`s. By default it holds every TacZ gun index entry minus the wall-buys, with per-entry overrides. The box relocates after a configurable number of uses, and Black Friday lowers its cost.
 - **Perks.** Perks are potion effects. A perk machine is a wall-buy that sells the potion. Perks need power by default, have a perk limit, and are lost on down with every other buff.
 - **Pack-a-Punch.** Any item can be punched if it carries the right NBT, and the machine needs power to run. The tag is a `pap` compound with two keys:
   - `punchable` is a boolean.
-  - `punch_id` is optional. It names a `PunchDef` from a datapack, stored at `data/<ns>/packapunch/punch/<id>.json`.
+  - `punch_id` is optional. It names a `PunchDef` from a datapack, stored at `data/<ns>/hellstorm/punch/<id>.json`.
 
-  A `PunchDef` gives the result `ItemSpec`, an optional display name, an optional cost override, and whether to carry over ammo and attachments. The result can carry its own `pap` tag, so multi-tier upgrades work. Packapunch ships its own defaults under the `packapunch` namespace, and any datapack can override them by reusing the same id. TacZ guns created by wall-buys, the box, or the starting loadout get `punchable: true` by default (configurable per `ItemSpec`).
+  A `PunchDef` gives the result `ItemSpec`, an optional display name, an optional cost override, and whether to carry over ammo and attachments. The result can carry its own `pap` tag, so multi-tier upgrades work. Hellstorm ships its own defaults under the `hellstorm` namespace, and any datapack can override them by reusing the same id. TacZ guns created by wall-buys, the box, or the starting loadout get `punchable: true` by default (configurable per `ItemSpec`).
 
   A pure `PunchResolver.resolve(stack)` returns a sealed `PunchOutcome`:
   - `Replace(result)`: punchable, and `punch_id` resolves. The stack becomes the def's result.
@@ -196,24 +196,24 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
   On any `Rejected`, the player gets the same item back, is not charged, and sees the reason.
 
-  **Load-time errors.** The last two `Rejected` cases are also caught early. On server start, after `/reload`, and in `MapValidator` before a game starts, a `PunchAudit` scans every item source the mod controls: wall-buy BlockEntities (through the feature index), box pools, the starting loadout, and every `PunchDef` result. Each bad item gets an ERROR log line with its source and position, a chat message to ops when they join, and an entry in `/pap map validate`. Items brought in from outside these sources (from chests or other mods) can't be scanned. The machine still rejects them safely at punch time.
-- **Downs and revives.** Lethal damage while the player has lives puts them in `Downed` instead of killing them. They crawl, can use a pistol only, and zombies ignore them. A teammate holds use for N seconds to revive (Quick Revive shortens it), and solo Quick Revive self-revives up to 3 times. A player who bleeds out spectates and respawns next round. Food is held at 17 to disable vanilla regen, and custom CoD-style regen replaces it.
-- **Power-ups.** These are floating entities dropped on kills, with a chance roll and a per-round cap. The types are Max Ammo, Insta-Kill, Double Points, Nuke, Carpenter (resets barricades), and Fire Sale.
+  **Load-time errors.** The last two `Rejected` cases are also caught early. On server start, after `/reload`, and in `MapValidator` before a game starts, a `PunchAudit` scans every item source the mod controls: wall-buy BlockEntities (through the feature index), box pools, the starting loadout, and every `PunchDef` result. Each bad item gets an ERROR log line with its source and position, a chat message to ops when they join, and an entry in `/hs map validate`. Items brought in from outside these sources (from chests or other mods) can't be scanned. The machine still rejects them safely at punch time.
+- **Downs and revives.** Lethal damage while the player has lives puts them in `Downed` instead of killing them. They crawl, can use a pistol only, and zombies ignore them. A teammate holds use for N seconds to revive (Saint's Brew shortens it), and solo Saint's Brew self-revives up to 3 times. A player who bleeds out spectates and respawns next round. Food is held at 17 to disable vanilla regen, and custom CoD-style regen replaces it.
+- **Power-ups.** These are floating entities dropped on kills, with a chance roll and a per-round cap. The types are Max Ammo, Insta-Kill, Double Points, Fat Man, Pax Romana (resets barricades), and Black Friday.
 - **Power switch and traps.** Power is a map-level flag. A trap controller is a purchasable block that outputs a redstone signal for N ticks and then cools down. What the trap does is built by the map maker with redstone.
 - **Wave events.** These are `WaveEventDef`s with a trigger (round interval, specific round, or chance) and effects: a mob profile override (hellhound-style special rounds), spawn-rate multipliers, fog, and a guaranteed Max Ammo on the last kill.
 - **Session handling.** Joining snapshots and clears the inventory, then gives the starting pistol and knife (gun id configurable). Leaving restores the snapshot. Late joiners spectate until the next round. A disconnect drops the player's state after a timeout.
 
 ## Map-maker tools
 
-- **Zone Wand.** Select two corners, then `/pap zone add <zone>`. Several boxes can make up one zone.
-- **Room detection.** `/pap zone detect <zone>` flood-fills the air volume from the player, stopping at solids, door members, and barricades, up to a volume cap. Greedy box merging turns the result into AABBs.
-- **Doors from the Zone Wand.** (Was a separate Door Wand; removed in phase 5.) Select a box, then `/pap door create|add|cut`. Each door shows as a Create-style cluster outline. Blocks already in another door are skipped. Zones on each side are inferred.
+- **Zone Wand.** Select two corners, then `/hs zone add <zone>`. Several boxes can make up one zone.
+- **Room detection.** `/hs zone detect <zone>` flood-fills the air volume from the player, stopping at solids, door members, and barricades, up to a volume cap. Greedy box merging turns the result into AABBs.
+- **Doors from the Zone Wand.** (Was a separate Door Wand; removed in phase 5.) Select a box, then `/hs door create|add|cut`. Each door shows as a Create-style cluster outline. Blocks already in another door are skipped. Zones on each side are inferred.
 - **Window Tool.** Drag a rectangle on a wall face, using the same snapping Create-style selection box. Confirming fills the opening with barricade blocks and places the controller. The tool refuses openings over the configured maximum and shows them in yellow.
 - **Link Tool.** It links a door to its two zones and a spawn marker to its window. The links are inferred when a door sits between two zones.
 - **Feature configuration.** In creative mode, right-clicking a feature block opens a config screen for gun id, cost, perk, and so on.
 - **Visualizer.** While a tool is held, the client renders zone boxes, door links, and spawn points in the Create style described in the next section.
-- **`/pap map validate`** runs `MapValidator` and reports problems with their coordinates.
-- **Export and import.** `/pap map export|import` handles a map pack: structure NBT, map JSON, and the map's datapack, including its EventDefs and Lua scripts.
+- **`/hs map validate`** runs `MapValidator` and reports problems with their coordinates.
+- **Export and import.** `/hs map export|import` handles a map pack: structure NBT, map JSON, and the map's datapack, including its EventDefs and Lua scripts.
 - **Edit mode and play mode.** Markers show and games are blocked while the map is in edit mode.
 
 ## Zone visuals (Create-style outlines)
@@ -251,13 +251,13 @@ Create's glue selection is drawn by the **Outliner** in Catnip (`net.createmod.c
 
 In the MVP these are notifications only. Events that can be cancelled come later. When a new feature is added, emitting its event is part of finishing that feature. The Lua runtime is one subscriber, and a Forge-event adapter for Java addons can be a second subscriber later.
 
-**EventDef files.** A datapack binds events to Lua functions with `data/<ns>/packapunch/events/<id>.json`:
+**EventDef files.** A datapack binds events to Lua functions with `data/<ns>/hellstorm/events/<id>.json`:
 ```json
 { "event": "round_end", "script": "mymap:announcer", "function": "on_round_end",
   "filter": { "round_min": 5 }, "priority": 0 }
 ```
 
-**Scripts.** Scripts live in `data/<ns>/packapunch/scripts/**/*.lua`, loaded by a reload listener. The script API exposed to Lua:
+**Scripts.** Scripts live in `data/<ns>/hellstorm/scripts/**/*.lua`, loaded by a reload listener. The script API exposed to Lua:
 - `events.on(name, fn)` registers a listener at load time.
 - `command(str)` runs a Minecraft command and returns its success and result. It runs through `server.getCommands().performPrefixedCommand` with a source positioned at the map origin. The permission level comes from the `scripting.command_permission_level` config (default 2, matching datapack functions).
 - `require("ns:path")` loads another script. A custom searcher resolves names only against datapack scripts, never the filesystem. Modules are cached and cycles are reported.
@@ -270,7 +270,7 @@ In the MVP these are notifications only. Events that can be cancelled come later
 - **Errors.** Script errors are logged with the script and line, and sent to ops in the game. A listener that fails N times in a row is disabled.
 - **Limits of the sandbox.** It protects the host machine, not the world (commands run at the configured permission level). Scripting settings are server-config only, so a map can't raise its own permissions.
 
-**Lifecycle.** Each game gets a fresh Lua runtime built from the current datapack scripts when its lobby opens, and it is thrown away at game end. Script globals therefore never leak between games, and a `/reload` takes effect from the next game. `/pap scripts reload` rebuilds the runtime for the current game.
+**Lifecycle.** Each game gets a fresh Lua runtime built from the current datapack scripts when its lobby opens, and it is thrown away at game end. Script globals therefore never leak between games, and a `/reload` takes effect from the next game. `/hs scripts reload` rebuilds the runtime for the current game.
 
 ## Post-MVP: procedural generation
 
@@ -280,17 +280,17 @@ This is deferred. The MVP keeps three things so it can be added without reworkin
 - `MapValidator` as a pure function
 
 The design as researched:
-- **World preset.** `packapunch:zombies_map` uses a custom `ZombiesChunkGenerator`.
+- **World preset.** `hellstorm:zombies_map` uses a custom `ZombiesChunkGenerator`.
 - **Layout.** `LayoutGenerator` is a pure, seed-deterministic room-graph builder on a grid of 16-block cells. It grows a critical path start → power → PaP, then side branches, and door costs rise with depth.
 - **Validation.** `MapValidator` must accept a layout before it is used. If it doesn't, the generator retries with the next sub-seed.
 - **Placement.** Each piece is placed in `applyBiomeDecoration`, clipped to the chunk. This avoids jigsaw's limits of depth 7 and 128-block radius.
-- **Room authoring.** Rooms come from a `/pap room export` tool that saves part of a hand-built map as an NBT template plus socket metadata.
+- **Room authoring.** Rooms come from a `/hs room export` tool that saves part of a hand-built map as an NBT template plus socket metadata.
 
 ## Phases (each ends in a check)
 
 0. **Scaffold and spikes.**
    - Write `PLAN.md`, the `features/` files, and an empty `TEXTURES_NEEDED.md` before writing any code. (Done.)
-   - Set up the Forge 1.20.1 MDK with Parchment mappings, the TacZ dependency, and Ponder and Flywheel bundled with jarJar. Add `/pap give <gunId>`.
+   - Set up the Forge 1.20.1 MDK with Parchment mappings, the TacZ dependency, and Ponder and Flywheel bundled with jarJar. Add `/hs give <gunId>`.
    - Spike the open unknowns:
      - That an `AttachmentPropertyEvent` override shows up in live fire for RPM and mag size.
      - How to read a gun's type (pistol) from `CommonGunIndex` for the downed-pistol rule.
@@ -315,7 +315,7 @@ The design as researched:
 4. **Mob profiles and AI.** (Code and automated tests done. In-game check pending.)
    - Build `MobProfile` loading, `AiInjector`, barricades and windows, and hierarchical pathfinding: passability snapshots, the portal-to-portal cache filled on door open, and A\* over the portal graph.
    - Spike the Manhattan-versus-octile heuristic: compare path quality and nodes expanded on the test map.
-   - *Check:* `/pap mobtest` with a zombie, a skeleton, and one modded mob, each breaking a window and pathing across two zones.
+   - *Check:* `/hs mobtest` with a zombie, a skeleton, and one modded mob, each breaking a window and pathing across two zones.
 5. **Purchasables.**
    - Build doors (from the Zone Wand selection), the Link Tool (dropped: doors infer their zones), wall-buys, the box, perks, PaP, the power switch, feature config screens, and the HUD prompts.
 6. **Survival systems.**
@@ -323,7 +323,7 @@ The design as researched:
 7. **Hardening and sharing.**
    - Build map export and import, and edit/play mode.
    - Cover multiplayer edge cases (late join, disconnect, spectate) and a perf pass with 4 players and 24 mobs.
-   - Balance the config defaults. Make all assets original, and make the trademarked names (Juggernog, Pack-a-Punch) renameable through lang files before any public release.
+   - Balance the config defaults. Make all assets original, and make the trademarked names (Vigorade, Pack-a-Punch) renameable through lang files before any public release.
 
 ## Verification
 

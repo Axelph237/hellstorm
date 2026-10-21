@@ -9,7 +9,7 @@ Every tunable value lives in one place and resolves the same way. Adding a new c
 Three layers resolve into one immutable record:
 
 1. **Per-map override.** Stored with the map in `MapSavedData` and in exported map JSON.
-2. **Server config.** `ForgeConfigSpec` of type SERVER, stored per world in `serverconfig/packapunch-server.toml` and synced to clients.
+2. **Server config.** `ForgeConfigSpec` of type SERVER, stored per world in `serverconfig/hellstorm-server.toml` and synced to clients.
 3. **Built-in defaults.** Constants in code.
 
 ```java
@@ -24,7 +24,7 @@ record GameSettings(
 
 Each sub-record has a `Codec`. The same codec reads map-override JSON, writes NBT, and syncs to clients.
 
-Content definitions are separate from settings. They are datapack JSON under `data/<ns>/packapunch/`:
+Content definitions are separate from settings. They are datapack JSON under `data/<ns>/hellstorm/`:
 - `mob_profiles/`, `powerups/`, `wave_events/`, `box_pools/`, `weapon_tiers/`, `punch/`, `events/`, `scripts/`
 
 ## Implementation
@@ -59,14 +59,14 @@ Nothing. Everything else depends on this.
 
 ## Debug cheats
 
-`/pap debug infinite_money <true|false> [players]` and `/pap debug god <true|false> [players]`, op only. They default to the player running the command. Infinite money makes purchases cost nothing and never fail for lack of points. God mode cancels all damage, in or out of a game. They're kept in memory per player (`game/Cheats`) and cleared by a server restart.
+`/hs debug infinite_money <true|false> [players]` and `/hs debug god <true|false> [players]`, op only. They default to the player running the command. Infinite money makes purchases cost nothing and never fail for lack of points. God mode cancels all damage, in or out of a game. They're kept in memory per player (`game/Cheats`) and cleared by a server restart.
 
 ## Added in phase 7
 
 - `players.max_players` (4): most players in one game.
 - `players.reconnect_grace_ticks` (1200): how long a player who disconnects mid-game keeps their place, points, and perks (see `sessions-and-multiplayer.md`).
 - `rounds.intermission_ms` (3000): the break between rounds, in milliseconds, rounded up to whole ticks. Replaces `rounds.intermission_ticks`.
-- `export.margin` (6): blocks around the map's zones and machines that `/pap map export` saves when there's no Zone Wand selection (see `map-export-import.md`).
-- Per-map, not server config: `/pap map mode edit|play`, saved with the map.
+- `export.margin` (6): blocks around the map's zones and machines that `/hs map export` saves when there's no Zone Wand selection (see `map-export-import.md`).
+- Per-map, not server config: `/hs map mode edit|play`, saved with the map.
 - **CoD scaling** replaced `rounds.count_per_round`, `rounds.player_factor`, and `rounds.speed_growth` with `rounds.ai_per_player` (6), `rounds.run_from_round` (5), `rounds.run_speed` (0.28), and `rounds.spawn_delay_factor` (0.95), and added `powerups.drop_increment` (2000) and `powerups.drop_increment_growth` (1.14). Changed defaults: `base_count` 6 to 24 (it is now CoD's base, not round 1's count), `sprint_from_round` 6 to 9, `health_growth` 0.004 to 0.1, `drop_chance` 0.03 to 0.02. See `game-loop-and-rounds.md` and `power-ups.md`.
 

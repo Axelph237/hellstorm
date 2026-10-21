@@ -24,10 +24,10 @@ Stack NBT the bridge reads and writes:
 - **Gun listing.** `List<ResourceLocation> allGuns()` reads `TimelessAPI.getAllCommonGunIndex()`. The box pool and `PunchAudit` use it.
 - **Identity.** `Optional<GunInfo> inspect(ItemStack)` uses `IGun.getIGunOrNull(stack)` and `TimelessAPI.getCommonGunIndex(id)`. How to read the gun type from `CommonGunIndex` is a phase 0 spike.
 - **Ammo.** `refillAmmo(ItemStack)` sets the magazine to full and the dummy reserve to its max. Max Ammo, wall-buy refills, and PaP call it.
-- **Unlimited ammo.** `setUnlimitedAmmo(stack, true)` tags a gun (`packapunch.unlimited_ammo` in its NBT). While any entity holds it, its dummy reserve is topped back to max every tick (`TaczEvents.onLivingTick`). The magazine still empties and needs reloading. Topping up only on TacZ's reload or fire events isn't enough: TacZ refuses a reload before posting its reload event once the reserve is empty, and a single reload can use up the whole reserve. The starting guns use it when `players.starting_guns_unlimited_ammo` is on (default off). Wall-buys and box entries get a per-weapon `unlimited_ammo` field in phase 5.
+- **Unlimited ammo.** `setUnlimitedAmmo(stack, true)` tags a gun (`hellstorm.unlimited_ammo` in its NBT). While any entity holds it, its dummy reserve is topped back to max every tick (`TaczEvents.onLivingTick`). The magazine still empties and needs reloading. Topping up only on TacZ's reload or fire events isn't enough: TacZ refuses a reload before posting its reload event once the reserve is empty, and a single reload can use up the whole reserve. The starting guns use it when `players.starting_guns_unlimited_ammo` is on (default off). Wall-buys and box entries get a per-weapon `unlimited_ammo` field in phase 5.
 - **Hit and kill events.** A `@SubscribeEvent` on `EntityHurtByGunEvent.Pre` and `EntityKillByGunEvent` returns early unless `getLogicalSide()` is server, because TacZ posts each event on both sides. It converts each one into a `GunHit` or `GunKill` and hands it to the game (`Economy`, `GameEvents`). The events carry the gun id but not the stack, so the bridge reads `attacker.getMainHandItem()` when it needs the stack.
 - **Damage changes.** Inside the same `Pre` handler the bridge asks the game for a damage multiplier (Insta-Kill, PaP tier, perks) and calls `setBaseAmount(base * multiplier)`. TacZ reads the value back after posting.
-- **Per-stack stats.** `AttachmentPropertyEvent` gives `getGunItem()` and an `AttachmentCacheProperty`. For stacks with `pap.tier`, the bridge scales `GunProperties.DAMAGE`, `ROUNDS_PER_MINUTE`, and the mag size. Double Tap scales RPM the same way. This class is outside TacZ's `api` package, so it is the most fragile seam.
+- **Per-stack stats.** `AttachmentPropertyEvent` gives `getGunItem()` and an `AttachmentCacheProperty`. For stacks with `pap.tier`, the bridge scales `GunProperties.DAMAGE`, `ROUNDS_PER_MINUTE`, and the mag size. Hellfire scales RPM the same way. This class is outside TacZ's `api` package, so it is the most fragile seam.
 
 ## Config surface
 
@@ -45,7 +45,7 @@ None.
 
 ## Verification
 
-- `/pap give tacz:ak47` gives a working AK with a full magazine and a reserve stored as dummy ammo, and no ammo items appear in the inventory.
+- `/hs give tacz:ak47` gives a working AK with a full magazine and a reserve stored as dummy ammo, and no ammo items appear in the inventory.
 - Shooting a zombie produces one `GunHit` on the server and none on the client (log counter).
 - A headshot kill produces `GunKill` with `headshot = true`.
 - Phase 0 spike: an `AttachmentPropertyEvent` override visibly changes RPM and mag size in live fire, and dummy ammo works with every reload type in the default gun pack.

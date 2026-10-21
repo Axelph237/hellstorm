@@ -8,7 +8,7 @@ The pieces downs, power-ups, traps, and wave events all share, built first so th
 
 - **Settings** (`GameSettings`, server config sections of the same names):
   - `downs`: `bleed_out_ticks` 600, `revive_ticks` 60, `revive_range` 2.5, `solo_self_revives` 3, `regen_delay_ticks` 80, `regen_per_second` 4.0.
-  - `powerups`: `drop_chance` 0.03, `max_per_round` 4, `lifetime_ticks` 600, `blink_ticks` 100, `nuke_bonus` 400, `carpenter_bonus` 200.
+  - `powerups`: `drop_chance` 0.03, `max_per_round` 4, `lifetime_ticks` 600, `blink_ticks` 100, `fat_man_bonus` 400, `pax_romana_bonus` 200.
   - `traps`: `default_cost` 1000, `default_active_ticks` 200, `default_cooldown_ticks` 600.
   - `wave_events`: `enabled` true, `disabled` (ids to leave out).
 - **Events** (`GameEvent`, with Lua names and tables in `script/LuaEvents`): `PlayerDowned(player, pos)`, `PlayerRevived(player, by)` (no `by` for a self-revive), `PlayerBledOut(player)`, `PowerUpSpawned(powerUp, pos)`, `PowerUpCollected(powerUp, player)`, `TrapActivated(player, pos)`, `WaveEventStarted(waveEvent, round)` (round filters see its round). Every name in `LuaEvents.NAMES` now has an event.

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "hidden=false": {
+      "model": "hellstorm:block/spawn_marker"
+    },
+    "hidden=true": {
+      "model": "hellstorm:block/spawn_marker"
+    }
+  }
+}

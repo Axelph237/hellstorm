@@ -28,9 +28,9 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 ## Implementation
 
 **Making a door** (with the Zone Wand selection):
-- Select a box around the door's blocks, then `/pap door create <door> [cost]`. Add more boxes with `/pap door add <door>` and take blocks out with `/pap door cut <door>`.
+- Select a box around the door's blocks, then `/hs door create <door> [cost]`. Add more boxes with `/hs door add <door>` and take blocks out with `/hs door cut <door>`.
 - Doors show as Create-style `showCluster` outlines around their blocks while a map tool is held.
-- `/pap door set <door> cost|power|style <value>`.
+- `/hs door set <door> cost|power|style <value>`.
 - Zones are inferred from the zones touching the group on each side.
 - In edit mode, breaking a member removes it from the group. Removing the last member deletes the door.
 
@@ -83,7 +83,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 
 - **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The zones aren't stored. `DoorDef.zones(index)` finds the zones its blocks border, looking up to 2 cells out from each block, so editing zones never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "Door" or "Debris".
 - **No Door Wand.** Doors are made from the Zone Wand selection (removed the Door Wand in phase 5). Every door shows as a gold cluster outline while a map tool is held.
-- **Commands** (`/pap door`), each acting on the Zone Wand selection where it takes blocks. The selection clears afterwards:
+- **Commands** (`/hs door`), each acting on the Zone Wand selection where it takes blocks. The selection clears afterwards:
   - `create <id> [cost]` makes a door from every non-air block in the selection, at `doors.default_cost` unless a cost is given.
   - `add <id>` adds the selection's blocks to a door, for doors that aren't one box.
   - `cut <id>` takes the selection's blocks out of a door.
@@ -100,7 +100,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
   2. Find passages in the world again; the opening is now a doorway.
   3. Unlock whatever became reachable through `Game.openDoor`, which emits `door_opened` with the door and the newly unlocked zones.
   4. Rebuild zombie pathing over the bigger area with `GamePathing.reconnect`.
-- **Snapshot and reset.** `GameManager.register` saves every door block's state and block entity data to world saved data (`packapunch_door_snapshots`). `MapReset` puts them back and forgets them, so a crash mid-game is fixed by the next game's creation.
+- **Snapshot and reset.** `GameManager.register` saves every door block's state and block entity data to world saved data (`hellstorm_door_snapshots`). `MapReset` puts them back and forgets them, so a crash mid-game is fixed by the next game's creation.
 - **Validation.**
   - ERROR for a door with no blocks.
   - ERROR for a door bordering fewer than two zones.

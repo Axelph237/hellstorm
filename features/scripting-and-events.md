@@ -17,14 +17,14 @@ record ZombieKilled(UUID killer, ResourceLocation weapon, boolean headshot, Reso
 
 Each event has a codec that converts it to a read-only Lua table (snake_case keys).
 
-EventDef, `data/<ns>/packapunch/events/<id>.json`:
+EventDef, `data/<ns>/hellstorm/events/<id>.json`:
 
 ```json
 { "event": "round_end", "script": "mymap:announcer", "function": "on_round_end",
   "filter": { "round_min": 5 }, "priority": 0 }
 ```
 
-Script, `data/mymap/packapunch/scripts/announcer.lua`:
+Script, `data/mymap/hellstorm/scripts/announcer.lua`:
 
 ```lua
 local util = require("mymap:util")
@@ -43,8 +43,8 @@ end)
 **Event bus.** `GameEvents.emit(game, event)` delivers to subscribers in priority order on the server thread. The Lua runtime is one subscriber. A Forge-event adapter for Java addons can be added later as another. In the MVP events are notifications only. Cancellable events come later.
 
 **Runtime** (`script/LuaRuntime`), one per game:
-- Built when the game's lobby opens (the first `/pap join` in a level) from the current datapack scripts, and discarded with the game, so globals never leak between games. `/pap scripts reload` rebuilds it for a running game. `/pap scripts check` loads everything with commands switched off and lists the load errors.
-- **Entry scripts.** Each namespace's `main` script (`data/<ns>/packapunch/scripts/main.lua`) runs on build, as does every script an EventDef names. Other scripts run only when something `require`s them.
+- Built when the game's lobby opens (the first `/hs join` in a level) from the current datapack scripts, and discarded with the game, so globals never leak between games. `/hs scripts reload` rebuilds it for a running game. `/hs scripts check` loads everything with commands switched off and lists the load errors.
+- **Entry scripts.** Each namespace's `main` script (`data/<ns>/hellstorm/scripts/main.lua`) runs on build, as does every script an EventDef names. Other scripts run only when something `require`s them.
 - LuaJ from FiguraMC's fork (`com.github.FiguraMC.luaj:luaj-core`, `3.0.8-figura`, MIT), compile-only and bundled with jarJar using range `[3.0.8-figura,)`. TacZ jarJars the same artifact, so Forge loads one shared copy (confirmed on a real server boot).
 
 **Sandbox:**
@@ -61,11 +61,11 @@ end)
 **API:**
 - `events.on(name, fn)` registers a listener. Unknown event names are a load error.
 - `command(str)` runs through `server.getCommands().performPrefixedCommand` with a silent source at the map origin (the center of the first start zone) and the configured permission level. Returns `success, result`.
-- `require("ns:path")` resolves only against `data/<ns>/packapunch/scripts/<path>.lua`. Modules are cached (a module runs once). Cycles raise an error naming the chain, for example `require cycle: a:main -> a:x -> a:y -> a:x`.
+- `require("ns:path")` resolves only against `data/<ns>/hellstorm/scripts/<path>.lua`. Modules are cached (a module runs once). Cycles raise an error naming the chain, for example `require cycle: a:main -> a:x -> a:y -> a:x`.
 - `log.info/warn/error(msg)`.
 - `game.round()` and `game.players()` (a list of `{uuid, name, points, alive}`), read-only.
 
-**EventDef loading.** A reload listener parses EventDefs. At runtime build, each EventDef looks up its script and function. A missing script or function is a load ERROR shown in `/pap map validate`.
+**EventDef loading.** A reload listener parses EventDefs. At runtime build, each EventDef looks up its script and function. A missing script or function is a load ERROR shown in `/hs map validate`.
 
 **Contract for other features.** Each feature emits its event as part of being done. This file's catalogue lists them.
 
@@ -76,7 +76,7 @@ end)
 - `scripting.instruction_budget` (1,000,000).
 - `scripting.max_consecutive_errors` (5).
 - `scripting.max_string_length` (1,000,000).
-- Per world, `/pap debug show_errors <true|false>` (default true, saved like a gamerule): send script errors to ops' chat. They always go to the log.
+- Per world, `/hs debug show_errors <true|false>` (default true, saved like a gamerule): send script errors to ops' chat. They always go to the log.
 
 ## Examples
 

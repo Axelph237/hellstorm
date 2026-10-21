@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.candycanecazoo.hellstorm.tacz.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "AttachmentDataUtilsMixin",
+    "ModernKineticGunScriptAPIMixin"
+  ],
+  "client": [
+    "ObjectAnimationRunnerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

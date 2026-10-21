@@ -1,7 +1,0 @@
-{
-  "name": "powerup.packapunch.fire_sale",
-  "weight": 4,
-  "duration_ticks": 600,
-  "item": "minecraft:emerald",
-  "effect": { "type": "fire_sale" }
-}

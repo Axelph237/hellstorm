@@ -1,0 +1,100 @@
+package dev.candycanecazoo.hellstorm.gametest;
+
+import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
+import dev.candycanecazoo.hellstorm.feature.ConfigBlockEntity;
+import dev.candycanecazoo.hellstorm.feature.MachineSettings;
+import dev.candycanecazoo.hellstorm.feature.MysteryBoxBlock;
+import dev.candycanecazoo.hellstorm.feature.PerkMachineBlock;
+import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
+import dev.candycanecazoo.hellstorm.feature.WallBuy;
+import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
+import dev.candycanecazoo.hellstorm.registry.PapRegistries;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.LeverBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
+
+import java.util.Optional;
+
+import static dev.candycanecazoo.hellstorm.gametest.PurchaseGameTests.player;
+import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
+
+/** Saving from a machine's settings screen: the server keeps settings that fail the machine's checks off the block. */
+@GameTestHolder(Hellstorm.MOD_ID)
+@PrefixGameTestTemplate(false)
+public final class SettingsGameTests {
+    private static final ResourceLocation AK47 = ResourceLocation.tryBuild("tacz", "ak47");
+
+    private SettingsGameTests() {}
+
+    @SuppressWarnings("unchecked")
+    private static <E extends ConfigBlockEntity<?>> E place(GameTestHelper helper, int x, BlockState state) {
+        BlockPos at = helper.absolutePos(new BlockPos(x, ROOM_Y, 2));
+        helper.getLevel().setBlockAndUpdate(at, state);
+        return (E) helper.getLevel().getBlockEntity(at);
+    }
+
+    private static <C> CompoundTag encode(ConfigBlockEntity<C> entity, C config) {
+        return (CompoundTag) entity.codec().encodeStart(NbtOps.INSTANCE, config).getOrThrow(false, e -> {});
+    }
+
+    private static <C> void assertRefused(GameTestHelper helper, ConfigBlockEntity<C> entity, CompoundTag sent, String why) {
+        C before = entity.config();
+        Optional<String> problem = entity.trySet(sent);
+        helper.assertTrue(problem.isPresent(), why + " should be refused");
+        helper.assertTrue(entity.config().equals(before), why + " changed the settings anyway: " + entity.config());
+    }
+
+    @GameTest(template = "floor")
+    public static void machinesRefuseSettingsTheirCommandsWouldRefuseAndKeepTheOldOnes(GameTestHelper helper) {
+        WallBuyBlock.Entity perk = place(helper, 1, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        ItemSpec unknown = new ItemSpec.Plain(ResourceLocation.tryBuild("nope", "item"), 1, Optional.empty());
+        assertRefused(helper, perk, encode(perk, WallBuy.Config.forItem(unknown, 500, WallBuy.Repurchase.DENY)), "an unknown item");
+        WallBuy.Config cola = PerkMachineBlock.sells(Hellstorm.id("reload"), 1234);
+        helper.assertTrue(perk.trySet(encode(perk, cola)).isEmpty(), "a RE:Load potion should be accepted");
+        helper.assertTrue(perk.config().equals(cola), "the perk machine should keep what was sent, has " + perk.config());
+
+        MysteryBoxBlock.Entity box = place(helper, 3, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
+        assertRefused(helper, box, encode(box, new MysteryBoxBlock.Config(ResourceLocation.tryBuild("nope", "pool"), Optional.empty())), "an unloaded box pool");
+
+        WallBuyBlock.Entity wallBuy = place(helper, 5, PapRegistries.WALL_BUY.get().defaultBlockState().setValue(WallBuyBlock.FACING, Direction.NORTH));
+        ItemSpec apple = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 1, Optional.empty());
+        assertRefused(helper, wallBuy, encode(wallBuy, new WallBuy.Config(ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "nope")), 500,
+                WallBuy.Repurchase.REFILL_AMMO, 250, 4500, false)), "an unknown gun");
+        assertRefused(helper, wallBuy, encode(wallBuy, new WallBuy.Config(apple, 500, WallBuy.Repurchase.REFILL_AMMO, 250, 4500, false)),
+                "refilling ammo on a golden apple");
+        WallBuy.Config m4 = new WallBuy.Config(ItemSpec.Gun.of(AK47), 900, WallBuy.Repurchase.REFILL_AMMO, 300, 3000, false);
+        helper.assertTrue(wallBuy.trySet(encode(wallBuy, m4)).isEmpty(), "a real gun should be accepted");
+        helper.assertTrue(wallBuy.config().equals(m4), "the wall-buy should keep what was sent, has " + wallBuy.config());
+
+        PowerSwitchBlock.Entity power = place(helper, 7, PapRegistries.POWER_SWITCH.get().defaultBlockState()
+                .setValue(LeverBlock.FACE, AttachFace.FLOOR).setValue(LeverBlock.FACING, Direction.NORTH));
+        CompoundTag negative = new CompoundTag();
+        negative.putInt("cost", -5);
+        assertRefused(helper, power, negative, "a negative cost");
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor")
+    public static void onlyOpsInCreativeCanSaveSettings(GameTestHelper helper) {
+        PowerSwitchBlock.Entity power = place(helper, 2, PapRegistries.POWER_SWITCH.get().defaultBlockState()
+                .setValue(LeverBlock.FACE, AttachFace.FLOOR).setValue(LeverBlock.FACING, Direction.NORTH));
+        ServerPlayer player = player(helper, "pap_settings_stranger");
+        player.moveTo(power.getBlockPos().above().getCenter());
+        helper.assertFalse(MachineSettings.open(player, power.getBlockPos()), "a player who isn't an op got the settings screen");
+        Optional<String> problem = MachineSettings.save(player, power.getBlockPos(), encode(power, new PowerSwitchBlock.Config(999)));
+        helper.assertTrue(problem.isPresent(), "a player who isn't an op saved settings");
+        helper.assertTrue(power.config().cost() == 0, "the power switch cost changed to " + power.config().cost());
+        helper.succeed();
+    }
+}

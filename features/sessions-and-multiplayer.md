@@ -14,13 +14,13 @@ Snapshots are stored in `MapSavedData` so they survive a crash.
 
 ## Implementation
 
-- **Joining** (`/pap join` or a join pad block):
+- **Joining** (`/hs join` or a join pad block):
   1. Save an `InventorySnapshot`.
   2. Clear the inventory and effects. The player stays where they are until the game starts; the countdown ending moves everyone to the start zone in adventure mode.
   3. Give the starting loadout (configurable `ItemSpec` list, default a TacZ pistol and a knife).
   4. Set starting points.
 - **Late join.** Joining during `RoundActive` puts the player in `Spectating(respawnNextRound = true)`.
-- **Leaving** (`/pap leave`, game over, or kick): restore the snapshot exactly and delete it.
+- **Leaving** (`/hs leave`, game over, or kick): restore the snapshot exactly and delete it.
 - **Disconnect.** The player's state is kept for `sessions.reconnect_grace_ticks`. Reconnecting in time restores their game state. After that they are removed from the game, and their snapshot is restored on their next login.
 - **Crash.** On server start, any leftover snapshot is restored the next time that player logs in.
 - **Server authority.** Every purchase, revive, and pickup is decided on the server. Clients only send intent packets ("use pressed on block X"), which the server validates.
@@ -53,9 +53,9 @@ None.
 
 ## As built (phase 7)
 
-- **Joining and leaving** (built in phase 2): `/pap join` saves a snapshot (`game/Sessions`: inventory, effects, game mode, health, food, XP, position) once and clears the player; leaving, game end, or the next login outside a game restores it exactly.
+- **Joining and leaving** (built in phase 2): `/hs join` saves a snapshot (`game/Sessions`: inventory, effects, game mode, health, food, XP, position) once and clears the player; leaving, game end, or the next login outside a game restores it exactly.
 - **Late join.** Joining during a round or the break spectates until the next round (`Game.join`).
-- **Player cap.** `players.max_players` (4). `/pap join` on a full game says so; `Game.join` refuses too.
+- **Player cap.** `players.max_players` (4). `/hs join` on a full game says so; `Game.join` refuses too.
 - **Disconnect grace** (`Game.disconnect`, `Game.reconnect`, `players.reconnect_grace_ticks`, 1200 = one minute).
   - In the lobby or after game over, a disconnect simply leaves the game.
   - Otherwise the player keeps their place and points, and their perks and game inventory stay on their saved player. Someone down becomes a spectator instead of bleeding out unseen, and spectators who are away aren't respawned at the next round. Someone up still counts as fighting, so a dropped connection doesn't end the game by itself.
