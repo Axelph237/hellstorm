@@ -119,8 +119,39 @@ class GameTest {
         tick(game, world, 1);
         GamePhase.RoundActive round = assertInstanceOf(GamePhase.RoundActive.class, game.phase());
         assertEquals(1, round.round());
+        assertEquals(List.of(alice), world.entered);
         assertEquals(List.of(alice), world.respawned);
         assertEquals(List.of(new GameEvent.GameStart(List.of(alice)), new GameEvent.RoundStart(1)), seen);
+    }
+
+    @Test
+    void joiningBeforeTheStartWaitsUntilTheCountdownEnds() {
+        Game game = newGame(SETTINGS);
+        game.join(alice);
+        PlayerState waiting = game.player(alice).orElseThrow();
+        assertInstanceOf(LifeState.Waiting.class, waiting.life());
+        assertFalse(waiting.alive() || waiting.inPlay(), "waiting isn't playing");
+        assertFalse(game.targetable(alice), "nothing targets a waiting player");
+        assertEquals(Optional.of(new Refusal.NotStarted()), game.charge(alice, 0, false));
+        game.onRepair(alice);
+        assertEquals(SETTINGS.economy().startingPoints(), waiting.points(), "a waiting player earns nothing");
+        assertFalse(game.collectPowerUp(ResourceLocation.tryBuild("hellstorm", "max_ammo"), alice));
+
+        game.start();
+        UUID bob = UUID.randomUUID();
+        assertTrue(game.join(bob));
+        assertInstanceOf(LifeState.Waiting.class, game.player(bob).orElseThrow().life(), "joining during the countdown waits too");
+        tick(game, world, 2);
+        assertEquals(List.of(), world.entered, "the game takes nobody over before the countdown ends");
+        tick(game, world, 1);
+        assertInstanceOf(GamePhase.RoundActive.class, game.phase());
+        for (UUID id : List.of(alice, bob)) {
+            assertInstanceOf(LifeState.Alive.class, game.player(id).orElseThrow().life());
+            assertTrue(game.targetable(id));
+        }
+        assertEquals(List.of(alice, bob), world.entered, "both get their state saved and the starting loadout");
+        assertEquals(List.of(alice, bob), world.respawned);
+        assertEquals(Optional.empty(), game.charge(alice, 0, false));
     }
 
     @Test
@@ -211,7 +242,7 @@ class GameTest {
         Game game = startedGame();
         UUID bob = UUID.randomUUID();
         assertTrue(game.join(bob));
-        assertFalse(game.player(bob).orElseThrow().alive());
+        assertInstanceOf(LifeState.Spectating.class, game.player(bob).orElseThrow().life(), "the game has started, so no waiting");
         tick(game, world, 50);
         killAll(game, Optional.of(alice));
         tick(game, world, 5);
@@ -318,8 +349,7 @@ class GameTest {
 
     @Test
     void chargingTakesPointsOnlyFromAlivePlayersWhoCanAffordIt() {
-        Game game = newGame(SETTINGS);
-        game.join(alice);
+        Game game = startedGame();
         int start = game.player(alice).orElseThrow().points();
         assertEquals(Optional.of(new Refusal.NotEnoughPoints(start + 1, start)), game.charge(alice, start + 1, false));
         assertEquals(start, game.player(alice).orElseThrow().points(), "a refusal charges nothing");
@@ -337,6 +367,8 @@ class GameTest {
         GameMap withSwitch = GameMap.of(powered.map().withFeature(new BlockPos(3, 0, 3), FeatureKind.POWER_SWITCH), Set.of());
         Game game = new Game(SETTINGS, withSwitch, ROSTER, RandomSource.create(7), events);
         game.join(alice);
+        game.start();
+        tick(game, world, 3);
         assertFalse(game.powerOn());
         assertEquals(Optional.of(new Refusal.NeedsPower()), game.charge(alice, 0, true));
         assertTrue(game.turnPowerOn(Optional.of(alice)));
@@ -366,8 +398,7 @@ class GameTest {
 
     @Test
     void infiniteMoneyBuysAnythingWithoutSpending() {
-        Game game = newGame(SETTINGS);
-        game.join(alice);
+        Game game = startedGame();
         int start = game.player(alice).orElseThrow().points();
         Cheats.set(alice, Cheats.Cheat.INFINITE_MONEY, true);
         try {

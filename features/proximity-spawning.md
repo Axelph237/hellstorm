@@ -38,7 +38,7 @@ If no candidate exists (all players in one zone with no markers), it falls back 
 
 ## Assets
 
-- Spawn marker block model uses a vanilla texture (for example `minecraft:block/spawner`). It is invisible in play mode.
+- Spawn marker block model uses a vanilla texture (for example `minecraft:block/spawner`). It is invisible while a game runs on its level (see `map-export-import.md`, "As built (spawn markers hide during a game)").
 
 ## Depends on
 

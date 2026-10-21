@@ -149,6 +149,7 @@ public final class PowerUpGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
+        PurchaseGameTests.play(active);
         try {
             windows.forEach(w -> WindowOps.setBoards(helper.getLevel(), w, 0));
             int before = points(active, player);
@@ -176,7 +177,6 @@ public final class PowerUpGameTests {
         }
         ServerPlayer player = player(helper, "pap_powerup_fire_sale");
         GameManager.Active active = PurchaseGameTests.game(helper, player, boxes.toArray(BlockPos[]::new));
-        active.game().start();
         int fireSaleCost = active.game().settings().box().fireSaleCost();
         boolean[] started = {false};
         helper.onEachTick(() -> {

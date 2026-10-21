@@ -71,6 +71,7 @@ public final class DoorGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
+        PurchaseGameTests.play(active);
         Zombie template = EntityType.ZOMBIE.create(helper.getLevel());
         BlockPos eastCell = helper.absolutePos(new BlockPos(7, ROOM_Y, 4));
         try {
@@ -121,6 +122,7 @@ public final class DoorGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
+        PurchaseGameTests.play(active);
         try {
             helper.assertTrue(active.game().unlocked().equals(Set.of(west)), "the east room starts locked, got " + active.game().unlocked());
             Doors.use(player, low);
@@ -143,6 +145,7 @@ public final class DoorGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
+        PurchaseGameTests.play(active);
         try {
             int start = PurchaseGameTests.points(active, player);
             helper.assertTrue(Doors.use(player, low), "a door block should count as a door");

@@ -56,9 +56,9 @@ public final class Perks {
         return Optional.of(new Refusal.Because("You can only hold " + limit + (limit == 1 ? " perk" : " perks")));
     }
 
-    /** {@link #limitRefusal} for drinking {@code stack}, at the limit of the player's game. Never refused outside a game. */
+    /** {@link #limitRefusal} for drinking {@code stack}, at the limit of the player's game. Never refused outside a game or before it starts. */
     public static Optional<Refusal> limitRefusal(ServerPlayer player, ItemStack stack) {
-        return GameManager.forPlayer(player.getUUID())
+        return GameManager.playing(player.getUUID())
                 .flatMap(active -> limitRefusal(held(player), given(stack), active.game().settings().players().perkLimit()));
     }
 

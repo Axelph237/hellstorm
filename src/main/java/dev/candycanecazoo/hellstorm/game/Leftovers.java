@@ -29,7 +29,7 @@ public final class Leftovers {
 
     @SubscribeEvent
     public static void onUseTick(LivingEntityUseItemEvent.Tick event) {
-        if (event.getDuration() == 1 && event.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID()).isPresent()) {
+        if (event.getDuration() == 1 && event.getEntity() instanceof ServerPlayer player && GameManager.playing(player.getUUID()).isPresent()) {
             BEFORE.put(player.getUUID(), counts(player.getInventory()));
         }
     }
@@ -40,7 +40,7 @@ public final class Leftovers {
             return;
         }
         Map<Item, Integer> before = BEFORE.remove(player.getUUID());
-        if (GameManager.forPlayer(player.getUUID()).isEmpty()) {
+        if (GameManager.playing(player.getUUID()).isEmpty()) {
             return;
         }
         Item used = event.getItem().getItem();

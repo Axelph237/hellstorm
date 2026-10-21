@@ -29,7 +29,7 @@ public final class MapSavedData extends SavedData {
         return mode;
     }
 
-    /** Use {@link dev.candycanecazoo.hellstorm.tools.MapModes#set}, which also shows or hides the spawn markers. */
+    /** Use {@link dev.candycanecazoo.hellstorm.tools.MapModes#set}, which also puts the spawn markers right. */
     public void setMode(MapMode mode) {
         if (this.mode != mode) {
             this.mode = mode;

@@ -144,14 +144,13 @@ public final class PapGameTests {
         BlockPos at = machine(helper);
         ServerPlayer owner = PurchaseGameTests.player(helper, "pap_owner");
         ServerPlayer other = PurchaseGameTests.player(helper, "pap_other");
-        GameManager.Active active = PurchaseGameTests.game(helper, owner, at);
+        GameManager.Active active = PurchaseGameTests.game(helper, List.of(owner, other), at);
         GameSettings.Pap settings = active.game().settings().pap();
         List<GameEvent> events = new ArrayList<>();
         active.game().events().subscribe(events::add);
         int start;
         ItemStack otherGun = ak();
         try {
-            active.game().join(other.getUUID());
             active.game().refund(owner.getUUID(), settings.defaultCost());
             active.game().refund(other.getUUID(), settings.defaultCost());
             start = PurchaseGameTests.points(active, owner);

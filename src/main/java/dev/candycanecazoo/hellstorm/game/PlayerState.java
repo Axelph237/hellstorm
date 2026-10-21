@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public final class PlayerState {
     private final UUID id;
-    private LifeState life = new LifeState.Alive();
+    private LifeState life;
     private int points;
     private int kills;
     private int headshots;
@@ -18,9 +18,10 @@ public final class PlayerState {
     private long disconnectedAt = -1;
     private long lastHurtTick;
 
-    PlayerState(UUID id, int points) {
+    PlayerState(UUID id, int points, LifeState life) {
         this.id = id;
         this.points = points;
+        this.life = life;
     }
 
     public UUID id() {
@@ -37,7 +38,12 @@ public final class PlayerState {
 
     /** Alive or down: still shooting, still earning points. */
     public boolean inPlay() {
-        return !(life instanceof LifeState.Spectating);
+        return life instanceof LifeState.Alive || life instanceof LifeState.Downed;
+    }
+
+    /** In the game's lobby or countdown, not yet playing. See {@link LifeState.Waiting}. */
+    public boolean waiting() {
+        return life instanceof LifeState.Waiting;
     }
 
     public boolean connected() {

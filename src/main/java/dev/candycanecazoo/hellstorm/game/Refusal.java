@@ -10,6 +10,13 @@ public sealed interface Refusal {
         }
     }
 
+    /** In the game, but it hasn't started: nothing is for sale in the lobby. */
+    record NotStarted() implements Refusal {
+        public String message() {
+            return "Wait for the game to start";
+        }
+    }
+
     record NotEnoughPoints(int cost, int points) implements Refusal {
         public String message() {
             return "Not enough points";

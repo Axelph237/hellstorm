@@ -207,6 +207,14 @@ public final class ForgeGameWorld implements GameWorld {
     }
 
     @Override
+    public void enterGame(UUID id) {
+        entity(id).ifPresent(p -> {
+            Sessions.get(level.getServer()).save(p);
+            Loadout.give(p, settings.players());
+        });
+    }
+
+    @Override
     public void respawn(UUID id) {
         player(id).ifPresent(p -> {
             if (!startCells.isEmpty()) {

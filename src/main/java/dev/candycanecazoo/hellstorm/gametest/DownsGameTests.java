@@ -35,6 +35,8 @@ public final class DownsGameTests {
         ServerPlayer alice = PurchaseGameTests.player(helper, "pap_downs_alice");
         ServerPlayer bob = PurchaseGameTests.player(helper, "pap_downs_bob");
         GameManager.Active active = PurchaseGameTests.game(helper, java.util.List.of(alice, bob), machine);
+        // No pistol of her own, so going down lends her one.
+        alice.getInventory().clearContent();
         bob.moveTo(alice.position().add(1, 0, 0));
         float baseHealth = alice.getMaxHealth();
         double baseSpeed = alice.getAttributeValue(Attributes.MOVEMENT_SPEED);
@@ -42,10 +44,9 @@ public final class DownsGameTests {
         PerkGameTests.buy(alice, machine);
         PerkGameTests.drink(alice, PerkGameTests.takePotion(alice));
         boolean bought = alice.getMaxHealth() > baseHealth;
-        active.game().start();
         // However the test ends, the game mustn't outlive it.
         helper.runAfterDelay(290, () -> GameManager.get(helper.getLevel()).filter(a -> a == active).ifPresent(GameManager::end));
-        helper.runAfterDelay(active.game().settings().rounds().countdownTicks() + 2, () -> {
+        helper.runAfterDelay(1, () -> {
             try {
                 bob.moveTo(alice.position().add(1, 0, 0));
                 helper.assertTrue(bought, "Vigorade wasn't bought");
