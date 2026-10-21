@@ -1,0 +1,35 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"zone_wand_spin": {
+			"loop": true,
+			"animation_length": 10,
+			"bones": {
+				"big_cube": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0],
+							"easing": "linear"
+						},
+						"10.0": {
+							"vector": [360, -360, 360],
+							"easing": "linear"
+						}
+					}
+				},
+				"little_cube": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0],
+							"easing": "linear"
+						},
+						"10.0": {
+							"vector": [360, -360, -360],
+							"easing": "linear"
+						}
+					}
+				}
+			}
+		}
+	}
+}

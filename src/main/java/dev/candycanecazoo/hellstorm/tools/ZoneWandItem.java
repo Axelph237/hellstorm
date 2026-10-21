@@ -19,6 +19,8 @@ import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.model.DefaultedItemGeoModel;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
@@ -30,6 +32,8 @@ import java.util.function.Consumer;
  * so a zone holds the room's open space and two rooms sharing a wall don't overlap.
  */
 public final class ZoneWandItem extends Item implements MapTool, GeoItem {
+    /** The two frames turning, from {@code animations/item/zone_wand.animation.json}. */
+    private static final RawAnimation SPIN = RawAnimation.begin().thenLoop("zone_wand_spin");
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public ZoneWandItem(Properties properties) {
@@ -43,7 +47,9 @@ public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     }
 
     @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {}
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        controllers.add(new AnimationController<>(this, "spin", 0, state -> state.setAndContinue(SPIN)));
+    }
 
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
