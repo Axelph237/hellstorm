@@ -17,7 +17,6 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -27,7 +26,7 @@ import org.joml.Matrix4f;
 import software.bernie.geckolib.core.animation.Animation;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 
-import java.util.List;
+import java.util.Optional;
 
 /**
  * The crate's GeckoLib model, a nether portal across the opening under the lid, and the guns: rising out of the portal
@@ -36,8 +35,6 @@ import java.util.List;
  */
 public final class MysteryBoxRenderer implements BlockEntityRenderer<MysteryBoxBlock.Entity> {
     private static final float SCALE = 0.5f;
-    /** How many guns flick past on the way up. */
-    private static final int FLICKS = 30;
     /**
      * TacZ draws a gun in the item frame view with its middle a quarter block below and a tenth behind the point it's drawn
      * at (measured on the AK-47); this centers it.
@@ -78,19 +75,12 @@ public final class MysteryBoxRenderer implements BlockEntityRenderer<MysteryBoxB
         model.render(entity, partialTick, pose, buffers, light, overlay);
         Direction facing = entity.getBlockState().getValue(MysteryBoxBlock.FACING);
         portal(pose, buffers, facing);
-        float now = level.getGameTime() + partialTick;
-        float elapsed = entity.duration() - (entity.until() - now);
+        Optional<Float> rise = entity.rise(level.getGameTime() + partialTick);
         ItemStack stack;
         double height;
-        if (entity.phase() == MysteryBoxBlock.Phase.ROLLING) {
-            List<ItemStack> reel = entity.reel();
-            if (reel.isEmpty() || elapsed < MysteryBoxBlock.LID_TICKS) {
-                return;
-            }
-            float risen = Mth.clamp((elapsed - MysteryBoxBlock.LID_TICKS) / Math.max(1, entity.duration() - MysteryBoxBlock.LID_TICKS), 0, 1);
-            float eased = 1 - (1 - risen) * (1 - risen);
-            stack = reel.get((int) (eased * FLICKS) % reel.size());
-            height = MysteryBoxBlock.GUN_LOW + (MysteryBoxBlock.GUN_HIGH - MysteryBoxBlock.GUN_LOW) * eased;
+        if (rise.isPresent()) {
+            stack = entity.flick(rise.get());
+            height = MysteryBoxBlock.GUN_LOW + (MysteryBoxBlock.GUN_HIGH - MysteryBoxBlock.GUN_LOW) * rise.get();
         } else if (entity.phase() == MysteryBoxBlock.Phase.OFFERING) {
             stack = entity.result();
             height = MysteryBoxBlock.GUN_HIGH;

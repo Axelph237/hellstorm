@@ -18,8 +18,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -68,6 +70,8 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
     /** The middle of a gun as it rises: from inside the crate, under the portal, to where it hangs. In blocks above the floor. */
     public static final double GUN_LOW = 0.45;
     public static final double GUN_HIGH = 1.35;
+    /** How many guns flick past on the way up. */
+    public static final int FLICKS = 30;
 
     /** Whether a location has the box. {@code STORED} is every location outside a game, shown closed for map makers. */
     public enum Presence implements StringRepresentable {
@@ -116,6 +120,8 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         private String resultLabel = "";
         /** Who is rolling, for skipping what they already carry. Not saved. */
         private ServerPlayer rollerPlayer;
+        /** The flick the client last dinged for. */
+        private int dinged = -1;
 
         public Entity(BlockPos pos, BlockState state) {
             super(PapRegistries.MYSTERY_BOX_ENTITY.get(), pos, state, Config.CODEC, Config.DEFAULT);
@@ -197,6 +203,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             resultLabel = "";
             time(ticks);
             changed();
+            lidSound(SoundEvents.CHEST_OPEN);
         }
 
         void offer(ItemStack result, String label, int ticks) {
@@ -219,6 +226,12 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             resultLabel = "";
             time(LID_TICKS);
             changed();
+            lidSound(SoundEvents.CHEST_CLOSE);
+        }
+
+        private void lidSound(SoundEvent sound) {
+            Vec3 at = gunAt(0.8);
+            level.playSound(null, at.x, at.y, at.z, sound, SoundSource.BLOCKS, 1.0f, 0.7f);
         }
 
         public void idle() {
@@ -265,15 +278,50 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             }
         }
 
+        /**
+         * How far the guns have risen at {@code now}, 0 to 1, slowing as they near the top. Empty unless they're rising: only
+         * while rolling, once the lid is open.
+         */
+        public Optional<Float> rise(float now) {
+            float elapsed = duration - (until - now);
+            if (phase != Phase.ROLLING || reel.isEmpty() || elapsed < LID_TICKS) {
+                return Optional.empty();
+            }
+            float risen = Mth.clamp((elapsed - LID_TICKS) / Math.max(1, duration - LID_TICKS), 0, 1);
+            return Optional.of(1 - (1 - risen) * (1 - risen));
+        }
+
+        /** Which gun of the reel shows at {@code rise}. */
+        public ItemStack flick(float rise) {
+            return reel.get(flickIndex(rise) % reel.size());
+        }
+
+        private static int flickIndex(float rise) {
+            return (int) (rise * FLICKS);
+        }
+
+        /** A ding each time the rising gun changes, like a prize wheel's clicker. */
+        void clientTick() {
+            int flick = rise(level.getGameTime()).map(Entity::flickIndex).orElse(-1);
+            if (flick > dinged) {
+                Vec3 at = gunAt(GUN_HIGH);
+                level.playLocalSound(at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 0.35f, 1.5f, false);
+            }
+            dinged = flick;
+        }
+
         /** Where a gun hangs over the crate: over the seam between the halves, {@code height} blocks up. */
         public Vec3 gunAt(double height) {
             Direction facing = getBlockState().getValue(FACING);
             return Vec3.atBottomCenterOf(worldPosition).add(facing.getStepX() * 0.5, height, facing.getStepZ() * 0.5);
         }
 
-        /** The gun hanging over the crate bursts into smoke. */
+        /** The gun hanging over the crate bursts into smoke, to a low cackle. */
         void vanishGun() {
-            puff(gunAt(GUN_HIGH), 0.5, 0.15, 25);
+            Vec3 at = gunAt(GUN_HIGH);
+            puff(at, 0.5, 0.15, 25);
+            level.playSound(null, at.x, at.y, at.z, SoundEvents.WITCH_CELEBRATE, SoundSource.BLOCKS, 1.0f, 0.6f);
+            level.playSound(null, at.x, at.y, at.z, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.7f, 1.0f);
         }
 
         /** The whole crate bursts into smoke. */
@@ -397,10 +445,12 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (level.isClientSide || type != PapRegistries.MYSTERY_BOX_ENTITY.get()) {
+        if (type != PapRegistries.MYSTERY_BOX_ENTITY.get()) {
             return null;
         }
-        return (BlockEntityTicker<T>) (BlockEntityTicker<Entity>) (l, pos, s, entity) -> entity.serverTick();
+        return level.isClientSide
+                ? (BlockEntityTicker<T>) (BlockEntityTicker<Entity>) (l, pos, s, entity) -> entity.clientTick()
+                : (BlockEntityTicker<T>) (BlockEntityTicker<Entity>) (l, pos, s, entity) -> entity.serverTick();
     }
 
     @Override
