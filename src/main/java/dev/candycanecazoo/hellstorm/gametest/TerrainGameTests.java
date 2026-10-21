@@ -14,6 +14,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.level.Level;
@@ -31,8 +32,9 @@ import java.util.Set;
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
 /**
- * Guns never change terrain, and nothing does while a game runs. The tests without a game get their own batch, since a game
- * registered by a test in the same batch would cover their level too.
+ * Nothing changes the terrain while a match is underway, guns included; outside one, explosions and bullets work as they
+ * always do. Each test with a game has a batch of its own, since a game registered in the same batch would cover the
+ * others' level too.
  */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
@@ -56,32 +58,44 @@ public final class TerrainGameTests {
         return Vec3.atCenterOf(helper.absolutePos(CENTER));
     }
 
-    /** Without a game, a vanilla blast breaks the shell, so the tests below that keep it are measuring something. */
-    @GameTest(template = "floor", batch = "terrain_no_game")
-    public static void outsideAGameAnExplosionBreaksTheShell(GameTestHelper helper) {
-        List<BlockPos> shell = glassShell(helper);
-        Vec3 at = center(helper);
-        helper.getLevel().explode(null, at.x, at.y, at.z, 3f, Level.ExplosionInteraction.TNT);
-        helper.assertTrue(glassLeft(helper, shell) == 0, glassLeft(helper, shell) + " of 6 glass blocks survived a blast");
-        helper.succeed();
+    /** A game over the test's floor, started and past its countdown when {@code started}, else left in its lobby. */
+    private static GameManager.Active game(GameTestHelper helper, boolean started) {
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_terrain"),
+                List.of(BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8)))), true));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_terrain");
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()),
+                List.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1))), id -> id.equals(player.getUUID()) ? player : null);
+        active.game().join(player.getUUID());
+        if (started) {
+            PurchaseGameTests.play(active);
+            helper.assertTrue(GameManager.matchUnderway(helper.getLevel()), "the match should be underway, phase " + active.game().phase());
+        }
+        return active;
     }
 
-    /** TacZ's own explosion call with block damage asked for, as a rocket makes on impact. Outside a game too. */
-    @GameTest(template = "floor", batch = "terrain_no_game")
-    public static void aGunExplosionLeavesTheTerrain(GameTestHelper helper) {
+    /** TacZ's own explosion call with block damage asked for, as a rocket makes on impact. Returns the glass left of 6. */
+    private static long gunBlast(GameTestHelper helper) {
         List<BlockPos> shell = glassShell(helper);
         ArmorStand shooter = helper.spawn(EntityType.ARMOR_STAND, new BlockPos(1, ROOM_Y, 1));
         ExplodeUtil.createExplosion(shooter, shooter, 10f, 3f, false, true, center(helper));
-        helper.assertTrue(glassLeft(helper, shell) == 6, "a gun's blast broke " + (6 - glassLeft(helper, shell)) + " of 6 glass blocks");
-        helper.succeed();
+        return glassLeft(helper, shell);
     }
 
+    private static long vanillaBlast(GameTestHelper helper) {
+        List<BlockPos> shell = glassShell(helper);
+        Vec3 at = center(helper);
+        helper.getLevel().explode(null, at.x, at.y, at.z, 3f, Level.ExplosionInteraction.TNT);
+        return glassLeft(helper, shell);
+    }
+
+    /** What an incendiary bullet left: whether the glass it hit is whole, and whether the floor it hit is free of fire. */
+    private record BulletMarks(boolean glassWhole, boolean noFire) {}
+
     /**
-     * A bullet with incendiary rounds hits glass, then the top of the floor. TacZ would shatter the glass and light a fire on
-     * the floor (both of its configs are on by default). The hit runs through TacZ's own {@code onHitBlock}.
+     * An incendiary bullet hits glass, then the top of the floor, through TacZ's own {@code onHitBlock}. TacZ shatters the
+     * glass and lights the floor (both its configs are on by default) unless a match holds them back.
      */
-    @GameTest(template = "floor", batch = "terrain_no_game")
-    public static void bulletsBreakNoGlassAndStartNoFire(GameTestHelper helper) throws ReflectiveOperationException {
+    private static BulletMarks incendiaryShot(GameTestHelper helper) throws ReflectiveOperationException {
         BlockPos glass = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
         helper.getLevel().setBlockAndUpdate(glass, Blocks.GLASS.defaultBlockState());
         BlockPos floor = helper.absolutePos(new BlockPos(2, ROOM_Y - 1, 2));
@@ -102,9 +116,7 @@ public final class TerrainGameTests {
             onHitBlock.invoke(bullet, new BlockHitResult(top, Direction.UP, target, false), top.add(0, 1, 0), top);
         }
         helper.assertTrue(bullet.isRemoved(), "the hit should run to its end, where the bullet is removed");
-        helper.assertTrue(helper.getLevel().getBlockState(glass).is(Blocks.GLASS), "a bullet broke glass");
-        helper.assertTrue(helper.getLevel().getBlockState(aboveFloor).isAir(), "a bullet left " + helper.getLevel().getBlockState(aboveFloor));
-        helper.succeed();
+        return new BulletMarks(helper.getLevel().getBlockState(glass).is(Blocks.GLASS), helper.getLevel().getBlockState(aboveFloor).isAir());
     }
 
     private static void set(EntityKineticBullet bullet, String field, Object value) throws ReflectiveOperationException {
@@ -113,21 +125,53 @@ public final class TerrainGameTests {
         f.set(bullet, value);
     }
 
-    /** The map is immutable during play: a vanilla blast in a game's level breaks nothing either. */
-    @GameTest(template = "floor", batch = "game_terrain")
-    public static void inAGameAnExplosionLeavesTheTerrain(GameTestHelper helper) {
-        List<BlockPos> shell = glassShell(helper);
-        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_blast"),
-                List.of(BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8)))), true));
-        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()),
-                List.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1))), id -> null);
+    @GameTest(template = "floor", batch = "terrain_no_game")
+    public static void outsideAMatchExplosionsAndGunsBreakTerrainAsUsual(GameTestHelper helper) {
+        helper.assertTrue(vanillaBlast(helper) == 0, "a blast outside a match should break all 6 glass blocks");
+        helper.assertTrue(gunBlast(helper) < 6, "a gun's blast outside a match should break glass");
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "terrain_no_game")
+    public static void outsideAMatchBulletsBreakGlassAndStartFires(GameTestHelper helper) throws ReflectiveOperationException {
+        BulletMarks marks = incendiaryShot(helper);
+        helper.assertTrue(!marks.glassWhole() && !marks.noFire(), "outside a match a bullet should break glass and light the floor: " + marks);
+        helper.succeed();
+    }
+
+    /** A lobby isn't a match: the map makers' world behaves as usual until the game starts. */
+    @GameTest(template = "floor", batch = "terrain_lobby")
+    public static void aGameStillInItsLobbyLeavesExplosionsAlone(GameTestHelper helper) {
+        GameManager.Active active = game(helper, false);
         try {
-            Vec3 at = center(helper);
-            helper.getLevel().explode(null, at.x, at.y, at.z, 3f, Level.ExplosionInteraction.TNT);
+            helper.assertTrue(gunBlast(helper) < 6, "a gun's blast in the lobby should break glass");
         } finally {
             GameManager.end(active);
         }
-        helper.assertTrue(glassLeft(helper, shell) == 6, "a blast in a game broke " + (6 - glassLeft(helper, shell)) + " of 6 glass blocks");
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "terrain_match_blast")
+    public static void inAMatchNoExplosionBreaksTerrain(GameTestHelper helper) {
+        GameManager.Active active = game(helper, true);
+        try {
+            helper.assertTrue(vanillaBlast(helper) == 6, "a blast in a match broke glass");
+            helper.assertTrue(gunBlast(helper) == 6, "a gun's blast in a match broke glass");
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "terrain_match_bullet")
+    public static void inAMatchBulletsBreakNoGlassAndStartNoFire(GameTestHelper helper) throws ReflectiveOperationException {
+        GameManager.Active active = game(helper, true);
+        try {
+            BulletMarks marks = incendiaryShot(helper);
+            helper.assertTrue(marks.glassWhole() && marks.noFire(), "in a match a bullet should leave the glass and the floor: " + marks);
+        } finally {
+            GameManager.end(active);
+        }
         helper.succeed();
     }
 }

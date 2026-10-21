@@ -68,13 +68,13 @@ public final class GameHooks {
     }
 
     /**
-     * The map is immutable during play, so no explosion in a game's level breaks a block or starts a fire (vanilla's fire
-     * lands on the blocks it would break, so emptying the list stops both). It still hurts and knocks back. Guns' own
-     * explosions keep the terrain everywhere (see {@code TaczEvents}).
+     * While a match is underway the map is immutable, so no explosion there, a gun's or any other, breaks a block or starts
+     * a fire (vanilla's fire lands on the blocks it would break, so emptying the list stops both). It still hurts and
+     * knocks back. Bullets' own block damage is held back the same way in {@code tacz/mixin}.
      */
     @SubscribeEvent
     public static void onExplosion(ExplosionEvent.Detonate event) {
-        if (event.getLevel() instanceof ServerLevel level && GameManager.get(level).isPresent()) {
+        if (GameManager.matchUnderway(event.getLevel())) {
             event.getAffectedBlocks().clear();
         }
     }

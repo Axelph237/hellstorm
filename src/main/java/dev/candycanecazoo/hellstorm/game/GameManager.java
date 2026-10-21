@@ -72,6 +72,16 @@ public final class GameManager {
         return forPlayer(player).filter(a -> a.game().player(player).filter(PlayerState::waiting).isEmpty());
     }
 
+    /**
+     * Whether a match is being played in {@code level}: started, from its first round until the game is over. Nothing may
+     * change the terrain then, since the map is reset only through its features. In the lobby and between games, map
+     * makers' worlds behave as usual.
+     */
+    public static boolean matchUnderway(Level level) {
+        return level instanceof ServerLevel server && get(server).map(Active::game)
+                .filter(game -> !(game.phase() instanceof GamePhase.Lobby || game.phase() instanceof GamePhase.Countdown)).isPresent();
+    }
+
     public static Optional<Active> forMob(UUID mob) {
         return GAMES.values().stream().filter(a -> a.game().hasMob(mob)).findFirst();
     }
