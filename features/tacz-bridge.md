@@ -63,6 +63,20 @@ Run with `./gradlew runGameTestServer` (`gametest/TaczSpikeTests`). All four pas
 - **TacZ timers use wall-clock time.** Draw, reload, and shoot timers use `System.currentTimeMillis`, and the GameTest server ticks faster than real time, so GameTests involving them must poll for completion, not wait a fixed number of ticks.
 - **Vanilla side:** `Mob.goalSelector` and `targetSelector` are accessible without an access transformer. `Player.setForcedPose(Pose.SWIMMING)` produces the crawl pose and hitbox.
 
+## As built (no terrain damage)
+
+Guns never break, burn, or change a block, in a game or not. Maps are built and tested in the same worlds they are played in, with the same guns, so a test shot shouldn't cost a builder a wall. TacZ's own switches for this are in its common config (`AmmoConfig`), which is global, not per world, and all on by default, so Hellstorm doesn't depend on them. TacZ 1.1.8 changes terrain in three ways, each stopped at its source:
+
+- **Explosive ammo** (rockets, grenade launchers). `EntityKineticBullet` calls `ExplodeUtil.createExplosion`, which runs a `ProjectileExplosion` (an `Explosion` subclass) with `BlockInteraction.DESTROY` when the ammo's `explosion_destroys_block` and the config `ExplosiveAmmoDestroysBlock` are on, and fire when `ExplosiveAmmoFire` is on. Its `explode()` posts Forge's `ExplosionEvent.Detonate`. `TaczEvents.onGunExplosion` empties the affected-block list for any `ProjectileExplosion`. Vanilla's fire lands only on those blocks, and the explode packet sent to clients carries the same list, so both go with it. The blast still hurts and knocks back.
+- **Glass.** On every block hit, `EntityKineticBullet.onHitBlock` posts TacZ's `AmmoHitBlockEvent`, and TacZ's own handler `DestroyGlassBlock` calls `level.destroyBlock` on glass, stained glass, and panes (config `DestroyGlass`). `destroyBlock` posts no Forge event. Cancelling `AmmoHitBlockEvent` would skip the rest of the hit, so the bullet would fly on through the block. Instead `mixin/DestroyGlassBlockMixin` cancels the handler at its head.
+- **Incendiary rounds.** For a bullet with `ignite_block` (from its ammo or an attachment), `onHitBlock` places fire in front of the face it hit when the config `IgniteBlock` is on. `mixin/EntityKineticBulletMixin` redirects that config read, the only one in the method, to false. Setting the mob it hits on fire (`IgniteEntity`) stays, and the lava particles still show.
+
+Separately, while a game runs in a level, every explosion there leaves the blocks alone, whatever caused it (`GameHooks.onExplosion`, same `Detonate` clearing): the map is immutable during play.
+
+Not covered: vanilla's own reactions to a projectile that is itself on fire (TNT, campfires, candles), which a bullet only is after passing through fire or lava.
+
+Tests (`gametest/TerrainGameTests`): outside a game a vanilla blast breaks a shell of six glass blocks (so the others measure something); TacZ's `ExplodeUtil.createExplosion` with block damage asked for leaves the same shell, outside a game; a bullet with `ignite_block` run through TacZ's `onHitBlock` leaves glass whole and puts no fire on stone; in a game a vanilla blast leaves the shell.
+
 ## Phase
 
 0 (scaffold and spikes), extended in 5 (the upgrader, perks).

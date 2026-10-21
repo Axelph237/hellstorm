@@ -9,6 +9,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -64,6 +65,18 @@ public final class GameHooks {
         dev.candycanecazoo.hellstorm.map.MapSavedData.get(level).map().doorAt(event.getPos()).ifPresent(door ->
                 dev.candycanecazoo.hellstorm.tools.MapEdits.apply(level, m -> door.members().size() <= 1
                         ? m.withoutDoor(door.id()) : m.withDoor(door.withoutMember(event.getPos()))));
+    }
+
+    /**
+     * The map is immutable during play, so no explosion in a game's level breaks a block or starts a fire (vanilla's fire
+     * lands on the blocks it would break, so emptying the list stops both). It still hurts and knocks back. Guns' own
+     * explosions keep the terrain everywhere (see {@code TaczEvents}).
+     */
+    @SubscribeEvent
+    public static void onExplosion(ExplosionEvent.Detonate event) {
+        if (event.getLevel() instanceof ServerLevel level && GameManager.get(level).isPresent()) {
+            event.getAffectedBlocks().clear();
+        }
     }
 
     @SubscribeEvent

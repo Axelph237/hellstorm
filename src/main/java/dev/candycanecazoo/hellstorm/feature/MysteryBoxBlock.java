@@ -376,11 +376,15 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             return Vec3.atBottomCenterOf(worldPosition).add(along.getStepX() * 0.5, height, along.getStepZ() * 0.5);
         }
 
-        /** The gun hanging over the crate bursts into smoke, to a low cackle. */
+        /**
+         * The gun hanging over the crate bursts into smoke, to the ender dragon's roar. The dragon itself roars at volume 2.5,
+         * which carries 40 blocks. At 1 or under a sound carries vanilla's 16 blocks and fades over them, so 0.6 keeps it to the
+         * crate's surroundings.
+         */
         void vanishGun() {
             Vec3 at = gunAt(GUN_HIGH);
             puff(at, 0.5, 0.15, 25);
-            level.playSound(null, at.x, at.y, at.z, SoundEvents.WITCH_CELEBRATE, SoundSource.BLOCKS, 1.0f, 0.6f);
+            level.playSound(null, at.x, at.y, at.z, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.BLOCKS, 0.6f, 1.0f);
             level.playSound(null, at.x, at.y, at.z, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.7f, 1.0f);
         }
 

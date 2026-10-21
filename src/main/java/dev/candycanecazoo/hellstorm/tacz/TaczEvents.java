@@ -1,7 +1,9 @@
 package dev.candycanecazoo.hellstorm.tacz;
 
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
+import com.tacz.guns.util.block.ProjectileExplosion;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.game.CombatLog;
 import dev.candycanecazoo.hellstorm.game.GameManager;
@@ -23,6 +25,19 @@ public final class TaczEvents {
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         if (!event.getEntity().level().isClientSide()) {
             TaczBridge.topUpUnlimitedReserve(event.getEntity().getMainHandItem());
+        }
+    }
+
+    /**
+     * Guns never break blocks. TacZ's explosive ammo (rockets, grenade launchers) blows up terrain by default
+     * ({@code ExplosiveAmmoDestroysBlock}) and can set it alight ({@code ExplosiveAmmoFire}); emptying the blast's block list
+     * stops both, and the blast still hurts and knocks back. This holds outside games too: a map is built and tested with the
+     * same guns, and one test shot shouldn't cost its builder a wall. The bullet's own block damage is in {@code mixin}.
+     */
+    @SubscribeEvent
+    public static void onGunExplosion(ExplosionEvent.Detonate event) {
+        if (event.getExplosion() instanceof ProjectileExplosion) {
+            event.getAffectedBlocks().clear();
         }
     }
 

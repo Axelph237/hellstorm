@@ -2,7 +2,7 @@
   "entity": "minecraft:wolf",
   "weight": 0,
   "ai": "replace",
-  "health_multiplier": 0.5,
+  "health_multiplier": 0.33,
   "speed_multiplier": 1.5,
   "damage": 3.0
 }
