@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Forge's event bus names the listener it generates for a {@code @SubscribeEvent} method after its package, the simple
  * name of its class, the method, and the event's simple name, and reuses a listener with the same name. Two methods that
- * share all four silently become one: the second never runs. (Pack-a-Punch's renderer went unregistered this way, behind
+ * share all four silently become one: the second never runs. (The upgrader's renderer went unregistered this way, behind
  * the power-up renderer's.)
  */
 class EventSubscriberLintTest {

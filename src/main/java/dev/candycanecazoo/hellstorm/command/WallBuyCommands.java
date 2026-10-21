@@ -43,8 +43,8 @@ final class WallBuyCommands {
                                 .executes(WallBuyCommands::setGun)))))
                 .then(Commands.literal("ammo").then(Commands.argument("cost", IntegerArgumentType.integer(0))
                         .executes(ctx -> ammo(ctx, Optional.empty()))
-                        .then(Commands.argument("papCost", IntegerArgumentType.integer(0))
-                                .executes(ctx -> ammo(ctx, Optional.of(IntegerArgumentType.getInteger(ctx, "papCost")))))))
+                        .then(Commands.argument("upgradedCost", IntegerArgumentType.integer(0))
+                                .executes(ctx -> ammo(ctx, Optional.of(IntegerArgumentType.getInteger(ctx, "upgradedCost")))))))
                 .then(Commands.literal("repurchase").then(Commands.argument("mode", StringArgumentType.word())
                         .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
                                 Arrays.stream(WallBuy.Repurchase.values()).map(WallBuy.Repurchase::getSerializedName), builder))

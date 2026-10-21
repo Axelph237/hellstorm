@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-/** Decides what Pack-a-Punch does with an item, from its NBT alone. Never changes the tag it is given. */
+/** Decides what the upgrader does with an item, from its NBT alone. Never changes the tag it is given. */
 public final class PunchResolver {
     /** {@code pap.tier}: how many default upgrades a TacZ gun has had. */
     public static final String TIER = "tier";

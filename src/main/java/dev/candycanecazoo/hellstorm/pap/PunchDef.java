@@ -8,7 +8,7 @@ import dev.candycanecazoo.hellstorm.util.Codecs;
 import java.util.Optional;
 
 /**
- * What an item with this {@code punch_id} becomes at the Pack-a-Punch machine. Loaded from
+ * What an item with this {@code punch_id} becomes at the upgrader. Loaded from
  * {@code data/<ns>/hellstorm/punch/<id>.json}.
  * <pre>
  * { "result": { "item": "minecraft:diamond_sword" }, "name": "item.mymap.sword_upgraded", "cost": 2500,

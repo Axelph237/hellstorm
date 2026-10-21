@@ -45,7 +45,7 @@ public final class WallBuy {
     }
 
     /**
-     * {@code ammoCost} and {@code papAmmoCost} are what a refill costs on a plain and a Pack-a-Punched copy of the gun.
+     * {@code ammoCost} and {@code papAmmoCost} are what a refill costs on a plain and an upgraded copy of the gun.
      * {@code requiresPower} keeps it from selling until the power is on, as perk machines do by default.
      */
     public record Config(ItemSpec item, int cost, Repurchase repurchase, int ammoCost, int papAmmoCost, boolean requiresPower) {
@@ -90,7 +90,7 @@ public final class WallBuy {
         return Optional.empty();
     }
 
-    /** What the player already carries of the item: how many, and whether a gun is Pack-a-Punched. */
+    /** What the player already carries of the item: how many, and whether a gun is upgraded. */
     public record Owned(int count, boolean punched) {}
 
     public sealed interface Action {

@@ -14,7 +14,7 @@ record GunInfo(ResourceLocation gunId, String type, boolean papTier) {}   // typ
 
 Stack NBT the bridge reads and writes:
 - TacZ keys: `GunId`, `GunCurrentAmmoCount`, `DummyAmmo`, `MaxDummyAmmo` (from `GunItemDataAccessor`).
-- Our keys: `pap.tier` (int), used by the default TacZ upgrade in `pack-a-punch.md`.
+- Our keys: `pap.tier` (int), used by the default TacZ upgrade in `upgrader.md`.
 
 ## Implementation
 
@@ -23,10 +23,10 @@ Stack NBT the bridge reads and writes:
 - **Gun stacks.** `ItemStack createGun(ResourceLocation gunId)` uses `GunItemBuilder.create().setId(gunId).setAmmoCount(maxMag).build()`, then calls `IGun#setMaxDummyAmmoAmount` and `IGun#setDummyAmmoAmount` so reserve ammo lives in NBT, not in ammo items.
 - **Gun listing.** `List<ResourceLocation> allGuns()` reads `TimelessAPI.getAllCommonGunIndex()`. The box pool and `PunchAudit` use it.
 - **Identity.** `Optional<GunInfo> inspect(ItemStack)` uses `IGun.getIGunOrNull(stack)` and `TimelessAPI.getCommonGunIndex(id)`. How to read the gun type from `CommonGunIndex` is a phase 0 spike.
-- **Ammo.** `refillAmmo(ItemStack)` sets the magazine to full and the dummy reserve to its max. Max Ammo, wall-buy refills, and PaP call it.
+- **Ammo.** `refillAmmo(ItemStack)` sets the magazine to full and the dummy reserve to its max. Max Ammo, wall-buy refills, and the upgrader call it.
 - **Unlimited ammo.** `setUnlimitedAmmo(stack, true)` tags a gun (`hellstorm.unlimited_ammo` in its NBT). While any entity holds it, its dummy reserve is topped back to max every tick (`TaczEvents.onLivingTick`). The magazine still empties and needs reloading. Topping up only on TacZ's reload or fire events isn't enough: TacZ refuses a reload before posting its reload event once the reserve is empty, and a single reload can use up the whole reserve. The starting guns use it when `players.starting_guns_unlimited_ammo` is on (default off). Wall-buys and box entries get a per-weapon `unlimited_ammo` field in phase 5.
 - **Hit and kill events.** A `@SubscribeEvent` on `EntityHurtByGunEvent.Pre` and `EntityKillByGunEvent` returns early unless `getLogicalSide()` is server, because TacZ posts each event on both sides. It converts each one into a `GunHit` or `GunKill` and hands it to the game (`Economy`, `GameEvents`). The events carry the gun id but not the stack, so the bridge reads `attacker.getMainHandItem()` when it needs the stack.
-- **Damage changes.** Inside the same `Pre` handler the bridge asks the game for a damage multiplier (Insta-Kill, PaP tier, perks) and calls `setBaseAmount(base * multiplier)`. TacZ reads the value back after posting.
+- **Damage changes.** Inside the same `Pre` handler the bridge asks the game for a damage multiplier (Insta-Kill, upgrade tier, perks) and calls `setBaseAmount(base * multiplier)`. TacZ reads the value back after posting.
 - **Per-stack stats.** `AttachmentPropertyEvent` gives `getGunItem()` and an `AttachmentCacheProperty`. For stacks with `pap.tier`, the bridge scales `GunProperties.DAMAGE`, `ROUNDS_PER_MINUTE`, and the mag size. Hellfire scales RPM the same way. This class is outside TacZ's `api` package, so it is the most fragile seam.
 
 ## Config surface
@@ -58,11 +58,11 @@ Run with `./gradlew runGameTestServer` (`gametest/TaczSpikeTests`). All four pas
 - **`inventory` feed guns can't use dummy ammo.** TacZ's reload returns early when `useInventoryAmmo` is true, so dummy ammo never applies. In the default pack that is only `tacz:minigun`. The bridge must give these guns real ammo items (`AmmoItemBuilder`) for reserve and refills.
 - **Always set a fire mode.** `createGun` sets the first mode from `GunData.getFireModeSet()`. Without it, scripted guns stall: `tacz:hk_mk23`'s Lua reload logic only sets timings for `SEMI` and `BURST`, so its reload never finished.
 - **The RPM override works in live fire.** Setting `ROUNDS_PER_MINUTE` to 60 through `AttachmentPropertyEvent` is cached and enforced. 330 ms after the first shot, the stock AK fires again and the 60 RPM AK returns `COOL_DOWN`.
-- **Mag size can't be changed through the cache.** `GunProperties` has no capacity entry, and capacity comes from `AttachmentDataUtils.getAmmoCountWithAttachment` (extended-mag level). The PaP mag boost installs an extended-mag attachment instead.
+- **Mag size can't be changed through the cache.** `GunProperties` has no capacity entry, and capacity comes from `AttachmentDataUtils.getAmmoCountWithAttachment` (extended-mag level). The upgrader's mag boost installs an extended-mag attachment instead.
 - **Gun type for the downed-pistol rule** is `CommonGunIndex.getType()` (for example `"pistol"`).
 - **TacZ timers use wall-clock time.** Draw, reload, and shoot timers use `System.currentTimeMillis`, and the GameTest server ticks faster than real time, so GameTests involving them must poll for completion, not wait a fixed number of ticks.
 - **Vanilla side:** `Mob.goalSelector` and `targetSelector` are accessible without an access transformer. `Player.setForcedPose(Pose.SWIMMING)` produces the crawl pose and hitbox.
 
 ## Phase
 
-0 (scaffold and spikes), extended in 5 (PaP, perks).
+0 (scaffold and spikes), extended in 5 (the upgrader, perks).

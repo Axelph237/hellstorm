@@ -2,7 +2,7 @@
 
 ## Goal
 
-A world preset generates a whole zombies map from the seed: rooms, doors with rising costs, windows, wall-buys, perks, power, and PaP, always playable.
+A world preset generates a whole zombies map from the seed: rooms, doors with rising costs, windows, wall-buys, perks, power, and the upgrader, always playable.
 
 **Status:** deferred until after the MVP. The MVP keeps three things so this can be added without reworking anything:
 - the generator-agnostic `ZombiesMap` model
@@ -24,7 +24,7 @@ Room pools and themes are datapack JSON. Room templates are NBT exported from ha
 - **World preset** `hellstorm:zombies_map` uses a custom `ZombiesChunkGenerator` (codec params: room count, theme, cell size).
 - **`LayoutGenerator`** is pure and deterministic from the seed. Rooms snap to a grid of 16-block cells.
   1. Place the start room.
-  2. Grow a critical path start → power → PaP.
+  2. Grow a critical path start → power → upgrader.
   3. Branch side rooms weighted by depth and theme.
   4. Door costs rise with graph depth.
 - **Validation.** Convert the layout to a `ZombiesMap` and run `MapValidator`. If it fails, retry with the next sub-seed.

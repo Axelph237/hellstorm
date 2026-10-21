@@ -45,7 +45,7 @@ import java.util.Optional;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
-/** The Pack-a-Punch machine, through the shared purchase path. Each test registers a game, so each has its own batch. */
+/** The upgrader, through the shared purchase path. Each test registers a game, so each has its own batch. */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class PapGameTests {
@@ -160,7 +160,7 @@ public final class PapGameTests {
             helper.assertTrue(PurchaseGameTests.points(active, owner) == start - settings.defaultCost(),
                     "expected to pay " + settings.defaultCost() + ", have " + PurchaseGameTests.points(active, owner) + " of " + start);
             helper.assertTrue(owner.getMainHandItem().isEmpty(), "the machine should take the gun");
-            helper.assertTrue(events.contains(new GameEvent.PapUsed(owner.getUUID(), AK.toString())), "pap_used not emitted: " + events);
+            helper.assertTrue(events.contains(new GameEvent.PapUsed(owner.getUUID(), AK.toString())), "upgrader_used not emitted: " + events);
 
             int otherPoints = PurchaseGameTests.points(active, other);
             other.setItemInHand(InteractionHand.MAIN_HAND, otherGun.copy());

@@ -21,7 +21,7 @@ import java.util.Optional;
 
 /**
  * The {@code hellstorm:fire_rate} attribute (Hellfire) on TacZ guns. It multiplies what is already there, since
- * Pack-a-Punch changes the same value in the same event and the two must stack.
+ * the upgrader changes the same value in the same event and the two must stack.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class PerkGunEffects {

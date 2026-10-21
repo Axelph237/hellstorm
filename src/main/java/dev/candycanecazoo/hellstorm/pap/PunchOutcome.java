@@ -21,7 +21,7 @@ public sealed interface PunchOutcome {
 
     /** {@code message} is the default English, for logs and audits; players see {@link #key()} through the lang file. */
     enum RejectReason {
-        NOT_PUNCHABLE("This item can't go in the Pack-a-Punch"),
+        NOT_PUNCHABLE("This item can't go in the upgrader"),
         UNKNOWN_PUNCH_ID("This item's upgrade doesn't exist"),
         NO_UPGRADE_PATH("This item has no upgrade"),
         MAX_TIER("This weapon is fully upgraded");

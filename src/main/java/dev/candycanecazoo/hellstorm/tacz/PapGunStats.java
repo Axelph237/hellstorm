@@ -21,7 +21,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Pack-a-Punch's default TacZ upgrade. The stat multipliers live on the stack ({@code pap.damage_multiplier} and so on, one
+ * The upgrader's default TacZ upgrade. The stat multipliers live on the stack ({@code pap.damage_multiplier} and so on, one
  * factor per tier multiplied in), so they work on both sides and outside a game. Each hook multiplies what TacZ and other
  * hooks (perks) already set, rather than overwriting it.
  */

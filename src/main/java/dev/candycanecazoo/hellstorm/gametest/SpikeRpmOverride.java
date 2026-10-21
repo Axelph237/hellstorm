@@ -7,7 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Phase 0 spike: overrides RPM on stacks tagged by {@link TaczSpikeTests}. Replaced by the real PaP hook in phase 5. */
+/** Phase 0 spike: overrides RPM on stacks tagged by {@link TaczSpikeTests}. Replaced by the real upgrader hook in phase 5. */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class SpikeRpmOverride {
     static final String TAG = "hellstorm_spike_rpm";

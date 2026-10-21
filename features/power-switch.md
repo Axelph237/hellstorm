@@ -2,7 +2,7 @@
 
 ## Goal
 
-A map can have a power switch. Turning it on enables perks, PaP, traps, and any doors marked as needing power.
+A map can have a power switch. Turning it on enables perks, the upgrader, traps, and any doors marked as needing power.
 
 ## Data shape
 
@@ -12,7 +12,7 @@ A map can have a power switch. Turning it on enables perks, PaP, traps, and any 
 ## Implementation
 
 - **Activation** through `Purchasable`: if power is off, charge `cost`, set `Game.powerOn = true`, flip every power switch block to `on`, and emit `power_on`.
-- **Consumers** check `Game.powerOn` in their purchase checks: perk machines with `requires_power`, PaP, traps, and doors with `requiresPower`.
+- **Consumers** check `Game.powerOn` in their purchase checks: perk machines with `requires_power`, the upgrader, traps, and doors with `requiresPower`.
 - **Feedback.** Powered machines change blockstate (a `powered` property) so their models can light up, using vanilla emissive-looking textures (for example `minecraft:block/redstone_lamp_on`).
 - **No switch.** A map without a power switch starts with power on.
 - **Reset.** `MapReset` turns power off.
@@ -32,7 +32,7 @@ A map can have a power switch. Turning it on enables perks, PaP, traps, and any 
 
 ## Verification
 
-- GameTest: before power, a perk, PaP, a trap, and a powered door all refuse. After flipping the switch, all four work.
+- GameTest: before power, a perk, the upgrader, a trap, and a powered door all refuse. After flipping the switch, all four work.
 - GameTest: a map without a switch starts powered.
 - GameTest: reset turns power off.
 

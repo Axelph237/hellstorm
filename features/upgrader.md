@@ -1,8 +1,8 @@
-# Pack-a-Punch
+# The upgrader (Dante's Toil)
 
 ## Goal
 
-The PaP machine upgrades any item that is marked punchable. A datapack can say exactly what an item becomes. TacZ guns without a definition get a default upgrade. Anything else is an error that is caught at load time and refused safely at the machine.
+The upgrader, which players know as Dante's Toil, upgrades any item that is marked punchable. A datapack can say exactly what an item becomes. TacZ guns without a definition get a default upgrade. Anything else is an error that is caught at load time and refused safely at the machine.
 
 ## Data shape
 
@@ -55,7 +55,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 **Machine** through `Purchasable`, needs power:
 1. The player inserts the held item. The machine resolves it.
 2. On `Rejected`, the item goes straight back, nothing is charged, and the player sees the reason.
-3. On success, charge the cost, hold the item for `pap.process_ticks`, then offer the result for `pap.collect_ticks` to that player only. Emit `pap_used`.
+3. On success, charge the cost, hold the item for `pap.process_ticks`, then offer the result for `pap.collect_ticks` to that player only. Emit `upgrader_used`.
 
 **`PunchAudit`** reports the two `Rejected` errors before anyone plays:
 - Runs on server start, after `/reload`, and inside `MapValidator` at game start.
@@ -83,7 +83,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 - JUnit, one test per outcome. For each `Rejected` case, the returned stack equals the input and the cost is 0.
 - JUnit: `PunchAudit` flags a punchable non-TacZ item with no id and a punch id that doesn't exist, and does not flag a valid one.
 - JUnit: a datapack def with the same id as a `hellstorm` default replaces it.
-- In game: punch a non-gun wall-buy item with a `punch_id` and receive the result. Insert a punchable stick with no id: it comes back, no points are taken, and the load-time ERROR was in the log.
+- In game: upgrade a non-gun wall-buy item with a `punch_id` and receive the result. Insert a punchable stick with no id: it comes back, no points are taken, and the load-time ERROR was in the log.
 
 ## Phase
 
@@ -97,7 +97,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 - **The renderer was never registered** until this change: its nested `Registration.register(RegisterRenderers)` had the same generated listener name as the power-up renderer's, and Forge's event bus reuses listeners by name, so only the power-up one ran. It is now registered in `client/FeatureRenderers`, and `EventSubscriberLintTest` fails the build on any such clash. Paying throws an electric spark at the foot end. While the job runs, flames creep along the item from that end, with sparks at the front, in step with `pap.process_ticks` (the job carries its start time, synced to clients). When the fire reaches the far end, a burst of flame and a fire-charge sound replace the item with the upgraded one, which lies there until its owner takes it.
 - **Tests.** `PapGameTests.eitherHalfSellsTheFireSpreadsAndBreakingOneHalfRemovesBoth`: the head sells and hands back the upgraded gun, the fire is about halfway along at half time, and breaking the head removes the foot and the map entry. The particles and how the item lies are checked in game.
 - **The resolver is pure.** `resolve(tag, isTaczGun, defs, defaultCost, maxTier)` takes the NBT and a boolean, so JUnit covers every branch. `Replace` carries the def, not a built stack; the machine builds it. There is one more reason, `MAX_TIER`: a gun still marked punchable at or past the current `pap.max_tier`. A `punch_id` wins over the default gun upgrade and the tier cap. Every `Rejected` costs 0.
-- **Costs.** The order is the def's `cost`, then the machine's `/hs pap cost <points|default>`, then `pap.default_cost`. The prompt shows the machine's cost. The client has no defs, so a def with its own cost isn't shown in the prompt.
+- **Costs.** The order is the def's `cost`, then the machine's `/hs upgrader cost <points|default>`, then `pap.default_cost`. The prompt shows the machine's cost. The client has no defs, so a def with its own cost isn't shown in the prompt.
 - **Stats live on the stack.** The default upgrade adds 1 to `pap.tier` and multiplies `pap.damage_multiplier`, `pap.magazine_multiplier`, and `pap.rpm_multiplier` on the stack by the game's per-tier settings. The hooks read only the stack, so they work on both sides (the client predicts fire rate and draws the HUD) and outside a game. A datapack result can carry these keys too.
   - Damage: `EntityHurtByGunEvent.Pre` multiplies `getBaseAmount` for the attacker's held gun when it is the same gun as the event's.
   - RPM: `AttachmentPropertyEvent` multiplies the cached value.
@@ -107,7 +107,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
   - The reserve (`MaxDummyAmmo`) is multiplied too, then the gun is refilled.
   - The name becomes `item.hellstorm.upgraded` ("Upgraded %s") around the gun's own name key, so a second tier doesn't read "Upgraded Upgraded".
   - `punchable` is removed once `pap.max_tier` is reached.
-- **Machine flow.** Use with an item in the main hand. The machine resolves the item and builds the result before charging. On a refusal the item stays in hand and nothing is charged. Refusals: not punchable, unknown id, no upgrade path, max tier, a result item or gun that isn't installed, an empty hand, a busy machine, no power. On success the machine charges, takes one item, emits `pap_used` (`player`, `item` = gun id or item id), and holds the item for `pap.process_ticks` game ticks. Then it offers the result to the owner for `pap.collect_ticks`. Collecting goes through `Shop` at cost 0, into the empty main hand or else the inventory. Other players get "The machine is busy".
+- **Machine flow.** Use with an item in the main hand. The machine resolves the item and builds the result before charging. On a refusal the item stays in hand and nothing is charged. Refusals: not punchable, unknown id, no upgrade path, max tier, a result item or gun that isn't installed, an empty hand, a busy machine, no power. On success the machine charges, takes one item, emits `upgrader_used` (`player`, `item` = gun id or item id), and holds the item for `pap.process_ticks` game ticks. Then it offers the result to the owner for `pap.collect_ticks`. Collecting goes through `Shop` at cost 0, into the empty main hand or else the inventory. Other players get "The machine is busy".
 - **Uncollected results are lost,** as in CoD. The owner gets an action-bar message. Giving the item back would also need rules for a player who is downed, has left, or has a full inventory.
 - **Prompt.** The prompt for collecting shows to everyone, because `Prompted.prompt()` doesn't know who is looking. Only the owner can collect.
 - **State.** The job (owner, input, result, phase, deadline) is saved and synced with the block entity. `MapReset` empties every machine.
@@ -116,13 +116,14 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
   - It runs on `ServerStartedEvent` and on `OnDatapackSyncEvent` with no player (end of /reload), against the overworld, and logs each finding as an ERROR.
   - `GameManager.validationContext` passes the findings to `MapValidator` through a new `ValidationContext.itemProblems`. They are WARNINGs (`pap_unknown_punch_id`, `pap_no_upgrade_path`), so they show in `/hs map validate` but don't block a game, because the machine refuses those items safely.
   - Ops get a chat summary on joining when anything is flagged: the count, the first five findings with positions, and a pointer to `/hs map validate` (`PunchAudit.opNotice`).
-- **Shipped default.** `hellstorm:iron_sword`: a diamond sword with Sharpness III, named "Pack-a-Punched Sword", for 2500. Try it with `/give @s iron_sword{pap:{punchable:1b,punch_id:"hellstorm:iron_sword"}}`.
+- **Shipped default.** `hellstorm:iron_sword`: a diamond sword with Sharpness III, named "Upgraded Sword", for 2500. Try it with `/give @s iron_sword{pap:{punchable:1b,punch_id:"hellstorm:iron_sword"}}`.
 - **Not supported: multi-tier defs through `tacz_gun`.** `ItemSpec.Gun` has no `nbt` field, so a gun result can't carry its own `punch_id`. A `Plain` result can. Adding `nbt` to `Gun` would close this.
 - **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `TEXTURES_NEEDED.md`.
 
 ## The upgrader model and the fire (phase 7)
 
-- **Name.** Players see it as Dante's Toil (`block.hellstorm.pap_machine` and `name.hellstorm.pack_a_punch` in the lang file); the ids, the `/hs pap` commands, and the code still call it the upgrader or `pap_machine`. It sounds like stone when placed or broken, and breaks into stone particles.
+- **Name.** Players see it as Dante's Toil (`block.hellstorm.pap_machine` and `name.hellstorm.pack_a_punch` in the lang file); the registry ids and the code still call it `pap_machine`. Ops' text and logs call it the upgrader, and its command is `/hs upgrader cost`. It sounds like stone when placed or broken, and breaks into stone particles.
+- **Wording.** Players and ops read "upgrade" and "the upgrader", never Pack-a-Punch: the shipped sword is the "Upgraded Sword", the settings screen is titled with the machine's lang name, the audit and its log lines say "upgrade definition" and "the upgrader", and the Lua event is `upgrader_used`. The old name stays only where renaming would break saved worlds or datapacks: the `pap_machine` block and item id, the `pap` item NBT compound (`punchable`, `punch_id`, `tier`, the multipliers), the `data/<ns>/hellstorm/punch/` folder, the `pap.*` server-config keys, the wall-buy's `pap_ammo_cost` setting, and the lang keys.
 
 - **Model.** Your Blockbench model `hellfire_upgrader` (a table with a cloth, a skull at the foot end, and three lit candles at the head end), drawn by GeckoLib so its free rotations (the skull at 20 degrees, the candles at 27.5, the wicks at 17.5 and 72.5) stay as you made them. GeckoLib is bundled in the jar.
   - The geometry is `geo/block/hellfire_upgrader.geo.json`; its bones `bone` and `candle_three_candles_lit` were renamed `skull` and `candles`. The foot's block entity draws the whole table, from the foot toward the head along +z and turned for each facing as a blockstate would turn it (`client/BlockModelRenderer`, shared with the Mystery Crate). The two-block placement, either half selling, and one half breaking the other are `feature/TwoBlockMachine`, also shared. Both halves' block models are only a particle texture, and both are 13 pixels tall.

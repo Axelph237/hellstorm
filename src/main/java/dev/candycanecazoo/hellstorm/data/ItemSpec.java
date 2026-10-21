@@ -14,7 +14,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.Optional;
 
 /**
- * An item the mod hands out: from wall-buys, the Mystery Crate, Pack-a-Punch results, and loadouts. Either any item with a
+ * An item the mod hands out: from wall-buys, the Mystery Crate, upgrader results, and loadouts. Either any item with a
  * count and optional NBT, or the {@code tacz_gun} shorthand, which builds a full TacZ gun.
  * <pre>
  * { "item": "minecraft:golden_apple", "count": 2, "nbt": { ... } }
@@ -22,7 +22,7 @@ import java.util.Optional;
  * </pre>
  */
 public sealed interface ItemSpec {
-    /** The {@code pap} compound on an item: whether Pack-a-Punch accepts it, and which upgrade it gets. */
+    /** The {@code pap} compound on an item: whether the upgrader accepts it, and which upgrade it gets. */
     String PAP = "pap";
     String PUNCHABLE = "punchable";
     String PUNCH_ID = "punch_id";
@@ -82,7 +82,7 @@ public sealed interface ItemSpec {
             });
         }
 
-        /** Any gun with this id, upgraded or not, so a refill works on a Pack-a-Punched copy too. */
+        /** Any gun with this id, upgraded or not, so a refill works on an upgraded copy too. */
         @Override
         public boolean matches(ItemStack stack) {
             return TaczBridge.inspect(stack).map(info -> info.gunId().equals(gunId)).orElse(false);

@@ -10,7 +10,7 @@ final class PapMachineScreen extends SettingsScreen<PapMachineBlock.Config> {
     private String cost;
 
     PapMachineScreen(PapMachineBlock.Entity entity, OpenSettingsPacket packet) {
-        super(Component.literal("Pack-A-Punch"), entity);
+        super(Component.translatable(PapMachineBlock.NAME), entity);
         defaultCost = packet.defaultCost();
         cost = entity.config().cost().map(String::valueOf).orElse("");
     }

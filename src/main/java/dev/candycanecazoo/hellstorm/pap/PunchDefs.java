@@ -34,7 +34,7 @@ public final class PunchDefs {
             DataResult<PunchDef> result = PunchDef.CODEC.parse(JsonOps.INSTANCE, json);
             // Not resultOrPartial: a partial result would load the def with the bad field's default.
             result.error().ifPresentOrElse(
-                    error -> Hellstorm.LOG.error("Bad Pack-a-Punch definition {}: {}", id, error.message()),
+                    error -> Hellstorm.LOG.error("Bad upgrade definition {}: {}", id, error.message()),
                     () -> loaded.put(id, result.result().orElseThrow()));
         });
         return Map.copyOf(loaded);
@@ -46,7 +46,7 @@ public final class PunchDefs {
             @Override
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
                 defs = parse(files);
-                Hellstorm.LOG.info("Loaded {} Pack-a-Punch definitions", defs.size());
+                Hellstorm.LOG.info("Loaded {} upgrade definitions", defs.size());
             }
         });
     }

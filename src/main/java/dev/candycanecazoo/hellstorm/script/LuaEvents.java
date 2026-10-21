@@ -16,7 +16,7 @@ public final class LuaEvents {
             "game_start", "game_end", "round_start", "round_end",
             "zombie_spawned", "zombie_killed",
             "player_downed", "player_revived", "player_bled_out",
-            "wall_buy", "mystery_box_opened", "mystery_box_moved", "perk_bought", "pap_used",
+            "wall_buy", "mystery_box_opened", "mystery_box_moved", "perk_bought", "upgrader_used",
             "door_opened", "power_on", "trap_activated",
             "powerup_spawned", "powerup_collected",
             "wave_event_started");
@@ -36,7 +36,7 @@ public final class LuaEvents {
         if (event instanceof GameEvent.WallBuy) return "wall_buy";
         if (event instanceof GameEvent.MysteryBoxOpened) return "mystery_box_opened";
         if (event instanceof GameEvent.MysteryBoxMoved) return "mystery_box_moved";
-        if (event instanceof GameEvent.PapUsed) return "pap_used";
+        if (event instanceof GameEvent.PapUsed) return "upgrader_used";
         if (event instanceof GameEvent.PlayerDowned) return "player_downed";
         if (event instanceof GameEvent.PlayerRevived) return "player_revived";
         if (event instanceof GameEvent.PlayerBledOut) return "player_bled_out";

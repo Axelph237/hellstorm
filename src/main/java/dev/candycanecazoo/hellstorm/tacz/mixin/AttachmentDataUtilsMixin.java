@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Magazine capacity isn't in TacZ's property cache: reloads, the HUD, and gun scripts all ask this method. Scaling its
- * answer makes a Pack-a-Punched magazine bigger everywhere, on both sides.
+ * answer makes an upgraded magazine bigger everywhere, on both sides.
  */
 @Mixin(value = AttachmentDataUtils.class, remap = false)
 public abstract class AttachmentDataUtilsMixin {

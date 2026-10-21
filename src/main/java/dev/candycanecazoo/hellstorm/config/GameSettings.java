@@ -114,7 +114,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
         ).apply(i, Box::new));
     }
 
-    /** Pack-a-Punch. The multipliers are the default upgrade for a TacZ gun with no {@code punch_id}. */
+    /** The upgrader (Dante's Toil). The multipliers are the default upgrade for a TacZ gun with no {@code punch_id}. */
     public record Pap(int defaultCost, int processTicks, int collectTicks, int maxTier, double damageMultiplier,
                       double magazineMultiplier, double rpmMultiplier) {
         public static final Codec<Pap> CODEC = RecordCodecBuilder.create(i -> i.group(

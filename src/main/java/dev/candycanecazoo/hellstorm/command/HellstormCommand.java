@@ -37,7 +37,7 @@ public final class HellstormCommand {
                 .then(DoorCommands.door().requires(HellstormCommand::op))
                 .then(WallBuyCommands.wallbuy().requires(HellstormCommand::op))
                 .then(BoxCommands.box().requires(HellstormCommand::op))
-                .then(PapMachineCommands.pap().requires(HellstormCommand::op))
+                .then(PapMachineCommands.upgrader().requires(HellstormCommand::op))
                 .then(TrapCommands.trap().requires(HellstormCommand::op))
                 .then(MobTestCommand.mobtest().requires(HellstormCommand::op))
                 .then(DebugCommands.debug().requires(HellstormCommand::op))

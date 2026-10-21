@@ -174,7 +174,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         return Optional.of(new Match(matches.get(0), new WallBuy.Owned(count, punched(matches.get(0)))));
     }
 
-    /** Pack-a-Punch writes its tier into the item's {@code pap} compound. */
+    /** The upgrader writes its tier into the item's {@code pap} compound. */
     public static boolean punched(ItemStack stack) {
         CompoundTag pap = stack.getTagElement(ItemSpec.PAP);
         return pap != null && pap.getInt(TIER) > 0;

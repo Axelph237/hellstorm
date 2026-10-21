@@ -11,7 +11,7 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /**
- * The client's Pack-a-Punch use key, held while looking at {@code pos}. Sent repeatedly while held. A barricade is repaired
+ * The client's Hellstorm use key, held while looking at {@code pos}. Sent repeatedly while held. A barricade is repaired
  * on every packet, at the server's own pace ({@code windows.repair_ticks}); a machine is used only on the first packet
  * of a press, so holding the key never buys twice.
  */

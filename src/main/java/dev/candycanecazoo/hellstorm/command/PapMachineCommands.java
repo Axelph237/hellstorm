@@ -11,12 +11,12 @@ import net.minecraft.network.chat.Component;
 
 import java.util.Optional;
 
-/** {@code /hs pap cost <points|default>}: what the Pack-a-Punch machine you're looking at charges. */
+/** {@code /hs upgrader cost <points|default>}: what the upgrader you're looking at charges. */
 final class PapMachineCommands {
     private PapMachineCommands() {}
 
-    static LiteralArgumentBuilder<CommandSourceStack> pap() {
-        return Commands.literal("pap")
+    static LiteralArgumentBuilder<CommandSourceStack> upgrader() {
+        return Commands.literal("upgrader")
                 .then(Commands.literal("cost")
                         .then(Commands.literal("default").executes(ctx -> cost(ctx, Optional.empty())))
                         .then(Commands.argument("points", IntegerArgumentType.integer(0))

@@ -44,7 +44,7 @@ public final class PunchAudit {
     public record Finding(Entry entry, PunchOutcome.RejectReason reason) {
         public String message() {
             String why = reason == PunchOutcome.RejectReason.UNKNOWN_PUNCH_ID
-                    ? "its punch_id names no Pack-a-Punch definition"
+                    ? "its punch_id names no upgrade definition"
                     : "it is not a TacZ gun and has no punch_id";
             return entry.source() + ": " + entry.spec().describe() + " is punchable, but " + why;
         }
@@ -93,7 +93,7 @@ public final class PunchAudit {
         return findings;
     }
 
-    /** The NBT the spec's item would carry, as far as Pack-a-Punch cares. */
+    /** The NBT the spec's item would carry, as far as the upgrader cares. */
     static @Nullable CompoundTag tag(ItemSpec spec) {
         if (spec instanceof ItemSpec.Gun gun) {
             CompoundTag pap = new CompoundTag();
@@ -130,8 +130,8 @@ public final class PunchAudit {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal("Pack-a-Punch found " + findings.size() + (findings.size() == 1 ? " item" : " items")
-                + " its machine would refuse:").withStyle(ChatFormatting.RED));
+        lines.add(Component.literal("The upgrade check found " + findings.size() + (findings.size() == 1 ? " item" : " items")
+                + " the upgrader would refuse:").withStyle(ChatFormatting.RED));
         findings.stream().limit(NOTICE_LINES).forEach(f -> lines.add(Component.literal(" - " + f.message()
                 + f.entry().pos().map(p -> " at " + p.toShortString()).orElse("")).withStyle(ChatFormatting.GRAY)));
         int rest = findings.size() - NOTICE_LINES;
@@ -145,7 +145,7 @@ public final class PunchAudit {
 
     private static List<Entry> punchDefResults(ServerLevel level) {
         return PunchDefs.all().entrySet().stream()
-                .map(e -> new Entry("Pack-a-Punch definition " + e.getKey(), Optional.empty(), e.getValue().result()))
+                .map(e -> new Entry("upgrade definition " + e.getKey(), Optional.empty(), e.getValue().result()))
                 .toList();
     }
 
@@ -161,7 +161,7 @@ public final class PunchAudit {
 
     private static void log(ServerLevel level) {
         for (Finding finding : run(level)) {
-            Hellstorm.LOG.error("Pack-a-Punch: {}{}", finding.message(), finding.entry().pos().map(p -> " at " + p.toShortString()).orElse(""));
+            Hellstorm.LOG.error("Upgrader: {}{}", finding.message(), finding.entry().pos().map(p -> " at " + p.toShortString()).orElse(""));
         }
     }
 

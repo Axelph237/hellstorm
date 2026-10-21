@@ -98,7 +98,7 @@ public final class WallBuyGameTests {
             CompoundTag pap = gun.getOrCreateTagElement(ItemSpec.PAP);
             pap.putInt("tier", 1);
             FeatureBlock.use(player, at);
-            assertPoints(helper, active, player, 50, "a Pack-a-Punched gun refills at the PaP ammo cost");
+            assertPoints(helper, active, player, 50, "an upgraded gun refills at the upgraded ammo cost");
         } finally {
             GameManager.end(active);
         }
