@@ -122,10 +122,12 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 
 ## The upgrader model and the fire (phase 7)
 
+- **Name.** Players see it as Dante's Toil (`block.hellstorm.pap_machine` and `name.hellstorm.pack_a_punch` in the lang file); the ids, the `/hs pap` commands, and the code still call it the upgrader or `pap_machine`. It sounds like stone when placed or broken, and breaks into stone particles.
+
 - **Model.** Your Blockbench model `hellfire_upgrader` (a table with a cloth, a skull at the foot end, and three lit candles at the head end), drawn by GeckoLib so its free rotations (the skull at 20 degrees, the candles at 27.5, the wicks at 17.5 and 72.5) stay as you made them. GeckoLib is bundled in the jar.
   - The geometry is `geo/block/hellfire_upgrader.geo.json`; its bones `bone` and `candle_three_candles_lit` were renamed `skull` and `candles`. The foot's block entity draws the whole table, from the foot toward the head along +z and turned for each facing as a blockstate would turn it (`PapMachineRenderer.Model`). Both halves' block models are only a particle texture, and both are 13 pixels tall.
   - GeckoLib draws a model with one texture, so `client/BoneTextures` gives the `candles` bone vanilla's `candle_lit` texture and the `skull` bone the skeleton's; everything else uses `textures/block/hellfire_upgrader.png`. The UVs carry over unchanged because GeckoLib scales them by the model's texture size (64), not the image's.
-  - The item (`PapMachineItem`) draws the same model, with the block's display transforms (`client/BlockAlignedItemRenderer` puts the model's floor where a block model's would be).
+  - The item (`PapMachineItem`) draws the same model, with the block's display transforms (`client/BlockAlignedItemRenderer` puts the model's floor where a block model's would be). In inventory slots it is drawn at half a block's scale, shifted so the two-block table is centered and fits one slot, until it gets its own item texture.
 - **Candles** burn like vanilla's: light level 9 (three candles' worth), a small flame at each wick, and now and then smoke and the candle crackle (`animateTick`, foot only, wick points turned with the model).
 - **The gun** lies on the 13-pixel table top, 3 pixels toward the side without the skull and candles, so its length clears both.
 - **The fire.**

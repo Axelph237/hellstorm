@@ -94,7 +94,7 @@ public final class PapRegistries {
             () -> BlockEntityType.Builder.of(MysteryBoxBlock.Entity::new, MYSTERY_BOX.get()).build(null));
     public static final RegistryObject<Block> PAP_MACHINE = BLOCKS.register("pap_machine", () -> new PapMachineBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable()
-                    .lightLevel(s -> 9).sound(SoundType.ANVIL)));
+                    .lightLevel(s -> 9).sound(SoundType.STONE)));
     public static final RegistryObject<BlockEntityType<PapMachineBlock.Entity>> PAP_MACHINE_ENTITY = BLOCK_ENTITIES.register("pap_machine",
             () -> BlockEntityType.Builder.of(PapMachineBlock.Entity::new, PAP_MACHINE.get()).build(null));
 

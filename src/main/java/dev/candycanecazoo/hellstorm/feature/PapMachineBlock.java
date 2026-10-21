@@ -516,7 +516,7 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
     @Override
     public Component describe(ServerLevel level, BlockPos pos) {
         Optional<Integer> cost = level.getBlockEntity(pos) instanceof Entity machine ? machine.config().cost() : Optional.empty();
-        return Component.literal("Pack-a-Punch machine: " + cost.map(c -> c + " points").orElse("the default cost (pap.default_cost)")
+        return Component.translatable(NAME).append(": " + cost.map(c -> c + " points").orElse("the default cost (pap.default_cost)")
                 + ". Set with /hs pap cost <points|default>");
     }
 

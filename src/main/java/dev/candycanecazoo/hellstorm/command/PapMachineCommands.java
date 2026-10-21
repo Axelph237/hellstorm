@@ -24,9 +24,9 @@ final class PapMachineCommands {
     }
 
     private static int cost(CommandContext<CommandSourceStack> ctx, Optional<Integer> cost) throws CommandSyntaxException {
-        PapMachineBlock.Entity machine = Targets.lookedAt(ctx.getSource().getPlayerOrException(), PapMachineBlock.Entity.class, "Pack-a-Punch machine");
+        PapMachineBlock.Entity machine = Targets.lookedAt(ctx.getSource().getPlayerOrException(), PapMachineBlock.Entity.class, "Dante's Toil");
         machine.setConfig(new PapMachineBlock.Config(cost));
-        ctx.getSource().sendSuccess(() -> Component.literal("The Pack-a-Punch machine now costs "
+        ctx.getSource().sendSuccess(() -> Component.translatable(PapMachineBlock.NAME).append(" now costs "
                 + cost.map(String::valueOf).orElse("the default (pap.default_cost)")), false);
         return 1;
     }
