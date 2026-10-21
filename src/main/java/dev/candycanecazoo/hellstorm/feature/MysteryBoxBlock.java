@@ -22,6 +22,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -75,6 +76,8 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
     public static final double GUN_HIGH = 1.35;
     /** How many guns flick past on the way up. */
     public static final int FLICKS = 30;
+    /** How often a few flames flicker up on the crate. */
+    private static final int SMOULDER_TICKS = 100;
 
     /** Whether a location has the box. {@code STORED} is every location outside a game, shown closed for map makers. */
     public enum Presence implements StringRepresentable {
@@ -307,14 +310,64 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             return (int) (rise * FLICKS);
         }
 
-        /** A ding each time the rising gun changes, like a prize wheel's clicker. */
         void clientTick() {
+            ding();
+            smoulder();
+        }
+
+        /** A ding each time the rising gun changes, like a prize wheel's clicker. */
+        private void ding() {
             int flick = rise(level.getGameTime()).map(Entity::flickIndex).orElse(-1);
             if (flick > dinged) {
                 Vec3 at = gunAt(GUN_HIGH);
                 level.playLocalSound(at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 0.35f, 1.5f, false);
             }
             dinged = flick;
+        }
+
+        /** Every {@link #SMOULDER_TICKS}, one or two small flames on the crate's outside, as if it were still burning. */
+        private void smoulder() {
+            if (!getBlockState().getValue(BOX).visible() || (level.getGameTime() + worldPosition.hashCode()) % SMOULDER_TICKS != 0) {
+                return;
+            }
+            RandomSource random = level.random;
+            for (int i = 1 + random.nextInt(2); i > 0; i--) {
+                Vec3 at = surfacePoint(random);
+                level.addParticle(ParticleTypes.SMALL_FLAME, at.x, at.y, at.z, 0, 0.004, 0);
+            }
+        }
+
+        /**
+         * A random point on the crate's outside, weighted by area: the lid's top while it's shut, the long sides, and the
+         * ends. Measured from the model in its pixels, x across from the foot's corner, z toward the head.
+         */
+        private Vec3 surfacePoint(RandomSource random) {
+            double top = phase == Phase.IDLE ? 17 * 33 : 0;
+            double sides = 2 * 30 * 9.5;
+            double ends = 2 * 14 * 9.5;
+            double pick = random.nextDouble() * (top + sides + ends);
+            double x;
+            double y;
+            double z;
+            if (pick < top) {
+                x = -0.5 + random.nextDouble() * 17;
+                y = 13.9;
+                z = -0.5 + random.nextDouble() * 33;
+            } else if (pick < top + sides) {
+                x = random.nextBoolean() ? 0.5 : 15.5;
+                y = 2 + random.nextDouble() * 9.5;
+                z = 1 + random.nextDouble() * 30;
+            } else {
+                x = 1 + random.nextDouble() * 14;
+                y = 2 + random.nextDouble() * 9.5;
+                z = random.nextBoolean() ? 0.5 : 31.5;
+            }
+            Direction along = getBlockState().getValue(FACING);
+            Direction across = along.getCounterClockWise();
+            double a = x / 16 - 0.5;
+            double b = z / 16 - 0.5;
+            return Vec3.atBottomCenterOf(worldPosition).add(a * across.getStepX() + b * along.getStepX(), y / 16,
+                    a * across.getStepZ() + b * along.getStepZ());
         }
 
         /** Where a gun hangs over the crate: over the seam between the halves, {@code height} blocks up. */
