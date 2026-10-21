@@ -1,5 +1,8 @@
 package dev.candycanecazoo.hellstorm.tools;
 
+import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.client.BlockAlignedItemRenderer;
+import dev.candycanecazoo.hellstorm.client.BoneTextures;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -12,16 +15,39 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import software.bernie.geckolib.animatable.GeoItem;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.model.DefaultedItemGeoModel;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * Right-click sets selection corners, sneak-right-click clears. A corner is the air block in front of the clicked face,
  * so a zone holds the room's open space and two rooms sharing a wall don't overlap.
  */
-public final class ZoneWandItem extends Item implements MapTool {
+public final class ZoneWandItem extends Item implements MapTool, GeoItem {
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+
     public ZoneWandItem(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(BlockAlignedItemRenderer.extensions(() -> new BlockAlignedItemRenderer<>(
+                new DefaultedItemGeoModel<ZoneWandItem>(Hellstorm.id("zone_wand")), BoneTextures.NONE)));
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {}
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 
     /** The cell a click or hover selects, shared with the client renderer so the preview matches the server. */

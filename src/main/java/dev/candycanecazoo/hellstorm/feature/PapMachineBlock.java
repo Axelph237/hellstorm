@@ -55,6 +55,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.registries.ForgeRegistries;
+import software.bernie.geckolib.animatable.GeoBlockEntity;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.Collection;
 import java.util.List;
@@ -72,14 +76,19 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
     public static final EnumProperty<BedPart> PART = BlockStateProperties.BED_PART;
     /** The machine's name, from the lang file so a resource pack can rename it. */
     public static final String NAME = "name.hellstorm.pack_a_punch";
+    /** The GeckoLib model and texture, under {@code geo/block/} and {@code textures/block/}. */
+    public static final String MODEL = "hellfire_upgrader";
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 13, 16);
     /** Where the item lies, above the machine's floor, and how far it reaches either side of the middle. */
     public static final double TOP = 13.0 / 16;
     public static final double ITEM_HALF_LENGTH = 0.85;
     /** The item lies this far to one side of the middle, clear of the skull and the candles on the other side. */
     public static final double SIDE_OFFSET = 3.0 / 16;
-    /** The three candles' flames, in the model's pixels: from the foot's corner, with the head toward +z. */
-    private static final double[][] WICKS = {{4, 17.5, 30.5}, {2, 19.5, 28.5}, {5, 20.5, 27.5}};
+    /**
+     * The three candles' flames, in the model's pixels: from the foot's corner, with the head toward +z. Half a pixel
+     * above each wick's top, as GeckoLib draws the turned candles (measured from the rendered model).
+     */
+    private static final double[][] WICKS = {{4.58, 17.5, 29.87}, {1.88, 19.5, 29.02}, {4.08, 20.5, 26.75}};
     /** The ding comes this long after the fire goes out. */
     private static final int DING_DELAY = 10;
 
@@ -113,13 +122,22 @@ public final class PapMachineBlock extends HorizontalDirectionalBlock implements
         }
     }
 
-    public static final class Entity extends ConfigBlockEntity<Config> implements Prompted {
+    public static final class Entity extends ConfigBlockEntity<Config> implements Prompted, GeoBlockEntity {
+        private final AnimatableInstanceCache animations = GeckoLibUtil.createInstanceCache(this);
         private Optional<Job> job = Optional.empty();
         /** The machine's cost as the running game sees it, synced for the prompt. */
         private int shownCost;
 
         public Entity(BlockPos pos, BlockState state) {
             super(PapRegistries.PAP_MACHINE_ENTITY.get(), pos, state, Config.CODEC, new Config(Optional.empty()));
+        }
+
+        @Override
+        public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {}
+
+        @Override
+        public AnimatableInstanceCache getAnimatableInstanceCache() {
+            return animations;
         }
 
         /** What to draw in the machine: the item being worked on, then the result. */

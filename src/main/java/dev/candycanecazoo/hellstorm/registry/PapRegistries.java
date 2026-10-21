@@ -8,6 +8,7 @@ import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.BarricadeBlock;
 import dev.candycanecazoo.hellstorm.feature.PerkMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
+import dev.candycanecazoo.hellstorm.feature.PapMachineItem;
 import dev.candycanecazoo.hellstorm.feature.TrapControllerBlock;
 import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
 import dev.candycanecazoo.hellstorm.feature.SpawnMarkerBlock;
@@ -109,7 +110,7 @@ public final class PapRegistries {
     public static final RegistryObject<Item> PERK_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new BlockItem(PERK_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> WALL_BUY_ITEM = ITEMS.register("wall_buy", () -> new BlockItem(WALL_BUY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MYSTERY_BOX_ITEM = ITEMS.register("mystery_crate", () -> new BlockItem(MYSTERY_BOX.get(), new Item.Properties()));
-    public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new PapMachineItem(PAP_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()

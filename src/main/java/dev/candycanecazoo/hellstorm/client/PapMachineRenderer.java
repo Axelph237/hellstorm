@@ -3,11 +3,13 @@ package dev.candycanecazoo.hellstorm.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -21,10 +23,13 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.model.DefaultedBlockGeoModel;
+import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
 /**
- * The item in a Pack-a-Punch machine, lying flat along the top of both halves across the seam: the item going in while
- * it burns, engulfed in vanilla's fire sprites, then the upgraded item waiting to be taken.
+ * The machine's GeckoLib model, and the item in it, lying flat along the top of both halves across the seam: the item
+ * going in while it burns, engulfed in vanilla's fire sprites, then the upgraded item waiting to be taken.
  */
 public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineBlock.Entity> {
     /**
@@ -39,13 +44,21 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
     private static final int FLAME_COLUMNS = 5;
     private static final float FLAME_HEIGHT = 0.75f;
     private final ItemRenderer items;
+    private final Model model = new Model();
 
     public PapMachineRenderer(BlockEntityRendererProvider.Context context) {
         this.items = context.getItemRenderer();
     }
 
+    /** The whole table is drawn here, not baked into the chunk, so keep it in sight as far as a block would be. */
+    @Override
+    public int getViewDistance() {
+        return 256;
+    }
+
     @Override
     public void render(PapMachineBlock.Entity machine, float partialTick, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
+        model.render(machine, partialTick, pose, buffers, light, overlay);
         ItemStack stack = machine.displayed();
         if (stack.isEmpty() || machine.getLevel() == null) {
             return;
@@ -109,5 +122,25 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
     private static void vertex(VertexConsumer consumer, Matrix4f matrix, float x, float y, float u, float v) {
         consumer.vertex(matrix, x, y, 0).color(255, 255, 255, 255).uv(u, v).overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(LightTexture.FULL_BRIGHT).normal(0, 1, 0).endVertex();
+    }
+
+    /** The table, running from the foot toward the head along +z, turned as a blockstate turns a block model for its facing. */
+    private static final class Model extends GeoBlockRenderer<PapMachineBlock.Entity> {
+        Model() {
+            super(new DefaultedBlockGeoModel<>(Hellstorm.id(PapMachineBlock.MODEL)));
+        }
+
+        @Override
+        protected void rotateBlock(Direction facing, PoseStack pose) {
+            pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
+        }
+
+        @Override
+        public void renderRecursively(PoseStack pose, PapMachineBlock.Entity machine, GeoBone bone, RenderType renderType, MultiBufferSource buffers,
+                                      VertexConsumer buffer, boolean isReRender, float partialTick, int light, int overlay,
+                                      float red, float green, float blue, float alpha) {
+            super.renderRecursively(pose, machine, bone, renderType, buffers, BoneTextures.HELLFIRE_UPGRADER.buffer(bone, buffers, renderType),
+                    isReRender, partialTick, light, overlay, red, green, blue, alpha);
+        }
     }
 }
