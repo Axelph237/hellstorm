@@ -36,6 +36,8 @@ import java.util.Optional;
  */
 public final class MysteryBoxRenderer implements BlockEntityRenderer<MysteryBoxBlock.Entity> {
     private static final float SCALE = 0.5f;
+    /** The lid falls open toward the model's +x side, so the open crate faces -x: that is its front. */
+    private static final boolean MODEL_FRONT_ON_MINUS_X = true;
     /**
      * TacZ draws a gun in the item frame view with its middle a quarter block below and a tenth behind the point it's drawn
      * at (measured on the AK-47); this centers it.
@@ -55,7 +57,8 @@ public final class MysteryBoxRenderer implements BlockEntityRenderer<MysteryBoxB
     private static final ResourceLocation PORTAL = new ResourceLocation("minecraft", "block/nether_portal");
 
     private final ItemRenderer items;
-    private final BlockModelRenderer<MysteryBoxBlock.Entity> model = new BlockModelRenderer<>(new Model(), BoneTextures.NONE, MysteryBoxBlock.MODEL_OFFSET);
+    private final BlockModelRenderer<MysteryBoxBlock.Entity> model = new BlockModelRenderer<>(new Model(), BoneTextures.NONE, MysteryBoxBlock.MODEL_OFFSET,
+            MODEL_FRONT_ON_MINUS_X);
 
     public MysteryBoxRenderer(BlockEntityRendererProvider.Context context) {
         items = context.getItemRenderer();

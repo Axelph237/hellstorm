@@ -16,21 +16,34 @@ import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
 /**
  * A two-block machine's GeckoLib model, running from the foot toward the head along +z with its front on +x, turned so
- * the head is {@link TwoBlockMachine#along} and the front faces the block's facing. {@code offset}, in the model's pixels, moves a model made away from the origin onto its blocks.
+ * the head is {@link TwoBlockMachine#along} and the front faces the block's facing. A model made the other way round,
+ * front on -x, is turned about the seam. {@code offset}, in the model's pixels, moves a model made away from the origin onto its blocks.
  */
 final class BlockModelRenderer<T extends BlockEntity & GeoAnimatable> extends GeoBlockRenderer<T> {
     private final BoneTextures textures;
     private final Vec3 offset;
+    private final boolean frontOnMinusX;
 
     BlockModelRenderer(GeoModel<T> model, BoneTextures textures, Vec3 offset) {
+        this(model, textures, offset, false);
+    }
+
+    /** {@code frontOnMinusX}: the model was made with its front on its -x side, so it's drawn turned around. */
+    BlockModelRenderer(GeoModel<T> model, BoneTextures textures, Vec3 offset, boolean frontOnMinusX) {
         super(model);
         this.textures = textures;
         this.offset = offset;
+        this.frontOnMinusX = frontOnMinusX;
     }
 
     @Override
     protected void rotateBlock(Direction facing, PoseStack pose) {
         pose.mulPose(Axis.YP.rotationDegrees(-TwoBlockMachine.along(facing).toYRot()));
+        if (frontOnMinusX) {
+            // Half a turn about the seam between the halves, half a block toward the head.
+            pose.translate(0, 0, 1);
+            pose.mulPose(Axis.YP.rotationDegrees(180));
+        }
         pose.translate(offset.x / 16, offset.y / 16, offset.z / 16);
     }
 
