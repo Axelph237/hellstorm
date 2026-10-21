@@ -38,18 +38,17 @@ copy, Forge loads only one.
 
     This texture sheet contains unmodified copies of Minecraft's
     block/stone.png and block/enchanting_table_top.png, and cut pieces of the
-    enchanting table textures. Those parts are Mojang's work. They are not
-    covered by Hellstorm's license and are not relicensed by it; they are used
-    under Mojang's terms for Minecraft content. Only the arrangement and the
-    pixels Hellstorm added are covered by LICENSE.
+    enchanting table textures. Those parts are Mojang's work. The whole file is
+    excluded from Hellstorm's license (see LICENSE) and is used under Mojang's
+    terms: the Minecraft EULA and the Minecraft Usage Guidelines.
 
   assets/hellstorm/textures/block/mystery_crate.png
 
     This texture sheet is built from Minecraft's block/oak_planks.png: its
     plank pattern, darkened to look charred, with ember pixels added. The
-    plank pattern is Mojang's work. It is not covered by Hellstorm's license
-    and is not relicensed by it; it is used under Mojang's terms for
-    Minecraft content.
+    plank pattern is Mojang's work. The whole file is excluded from
+    Hellstorm's license (see LICENSE) and is used under Mojang's terms: the
+    Minecraft EULA and the Minecraft Usage Guidelines.
 
   Models that only point at minecraft: textures (oak planks, iron block,
   redstone lamp, and so on) contain no Mojang pixels; the game loads those

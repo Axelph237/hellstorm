@@ -39,9 +39,11 @@ The mod jar is `build/libs/hellstorm-<version>.jar`. The `-slim` jar next to it 
 
 ## License
 
-Hellstorm's own code and assets are under the [BSD Zero Clause License](LICENSE) (0BSD). Two textures are exceptions, because they are made from Minecraft's own textures. Those parts belong to Mojang and are not relicensed:
+Hellstorm's own code and assets are under the [BSD Zero Clause License](LICENSE) (0BSD). Two textures are excluded, because they are made from Minecraft's own textures. They belong to Mojang, are not relicensed, and are used under the [Minecraft EULA](https://www.minecraft.net/eula) and [Usage Guidelines](https://www.minecraft.net/usage-guidelines):
 
 - `assets/hellstorm/textures/block/hellfire_upgrader.png` contains copies of Minecraft's stone and enchanting table textures.
 - `assets/hellstorm/textures/block/mystery_crate.png` is Minecraft's oak planks, darkened, with embers added.
 
 The bundled libraries are MIT licensed. Their notices are in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES), and the jar has a copy at `META-INF/THIRD_PARTY_NOTICES`. TacZ is a separate mod under its own licenses (GPL-3.0 for code, CC BY-NC-ND 4.0 for assets), and Hellstorm doesn't include any of it.
+
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.

@@ -1,3 +1,25 @@
+Hellstorm is licensed under the BSD Zero Clause License below, with one
+exception: content from Minecraft.
+
+Minecraft content is not covered by this license and is not relicensed by it.
+It is Mojang's property, used under Mojang's terms (the Minecraft EULA,
+https://www.minecraft.net/eula, and the Minecraft Usage Guidelines,
+https://www.minecraft.net/usage-guidelines). Anyone copying or redistributing
+it must follow those terms. These files contain Minecraft content and are
+excluded from the license below as whole files:
+
+  src/main/resources/assets/hellstorm/textures/block/hellfire_upgrader.png
+  src/main/resources/assets/hellstorm/textures/block/mystery_crate.png
+
+THIRD_PARTY_NOTICES says what in each comes from Minecraft. Models that only
+name a minecraft: texture contain no Minecraft content; the game loads that
+texture from its own files.
+
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG
+OR MICROSOFT.
+
+--------------------------------------------------------------------------------
+
 BSD Zero Clause License
 
 Copyright (C) 2026 candycanecazoo
