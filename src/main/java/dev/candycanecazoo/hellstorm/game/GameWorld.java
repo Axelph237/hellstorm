@@ -39,6 +39,13 @@ public interface GameWorld {
 
     void removeMob(UUID mob);
 
+    /**
+     * The player starts taking part: their own state (inventory, effects, game mode, position) is saved to give back when
+     * they leave, and they get the starting loadout. Once per player per game, before their first {@link #respawn} or
+     * {@link #spectate}.
+     */
+    void enterGame(UUID player);
+
     /** Puts the player back into play in a start zone. */
     void respawn(UUID player);
 

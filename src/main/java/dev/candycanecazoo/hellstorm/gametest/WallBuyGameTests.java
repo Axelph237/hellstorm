@@ -131,6 +131,8 @@ public final class WallBuyGameTests {
         BlockPos at = wallBuy(helper, new WallBuy.Config(sword, 100, WallBuy.Repurchase.DENY, 0, 0, false));
         ServerPlayer player = player(helper, "pap_wallbuy_deny");
         GameManager.Active active = game(helper, player, at);
+        // The starting loadout's knife is an iron sword too.
+        player.getInventory().clearContent();
         try {
             entity(helper, at).setConfig(new WallBuy.Config(sword, 501, WallBuy.Repurchase.DENY, 0, 0, false));
             FeatureBlock.use(player, at);

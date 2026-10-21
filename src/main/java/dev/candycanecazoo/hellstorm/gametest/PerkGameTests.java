@@ -389,13 +389,14 @@ public final class PerkGameTests {
     public static void hellfireRaisesTheHeldGunsFireRate(GameTestHelper helper) {
         BlockPos at = machine(helper, Hellstorm.id("hellfire"));
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_tap");
-        player.setItemInHand(InteractionHand.MAIN_HAND, TaczBridge.createGun(AK47, 1)
-                .orElseThrow(() -> new IllegalStateException("tacz:ak47 missing")));
-        PerkGunEffects.refresh(player);
-        int base = rpm(player);
-        helper.assertTrue(base > 0, "no cached rpm for the AK");
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+        int base;
         try {
+            player.setItemInHand(InteractionHand.MAIN_HAND, TaczBridge.createGun(AK47, 1)
+                    .orElseThrow(() -> new IllegalStateException("tacz:ak47 missing")));
+            PerkGunEffects.refresh(player);
+            base = rpm(player);
+            helper.assertTrue(base > 0, "no cached rpm for the AK");
             give(player, PerkEffects.HELLFIRE.get());
             int expected = (int) Math.round(base * 1.33);
             helper.assertTrue(rpm(player) == expected, "rpm " + rpm(player) + ", expected " + expected + " from " + base);

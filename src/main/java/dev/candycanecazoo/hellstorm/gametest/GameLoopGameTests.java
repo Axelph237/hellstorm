@@ -8,6 +8,8 @@ import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
 import dev.candycanecazoo.hellstorm.game.GamePhase;
 import dev.candycanecazoo.hellstorm.game.GameWorld;
+import dev.candycanecazoo.hellstorm.game.PlayerState;
+import dev.candycanecazoo.hellstorm.game.Refusal;
 import dev.candycanecazoo.hellstorm.game.Loadout;
 import dev.candycanecazoo.hellstorm.game.RoundPlan;
 import dev.candycanecazoo.hellstorm.game.Sessions;
@@ -81,6 +83,55 @@ public final class GameLoopGameTests {
         helper.assertTrue(player.gameMode.getGameModeForPlayer() == GameType.CREATIVE, "game mode is " + player.gameMode.getGameModeForPlayer());
         helper.assertTrue(player.experienceLevel == 12, "xp level is " + player.experienceLevel);
         helper.assertTrue(!sessions.has(player.getUUID()), "snapshot should be consumed by restore");
+        helper.succeed();
+    }
+
+    /**
+     * {@code /hs join} before the start leaves the player as they were: their own inventory and game mode, nothing saved,
+     * unable to buy or be targeted. The end of the countdown saves them and puts them in play with the starting loadout.
+     */
+    @GameTest(template = "floor", batch = "game_waiting")
+    public static void joiningBeforeTheStartWaitsAndTheStartPutsThemInPlay(GameTestHelper helper) {
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_waiting"), List.of(room), true));
+        ServerPlayer player = fakePlayer(helper, "pap_waiting_test");
+        BlockPos stand = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
+        player.moveTo(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)).getCenter());
+        player.setGameMode(GameType.CREATIVE);
+        player.getInventory().setItem(0, new ItemStack(Items.DIAMOND, 17));
+        Sessions sessions = Sessions.get(helper.getLevel().getServer());
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : null);
+        UUID id = player.getUUID();
+        var commands = helper.getLevel().getServer().getCommands();
+        try {
+            commands.performPrefixedCommand(player.createCommandSourceStack(), "hs join");
+            helper.assertTrue(active.game().player(id).map(PlayerState::waiting).orElse(false),
+                    "joining the lobby should wait, not " + active.game().player(id).map(PlayerState::life).orElse(null));
+            helper.assertTrue(ItemStack.matches(player.getInventory().getItem(0), new ItemStack(Items.DIAMOND, 17)), "a waiting player keeps their inventory");
+            helper.assertTrue(player.gameMode.getGameModeForPlayer() == GameType.CREATIVE, "a waiting player keeps their game mode");
+            helper.assertFalse(sessions.has(id), "nothing is saved before the game takes the player over");
+            helper.assertTrue(active.game().charge(id, 0, false).equals(Optional.of(new Refusal.NotStarted())), "a waiting player can't buy");
+            helper.assertFalse(active.game().targetable(id), "a waiting player can't be targeted");
+
+            commands.performPrefixedCommand(player.createCommandSourceStack(), "hs start");
+            helper.assertTrue(active.game().phase() instanceof GamePhase.Countdown, "/hs start should count down, not " + active.game().phase());
+            while (active.game().phase() instanceof GamePhase.Countdown) {
+                active.game().tick(active.world());
+            }
+            helper.assertTrue(active.game().player(id).map(PlayerState::alive).orElse(false), "the start should put the player in play");
+            helper.assertTrue(active.game().targetable(id), "a playing player is a target");
+            helper.assertTrue(active.game().charge(id, 0, false).isEmpty(), "a playing player can buy");
+            helper.assertTrue(player.gameMode.getGameModeForPlayer() == GameType.ADVENTURE, "game mode is " + player.gameMode.getGameModeForPlayer());
+            helper.assertTrue(sessions.has(id), "the start should save the player's own state");
+            helper.assertTrue(TaczBridge.inspect(player.getInventory().getItem(0)).isPresent(), "the start should give the starting loadout, slot 0 is "
+                    + player.getInventory().getItem(0));
+        } finally {
+            GameManager.end(active);
+        }
+        helper.assertTrue(sessions.restore(player), "snapshot missing");
+        helper.assertTrue(ItemStack.matches(player.getInventory().getItem(0), new ItemStack(Items.DIAMOND, 17)), "the diamonds should come back");
+        helper.assertTrue(player.gameMode.getGameModeForPlayer() == GameType.CREATIVE, "creative should come back");
         helper.succeed();
     }
 
@@ -188,7 +239,7 @@ public final class GameLoopGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
-        active.game().start();
+        PurchaseGameTests.play(active);
         ItemStack gun = TaczBridge.createGun(ResourceLocation.tryBuild("tacz", "ak47"), 4).orElseThrow();
         player.setItemInHand(InteractionHand.MAIN_HAND, gun);
         IGunOperator operator = IGunOperator.fromLivingEntity(player);

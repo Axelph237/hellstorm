@@ -28,7 +28,7 @@ mymap.zip
   2. Place each template with `placeInWorld`, offset to `pos`.
   3. Write `MapSavedData` from `map.json`, offset to `pos`.
   4. Run `MapValidator` and print the report.
-- **Edit and play mode.** `/hs map mode edit|play`. Edit mode shows markers and blocks games. Play mode hides markers and allows games.
+- **Edit and play mode.** `/hs map mode edit|play`. Edit mode blocks games. Play mode allows games. Spawn markers hide while a game runs, in either case.
 - **Safety.** Imported scripts run inside the Lua sandbox (see `scripting-and-events.md`), so a downloaded map can't touch the host machine.
 
 ## Config surface
@@ -60,7 +60,7 @@ None.
 - **Format** (`tools/MapPack`, format 1). A zip: `map.json` (`Manifest`: format, name, origin, size, and the `ZombiesMap` relative to the corner), `structure/<x>_<y>_<z>.nbt` (48-block pieces numbered from the corner, uncompressed structure templates without entities), and `datapack/...`. Block entities carry their settings and store no positions, so machines come back as they were. The pack is written to `<name>.zip.partial` and moved into place only when complete.
 - **Reading a stranger's pack.** Only those three kinds of entry are allowed. A datapack path may contain only letters, digits, `_`, `.`, `-`, and `/`, and never `..`. At most 20,000 entries and 512 MB unpacked, counted while reading. A piece must lie inside the map's size, and a damaged piece or manifest is refused with a message rather than an error. Writing the datapack checks every path stays inside `datapacks/<name>`. Scripts still run in the Lua sandbox.
 - **Placing.** Pieces go in with `StructureTemplate.placeInWorld` (client updates only, so nothing pops), into chunks that need not be loaded. The map is then moved to the new corner (`MapGeometry.moved`) and becomes the level's map, synced to players.
-- **Edit and play mode** (`/hs map mode [edit|play]`, `map/MapMode`, `tools/MapModes`). Saved with the map in `MapSavedData` (worlds from before modes load as play, so their games keep working). Edit mode refuses to create a game (`GameManager.CreateResult.EditMode`; `/hs join` explains how to switch) and shows the spawn markers. Play mode hides every spawn marker: their `hidden` block state draws nothing and has no outline, and a marker placed in play mode hides itself. Switching refuses while a game runs. Importing a pack switches to play mode. GameTest `MapModeGameTests` covers hiding, showing, and the refusal.
+- **Edit and play mode** (`/hs map mode [edit|play]`, `map/MapMode`, `tools/MapModes`). Saved with the map in `MapSavedData` (worlds from before modes load as play, so their games keep working). Edit mode refuses to create a game (`GameManager.CreateResult.EditMode`; `/hs join` explains how to switch). Switching refuses while a game runs. Importing a pack switches to play mode. Play mode used to hide every spawn marker too. Now the markers follow whether a game is running (see "As built (spawn markers hide during a game)" below), and switching mode puts them right, which shows markers an older world left hidden.
 - **Not fighting, not hurt.** Found while playing an import: players in a game now take no damage in the lobby, the countdown, or after game over (`Game.protectsPlayers`). Before, lobby damage was vanilla (players could die) and countdown damage downed them before round 1.
 - **Tests.**
   - JUnit `MapGeometryTest`: bounds cover every kind of position, and moving there and back is the same map.
@@ -68,3 +68,9 @@ None.
   - GameTest `MapPackGameTests`: an exported area imported five blocks over has its blocks, the wall-buy's facing and settings, and the same map moved by five.
   - JUnit `DownsTest.playersAreProtectedOnlyWhileThereIsAFight`.
   - Checked on the Test map in a live client: exported (36x19x42, 80 KB), imported 500 blocks away with `replace`, validated as playable, and a game started there with only `start` and `hall` unlocked.
+
+## As built (spawn markers hide during a game)
+
+- **When.** A level's spawn markers are hidden from the moment its game registers (`GameManager.register`, so from the first `/hs join` that opens the lobby) until it ends. Players never see where zombies come from; map makers see every marker between games, in play mode as well as edit mode. Hidden is the marker's existing `hidden` block state: drawn as nothing, with no outline to target.
+- **How.** `SpawnMarkerBlock.setHidden(level, positions, hidden)` is the one switch. It only touches positions that hold a marker not already that way, so running it again changes nothing. `GameManager.register` hides the game map's markers. `MapReset.reset` shows them, so they come back when the game ends, and also before a new game is validated after a crash left them hidden. `GameManager.end` also shows the level map's markers, which covers one placed mid-game (it isn't in the game's map). A marker placed while a game runs hides itself (`onPlace`). `MapModes.set` sets hidden to whether a game runs.
+- **Tests.** GameTest `MapModeGameTests`: `markersHideWhileAGameRunsAndShowWhenItEnds` (a game hides its markers, one placed mid-game hides itself, ending shows all three, a second reset leaves them showing) and `markersShowInBothModesAndEditModeBlocksGames` (a hidden marker is shown by a mode switch; edit mode refuses a game).

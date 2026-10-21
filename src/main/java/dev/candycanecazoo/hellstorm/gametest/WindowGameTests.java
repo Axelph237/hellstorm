@@ -148,6 +148,7 @@ public final class WindowGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
+        PurchaseGameTests.play(active);
         BlockPos barricade = w.opening().min();
         try {
             player.moveTo(helper.absolutePos(new BlockPos(4, ROOM_Y, 8)).offset(0, 0, 20).getCenter());

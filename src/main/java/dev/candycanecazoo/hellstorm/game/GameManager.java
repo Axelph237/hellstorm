@@ -2,6 +2,8 @@ package dev.candycanecazoo.hellstorm.game;
 
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.config.SettingsResolver;
+import dev.candycanecazoo.hellstorm.feature.SpawnMarkerBlock;
+import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.map.Passages;
 import dev.candycanecazoo.hellstorm.map.ZoneIndex;
@@ -62,6 +64,14 @@ public final class GameManager {
         return GAMES.values().stream().filter(a -> a.game().player(player).isPresent()).findFirst();
     }
 
+    /**
+     * {@link #forPlayer}, unless they're only {@link LifeState.Waiting waiting} for it to start: the game's rules (held
+     * food, cancelled deaths, its own items) only apply once it has taken over the player.
+     */
+    public static Optional<Active> playing(UUID player) {
+        return forPlayer(player).filter(a -> a.game().player(player).filter(PlayerState::waiting).isEmpty());
+    }
+
     public static Optional<Active> forMob(UUID mob) {
         return GAMES.values().stream().filter(a -> a.game().hasMob(mob)).findFirst();
     }
@@ -114,6 +124,8 @@ public final class GameManager {
                                   Function<UUID, ServerPlayer> lookup) {
         var settings = settings();
         Doors.snapshot(level, map.map());
+        // Players never see where zombies come from. MapReset shows the markers again when the game ends.
+        SpawnMarkerBlock.setHidden(level, map.map().features(FeatureKind.SPAWN), true);
         Map<net.minecraft.resources.ResourceLocation, MobProfile> profiles = MobProfiles.all();
         MobRoster roster = new MobRoster(profiles.entrySet().stream()
                 .map(e -> new MobRoster.Entry(e.getKey(), e.getValue().weight(), e.getValue().minRound(), e.getValue().maxRound()))
@@ -157,10 +169,13 @@ public final class GameManager {
     public static void end(Active active) {
         active.game().stop(active.world());
         MapReset.reset(active.level(), active.game().map().map());
+        // A marker placed during the game hid itself but isn't in the game's map.
+        SpawnMarkerBlock.setHidden(active.level(), MapSavedData.get(active.level()).map().features(FeatureKind.SPAWN), false);
         active.pathing().close();
         Sessions sessions = Sessions.get(active.level().getServer());
         for (PlayerState player : new ArrayList<>(active.game().players())) {
-            active.world().entity(player.id()).ifPresent(p -> {
+            // A waiting player's effects are still their own.
+            active.world().entity(player.id()).filter(p -> !player.waiting()).ifPresent(p -> {
                 Perks.clearBuffs(p);
                 Downs.standUp(p);
             });

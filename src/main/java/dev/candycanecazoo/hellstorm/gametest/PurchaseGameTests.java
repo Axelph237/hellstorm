@@ -6,6 +6,7 @@ import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
 import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
+import dev.candycanecazoo.hellstorm.game.GamePhase;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.Zone;
@@ -41,7 +42,7 @@ public final class PurchaseGameTests {
         return game(helper, List.of(player), features);
     }
 
-    /** A one-room game with these players joined, all standing in the middle. */
+    /** A one-room game with these players joined and {@link #play playing}, all standing in the middle with the starting loadout. */
     static GameManager.Active game(GameTestHelper helper, List<ServerPlayer> joined, BlockPos... features) {
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
         ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_shop"), List.of(room), true));
@@ -54,7 +55,19 @@ public final class PurchaseGameTests {
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of(), 6.0), List.of(stand),
                 id -> joined.stream().filter(p -> p.getUUID().equals(id)).findFirst().orElse(null));
         joined.forEach(p -> active.game().join(p.getUUID()));
+        play(active);
         return active;
+    }
+
+    /**
+     * Starts the game and runs its countdown out within this tick, so the players who joined are alive, in adventure mode at
+     * a start cell, with the starting loadout, for the test's next line. Joined players only wait until then.
+     */
+    static void play(GameManager.Active active) {
+        active.game().start();
+        while (active.game().phase() instanceof GamePhase.Countdown) {
+            active.game().tick(active.world());
+        }
     }
 
     static ServerPlayer player(GameTestHelper helper, String name) {

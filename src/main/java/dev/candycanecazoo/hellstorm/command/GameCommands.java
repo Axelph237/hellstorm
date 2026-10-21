@@ -5,7 +5,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GamePhase;
-import dev.candycanecazoo.hellstorm.game.Loadout;
 import dev.candycanecazoo.hellstorm.game.PlayerState;
 import dev.candycanecazoo.hellstorm.game.Sessions;
 import dev.candycanecazoo.hellstorm.map.validate.Problem;
@@ -75,13 +74,14 @@ final class GameCommands {
             ctx.getSource().sendFailure(Component.literal("This game is ending. Try again in a moment"));
             return 0;
         }
-        Sessions.get(player.server).save(player);
-        Loadout.give(player, active.game().settings().players());
-        // Players stay where they are until the game starts, which moves everyone to the start zone.
-        if (!active.game().player(player.getUUID()).map(PlayerState::alive).orElse(false)) {
+        // Before the start nothing happens to them: the end of the countdown takes their state and moves everyone in.
+        boolean waiting = active.game().player(player.getUUID()).map(PlayerState::waiting).orElse(false);
+        if (!waiting) {
+            active.world().enterGame(player.getUUID());
             active.world().spectate(player.getUUID());
         }
-        String next = active.game().phase() instanceof GamePhase.Lobby ? " /hs start when everyone is in" : " You'll spawn next round";
+        String next = active.game().phase() instanceof GamePhase.Lobby ? " /hs start when everyone is in"
+                : waiting ? " It's about to start" : " You'll spawn next round";
         ctx.getSource().sendSuccess(() -> Component.literal("Joined the game." + next).withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
@@ -93,13 +93,16 @@ final class GameCommands {
             ctx.getSource().sendFailure(Component.literal("You're not in a game"));
             return 0;
         }
-        Perks.clearBuffs(player);
+        boolean waiting = active.get().game().player(player.getUUID()).map(PlayerState::waiting).orElse(false);
+        if (!waiting) {
+            Perks.clearBuffs(player);
+        }
         active.get().game().leave(player.getUUID());
         Sessions.get(player.server).restore(player);
         if (active.get().game().players().isEmpty()) {
             GameManager.end(active.get());
         }
-        ctx.getSource().sendSuccess(() -> Component.literal("Left the game. Your inventory is back"), false);
+        ctx.getSource().sendSuccess(() -> Component.literal(waiting ? "Left the game" : "Left the game. Your inventory is back"), false);
         return 1;
     }
 
@@ -140,7 +143,8 @@ final class GameCommands {
             ServerPlayer online = level.getServer().getPlayerList().getPlayer(player.id());
             String name = online == null ? player.id().toString() : online.getGameProfile().getName();
             ctx.getSource().sendSuccess(() -> Component.literal(" " + name + ": " + player.points() + " pts, "
-                    + player.kills() + " kills (" + player.headshots() + " headshots)" + (player.alive() ? "" : ", spectating")), false);
+                    + player.kills() + " kills (" + player.headshots() + " headshots)"
+                    + (player.alive() ? "" : player.waiting() ? ", waiting for the start" : ", spectating")), false);
         }
         return 1;
     }

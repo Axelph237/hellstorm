@@ -129,6 +129,14 @@ class DisconnectTest {
     }
 
     @Test
+    void droppingOutDuringTheCountdownJustLeavesToo() {
+        Game game = lobby();
+        assertTrue(game.start());
+        game.disconnect(bob);
+        assertTrue(game.player(bob).isEmpty(), "the start can't put someone offline in play");
+    }
+
+    @Test
     void aFullGameTakesNoMore() {
         Game game = lobby();
         assertTrue(game.full());

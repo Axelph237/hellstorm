@@ -84,7 +84,7 @@ public final class MysteryBoxGameTests {
         BlockPos head = at.south();
         ServerPlayer roller = player(helper, "pap_box_roller");
         ServerPlayer other = player(helper, "pap_box_other");
-        GameManager.Active active = game(helper, roller, at);
+        GameManager.Active active = game(helper, List.of(roller, other), at);
         List<GameEvent> events = new ArrayList<>();
         active.game().events().subscribe(events::add);
         int cost = active.game().settings().box().cost();
@@ -92,7 +92,6 @@ public final class MysteryBoxGameTests {
         MysteryBoxBlock.Entity box = entity(helper, at);
         int start = points(active, roller);
         try {
-            active.game().join(other.getUUID());
             helper.assertTrue(active(helper, at), "the only location gets the box when the game starts");
             helper.assertTrue(box.price() == cost, "the box shows its price, " + box.price());
             helper.assertTrue(start < cost, "the test expects starting points below the box cost");

@@ -29,8 +29,7 @@ public final class DownedGlowGameTests {
         PlayerTeam own = scoreboard.getPlayerTeam("pap_glow_blue") != null ? scoreboard.getPlayerTeam("pap_glow_blue") : scoreboard.addPlayerTeam("pap_glow_blue");
         scoreboard.addPlayerToTeam(alice.getScoreboardName(), own);
         GameManager.Active active = PurchaseGameTests.game(helper, List.of(alice, bob));
-        active.game().start();
-        helper.runAfterDelay(active.game().settings().rounds().countdownTicks() + 2, () -> {
+        helper.runAfterDelay(1, () -> {
             try {
                 ForgeHooks.onLivingDamage(alice, alice.damageSources().generic(), alice.getHealth() + 100);
                 helper.assertTrue(active.game().player(alice.getUUID()).map(s -> s.life() instanceof LifeState.Downed).orElse(false), "alice should be down");

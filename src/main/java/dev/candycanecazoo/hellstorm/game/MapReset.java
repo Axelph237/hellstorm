@@ -4,12 +4,16 @@ import dev.candycanecazoo.hellstorm.feature.MysteryBoxes;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.TrapControllerBlock;
 import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
+import dev.candycanecazoo.hellstorm.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import net.minecraft.server.level.ServerLevel;
 
-/** Puts every feature back the way a fresh game expects it. Safe to run any number of times. */
+/**
+ * Puts every feature back the way a fresh game expects it, and shows the spawn markers for whoever edits the map next (a
+ * game hides them as it registers). Safe to run any number of times.
+ */
 public final class MapReset {
     private MapReset() {}
 
@@ -21,6 +25,7 @@ public final class MapReset {
         PapMachineBlock.resetAll(level, map.features(FeatureKind.PAP_MACHINE));
         VendingMachineBlock.resetAll(level, map.features(FeatureKind.VENDING_MACHINE));
         TrapControllerBlock.resetAll(level, map.features(FeatureKind.TRAP));
+        SpawnMarkerBlock.setHidden(level, map.features(FeatureKind.SPAWN), false);
         level.getEntities(dev.candycanecazoo.hellstorm.powerup.PowerUpRegistries.POWER_UP.get(), e -> true).forEach(net.minecraft.world.entity.Entity::discard);
     }
 }

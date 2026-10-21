@@ -82,7 +82,7 @@ final class MapPackCommands {
                 notWhilePlaying(level);
                 MapModes.set(level, target);
                 ctx.getSource().sendSuccess(() -> Component.literal(target == MapMode.EDIT
-                        ? "Edit mode: spawn markers show, and games can't start" : "Play mode: spawn markers are hidden, and games can start")
+                        ? "Edit mode: games can't start" : "Play mode: games can start, and hide the spawn markers while they run")
                         .withStyle(ChatFormatting.GREEN), true);
                 return 1;
             }));

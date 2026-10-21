@@ -78,7 +78,8 @@ public final class GameHooks {
             return;
         }
         if (entity instanceof ServerPlayer player) {
-            GameManager.forPlayer(player.getUUID()).ifPresent(active -> {
+            // A player waiting for the start dies as anyone outside a game would: the game hasn't taken them over yet.
+            GameManager.playing(player.getUUID()).ifPresent(active -> {
                 event.setCanceled(true);
                 Perks.clearBuffs(player);
                 player.setHealth(player.getMaxHealth());
@@ -107,13 +108,13 @@ public final class GameHooks {
         }
     }
 
-    /** Every tick for players in a game: no vanilla regen (food held at 17), and the downed stay down. */
+    /** Every tick for players in a game, once it has started for them: no vanilla regen (food held at 17), and the downed stay down. */
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) {
             return;
         }
-        GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == player.level()).ifPresent(active -> {
+        GameManager.playing(player.getUUID()).filter(a -> a.level() == player.level()).ifPresent(active -> {
             player.getFoodData().setFoodLevel(Downs.FOOD_LEVEL);
             player.getFoodData().setSaturation(0);
             if (active.game().player(player.getUUID()).map(s -> s.life() instanceof LifeState.Downed).orElse(false)) {
@@ -208,13 +209,17 @@ public final class GameHooks {
         }
     }
 
-    /** Nobody is saved crawling. Someone still waiting to reconnect keeps their perks; someone who left the game doesn't. */
+    /**
+     * Nobody is saved crawling. Someone still waiting to reconnect keeps their perks; someone who left the game doesn't.
+     * Someone waiting for the start leaves as they came, with their own effects.
+     */
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         UUID id = event.getEntity().getUUID();
         GameManager.forPlayer(id).ifPresent(a -> {
+            boolean waiting = a.game().player(id).map(PlayerState::waiting).orElse(false);
             a.game().disconnect(id);
-            if (event.getEntity() instanceof ServerPlayer player) {
+            if (!waiting && event.getEntity() instanceof ServerPlayer player) {
                 Downs.standUp(player);
                 if (a.game().player(id).isEmpty()) {
                     Perks.clearBuffs(player);

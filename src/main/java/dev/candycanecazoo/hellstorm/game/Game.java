@@ -129,11 +129,15 @@ public final class Game {
     }
 
     /**
-     * Charges a player for a purchase, or says why not. Only alive players in this game can buy. Features check their own
+     * Charges a player for a purchase, or says why not. Only alive players in this game can buy, so nobody can before it
+     * starts. Features check their own
      * rules (already owned, a full inventory) before calling this, and {@link #refund} if delivery then fails.
      */
     public Optional<Refusal> charge(UUID buyer, int cost, boolean needsPower) {
         PlayerState player = players.get(buyer);
+        if (player != null && player.waiting()) {
+            return Optional.of(new Refusal.NotStarted());
+        }
         if (player == null || !player.alive() || phase instanceof GamePhase.GameOver) {
             return Optional.of(new Refusal.NotPlaying());
         }
@@ -223,16 +227,14 @@ public final class Game {
         return players.size() >= settings.players().maxPlayers();
     }
 
-    /** Joining before the first round starts plays immediately; joining later spectates until the next round. */
+    /** Joining before the first round waits for the countdown to end; joining later spectates until the next round. */
     public boolean join(UUID player) {
         if (players.containsKey(player) || phase instanceof GamePhase.GameOver || full()) {
             return false;
         }
-        PlayerState state = new PlayerState(player, settings.economy().startingPoints());
-        if (phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) {
-            state.setLife(new LifeState.Spectating());
-        }
-        players.put(player, state);
+        boolean started = phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission;
+        players.put(player, new PlayerState(player, settings.economy().startingPoints(),
+                started ? new LifeState.Spectating() : new LifeState.Waiting()));
         return true;
     }
 
@@ -243,7 +245,8 @@ public final class Game {
     }
 
     /**
-     * The player's connection dropped. In the lobby or after game over they simply leave. Otherwise their place, points,
+     * The player's connection dropped. While waiting for the start or after game over they simply leave: there's nothing of
+     * theirs to keep, and the start can't put someone offline in play. Otherwise their place, points,
      * and perks wait {@code players.reconnect_grace_ticks} for them: someone down is out until the next round instead of
      * bleeding out unseen, and someone up still counts as fighting, so a dropped connection isn't a lost game.
      */
@@ -252,7 +255,7 @@ public final class Game {
         if (player == null) {
             return;
         }
-        if (phase instanceof GamePhase.Lobby || phase instanceof GamePhase.GameOver) {
+        if (player.waiting() || phase instanceof GamePhase.GameOver) {
             leave(id);
             return;
         }
@@ -318,7 +321,12 @@ public final class Game {
             if (countdown.ticksLeft() > 0) {
                 return new GamePhase.Countdown(countdown.ticksLeft() - 1);
             }
-            players.keySet().forEach(world::respawn);
+            // Everyone is waiting: anyone who joins later spectates, and a waiting player who drops leaves.
+            for (PlayerState player : players.values()) {
+                player.setLife(new LifeState.Alive());
+                world.enterGame(player.id());
+                world.respawn(player.id());
+            }
             events.emit(new GameEvent.GameStart(List.copyOf(players.keySet())));
             return beginRound(world, 1);
         }
@@ -705,8 +713,10 @@ public final class Game {
         }
     }
 
+    /** Waiting players are listed as up: before the start the roster is everyone who's in, and nobody is out yet. */
     private List<GameWorld.Standing> standings() {
-        return players.values().stream().map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive(), p.life() instanceof LifeState.Downed)).toList();
+        return players.values().stream()
+                .map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive() || p.waiting(), p.life() instanceof LifeState.Downed)).toList();
     }
 
     /** Downed players see how long they have or how far their revive is; a reviver sees their progress. */

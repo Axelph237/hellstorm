@@ -16,6 +16,7 @@ final class FakeWorld implements GameWorld {
     final List<UUID> spawned = new ArrayList<>();
     final List<ZombieSpec> specs = new ArrayList<>();
     final List<UUID> removed = new ArrayList<>();
+    final List<UUID> entered = new ArrayList<>();
     final List<UUID> respawned = new ArrayList<>();
     final List<UUID> spectated = new ArrayList<>();
     final List<String> announcements = new ArrayList<>();
@@ -58,6 +59,11 @@ final class FakeWorld implements GameWorld {
     @Override
     public void removeMob(UUID mob) {
         removed.add(mob);
+    }
+
+    @Override
+    public void enterGame(UUID player) {
+        entered.add(player);
     }
 
     @Override

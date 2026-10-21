@@ -1,8 +1,7 @@
 package dev.candycanecazoo.hellstorm.feature;
 
+import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
-import dev.candycanecazoo.hellstorm.map.MapMode;
-import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.tools.MapEdits;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -17,9 +16,13 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Where zombies can spawn. Its zone is whichever zone contains it, so moving zones never leaves stale links. {@code hidden}
- * while the map is in play mode: drawn as nothing, with no outline to target.
+ * while a game runs on its level, from the game registering to {@link dev.candycanecazoo.hellstorm.game.MapReset} after it
+ * ends: drawn as nothing, with no outline to target.
  */
 public final class SpawnMarkerBlock extends Block {
     public static final BooleanProperty HIDDEN = BooleanProperty.create("hidden");
@@ -49,9 +52,16 @@ public final class SpawnMarkerBlock extends Block {
         super.onPlace(state, level, pos, oldState, movedByPiston);
         if (level instanceof ServerLevel serverLevel && !oldState.is(this)) {
             MapEdits.apply(serverLevel, map -> map.withFeature(pos, FeatureKind.SPAWN));
-            boolean play = MapSavedData.get(serverLevel).mode() == MapMode.PLAY;
-            if (state.getValue(HIDDEN) != play) {
-                serverLevel.setBlock(pos, state.setValue(HIDDEN, play), Block.UPDATE_CLIENTS);
+            setHidden(serverLevel, List.of(pos), GameManager.get(serverLevel).isPresent());
+        }
+    }
+
+    /** Hides or shows the markers at {@code positions}. Positions that hold no marker, or one already that way, are left alone. */
+    public static void setHidden(ServerLevel level, Collection<BlockPos> positions, boolean hidden) {
+        for (BlockPos pos : positions) {
+            BlockState state = level.getBlockState(pos);
+            if (state.getBlock() instanceof SpawnMarkerBlock && state.getValue(HIDDEN) != hidden) {
+                level.setBlock(pos, state.setValue(HIDDEN, hidden), Block.UPDATE_CLIENTS);
             }
         }
     }
