@@ -29,6 +29,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ItemStack;
@@ -169,6 +170,38 @@ public final class GameLoopGameTests {
         helper.assertTrue(quiet.isEmpty(), "with no_zombies on, a zombie spawned");
         helper.assertTrue(spawned.isPresent(), "with no_zombies off, the same spawn should work");
         helper.succeed();
+    }
+
+    /** A hellhound spawned in round 5, the first hounds round, has a third of the health of a zombie spawned in the same round. */
+    @GameTest(template = "floor", batch = "game_hound_health")
+    public static void aHoundHasAThirdOfAZombiesHealth(GameTestHelper helper) {
+        BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
+        BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8));
+        BlockPos marker = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(new ZoneId("gametest_kennel"), List.of(BlockBox.of(min, max)), true))
+                .withFeature(marker, FeatureKind.SPAWN);
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()),
+                List.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1))), id -> null);
+        double roundHealth = RoundPlan.zombieHealth(active.game().settings().rounds(), 5);
+        float zombieHealth;
+        float houndHealth;
+        try {
+            zombieHealth = maxHealthOfSpawned(helper, active, marker, new GameWorld.ZombieSpec(ResourceLocation.tryBuild(Hellstorm.MOD_ID, "zombie"), roundHealth, 0.23));
+            houndHealth = maxHealthOfSpawned(helper, active, marker, new GameWorld.ZombieSpec(ResourceLocation.tryBuild(Hellstorm.MOD_ID, "hellhound"), roundHealth, 0.23));
+        } finally {
+            GameManager.end(active);
+        }
+        helper.assertTrue(Math.abs(zombieHealth - roundHealth) < 1e-3, "zombie max health " + zombieHealth + ", round 5 is " + roundHealth);
+        helper.assertTrue(Math.abs(houndHealth / zombieHealth - 0.33) < 1e-3, "hound max health " + houndHealth + " against a zombie's " + zombieHealth);
+        helper.succeed();
+    }
+
+    private static float maxHealthOfSpawned(GameTestHelper helper, GameManager.Active active, BlockPos marker, GameWorld.ZombieSpec spec) {
+        UUID id = active.world().spawnZombie(marker, spec).orElseThrow(() -> new IllegalStateException(spec.profile() + " didn't spawn"));
+        float health = ((LivingEntity) helper.getLevel().getEntity(id)).getMaxHealth();
+        active.world().removeMob(id);
+        return health;
     }
 
     /**
