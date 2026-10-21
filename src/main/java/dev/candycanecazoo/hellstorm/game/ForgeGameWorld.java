@@ -23,6 +23,7 @@ import dev.candycanecazoo.hellstorm.mob.MobProfile;
 import dev.candycanecazoo.hellstorm.mob.SupportTier;
 import dev.candycanecazoo.hellstorm.perk.PerkEffects;
 import dev.candycanecazoo.hellstorm.perk.Perks;
+import dev.candycanecazoo.hellstorm.tools.DebugRules;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.GameType;
 
@@ -101,7 +102,7 @@ public final class ForgeGameWorld implements GameWorld {
     @Override
     public Optional<UUID> spawnZombie(BlockPos marker, ZombieSpec spec) {
         MobProfile profile = profiles.get(spec.profile());
-        if (profile == null || !level.isLoaded(marker)) {
+        if (profile == null || !level.isLoaded(marker) || DebugRules.get(level.getServer()).get(DebugRules.Rule.NO_ZOMBIES)) {
             return Optional.empty();
         }
         Optional<Mob> created = MobFactory.create(level, profile, spec.profile());

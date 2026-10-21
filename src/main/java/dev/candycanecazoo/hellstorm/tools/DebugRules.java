@@ -16,7 +16,9 @@ public final class DebugRules extends SavedData {
         /** Send script errors to ops' chat. They always go to the log. */
         SHOW_ERRORS(true),
         /** While holding the Zone Wand, see each game zombie's path and the doorways the pathfinder uses. */
-        SHOW_PATHS(false);
+        SHOW_PATHS(false),
+        /** Games spawn no zombies. Rounds don't end while it's on, since their zombies never come. */
+        NO_ZOMBIES(false);
 
         private final boolean defaultValue;
 

@@ -7,6 +7,7 @@ import dev.candycanecazoo.hellstorm.game.ForgeGameWorld;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
 import dev.candycanecazoo.hellstorm.game.GamePhase;
+import dev.candycanecazoo.hellstorm.game.GameWorld;
 import dev.candycanecazoo.hellstorm.game.Loadout;
 import dev.candycanecazoo.hellstorm.game.RoundPlan;
 import dev.candycanecazoo.hellstorm.game.Sessions;
@@ -16,6 +17,7 @@ import dev.candycanecazoo.hellstorm.map.Zone;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
+import dev.candycanecazoo.hellstorm.tools.DebugRules;
 import com.tacz.guns.api.entity.IGunOperator;
 import com.tacz.guns.api.entity.ShootResult;
 import net.minecraft.resources.ResourceLocation;
@@ -40,6 +42,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Optional;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
@@ -131,6 +134,41 @@ public final class GameLoopGameTests {
                 helper.fail("ending the game should leave it in GameOver, was " + active.game().phase());
             }
         });
+    }
+
+    /**
+     * With {@code no_zombies} on, the world refuses every zombie, which a game takes as a spawn that didn't happen. Other
+     * tests run alongside, so the rule is only on within this one tick.
+     */
+    @GameTest(template = "floor", batch = "game_no_zombies")
+    public static void noZombiesRefusesEverySpawn(GameTestHelper helper) {
+        BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
+        BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8));
+        BlockPos marker = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(new ZoneId("gametest_quiet"), List.of(BlockBox.of(min, max)), true))
+                .withFeature(marker, FeatureKind.SPAWN);
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()),
+                List.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1))), id -> null);
+        GameWorld.ZombieSpec spec = new GameWorld.ZombieSpec(ResourceLocation.tryBuild(Hellstorm.MOD_ID, "zombie"), 20, 0.23);
+        DebugRules rules = DebugRules.get(helper.getLevel().getServer());
+        Optional<UUID> quiet;
+        Optional<UUID> spawned;
+        try {
+            rules.set(DebugRules.Rule.NO_ZOMBIES, true);
+            try {
+                quiet = active.world().spawnZombie(marker, spec);
+            } finally {
+                rules.set(DebugRules.Rule.NO_ZOMBIES, false);
+            }
+            spawned = active.world().spawnZombie(marker, spec);
+            spawned.ifPresent(active.world()::removeMob);
+        } finally {
+            GameManager.end(active);
+        }
+        helper.assertTrue(quiet.isEmpty(), "with no_zombies on, a zombie spawned");
+        helper.assertTrue(spawned.isPresent(), "with no_zombies off, the same spawn should work");
+        helper.succeed();
     }
 
     /**
