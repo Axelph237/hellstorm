@@ -64,6 +64,8 @@ public final class PapMachineBlock extends TwoBlockMachine {
     public static final String NAME = "name.hellstorm.pack_a_punch";
     /** The GeckoLib model and texture, under {@code geo/block/} and {@code textures/block/}. */
     public static final String MODEL = "hellfire_upgrader";
+    /** The model is made from the foot toward the head along +z, with its front, the side without the skull and candles, on +x. */
+    public static final Direction MODEL_FRONT = Direction.EAST;
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 13, 16);
     /** Where the item lies, above the machine's floor, and how far it reaches either side of the middle. */
     public static final double TOP = 13.0 / 16;

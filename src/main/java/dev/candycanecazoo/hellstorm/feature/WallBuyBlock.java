@@ -15,9 +15,7 @@ import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -57,7 +55,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
             Direction.WEST, Block.box(15, 0, 0, 16, 16, 16));
     private static final String TIER = "tier";
 
-    public static final class Entity extends ConfigBlockEntity<WallBuy.Config> implements Prompted {
+    public static class Entity extends ConfigBlockEntity<WallBuy.Config> implements Prompted {
         private static final String DISPLAY = "display";
 
         private ItemStack display;
@@ -67,7 +65,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
             this(PapRegistries.WALL_BUY_ENTITY.get(), pos, state, WallBuy.Config.CODEC, WallBuy.Config.DEFAULT);
         }
 
-        /** A wall-buy on another block, with that block's defaults, such as the perk machine. */
+        /** A wall-buy on another block, with that block's defaults, such as the vending machine. */
         public Entity(BlockEntityType<?> type, BlockPos pos, BlockState state, Codec<WallBuy.Config> codec, WallBuy.Config defaults) {
             super(type, pos, state, codec, defaults);
         }
@@ -116,15 +114,6 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         }
 
         @Override
-        public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet) {
-            super.onDataPacket(net, packet);
-            // A perk machine is tinted from what it sells, so the chunk has to be redrawn when that changes.
-            if (level != null && level.isClientSide) {
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_IMMEDIATE);
-            }
-        }
-
-        @Override
         public Optional<Prompt> prompt() {
             WallBuy.Action action = Viewer.get().map(p -> action(config(), display(), p, find(p.getInventory(), config().item())))
                     .orElseGet(() -> WallBuy.decide(config(), Optional.empty()));
@@ -132,7 +121,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         }
     }
 
-    /** What a purchase tells scripts: {@code wall_buy} from a wall-buy, {@code perk_bought} from a perk machine. */
+    /** What a purchase tells scripts: {@code wall_buy} from a wall-buy, {@code perk_bought} from a vending machine. */
     @FunctionalInterface
     public interface Receipt {
         GameEvent of(UUID player, int cost, boolean refill);
@@ -262,6 +251,11 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
 
     /** Sells what {@code entity} holds through {@link Shop}, for a wall-buy and any block that sells like one. */
     public static void sell(ServerPlayer player, GameManager.Active game, Entity entity, Receipt receipt) {
+        Shop.buy(player, game, sale(player, game, entity, receipt));
+    }
+
+    /** What selling {@code entity}'s item to {@code player} costs, checks, and hands over, for {@link Shop#buy}. */
+    public static Shop.Sale sale(ServerPlayer player, GameManager.Active game, Entity entity, Receipt receipt) {
         WallBuy.Config config = entity.config();
         GameSettings settings = game.game().settings();
         boolean playing = game.game().player(player.getUUID()).isPresent();
@@ -271,7 +265,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         if (action instanceof WallBuy.Action.TopUp topUp) {
             stock.ifPresent(s -> s.setCount(topUp.missing()));
         }
-        Shop.buy(player, game, new Shop.Sale() {
+        return new Shop.Sale() {
             @Override
             public int cost() {
                 return action.cost();
@@ -316,7 +310,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
                 g.game().events().emit(receipt.of(p.getUUID(), action.cost(), refill));
                 return Optional.empty();
             }
-        });
+        };
     }
 
     public static Optional<Entity> entity(Level level, BlockPos pos) {
@@ -328,7 +322,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         return entity(level, pos).map(WallBuyBlock::describe).orElse(Component.literal("Wall-buy"));
     }
 
-    /** "Wall-Buy: ..." or "Perk Machine: ...", from the block's name. */
+    /** "Wall-Buy: ..." or "Vending Machine: ...", from the block's name. */
     public static Component describe(Entity entity) {
         WallBuy.Config c = entity.config();
         String again = c.effectiveRepurchase().getSerializedName();

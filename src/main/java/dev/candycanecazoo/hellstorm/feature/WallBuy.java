@@ -46,7 +46,7 @@ public final class WallBuy {
 
     /**
      * {@code ammoCost} and {@code papAmmoCost} are what a refill costs on a plain and an upgraded copy of the gun.
-     * {@code requiresPower} keeps it from selling until the power is on, as perk machines do by default.
+     * {@code requiresPower} keeps it from selling until the power is on, as vending machines do by default.
      */
     public record Config(ItemSpec item, int cost, Repurchase repurchase, int ammoCost, int papAmmoCost, boolean requiresPower) {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(

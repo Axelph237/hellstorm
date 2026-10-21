@@ -6,7 +6,7 @@ Every machine and door is bought the same way, so each feature only writes what 
 
 ## Data shape
 
-- **`FeatureKind`** (`map/`): `SPAWN`, `POWER_SWITCH`, `WALL_BUY`, `PERK_MACHINE`, `MYSTERY_BOX`, `PAP_MACHINE`. `ZombiesMap.features()` indexes every machine's position, so a game knows about machines in unloaded chunks.
+- **`FeatureKind`** (`map/`): `SPAWN`, `POWER_SWITCH`, `WALL_BUY`, `VENDING_MACHINE` (saved as `perk_machine`), `MYSTERY_BOX`, `PAP_MACHINE`. `ZombiesMap.features()` indexes every machine's position, so a game knows about machines in unloaded chunks.
 - **`ConfigBlockEntity<C>`** (`feature/`): a block entity holding one codec'd settings record `C`, saved under `config` and synced to clients (`getUpdateTag`, `getUpdatePacket`). `setConfig` saves and syncs. Subclasses call `changed()` after changing their own synced state (a rolling box, a busy machine).
 - **`FeatureBlock`** (`feature/`), implemented by each machine block:
   - `featureKind()`.

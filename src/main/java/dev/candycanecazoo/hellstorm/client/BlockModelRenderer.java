@@ -3,7 +3,6 @@ package dev.candycanecazoo.hellstorm.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import dev.candycanecazoo.hellstorm.feature.TwoBlockMachine;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Direction;
@@ -15,35 +14,30 @@ import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
 /**
- * A two-block machine's GeckoLib model, running from the foot toward the head along +z with its front on +x, turned so
- * the head is {@link TwoBlockMachine#along} and the front faces the block's facing. A model made the other way round,
- * front on -x, is turned about the seam. {@code offset}, in the model's pixels, moves a model made away from the origin onto its blocks.
+ * A machine's GeckoLib model, turned so the model's {@code front} side faces the way the block's front does, then moved
+ * {@code offset} model pixels onto its blocks. The model's origin is the middle of the floor of the machine's main block.
  */
 final class BlockModelRenderer<T extends BlockEntity & GeoAnimatable> extends GeoBlockRenderer<T> {
     private final BoneTextures textures;
+    private final Direction front;
     private final Vec3 offset;
-    private final boolean frontOnMinusX;
 
-    BlockModelRenderer(GeoModel<T> model, BoneTextures textures, Vec3 offset) {
-        this(model, textures, offset, false);
-    }
-
-    /** {@code frontOnMinusX}: the model was made with its front on its -x side, so it's drawn turned around. */
-    BlockModelRenderer(GeoModel<T> model, BoneTextures textures, Vec3 offset, boolean frontOnMinusX) {
+    /** {@code front}: the side of the model that is its front, as a direction in the model's own space. */
+    BlockModelRenderer(GeoModel<T> model, BoneTextures textures, Direction front, Vec3 offset) {
         super(model);
         this.textures = textures;
+        this.front = front;
         this.offset = offset;
-        this.frontOnMinusX = frontOnMinusX;
     }
 
     @Override
     protected void rotateBlock(Direction facing, PoseStack pose) {
-        pose.mulPose(Axis.YP.rotationDegrees(-TwoBlockMachine.along(facing).toYRot()));
-        if (frontOnMinusX) {
-            // Half a turn about the seam between the halves, half a block toward the head.
-            pose.translate(0, 0, 1);
-            pose.mulPose(Axis.YP.rotationDegrees(180));
-        }
+        turn(pose, facing, front, offset);
+    }
+
+    /** Turns a model whose front is its {@code front} side so the front faces {@code facing}, then moves it {@code offset} pixels. */
+    static void turn(PoseStack pose, Direction facing, Direction front, Vec3 offset) {
+        pose.mulPose(Axis.YP.rotationDegrees(front.toYRot() - facing.toYRot()));
         pose.translate(offset.x / 16, offset.y / 16, offset.z / 16);
     }
 

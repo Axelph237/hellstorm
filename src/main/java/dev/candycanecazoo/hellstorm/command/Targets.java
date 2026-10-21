@@ -3,18 +3,20 @@ package dev.candycanecazoo.hellstorm.command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
 
-/** The machine a command applies to: the block the player is looking at. */
+/** The machine a command applies to: the one the player is looking at, whichever of its blocks. */
 public final class Targets {
     private static final double REACH = 8;
     private static final DynamicCommandExceptionType NOT_LOOKING =
@@ -40,6 +42,10 @@ public final class Targets {
         BlockHitResult hit = player.level().clip(new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
         if (hit.getType() == HitResult.Type.BLOCK) {
             BlockPos pos = hit.getBlockPos();
+            BlockState state = player.level().getBlockState(pos);
+            if (state.getBlock() instanceof FeatureBlock machine) {
+                pos = machine.mainPos(state, pos);
+            }
             if (type.isInstance(player.level().getBlockEntity(pos))) {
                 return type.cast(player.level().getBlockEntity(pos));
             }

@@ -24,7 +24,7 @@ public sealed interface GameEvent {
     /** {@code by} is empty when the power came on without a player (a script, or a map that starts powered). */
     record PowerOn(java.util.Optional<UUID> by) implements GameEvent {}
 
-    /** From a perk machine. {@code item} is the potion id for a potion ({@code hellstorm:vigorade}), the item spec otherwise. */
+    /** From a vending machine. {@code item} is the potion id for a potion ({@code hellstorm:vigorade}), the item spec otherwise. */
     record PerkBought(UUID player, String item, int cost) implements GameEvent {}
 
     record ZombieKilled(UUID mob, Optional<UUID> killer, boolean headshot, boolean melee, BlockPos pos) implements GameEvent {}

@@ -43,7 +43,7 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
     private static final float FLAME_HEIGHT = 0.75f;
     private final ItemRenderer items;
     private final BlockModelRenderer<PapMachineBlock.Entity> model = new BlockModelRenderer<>(
-            new DefaultedBlockGeoModel<>(Hellstorm.id(PapMachineBlock.MODEL)), BoneTextures.HELLFIRE_UPGRADER, Vec3.ZERO);
+            new DefaultedBlockGeoModel<>(Hellstorm.id(PapMachineBlock.MODEL)), BoneTextures.HELLFIRE_UPGRADER, PapMachineBlock.MODEL_FRONT, Vec3.ZERO);
 
     public PapMachineRenderer(BlockEntityRendererProvider.Context context) {
         this.items = context.getItemRenderer();

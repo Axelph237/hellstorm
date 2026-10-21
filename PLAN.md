@@ -180,7 +180,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
   The weapon-slot limit (2, or 3 with Off-Hand) counts TacZ guns only. When the slots are full, buying a new gun replaces the held one.
 - **Mystery Crate.** A weighted `BoxPool` of `ItemSpec`s. By default it holds every TacZ gun index entry minus the wall-buys, with per-entry overrides. The box relocates after a configurable number of uses, and Fire Sale lowers its cost.
-- **Perks.** Perks are potion effects. A perk machine is a wall-buy that sells the potion. Perks need power by default, have a perk limit, and are lost on down with every other buff.
+- **Perks.** Perks are potion effects. A vending machine is a wall-buy that sells the potion. Perks need power by default, have a perk limit, and are lost on down with every other buff.
 - **The upgrader (Dante's Toil).** Any item can be upgraded if it carries the right NBT, and the machine needs power to run. The tag is a `pap` compound with two keys:
   - `punchable` is a boolean.
   - `punch_id` is optional. It names a `PunchDef` from a datapack, stored at `data/<ns>/hellstorm/punch/<id>.json`.

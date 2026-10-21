@@ -19,7 +19,7 @@
   "key.categories.hellstorm": "Hellstorm",
   "key.hellstorm.repair": "Use (repair windows, buy)",
   "block.hellstorm.power_switch": "Power Switch",
-  "block.hellstorm.perk_machine": "Perk Machine",
+  "block.hellstorm.perk_machine": "Vending Machine",
   "effect.hellstorm.vigorade": "Vigorade",
   "effect.hellstorm.reload": "RE:Load",
   "effect.hellstorm.hellfire": "Hellfire",
@@ -66,5 +66,8 @@
   "message.hellstorm.pap.not_punchable": "This item can't go in %s",
   "message.hellstorm.pap.unknown_punch_id": "This item's upgrade doesn't exist",
   "message.hellstorm.pap.no_upgrade_path": "This item has no upgrade",
-  "message.hellstorm.pap.max_tier": "This weapon is fully upgraded"
+  "message.hellstorm.pap.max_tier": "This weapon is fully upgraded",
+  "subtitles.hellstorm.vending_machine.idle": "Vending machine hums",
+  "subtitles.hellstorm.vending_machine.shake": "Vending machine rattles",
+  "subtitles.hellstorm.vending_machine.button": "Vending machine button clicks"
 }

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Perks are mob effects in the {@code hellstorm:perks} tag, usually drunk from a potion bought at a perk machine. A player
+ * Perks are mob effects in the {@code hellstorm:perks} tag, usually drunk from a potion bought at a vending machine. A player
  * in a game holds at most {@code players.perk_limit} of them, and loses every beneficial effect on going down.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)

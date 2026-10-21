@@ -25,7 +25,7 @@ import java.util.Optional;
 
 /**
  * {@code /hs wallbuy set <cost> held|gun <id>}, {@code ammo <cost> [papCost]}, {@code repurchase <mode>},
- * {@code power <bool>}, {@code describe}: settings for the wall-buy or perk machine you're looking at.
+ * {@code power <bool>}, {@code describe}: settings for the wall-buy or vending machine you're looking at.
  */
 final class WallBuyCommands {
     private static final SimpleCommandExceptionType EMPTY_HAND = new SimpleCommandExceptionType(Component.literal("Hold the item to sell in your main hand"));
@@ -55,7 +55,7 @@ final class WallBuyCommands {
     }
 
     private static WallBuyBlock.Entity target(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        return Targets.lookedAt(ctx.getSource().getPlayerOrException(), WallBuyBlock.Entity.class, "wall-buy or perk machine");
+        return Targets.lookedAt(ctx.getSource().getPlayerOrException(), WallBuyBlock.Entity.class, "wall-buy or vending machine");
     }
 
     private static int setHeld(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

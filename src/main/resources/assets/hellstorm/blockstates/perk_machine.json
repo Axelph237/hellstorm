@@ -1,8 +1,52 @@
 {
   "variants": {
-    "facing=north": { "model": "hellstorm:block/perk_machine" },
-    "facing=east": { "model": "hellstorm:block/perk_machine", "y": 90 },
-    "facing=south": { "model": "hellstorm:block/perk_machine", "y": 180 },
-    "facing=west": { "model": "hellstorm:block/perk_machine", "y": 270 }
+    "facing=north,half=lower,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=north,half=upper,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=north,half=lower,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=north,half=upper,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=east,half=lower,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=east,half=upper,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=east,half=lower,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=east,half=upper,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=south,half=lower,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=south,half=upper,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=south,half=lower,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=south,half=upper,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=west,half=lower,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=west,half=upper,part=foot": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=west,half=lower,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    },
+    "facing=west,half=upper,part=head": {
+      "model": "hellstorm:block/vending_machine"
+    }
   }
 }

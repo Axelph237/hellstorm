@@ -5,7 +5,7 @@ import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.feature.ConfigBlockEntity;
 import dev.candycanecazoo.hellstorm.feature.MachineSettings;
 import dev.candycanecazoo.hellstorm.feature.MysteryBoxBlock;
-import dev.candycanecazoo.hellstorm.feature.PerkMachineBlock;
+import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
 import dev.candycanecazoo.hellstorm.feature.WallBuy;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
@@ -57,12 +57,12 @@ public final class SettingsGameTests {
 
     @GameTest(template = "floor")
     public static void machinesRefuseSettingsTheirCommandsWouldRefuseAndKeepTheOldOnes(GameTestHelper helper) {
-        WallBuyBlock.Entity perk = place(helper, 1, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        WallBuyBlock.Entity perk = place(helper, 1, PapRegistries.VENDING_MACHINE.get().defaultBlockState());
         ItemSpec unknown = new ItemSpec.Plain(ResourceLocation.tryBuild("nope", "item"), 1, Optional.empty());
         assertRefused(helper, perk, encode(perk, WallBuy.Config.forItem(unknown, 500, WallBuy.Repurchase.DENY)), "an unknown item");
-        WallBuy.Config cola = PerkMachineBlock.sells(Hellstorm.id("reload"), 1234);
+        WallBuy.Config cola = VendingMachineBlock.sells(Hellstorm.id("reload"), 1234);
         helper.assertTrue(perk.trySet(encode(perk, cola)).isEmpty(), "a RE:Load potion should be accepted");
-        helper.assertTrue(perk.config().equals(cola), "the perk machine should keep what was sent, has " + perk.config());
+        helper.assertTrue(perk.config().equals(cola), "the vending machine should keep what was sent, has " + perk.config());
 
         MysteryBoxBlock.Entity box = place(helper, 3, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
         assertRefused(helper, box, encode(box, new MysteryBoxBlock.Config(ResourceLocation.tryBuild("nope", "pool"), Optional.empty())), "an unloaded box pool");

@@ -31,8 +31,7 @@ public final class DownsGameTests {
 
     @GameTest(template = "floor", batch = "downs_revive", timeoutTicks = 300)
     public static void lethalDamageDownsAPlayerAndATeammateRevivesThem(GameTestHelper helper) {
-        BlockPos machine = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
-        helper.getLevel().setBlockAndUpdate(machine, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        BlockPos machine = PerkGameTests.vendingMachine(helper);
         ServerPlayer alice = PurchaseGameTests.player(helper, "pap_downs_alice");
         ServerPlayer bob = PurchaseGameTests.player(helper, "pap_downs_bob");
         GameManager.Active active = PurchaseGameTests.game(helper, java.util.List.of(alice, bob), machine);
@@ -40,7 +39,7 @@ public final class DownsGameTests {
         float baseHealth = alice.getMaxHealth();
         double baseSpeed = alice.getAttributeValue(Attributes.MOVEMENT_SPEED);
         active.game().refund(alice.getUUID(), 10_000);
-        FeatureBlock.use(alice, machine);
+        PerkGameTests.buy(alice, machine);
         PerkGameTests.drink(alice, PerkGameTests.takePotion(alice));
         boolean bought = alice.getMaxHealth() > baseHealth;
         active.game().start();

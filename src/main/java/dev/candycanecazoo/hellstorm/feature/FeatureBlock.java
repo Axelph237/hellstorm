@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.List;
 
 /**
- * A machine players buy from: wall-buy, perk machine, Mystery Crate, the upgrader, power switch. The map indexes where
+ * A machine players buy from: wall-buy, vending machine, Mystery Crate, the upgrader, power switch. The map indexes where
  * each one is, so a game knows about machines in unloaded chunks. Players in a game buy by right clicking or with the
  * Hellstorm use key. Outside a game, ops in creative mode get the machine's settings screen and anyone else gets its
  * settings in chat.

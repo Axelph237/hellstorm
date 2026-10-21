@@ -9,7 +9,7 @@ import com.tacz.guns.api.item.gun.AbstractGunItem;
 import com.tacz.guns.entity.shooter.ShooterDataHolder;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
-import dev.candycanecazoo.hellstorm.feature.PerkMachineBlock;
+import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.WallBuy;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
@@ -35,8 +35,13 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LeverBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -49,7 +54,7 @@ import java.util.Optional;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
-/** Perks as potions: bought from a perk machine, drunk for an effect with no time limit, and lost on going down. */
+/** Perks as potions: bought from a vending machine, drunk for an effect with no time limit, and lost on going down. */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class PerkGameTests {
@@ -58,16 +63,26 @@ public final class PerkGameTests {
 
     private PerkGameTests() {}
 
-    /** A perk machine selling a potion of {@code perk} at its default cost. */
+    /** A vending machine selling a potion of {@code perk} at its default cost. */
     private static BlockPos machine(GameTestHelper helper, ResourceLocation perk) {
-        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
-        helper.getLevel().setBlockAndUpdate(at, PapRegistries.PERK_MACHINE.get().defaultBlockState());
-        sell(helper, at, perk);
+        BlockPos at = vendingMachine(helper);
+        WallBuyBlock.entity(helper.getLevel(), at).orElseThrow().setConfig(VendingMachineBlock.sells(perk, VendingMachineBlock.DEFAULT_COST));
         return at;
     }
 
-    private static void sell(GameTestHelper helper, BlockPos at, ResourceLocation perk) {
-        WallBuyBlock.entity(helper.getLevel(), at).orElseThrow().setConfig(PerkMachineBlock.sells(perk, PerkMachineBlock.DEFAULT_COST));
+    /** A whole vending machine, its main block at (2, 2) and its front to the north. */
+    static BlockPos vendingMachine(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        VendingMachineBlock.place(helper.getLevel(), at, Direction.NORTH);
+        return at;
+    }
+
+    /** Buys from the vending machine at {@code at} without waiting out its vend. */
+    static void buy(ServerPlayer player, BlockPos at) {
+        FeatureBlock.use(player, at);
+        if (player.level().getBlockEntity(at) instanceof VendingMachineBlock.Entity machine) {
+            machine.handOver(player.serverLevel());
+        }
     }
 
     /** Takes the first potion out of the player's inventory, the way a machine handed it over. */
@@ -138,10 +153,9 @@ public final class PerkGameTests {
         player.addEffect(new MobEffectInstance(effect, MobEffectInstance.INFINITE_DURATION));
     }
 
-    @GameTest(template = "floor", batch = "perk_power")
-    public static void aPerkMachineSellsItsPotionForItsCostOnlyWithThePower(GameTestHelper helper) {
-        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
-        helper.getLevel().setBlockAndUpdate(at, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+    @GameTest(template = "floor", batch = "perk_power", timeoutTicks = 200)
+    public static void aVendingMachineSellsItsPotionForItsCostOnlyWithThePowerAndHandsItOverAfterItsVend(GameTestHelper helper) {
+        BlockPos at = vendingMachine(helper);
         BlockPos lever = helper.absolutePos(new BlockPos(6, ROOM_Y, 6));
         helper.getLevel().setBlockAndUpdate(lever, PapRegistries.POWER_SWITCH.get().defaultBlockState()
                 .setValue(LeverBlock.FACE, AttachFace.FLOOR).setValue(LeverBlock.FACING, Direction.NORTH));
@@ -149,27 +163,81 @@ public final class PerkGameTests {
         GameManager.Active active = PurchaseGameTests.game(helper, player, at, lever);
         List<GameEvent> events = new ArrayList<>();
         active.game().events().subscribe(events::add);
-        try {
-            active.game().refund(player.getUUID(), 10_000);
-            int start = PurchaseGameTests.points(active, player);
-            FeatureBlock.use(player, at);
-            helper.assertTrue(takePotion(player).isEmpty(), "a new perk machine sold its Vigorade without power");
-            helper.assertTrue(PurchaseGameTests.points(active, player) == start, "charged without power");
+        // However the test ends, the game mustn't outlive it.
+        helper.runAfterDelay(190, () -> GameManager.get(helper.getLevel()).filter(a -> a == active).ifPresent(GameManager::end));
+        active.game().refund(player.getUUID(), 10_000);
+        int start = PurchaseGameTests.points(active, player);
+        FeatureBlock.use(player, at);
+        helper.assertTrue(takePotion(player).isEmpty(), "a new vending machine sold its Vigorade without power");
+        helper.assertTrue(PurchaseGameTests.points(active, player) == start, "charged without power");
 
-            active.game().turnPowerOn(Optional.empty());
-            FeatureBlock.use(player, at);
-            ItemStack bought = takePotion(player);
-            helper.assertTrue(PotionUtils.getMobEffects(bought).stream().anyMatch(e -> e.getEffect() == PerkEffects.VIGORADE.get()),
-                    "expected a Vigorade potion, got " + bought + " " + bought.getTag());
-            helper.assertTrue(PurchaseGameTests.points(active, player) == start - PerkMachineBlock.DEFAULT_COST,
-                    "expected to pay " + PerkMachineBlock.DEFAULT_COST + ", have " + PurchaseGameTests.points(active, player));
-            helper.assertTrue(events.contains(new GameEvent.PerkBought(player.getUUID(), "hellstorm:vigorade", PerkMachineBlock.DEFAULT_COST)),
-                    "no perk_bought event: " + events);
-            helper.assertTrue(events.stream().noneMatch(GameEvent.WallBuy.class::isInstance), "a perk machine shouldn't report a wall_buy");
-        } finally {
-            GameManager.end(active);
+        active.game().turnPowerOn(Optional.empty());
+        BlockPos upperHead = at.above().east();
+        FeatureBlock.use(player, upperHead);
+        int paid = start - VendingMachineBlock.DEFAULT_COST;
+        helper.assertTrue(PurchaseGameTests.points(active, player) == paid,
+                "using any block of it should charge " + VendingMachineBlock.DEFAULT_COST + ", have " + PurchaseGameTests.points(active, player));
+        helper.assertTrue(takePotion(player).isEmpty(), "handed the potion over before the vend");
+        FeatureBlock.use(player, at);
+        helper.assertTrue(PurchaseGameTests.points(active, player) == paid, "a busy machine charged again");
+        helper.runAfterDelay(VendingMachineBlock.VEND_TICKS - 2, () -> {
+            try {
+                helper.assertTrue(takePotion(player).isEmpty(), "handed the potion over before the vend ended");
+                helper.assertTrue(events.stream().noneMatch(GameEvent.PerkBought.class::isInstance), "perk_bought before the potion was handed over");
+            } catch (RuntimeException e) {
+                GameManager.end(active);
+                throw e;
+            }
+        });
+        helper.runAfterDelay(VendingMachineBlock.VEND_TICKS + 2, () -> {
+            try {
+                ItemStack bought = takePotion(player);
+                helper.assertTrue(PotionUtils.getMobEffects(bought).stream().anyMatch(e -> e.getEffect() == PerkEffects.VIGORADE.get()),
+                        "expected a Vigorade potion after the vend, got " + bought + " " + bought.getTag());
+                helper.assertTrue(PurchaseGameTests.points(active, player) == paid, "paid " + (start - PurchaseGameTests.points(active, player)));
+                helper.assertTrue(events.contains(new GameEvent.PerkBought(player.getUUID(), "hellstorm:vigorade", VendingMachineBlock.DEFAULT_COST)),
+                        "no perk_bought event: " + events);
+                helper.assertTrue(events.stream().noneMatch(GameEvent.WallBuy.class::isInstance), "a vending machine shouldn't report a wall_buy");
+            } finally {
+                GameManager.end(active);
+            }
+            helper.succeed();
+        });
+    }
+
+    /** Placed like the crate, two blocks tall: needing room above, holding its block entity in the lower foot, and gone all at once. */
+    @GameTest(template = "floor", batch = "perk_place")
+    public static void aVendingMachineIsPlacedTwoTallFacingYouAndBreaksAsOne(GameTestHelper helper) {
+        ServerPlayer player = PurchaseGameTests.player(helper, "perk_place");
+        // Looking north, aiming at the left (west) half of the floor block.
+        player.setYRot(180);
+        BlockPos foot = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        placeOn(player, foot.below(), -0.25);
+        List<BlockPos> blocks = List.of(foot, foot.west(), foot.above(), foot.west().above());
+        List<String> parts = List.of("FOOT LOWER", "HEAD LOWER", "FOOT UPPER", "HEAD UPPER");
+        for (int i = 0; i < blocks.size(); i++) {
+            BlockState state = helper.getLevel().getBlockState(blocks.get(i));
+            helper.assertTrue(state.is(PapRegistries.VENDING_MACHINE.get()) && parts.get(i).equals(state.getValue(VendingMachineBlock.PART).name()
+                            + " " + state.getValue(VendingMachineBlock.HALF).name()) && state.getValue(VendingMachineBlock.FACING) == Direction.SOUTH,
+                    "expected " + parts.get(i) + " facing south, got " + state);
         }
+        helper.assertTrue(helper.getLevel().getBlockEntity(foot) instanceof VendingMachineBlock.Entity
+                && blocks.stream().skip(1).noneMatch(p -> helper.getLevel().getBlockEntity(p) != null), "only the lower foot holds the block entity");
+
+        BlockPos roofed = helper.absolutePos(new BlockPos(6, ROOM_Y, 6));
+        helper.getLevel().setBlockAndUpdate(roofed.above(), Blocks.STONE.defaultBlockState());
+        placeOn(player, roofed.below(), -0.25);
+        helper.assertTrue(helper.getLevel().getBlockState(roofed).isAir(), "placed with no room above");
+
+        helper.getLevel().setBlockAndUpdate(foot.west().above(), Blocks.AIR.defaultBlockState());
+        helper.assertTrue(blocks.stream().allMatch(p -> helper.getLevel().getBlockState(p).isAir()), "breaking one block should take the whole machine");
         helper.succeed();
+    }
+
+    private static void placeOn(ServerPlayer player, BlockPos floor, double aimX) {
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(PapRegistries.VENDING_MACHINE_ITEM.get()));
+        Vec3 hit = Vec3.atCenterOf(floor).add(aimX, 0.5, 0);
+        player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, Direction.UP, floor, false)));
     }
 
     @GameTest(template = "floor", batch = "perk_vigorade")
@@ -179,7 +247,7 @@ public final class PerkGameTests {
         GameManager.Active active = PurchaseGameTests.game(helper, player, at);
         try {
             active.game().refund(player.getUUID(), 10_000);
-            FeatureBlock.use(player, at);
+            buy(player, at);
             player.setHealth(10);
             helper.assertTrue(drink(player, takePotion(player)), "the bought Vigorade couldn't be drunk");
             MobEffectInstance effect = player.getEffect(PerkEffects.VIGORADE.get());
@@ -233,7 +301,7 @@ public final class PerkGameTests {
             int limit = active.game().settings().players().perkLimit();
             held.subList(0, limit).forEach(effect -> give(player, effect));
 
-            FeatureBlock.use(player, at);
+            buy(player, at);
             ItemStack jockeyEnergy = takePotion(player);
             helper.assertFalse(jockeyEnergy.isEmpty(), "at the limit the machine still sells a perk you don't have");
             helper.assertFalse(drink(player, jockeyEnergy), "drinking a perk past the limit should be refused");
@@ -264,7 +332,7 @@ public final class PerkGameTests {
             helper.assertTrue(action.equals(new WallBuy.Action.Deny("You already have Vigorade")), "the prompt should hide, action " + action);
 
             int before = PurchaseGameTests.points(active, player);
-            FeatureBlock.use(player, at);
+            buy(player, at);
             helper.assertTrue(takePotion(player).isEmpty(), "sold a Vigorade to a player who has it");
             helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused Vigorade");
         } finally {
@@ -291,20 +359,19 @@ public final class PerkGameTests {
 
     @GameTest(template = "floor")
     public static void aMachineSavedWithAPerkLoadsAsThatPerksPotion(GameTestHelper helper) {
-        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
-        helper.getLevel().setBlockAndUpdate(at, PapRegistries.PERK_MACHINE.get().defaultBlockState());
+        BlockPos at = vendingMachine(helper);
         WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
-        helper.assertTrue(entity.config().equals(PerkMachineBlock.DEFAULT), "a new machine should sell Vigorade, sells " + entity.config());
+        helper.assertTrue(entity.config().equals(VendingMachineBlock.DEFAULT), "a new machine should sell Vigorade, sells " + entity.config());
 
         entity.load(legacy("hellstorm:saints_brew", Optional.of(1500)));
-        helper.assertTrue(entity.config().equals(PerkMachineBlock.sells(Hellstorm.id("saints_brew"), 1500)), "with its cost: " + entity.config());
+        helper.assertTrue(entity.config().equals(VendingMachineBlock.sells(Hellstorm.id("saints_brew"), 1500)), "with its cost: " + entity.config());
         helper.assertTrue(entity.config().requiresPower() && entity.config().repurchase() == WallBuy.Repurchase.DENY, "old machines need power and sell once");
         entity.load(legacy("hellstorm:hellfire", Optional.empty()));
-        helper.assertTrue(entity.config().equals(PerkMachineBlock.sells(Hellstorm.id("hellfire"), PerkMachineBlock.DEFAULT_COST)),
+        helper.assertTrue(entity.config().equals(VendingMachineBlock.sells(Hellstorm.id("hellfire"), VendingMachineBlock.DEFAULT_COST)),
                 "without a cost: " + entity.config());
         helper.assertTrue(entity.itemName().equals("Hellfire"), "the machine shows " + entity.itemName());
         entity.load(legacy("nope:perk", Optional.empty()));
-        helper.assertTrue(entity.config().equals(PerkMachineBlock.sells(Hellstorm.id("hellfire"), PerkMachineBlock.DEFAULT_COST)),
+        helper.assertTrue(entity.config().equals(VendingMachineBlock.sells(Hellstorm.id("hellfire"), VendingMachineBlock.DEFAULT_COST)),
                 "an unknown old perk keeps what was there: " + entity.config());
         helper.succeed();
     }
@@ -359,7 +426,7 @@ public final class PerkGameTests {
             helper.assertTrue(reloadSpeed != null && reloadSpeed.getValue() == 1, "players should start at reload speed 1");
 
             active.game().refund(player.getUUID(), 10_000);
-            FeatureBlock.use(player, at);
+            buy(player, at);
             helper.assertTrue(drink(player, takePotion(player)), "RE:Load wasn't bought");
             helper.assertTrue(reloadSpeed.getValue() == 2, "RE:Load should add 1 to reload speed, is " + reloadSpeed.getValue());
             Reloaded after = reloadAfter(player, elapsed);

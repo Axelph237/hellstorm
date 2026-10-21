@@ -7,7 +7,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.BarricadeBlock;
-import dev.candycanecazoo.hellstorm.feature.PerkMachineBlock;
+import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.GeoBlockItem;
 import dev.candycanecazoo.hellstorm.feature.TrapControllerBlock;
@@ -19,6 +19,7 @@ import dev.candycanecazoo.hellstorm.perk.PerkEffects;
 import dev.candycanecazoo.hellstorm.tools.ZoneWandItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -38,6 +39,7 @@ public final class PapRegistries {
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, Hellstorm.MOD_ID);
     private static final DeferredRegister<Attribute> ATTRIBUTES = DeferredRegister.create(ForgeRegistries.ATTRIBUTES, Hellstorm.MOD_ID);
     private static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Hellstorm.MOD_ID);
+    private static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, Hellstorm.MOD_ID);
 
     // The attributes are built here, not in their suppliers: mob effects register before attributes, and the perk effects
     // (perk/PerkEffects) need them when they are built.
@@ -79,11 +81,14 @@ public final class PapRegistries {
     public static final RegistryObject<BlockEntityType<PowerSwitchBlock.Entity>> POWER_SWITCH_ENTITY = BLOCK_ENTITIES.register("power_switch",
             () -> BlockEntityType.Builder.of(PowerSwitchBlock.Entity::new, POWER_SWITCH.get()).build(null));
 
-    public static final RegistryObject<Block> PERK_MACHINE = BLOCKS.register("perk_machine", () -> new PerkMachineBlock(
-            BlockBehaviour.Properties.of().mapColor(MapColor.QUARTZ).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.METAL)));
-    /** A wall-buy on the machine block. Its own id keeps machines saved before perks were potions loading. */
-    public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> PERK_MACHINE_ENTITY = BLOCK_ENTITIES.register("perk_machine",
-            () -> BlockEntityType.Builder.of(PerkMachineBlock::newEntity, PERK_MACHINE.get()).build(null));
+    /** The vending machine keeps the perk machine's ids, which it replaced, so maps made with perk machines keep their settings. */
+    public static final RegistryObject<Block> VENDING_MACHINE = BLOCKS.register("perk_machine", () -> new VendingMachineBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.METAL)));
+    public static final RegistryObject<BlockEntityType<VendingMachineBlock.Entity>> VENDING_MACHINE_ENTITY = BLOCK_ENTITIES.register("perk_machine",
+            () -> BlockEntityType.Builder.of(VendingMachineBlock.Entity::new, VENDING_MACHINE.get()).build(null));
+    public static final RegistryObject<SoundEvent> VENDING_MACHINE_IDLE = sound("vending_machine.idle");
+    public static final RegistryObject<SoundEvent> VENDING_MACHINE_SHAKE = sound("vending_machine.shake");
+    public static final RegistryObject<SoundEvent> VENDING_MACHINE_BUTTON = sound("vending_machine.button");
     public static final RegistryObject<Block> WALL_BUY = BLOCKS.register("wall_buy", () -> new WallBuyBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.WOOD)));
     public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> WALL_BUY_ENTITY = BLOCK_ENTITIES.register("wall_buy",
@@ -108,7 +113,8 @@ public final class PapRegistries {
     public static final RegistryObject<Item> ZONE_WAND = ITEMS.register("zone_wand", () -> new ZoneWandItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> SPAWN_MARKER_ITEM = ITEMS.register("spawn_marker", () -> new BlockItem(SPAWN_MARKER.get(), new Item.Properties()));
     public static final RegistryObject<Item> POWER_SWITCH_ITEM = ITEMS.register("power_switch", () -> new BlockItem(POWER_SWITCH.get(), new Item.Properties()));
-    public static final RegistryObject<Item> PERK_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new BlockItem(PERK_MACHINE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> VENDING_MACHINE_ITEM = ITEMS.register("perk_machine", () -> new GeoBlockItem(VENDING_MACHINE.get(), new Item.Properties(),
+            VendingMachineBlock.MODEL, VendingMachineBlock.ITEM_OFFSET));
     public static final RegistryObject<Item> WALL_BUY_ITEM = ITEMS.register("wall_buy", () -> new BlockItem(WALL_BUY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MYSTERY_BOX_ITEM = ITEMS.register("mystery_crate", () -> new GeoBlockItem(MYSTERY_BOX.get(), new Item.Properties(),
             MysteryBoxBlock.MODEL, MysteryBoxBlock.MODEL_OFFSET));
@@ -123,7 +129,7 @@ public final class PapRegistries {
                 output.accept(ZONE_WAND.get());
                 output.accept(SPAWN_MARKER_ITEM.get());
                 output.accept(POWER_SWITCH_ITEM.get());
-                output.accept(PERK_MACHINE_ITEM.get());
+                output.accept(VENDING_MACHINE_ITEM.get());
                 output.accept(WALL_BUY_ITEM.get());
                 output.accept(MYSTERY_BOX_ITEM.get());
                 output.accept(PAP_MACHINE_ITEM.get());
@@ -133,11 +139,16 @@ public final class PapRegistries {
 
     private PapRegistries() {}
 
+    private static RegistryObject<SoundEvent> sound(String name) {
+        return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(Hellstorm.id(name)));
+    }
+
     public static void register(IEventBus modBus) {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
         TABS.register(modBus);
+        SOUNDS.register(modBus);
         ATTRIBUTES.register(modBus);
         PerkEffects.register(modBus);
         modBus.addListener((EntityAttributeModificationEvent event) -> {

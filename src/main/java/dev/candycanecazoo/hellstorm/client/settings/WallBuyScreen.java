@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * What a wall-buy or perk machine sells (the item in hand when the screen opened), its price, whether it needs power, and
+ * What a wall-buy or vending machine sells (the item in hand when the screen opened), its price, whether it needs power, and
  * what buying it again does. The ammo costs only show when buying again refills ammo.
  */
 final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {

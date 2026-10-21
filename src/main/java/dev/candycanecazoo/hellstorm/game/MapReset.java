@@ -4,6 +4,7 @@ import dev.candycanecazoo.hellstorm.feature.MysteryBoxes;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import dev.candycanecazoo.hellstorm.feature.TrapControllerBlock;
 import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
+import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import net.minecraft.server.level.ServerLevel;
@@ -18,6 +19,7 @@ public final class MapReset {
         PowerSwitchBlock.setAll(level, map.features(FeatureKind.POWER_SWITCH), false);
         MysteryBoxes.resetAll(level, map.features(FeatureKind.MYSTERY_BOX));
         PapMachineBlock.resetAll(level, map.features(FeatureKind.PAP_MACHINE));
+        VendingMachineBlock.resetAll(level, map.features(FeatureKind.VENDING_MACHINE));
         TrapControllerBlock.resetAll(level, map.features(FeatureKind.TRAP));
         level.getEntities(dev.candycanecazoo.hellstorm.powerup.PowerUpRegistries.POWER_UP.get(), e -> true).forEach(net.minecraft.world.entity.Entity::discard);
     }

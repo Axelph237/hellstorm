@@ -24,7 +24,7 @@ record WallBuyConfig(
     Repurchase repurchase,      // REFILL_AMMO, TOP_UP, DUPLICATE, DENY
     int ammoCost,               // REFILL_AMMO only
     int papAmmoCost,            // REFILL_AMMO on an upgraded gun
-    boolean requiresPower) {}   // false; perk machines default to true
+    boolean requiresPower) {}   // false; vending machines default to true
 ```
 
 Default `repurchase`: `REFILL_AMMO` for TacZ guns, `TOP_UP` for stackables, `DENY` otherwise.
@@ -83,7 +83,7 @@ Default `repurchase`: `REFILL_AMMO` for TacZ guns, `TOP_UP` for stackables, `DEN
 - **Refusals charge nothing.** Weapon slots, inventory room, the perk limit, and an uninstalled item are checked before charging; power is checked with the points. A gun at the slot limit replaces the gun in the selected hotbar slot. If the player isn't holding a gun, they get "Hold the gun you want to swap".
 - **Prompt.** The client reads the local player's inventory and effects (`feature/Viewer`, set at client setup) and runs the same rule as the server, `WallBuyBlock.action`: a potion whose effects you all have is denied, and anything else goes through `decide`. So the prompt shows the item name with the price of what a use would do ("AK-47 [1000]" to buy, "AK-47 [250]" for ammo), "No power" while it needs power and the power is off, or nothing for a denied item.
 - **Event.** `GameEvent.WallBuy(player, item, cost, refill)`, Lua `wall_buy` with `player`, `item` (the spec's id, such as `tacz:ak47`), `cost`, and `refill`. `GameEvents.emit` is now public, so features outside `game/` can emit events. A perk machine sells through the same `WallBuyBlock.sell` with its own receipt and emits `perk_bought` instead.
-- **Perk machines** share the block entity class `WallBuyBlock.Entity` (with their own type id and defaults), the renderer, the settings screen, and the commands. See `perk-machines.md`.
+- **Vending machines** are wall-buys too: their block entity extends `WallBuyBlock.Entity`, with its own type id and defaults, and they share the settings screen and the commands. They sell through `WallBuyBlock.sale`, which `sell` wraps, so they can hand the item over later. See `perk-machines.md`.
 - **Audit.** `PunchAudit.wallBuys` checks every wall-buy item in the map (built with the upgrader).
 - **Off-Hand.** The slot limit is `players.weapon_slots` plus the player's `hellstorm:extra_weapon_slots` attribute, which the Off-Hand effect raises by 1.
 - **Tests.** JUnit: `WallBuyTest` (every repurchase decision, defaults, the codec, and `requires_power`), `WeaponSlotsTest`. GameTests in `WallBuyGameTests`: buying a gun (id, charge, event), a refill at the ammo cost after emptying the gun, a refill at the upgraded ammo cost, TOP_UP golden apples, DENY, too few points, the slot limit swapping the held gun, a refusal when not holding a gun, and Off-Hand's extra slot. The potion rules and power are tested on the perk machine in `PerkGameTests`.

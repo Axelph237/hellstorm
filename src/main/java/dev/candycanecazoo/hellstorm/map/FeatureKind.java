@@ -8,7 +8,8 @@ public enum FeatureKind implements StringRepresentable {
     SPAWN("spawn"),
     POWER_SWITCH("power_switch"),
     WALL_BUY("wall_buy"),
-    PERK_MACHINE("perk_machine"),
+    /** Saved under the name of the perk machine it replaced. */
+    VENDING_MACHINE("perk_machine"),
     MYSTERY_BOX("mystery_box"),
     PAP_MACHINE("pap_machine"),
     TRAP("trap");
