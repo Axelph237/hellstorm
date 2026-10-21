@@ -25,6 +25,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -72,18 +74,22 @@ public final class Doors {
     }
 
     /**
-     * Removes the door's blocks, then finds passages in the world again: the opening is now a doorway, so the zones
-     * beyond unlock, their spawners join in, and zombie pathing rebuilds over them.
+     * Removes the door's blocks and sends copies of them floating away ({@link DoorFlights}), then finds passages in the
+     * world again: the opening is now a doorway, so the zones beyond unlock, their spawners join in, and zombie pathing
+     * rebuilds over them. The doorway is open at once, while the copies are still rising.
      */
     public static void open(GameManager.Active active, DoorDef door, Optional<UUID> by) {
         ServerLevel level = active.level();
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
         for (BlockPos pos : door.members()) {
             BlockState state = level.getBlockState(pos);
+            blocks.put(pos, state);
             if (door.style() == DoorDef.Style.DEBRIS) {
                 level.levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK, pos, Block.getId(state));
             }
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), QUIET);
         }
+        DoorFlights.start(level, blocks);
         BlockPos center = door.members().iterator().next();
         level.playSound(null, center, door.style() == DoorDef.Style.DOOR ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.GRAVEL_BREAK,
                 SoundSource.BLOCKS, 1.0f, door.style() == DoorDef.Style.DOOR ? 0.8f : 1.0f);

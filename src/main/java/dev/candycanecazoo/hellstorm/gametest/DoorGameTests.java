@@ -1,6 +1,7 @@
 package dev.candycanecazoo.hellstorm.gametest;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.game.DoorFlights;
 import dev.candycanecazoo.hellstorm.game.Doors;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
@@ -14,17 +15,26 @@ import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.mob.path.FlowGraph;
 import dev.candycanecazoo.hellstorm.tools.LevelCellProbe;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
@@ -141,6 +151,152 @@ public final class DoorGameTests {
         } finally {
             GameManager.end(active);
         }
+        helper.succeed();
+    }
+
+    /**
+     * The two rooms of the first test, split by the wall at x = 4. The wall's blocks where {@code isDoor(z, dy)} holds are
+     * bricks, and they're the door.
+     */
+    private record Rooms(GameManager.Active active, ServerPlayer player, List<BlockPos> door) {
+        static Rooms build(GameTestHelper helper, String name, BiPredicate<Integer, Integer> isDoor) {
+            List<BlockPos> members = new ArrayList<>();
+            for (int z = 0; z <= 8; z++) {
+                for (int dy = 0; dy <= 3; dy++) {
+                    boolean door = isDoor.test(z, dy);
+                    helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), door ? Blocks.BRICKS : Blocks.STONE);
+                    if (door) {
+                        members.add(helper.absolutePos(new BlockPos(4, ROOM_Y + dy, z)));
+                    }
+                }
+            }
+            DoorDef door = DoorDef.empty(name, 300);
+            for (BlockPos pos : members) {
+                door = door.withMember(pos);
+            }
+            ZombiesMap map = ZombiesMap.EMPTY
+                    .withZone(new Zone(new ZoneId("gametest_" + name + "_west"),
+                            List.of(BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(3, ROOM_Y + 2, 8)))), true))
+                    .withZone(new Zone(new ZoneId("gametest_" + name + "_east"),
+                            List.of(BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)))), false))
+                    .withDoor(door);
+            Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
+            ServerPlayer player = PurchaseGameTests.player(helper, "pap_" + name + "_test");
+            BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
+            player.moveTo(stand.getCenter());
+            GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+                    id -> id.equals(player.getUUID()) ? player : null);
+            active.game().join(player.getUUID());
+            return new Rooms(active, player, members);
+        }
+
+        boolean open() {
+            return door.stream().allMatch(pos -> active.level().getBlockState(pos).isAir());
+        }
+
+        boolean bricked() {
+            return door.stream().allMatch(pos -> active.level().getBlockState(pos).is(Blocks.BRICKS));
+        }
+
+        /** Runs a check, ending the game if it fails so the next batch can register its own. */
+        void check(Runnable check) {
+            try {
+                check.run();
+            } catch (RuntimeException | AssertionError e) {
+                if (GameManager.get(active.level()).filter(a -> a == active).isPresent()) {
+                    GameManager.end(active);
+                }
+                throw e;
+            }
+        }
+
+        void later(GameTestHelper helper, long ticks, Runnable check) {
+            helper.runAfterDelay(ticks, () -> check(check));
+        }
+    }
+
+    private static List<Display.BlockDisplay> copies(GameTestHelper helper) {
+        return helper.getEntities(EntityType.BLOCK_DISPLAY, new BlockPos(4, ROOM_Y, 4), 8).stream().filter(DoorFlights::isCopy).toList();
+    }
+
+    private static Block shown(Display.BlockDisplay copy) {
+        CompoundTag tag = copy.saveWithoutId(new CompoundTag());
+        return NbtUtils.readBlockState(copy.level().holderLookup(Registries.BLOCK), tag.getCompound("block_state")).getBlock();
+    }
+
+    /**
+     * Buying a door clears the doorway at once and sends up a copy of each of its blocks, and the copies are all gone
+     * once the longest flight could be over.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight")
+    public static void aBoughtDoorsBlocksFloatAwayAsCopiesThatAreAllGoneAfterward(GameTestHelper helper) {
+        Rooms rooms = Rooms.build(helper, "flight", (z, dy) -> z == 4 && dy < 2);
+        rooms.check(() -> {
+            Doors.use(rooms.player(), rooms.door().get(0));
+            helper.assertTrue(rooms.open(), "the doorway should be clear the moment the door is bought");
+            List<Display.BlockDisplay> copies = copies(helper);
+            helper.assertTrue(copies.size() == 2, "expected a copy of each of the door's 2 blocks, got " + copies.size());
+            helper.assertTrue(copies.stream().allMatch(c -> shown(c) == Blocks.BRICKS), "the copies should show the door's bricks");
+        });
+        rooms.later(helper, DoorFlights.MAX_TICKS + 1, () -> {
+            helper.assertTrue(copies(helper).isEmpty(), "copies left after the flight: " + copies(helper).size());
+            helper.assertTrue(rooms.open(), "the doorway closed again");
+            GameManager.end(rooms.active());
+            helper.succeed();
+        });
+    }
+
+    /**
+     * A door the width of the wall goes as a wave: partway through, the first blocks are gone and the last still rising,
+     * and the whole door is gone within the longest flight any door can have.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight_wave")
+    public static void aWideDoorGoesInAWaveThatEndsInBoundedTime(GameTestHelper helper) {
+        Rooms rooms = Rooms.build(helper, "wave", (z, dy) -> dy < 3);
+        int blocks = rooms.door().size();
+        rooms.check(() -> {
+            Doors.use(rooms.player(), rooms.door().get(0));
+            helper.assertTrue(copies(helper).size() == blocks, "expected " + blocks + " copies, got " + copies(helper).size());
+        });
+        // The first block is removed at LAUNCH + RISE + LINGER (21 ticks), and this door's last about 12 ticks later.
+        rooms.later(helper, 27, () -> {
+            int left = copies(helper).size();
+            helper.assertTrue(left > 0 && left < blocks, "the door should be partway gone, " + left + " of " + blocks + " copies left");
+        });
+        rooms.later(helper, DoorFlights.MAX_TICKS + 1, () -> {
+            helper.assertTrue(copies(helper).isEmpty(), "copies left after the longest flight: " + copies(helper).size());
+            GameManager.end(rooms.active());
+            helper.succeed();
+        });
+    }
+
+    /** Ending the game while the door is still in the air bricks the doorway back up, and no copy is left in the world. */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight_reset")
+    public static void resettingMidFlightBricksTheDoorUpAndLeavesNoCopies(GameTestHelper helper) {
+        Rooms rooms = Rooms.build(helper, "reset", (z, dy) -> z == 4 && dy < 2);
+        rooms.check(() -> Doors.use(rooms.player(), rooms.door().get(0)));
+        rooms.later(helper, DoorFlights.LAUNCH_TICKS + 3, () -> {
+            helper.assertTrue(copies(helper).size() == 2, "the door should still be in the air, got " + copies(helper).size() + " copies");
+            GameManager.end(rooms.active());
+            helper.assertTrue(rooms.bricked(), "the reset should brick the doorway back up");
+            helper.assertTrue(copies(helper).isEmpty(), "the reset left " + copies(helper).size() + " copies");
+        });
+        helper.runAfterDelay(DoorFlights.MAX_TICKS + 1, () -> {
+            helper.assertTrue(rooms.bricked(), "the interrupted flight changed the bricked-up doorway");
+            helper.assertTrue(copies(helper).isEmpty(), "copies came back after the reset");
+            helper.succeed();
+        });
+    }
+
+    /** A copy saved with its chunk mid-flight is refused when the chunk loads again. Fresh copies and other displays are left alone. */
+    @GameTest(template = "floor", batch = "door_flight_disk")
+    public static void aCopySavedMidFlightIsRefusedWhenItLoads(GameTestHelper helper) {
+        Display.BlockDisplay copy = EntityType.BLOCK_DISPLAY.create(helper.getLevel());
+        copy.addTag(DoorFlights.TAG);
+        Display.BlockDisplay other = EntityType.BLOCK_DISPLAY.create(helper.getLevel());
+        helper.assertTrue(MinecraftForge.EVENT_BUS.post(new EntityJoinLevelEvent(copy, helper.getLevel(), true)), "a copy loaded from disk was kept");
+        helper.assertFalse(MinecraftForge.EVENT_BUS.post(new EntityJoinLevelEvent(copy, helper.getLevel(), false)), "a fresh copy was refused");
+        helper.assertFalse(MinecraftForge.EVENT_BUS.post(new EntityJoinLevelEvent(other, helper.getLevel(), true)), "a map's own block display was refused");
         helper.succeed();
     }
 }
