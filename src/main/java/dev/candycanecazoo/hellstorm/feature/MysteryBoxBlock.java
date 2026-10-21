@@ -42,7 +42,7 @@ import java.util.UUID;
 
 /**
  * One place the Mystery Crate can be. {@code ACTIVE} marks the location the box is at this game (every location during a
- * Black Friday); the others are empty crates. The game-wide rules (where the box is, moving, pools) live in {@link MysteryBoxes}.
+ * Fire Sale); the others are empty crates. The game-wide rules (where the box is, moving, pools) live in {@link MysteryBoxes}.
  */
 public final class MysteryBoxBlock extends Block implements EntityBlock, FeatureBlock {
     public static final BooleanProperty ACTIVE = BooleanProperty.create("active");

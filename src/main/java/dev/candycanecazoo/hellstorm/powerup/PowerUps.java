@@ -60,15 +60,15 @@ public final class PowerUps {
         def.effect().timer().ifPresent(timer -> game.game().startTimed(timer, def.name(), def.durationTicks()));
         switch (def.effect()) {
             case MAX_AMMO -> players(game).forEach(PowerUps::refillEveryGun);
-            case BLACK_FRIDAY -> MysteryBoxes.setBlackFriday(game, true);
-            case FAT_MAN -> {
+            case FIRE_SALE -> MysteryBoxes.setFireSale(game, true);
+            case FISSION -> {
                 // Killed by nobody: no points per zombie and no drops, only the bonus.
                 for (UUID mob : game.game().mobs()) {
                     if (game.level().getEntity(mob) instanceof LivingEntity living) {
                         living.kill();
                     }
                 }
-                game.game().awardEveryone(settings.fatManBonus());
+                game.game().awardEveryone(settings.fissionBonus());
             }
             case PAX_ROMANA -> {
                 for (WindowDef window : game.game().map().map().windows().values()) {
@@ -81,10 +81,10 @@ public final class PowerUps {
         }
     }
 
-    /** A timed effect ran out. Only Black Friday changed the world. */
+    /** A timed effect ran out. Only Fire Sale changed the world. */
     public static void ended(GameManager.Active game, ResourceLocation effect) {
-        if (effect.equals(TimedEffects.BLACK_FRIDAY)) {
-            MysteryBoxes.setBlackFriday(game, false);
+        if (effect.equals(TimedEffects.FIRE_SALE)) {
+            MysteryBoxes.setFireSale(game, false);
         }
     }
 

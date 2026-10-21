@@ -49,7 +49,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue reconnectGraceTicks;
     private final ForgeConfigSpec.IntValue doorDefaultCost;
     private final ForgeConfigSpec.IntValue boxCost;
-    private final ForgeConfigSpec.IntValue boxBlackFridayCost;
+    private final ForgeConfigSpec.IntValue boxFireSaleCost;
     private final ForgeConfigSpec.IntValue boxRollTicks;
     private final ForgeConfigSpec.IntValue boxCollectTicks;
     private final ForgeConfigSpec.IntValue boxMinUses;
@@ -71,7 +71,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue maxPowerUpsPerRound;
     private final ForgeConfigSpec.IntValue powerUpLifetimeTicks;
     private final ForgeConfigSpec.IntValue powerUpBlinkTicks;
-    private final ForgeConfigSpec.IntValue fatManBonus;
+    private final ForgeConfigSpec.IntValue fissionBonus;
     private final ForgeConfigSpec.IntValue paxRomanaBonus;
     private final ForgeConfigSpec.IntValue trapDefaultCost;
     private final ForgeConfigSpec.IntValue trapDefaultActiveTicks;
@@ -149,7 +149,7 @@ public final class GameSettingsConfig {
         b.pop();
         b.push("box");
         boxCost = b.defineInRange("cost", d.box().cost(), 0, 1_000_000);
-        boxBlackFridayCost = b.comment("What a roll costs during a Black Friday.").defineInRange("black_friday_cost", d.box().blackFridayCost(), 0, 1_000_000);
+        boxFireSaleCost = b.comment("What a roll costs during a Fire Sale.").defineInRange("fire_sale_cost", d.box().fireSaleCost(), 0, 1_000_000);
         boxRollTicks = b.comment("How long the box cycles items before showing the result.").defineInRange("roll_ticks", d.box().rollTicks(), 1, 1200);
         boxCollectTicks = b.comment("How long the roller has to take the result.").defineInRange("collect_ticks", d.box().collectTicks(), 1, 12000);
         boxMinUses = b.comment("Rolls at one location before the box can move.").defineInRange("min_uses_before_move", d.box().minUsesBeforeMove(), 0, 1000);
@@ -178,7 +178,7 @@ public final class GameSettingsConfig {
         maxPowerUpsPerRound = b.defineInRange("max_per_round", d.powerUps().maxPerRound(), 0, 100);
         powerUpLifetimeTicks = b.comment("How long a dropped power-up waits to be picked up.").defineInRange("lifetime_ticks", d.powerUps().lifetimeTicks(), 20, 12000);
         powerUpBlinkTicks = b.comment("It blinks for this long before it disappears.").defineInRange("blink_ticks", d.powerUps().blinkTicks(), 0, 12000);
-        fatManBonus = b.comment("Points each player gets from a Fat Man.").defineInRange("fat_man_bonus", d.powerUps().fatManBonus(), 0, 1_000_000);
+        fissionBonus = b.comment("Points each player gets from a Fission.").defineInRange("fission_bonus", d.powerUps().fissionBonus(), 0, 1_000_000);
         paxRomanaBonus = b.comment("Points each player gets from a Pax Romana.").defineInRange("pax_romana_bonus", d.powerUps().paxRomanaBonus(), 0, 1_000_000);
         dropIncrement = b.comment("CoD's points-triggered drops: the next kill drops a power-up once the team has earned this many points since the last one.")
                 .defineInRange("drop_increment", d.powerUps().dropIncrement(), 1, Integer.MAX_VALUE);
@@ -233,14 +233,14 @@ public final class GameSettingsConfig {
                         r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks)),
                 new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),
                 new GameSettings.Doors(r.read(doorDefaultCost)),
-                new GameSettings.Box(r.read(boxCost), r.read(boxBlackFridayCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),
+                new GameSettings.Box(r.read(boxCost), r.read(boxFireSaleCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),
                         r.read(boxMoveChance)),
                 new GameSettings.Pap(r.read(papDefaultCost), r.read(papProcessTicks), r.read(papCollectTicks), r.read(papMaxTier), r.read(papDamage),
                         r.read(papMagazine), r.read(papRpm)),
                 new GameSettings.Downs(r.read(bleedOutTicks), r.read(reviveTicks), r.read(reviveRange), r.read(soloSelfRevives),
                         r.read(regenDelayTicks), r.read(regenPerSecond)),
                 new GameSettings.PowerUps(r.read(dropChance), r.read(maxPowerUpsPerRound), r.read(powerUpLifetimeTicks), r.read(powerUpBlinkTicks),
-                        r.read(fatManBonus), r.read(paxRomanaBonus), r.read(dropIncrement), r.read(dropIncrementGrowth)),
+                        r.read(fissionBonus), r.read(paxRomanaBonus), r.read(dropIncrement), r.read(dropIncrementGrowth)),
                 new GameSettings.Traps(r.read(trapDefaultCost), r.read(trapDefaultActiveTicks), r.read(trapDefaultCooldownTicks)),
                 new GameSettings.WaveEvents(r.read(waveEventsEnabled), ids(r.read(waveEventsDisabled))));
     }

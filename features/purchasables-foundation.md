@@ -17,7 +17,7 @@ Every machine and door is bought the same way, so each feature only writes what 
 - **`Refusal`** (`game/`): `NotPlaying`, `NotEnoughPoints(cost, points)`, `NeedsPower`, `Because(message)`.
 - **`Shop.Sale`** (`game/`): `cost()`, `needsPower()`, `check(game, player)` (feature rules, before charging), `deliver(game, player)` (a refusal here refunds).
 - **`ItemSpec`** (`data/`): `Plain(item, count, nbt)` or `Gun(tacz_gun, unlimited_ammo, punchable = true)`. `build(reserveMagazines)`, `matches(stack)`, `describe()`. Constants `PAP`, `PUNCHABLE`, `PUNCH_ID` name the `pap` NBT compound.
-- **Settings** (`GameSettings`): `players.weapon_slots` (2), `players.perk_limit` (4), `doors.default_cost` (750), `box.*` (cost 950, Black Friday 10, roll 80 ticks, collect 240, moves after 4 uses at 0.15 per roll), `pap.*` (cost 5000, process 60, collect 240, max tier 1, damage x2.0, magazine x1.5, rpm x1.2 per tier).
+- **Settings** (`GameSettings`): `players.weapon_slots` (2), `players.perk_limit` (4), `doors.default_cost` (750), `box.*` (cost 950, Fire Sale 10, roll 80 ticks, collect 240, moves after 4 uses at 0.15 per roll), `pap.*` (cost 5000, process 60, collect 240, max tier 1, damage x2.0, magazine x1.5, rpm x1.2 per tier).
 - **`hellstorm:extra_weapon_slots`** (a player attribute): extra gun slots, from the Off-Hand effect.
 
 ## Implementation

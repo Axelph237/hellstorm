@@ -150,7 +150,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 ## Package layout (`src/main/java/<group>/hellstorm/`)
 
 - `config/` holds `GameSettings` (a record with a codec), the `ServerConfig` spec, and the override resolver.
-- `data/` holds the reload listeners and codecs for `ItemSpec`, `PunchDef`, `MobProfile`, `PowerUpDef`, `WaveEventDef`, `BoxPool`, and `WeaponTier`. `PunchResolver` and `PunchAudit` live here too. Power-up effects use codec dispatch into a small registry of effect types: `max_ammo`, `insta_kill`, `fat_man`, and so on. Perks are mob effects (see `perk-machines.md`).
+- `data/` holds the reload listeners and codecs for `ItemSpec`, `PunchDef`, `MobProfile`, `PowerUpDef`, `WaveEventDef`, `BoxPool`, and `WeaponTier`. `PunchResolver` and `PunchAudit` live here too. Power-up effects use codec dispatch into a small registry of effect types: `max_ammo`, `insta_kill`, `fission`, and so on. Perks are mob effects (see `perk-machines.md`).
 - `map/` holds `ZombiesMap`, `Zone`, `Door`, `Window`, `SpawnPoint`, `MapSavedData`, `ZoneIndex` (a spatial lookup from chunk section to zone), `MapCompiler` (feature index to compiled map), and `MapValidator`. The validator checks that every zone is reachable from the start, that power and PaP are reachable, that every zone has a spawn point, and that every door links two zones.
 - `game/` holds `GameManager` (one game per map level), the `Game` state machine, `RoundPlan`, `Economy`, `SpawnDirector`, `DownedSystem`, `PowerUpSystem`, `WaveEventRunner`, and the inventory snapshot and restore logic.
 - `mob/` holds the `GameMob` capability, `AiInjector`, the goals, and the health and spawn-count formulas.
@@ -179,7 +179,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
   - `deny` refuses the sale.
 
   The weapon-slot limit (2, or 3 with Off-Hand) counts TacZ guns only. When the slots are full, buying a new gun replaces the held one.
-- **Mystery Crate.** A weighted `BoxPool` of `ItemSpec`s. By default it holds every TacZ gun index entry minus the wall-buys, with per-entry overrides. The box relocates after a configurable number of uses, and Black Friday lowers its cost.
+- **Mystery Crate.** A weighted `BoxPool` of `ItemSpec`s. By default it holds every TacZ gun index entry minus the wall-buys, with per-entry overrides. The box relocates after a configurable number of uses, and Fire Sale lowers its cost.
 - **Perks.** Perks are potion effects. A perk machine is a wall-buy that sells the potion. Perks need power by default, have a perk limit, and are lost on down with every other buff.
 - **Pack-a-Punch.** Any item can be punched if it carries the right NBT, and the machine needs power to run. The tag is a `pap` compound with two keys:
   - `punchable` is a boolean.
@@ -198,7 +198,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
   **Load-time errors.** The last two `Rejected` cases are also caught early. On server start, after `/reload`, and in `MapValidator` before a game starts, a `PunchAudit` scans every item source the mod controls: wall-buy BlockEntities (through the feature index), box pools, the starting loadout, and every `PunchDef` result. Each bad item gets an ERROR log line with its source and position, a chat message to ops when they join, and an entry in `/hs map validate`. Items brought in from outside these sources (from chests or other mods) can't be scanned. The machine still rejects them safely at punch time.
 - **Downs and revives.** Lethal damage while the player has lives puts them in `Downed` instead of killing them. They crawl, can use a pistol only, and zombies ignore them. A teammate holds use for N seconds to revive (Saint's Brew shortens it), and solo Saint's Brew self-revives up to 3 times. A player who bleeds out spectates and respawns next round. Food is held at 17 to disable vanilla regen, and custom CoD-style regen replaces it.
-- **Power-ups.** These are floating entities dropped on kills, with a chance roll and a per-round cap. The types are Max Ammo, Insta-Kill, Double Points, Fat Man, Pax Romana (resets barricades), and Black Friday.
+- **Power-ups.** These are floating entities dropped on kills, with a chance roll and a per-round cap. The types are Max Ammo, Insta-Kill, Double Points, Fission, Pax Romana (resets barricades), and Fire Sale.
 - **Power switch and traps.** Power is a map-level flag. A trap controller is a purchasable block that outputs a redstone signal for N ticks and then cools down. What the trap does is built by the map maker with redstone.
 - **Wave events.** These are `WaveEventDef`s with a trigger (round interval, specific round, or chance) and effects: a mob profile override (hellhound-style special rounds), spawn-rate multipliers, fog, and a guaranteed Max Ammo on the last kill.
 - **Session handling.** Joining snapshots and clears the inventory, then gives the starting pistol and knife (gun id configurable). Leaving restores the snapshot. Late joiners spectate until the next round. A disconnect drops the player's state after a timeout.

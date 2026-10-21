@@ -33,7 +33,7 @@ import java.util.WeakHashMap;
 
 /**
  * The Mystery Crate across a game: which location it is at, how many rolls since it last moved, each pool built for the
- * game, and Black Friday. The box is placed when a game is registered and put away by {@code MapReset}.
+ * game, and Fire Sale. The box is placed when a game is registered and put away by {@code MapReset}.
  */
 public final class MysteryBoxes {
     /** The machine's name, from the lang file so a resource pack can rename it. */
@@ -44,7 +44,7 @@ public final class MysteryBoxes {
     private static final class State {
         Optional<BlockPos> home = Optional.empty();
         int usesSinceMove;
-        boolean blackFriday;
+        boolean fireSale;
         final Map<ResourceLocation, List<BoxPool.Weighted>> pools = new HashMap<>();
     }
 
@@ -79,17 +79,17 @@ public final class MysteryBoxes {
         }
     }
 
-    public static boolean blackFriday(GameManager.Active game) {
-        return state(game).blackFriday;
+    public static boolean fireSale(GameManager.Active game) {
+        return state(game).fireSale;
     }
 
     /**
-     * Black Friday (from the power-up, later): every location opens at {@code box.black_friday_cost}. When it ends, locations
+     * Fire Sale (from the power-up, later): every location opens at {@code box.fire_sale_cost}. When it ends, locations
      * other than the box's own close as soon as they are idle.
      */
-    public static void setBlackFriday(GameManager.Active game, boolean on) {
+    public static void setFireSale(GameManager.Active game, boolean on) {
         State state = state(game);
-        state.blackFriday = on;
+        state.fireSale = on;
         for (BlockPos pos : locations(game)) {
             boolean home = state.home.equals(Optional.of(pos));
             if (on || home) {
@@ -104,7 +104,7 @@ public final class MysteryBoxes {
     /** What a roll at this box costs now. */
     public static int price(GameManager.Active game, MysteryBoxBlock.Entity box) {
         GameSettings.Box settings = game.game().settings().box();
-        return state(game).blackFriday ? settings.blackFridayCost() : box.config().cost().orElse(settings.cost());
+        return state(game).fireSale ? settings.fireSaleCost() : box.config().cost().orElse(settings.cost());
     }
 
     public static void refreshPrice(GameManager.Active game, MysteryBoxBlock.Entity box) {
@@ -160,7 +160,7 @@ public final class MysteryBoxes {
     static void finishRoll(GameManager.Active game, MysteryBoxBlock.Entity box) {
         State state = state(game);
         GameSettings.Box settings = game.game().settings().box();
-        boolean canMove = !state.blackFriday && state.home.equals(Optional.of(box.getBlockPos())) && locations(game).size() > 1;
+        boolean canMove = !state.fireSale && state.home.equals(Optional.of(box.getBlockPos())) && locations(game).size() > 1;
         finishRoll(game, box, canMove && shouldMove(state.usesSinceMove, settings.minUsesBeforeMove(), settings.moveChance(),
                 game.level().getRandom().nextDouble()));
     }
@@ -211,10 +211,10 @@ public final class MysteryBoxes {
         afterUse(game, box);
     }
 
-    /** A Black Friday location closes once it's done if the Black Friday is over. */
+    /** A Fire Sale location closes once it's done if the Fire Sale is over. */
     static void afterUse(GameManager.Active game, MysteryBoxBlock.Entity box) {
         State state = state(game);
-        if (!state.blackFriday && !state.home.equals(Optional.of(box.getBlockPos()))) {
+        if (!state.fireSale && !state.home.equals(Optional.of(box.getBlockPos()))) {
             setActive(game.level(), box.getBlockPos(), false);
         }
     }

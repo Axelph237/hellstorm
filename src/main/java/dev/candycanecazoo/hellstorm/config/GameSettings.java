@@ -103,10 +103,10 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     }
 
     /** The Mystery Crate. It moves after at least {@code minUsesBeforeMove} rolls, with {@code moveChance} per roll after that. */
-    public record Box(int cost, int blackFridayCost, int rollTicks, int collectTicks, int minUsesBeforeMove, double moveChance) {
+    public record Box(int cost, int fireSaleCost, int rollTicks, int collectTicks, int minUsesBeforeMove, double moveChance) {
         public static final Codec<Box> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("cost").forGetter(Box::cost),
-                Codec.INT.fieldOf("black_friday_cost").forGetter(Box::blackFridayCost),
+                Codec.INT.fieldOf("fire_sale_cost").forGetter(Box::fireSaleCost),
                 Codec.INT.fieldOf("roll_ticks").forGetter(Box::rollTicks),
                 Codec.INT.fieldOf("collect_ticks").forGetter(Box::collectTicks),
                 Codec.INT.fieldOf("min_uses_before_move").forGetter(Box::minUsesBeforeMove),
@@ -151,14 +151,14 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
      * many points since the last such drop, the next kill drops a power-up, and the next threshold is that much further
      * on, times the growth.
      */
-    public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int fatManBonus, int paxRomanaBonus,
+    public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int fissionBonus, int paxRomanaBonus,
                            int dropIncrement, double dropIncrementGrowth) {
         public static final Codec<PowerUps> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.fieldOf("drop_chance").forGetter(PowerUps::dropChance),
                 Codec.INT.fieldOf("max_per_round").forGetter(PowerUps::maxPerRound),
                 Codec.INT.fieldOf("lifetime_ticks").forGetter(PowerUps::lifetimeTicks),
                 Codec.INT.fieldOf("blink_ticks").forGetter(PowerUps::blinkTicks),
-                Codec.INT.fieldOf("fat_man_bonus").forGetter(PowerUps::fatManBonus),
+                Codec.INT.fieldOf("fission_bonus").forGetter(PowerUps::fissionBonus),
                 Codec.INT.fieldOf("pax_romana_bonus").forGetter(PowerUps::paxRomanaBonus),
                 Codec.INT.fieldOf("drop_increment").forGetter(PowerUps::dropIncrement),
                 Codec.DOUBLE.fieldOf("drop_increment_growth").forGetter(PowerUps::dropIncrementGrowth)

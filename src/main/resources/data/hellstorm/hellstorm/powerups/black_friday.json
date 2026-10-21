@@ -1,7 +1,0 @@
-{
-  "name": "powerup.hellstorm.black_friday",
-  "weight": 4,
-  "duration_ticks": 600,
-  "item": "minecraft:emerald",
-  "effect": { "type": "black_friday" }
-}

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Power-up drops and Double Points in the game loop, against a fake world. */
 class PowerUpGameTest {
-    private static final ResourceLocation FAT_MAN = ResourceLocation.tryBuild("hellstorm", "fat_man");
+    private static final ResourceLocation FISSION = ResourceLocation.tryBuild("hellstorm", "fission");
     private static final MobRoster ROSTER = new MobRoster(List.of(new MobRoster.Entry(ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty())));
 
     private FakeWorld world;
@@ -49,7 +49,7 @@ class PowerUpGameTest {
         GameEvents events = new GameEvents();
         events.subscribe(seen::add);
         Game game = new Game(settings, GameMap.of(map, Set.of()), ROSTER, RandomSource.create(7), events,
-                new SurvivalContent(new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(FAT_MAN, 1))), java.util.Map.of()));
+                new SurvivalContent(new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(FISSION, 1))), java.util.Map.of()));
         assertTrue(game.join(alice));
         assertTrue(game.start());
         tick(game, 30);
@@ -81,9 +81,9 @@ class PowerUpGameTest {
         game.onMobDied(mobs.get(2), Optional.of(alice), false, false, new BlockPos(3, 0, 3));
         game.onMobDied(mobs.get(3), Optional.of(alice), false, false, new BlockPos(4, 0, 4));
         tick(game, 1);
-        assertEquals(List.of(FAT_MAN, FAT_MAN), world.drops, "a kill nobody made drops nothing, and the cap stops the third");
+        assertEquals(List.of(FISSION, FISSION), world.drops, "a kill nobody made drops nothing, and the cap stops the third");
         assertEquals(2, seen.stream().filter(e -> e instanceof GameEvent.PowerUpSpawned).count());
-        assertTrue(seen.contains(new GameEvent.PowerUpSpawned(FAT_MAN, new BlockPos(2, 0, 2))));
+        assertTrue(seen.contains(new GameEvent.PowerUpSpawned(FISSION, new BlockPos(2, 0, 2))));
 
         tick(game, 10);
         assertEquals(2, ((GamePhase.RoundActive) game.phase()).round());
@@ -133,13 +133,13 @@ class PowerUpGameTest {
     @Test
     void collectingCountsOnlyForAlivePlayersAndBonusesGoToEveryone() {
         Game game = game(settings(0.0, 4));
-        assertTrue(game.collectPowerUp(FAT_MAN, alice));
-        assertTrue(seen.contains(new GameEvent.PowerUpCollected(FAT_MAN, alice)));
-        assertFalse(game.collectPowerUp(FAT_MAN, UUID.randomUUID()), "someone not in the game");
+        assertTrue(game.collectPowerUp(FISSION, alice));
+        assertTrue(seen.contains(new GameEvent.PowerUpCollected(FISSION, alice)));
+        assertFalse(game.collectPowerUp(FISSION, UUID.randomUUID()), "someone not in the game");
         int start = game.player(alice).orElseThrow().points();
         game.awardEveryone(400);
         assertEquals(start + 400, game.player(alice).orElseThrow().points());
         game.stop(world);
-        assertFalse(game.collectPowerUp(FAT_MAN, alice), "nothing counts once the game is over");
+        assertFalse(game.collectPowerUp(FISSION, alice), "nothing counts once the game is over");
     }
 }

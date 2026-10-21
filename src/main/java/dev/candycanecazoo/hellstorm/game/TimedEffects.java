@@ -7,7 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 public final class TimedEffects {
     public static final ResourceLocation INSTA_KILL = Hellstorm.id("insta_kill");
     public static final ResourceLocation DOUBLE_POINTS = Hellstorm.id("double_points");
-    public static final ResourceLocation BLACK_FRIDAY = Hellstorm.id("black_friday");
+    public static final ResourceLocation FIRE_SALE = Hellstorm.id("fire_sale");
 
     private TimedEffects() {}
 }

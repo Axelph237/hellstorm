@@ -13,8 +13,8 @@ import java.util.Optional;
  * {@link TimedEffects} id, so two power-ups with the same effect share one timer; the rest happen at once.
  */
 public enum PowerUpEffect implements StringRepresentable {
-    MAX_AMMO(null), INSTA_KILL(TimedEffects.INSTA_KILL), DOUBLE_POINTS(TimedEffects.DOUBLE_POINTS), FAT_MAN(null), PAX_ROMANA(null),
-    BLACK_FRIDAY(TimedEffects.BLACK_FRIDAY);
+    MAX_AMMO(null), INSTA_KILL(TimedEffects.INSTA_KILL), DOUBLE_POINTS(TimedEffects.DOUBLE_POINTS), FISSION(null), PAX_ROMANA(null),
+    FIRE_SALE(TimedEffects.FIRE_SALE);
 
     private static final Codec<PowerUpEffect> TYPE = StringRepresentable.fromEnum(PowerUpEffect::values);
 

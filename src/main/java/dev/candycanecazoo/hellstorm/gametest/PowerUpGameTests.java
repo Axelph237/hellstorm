@@ -166,43 +166,43 @@ public final class PowerUpGameTests {
         helper.succeed();
     }
 
-    /** Black Friday opens every box location at the Black Friday price, and closes them again when its timer runs out. */
-    @GameTest(template = "floor", timeoutTicks = 600, batch = "powerup_black_friday")
-    public static void blackFridayLowersTheBoxCostUntilItRunsOut(GameTestHelper helper) {
+    /** Fire Sale opens every box location at the Fire Sale price, and closes them again when its timer runs out. */
+    @GameTest(template = "floor", timeoutTicks = 600, batch = "powerup_fire_sale")
+    public static void fireSaleLowersTheBoxCostUntilItRunsOut(GameTestHelper helper) {
         List<BlockPos> boxes = new ArrayList<>();
         for (int x : new int[] {2, 6}) {
             BlockPos at = helper.absolutePos(new BlockPos(x, ROOM_Y, 2));
             helper.getLevel().setBlockAndUpdate(at, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
             boxes.add(at);
         }
-        ServerPlayer player = player(helper, "pap_powerup_black_friday");
+        ServerPlayer player = player(helper, "pap_powerup_fire_sale");
         GameManager.Active active = PurchaseGameTests.game(helper, player, boxes.toArray(BlockPos[]::new));
         active.game().start();
-        int blackFridayCost = active.game().settings().box().blackFridayCost();
+        int fireSaleCost = active.game().settings().box().fireSaleCost();
         boolean[] started = {false};
         helper.onEachTick(() -> {
             if (!started[0] && active.game().phase() instanceof GamePhase.RoundActive) {
                 started[0] = true;
-                PowerUpDef blackFriday = PowerUpDefs.get(id("black_friday")).orElseThrow();
-                helper.assertTrue(blackFriday.effect() == PowerUpEffect.BLACK_FRIDAY, "the default black_friday is a Black Friday");
+                PowerUpDef fireSale = PowerUpDefs.get(id("fire_sale")).orElseThrow();
+                helper.assertTrue(fireSale.effect() == PowerUpEffect.FIRE_SALE, "the default fire_sale is a Fire Sale");
                 // A short timer, so the test sees it run out.
-                PowerUps.apply(active, new PowerUpDef(blackFriday.name(), blackFriday.weight(), 20, blackFriday.item(), blackFriday.effect()));
+                PowerUps.apply(active, new PowerUpDef(fireSale.name(), fireSale.weight(), 20, fireSale.item(), fireSale.effect()));
                 for (BlockPos box : boxes) {
                     MysteryBoxBlock.Entity entity = (MysteryBoxBlock.Entity) helper.getLevel().getBlockEntity(box);
-                    if (!helper.getLevel().getBlockState(box).getValue(MysteryBoxBlock.ACTIVE) || entity.price() != blackFridayCost) {
+                    if (!helper.getLevel().getBlockState(box).getValue(MysteryBoxBlock.ACTIVE) || entity.price() != fireSaleCost) {
                         GameManager.end(active);
-                        helper.fail("box at " + box + " isn't open at the Black Friday price " + blackFridayCost + " (price " + entity.price() + ")");
+                        helper.fail("box at " + box + " isn't open at the Fire Sale price " + fireSaleCost + " (price " + entity.price() + ")");
                     }
                 }
             }
         });
         helper.succeedWhen(() -> {
             helper.assertTrue(started[0], "the round hasn't started");
-            helper.assertFalse(active.game().timedActive(TimedEffects.BLACK_FRIDAY), "the Black Friday is still running");
-            helper.assertFalse(MysteryBoxes.blackFriday(active), "the box still thinks there's a Black Friday");
+            helper.assertFalse(active.game().timedActive(TimedEffects.FIRE_SALE), "the Fire Sale is still running");
+            helper.assertFalse(MysteryBoxes.fireSale(active), "the box still thinks there's a Fire Sale");
             long open = boxes.stream().filter(b -> helper.getLevel().getBlockState(b).getValue(MysteryBoxBlock.ACTIVE)).count();
             GameManager.end(active);
-            helper.assertTrue(open == 1, "after the Black Friday only the home location should be open, " + open + " are");
+            helper.assertTrue(open == 1, "after the Fire Sale only the home location should be open, " + open + " are");
         });
     }
 
@@ -227,25 +227,25 @@ public final class PowerUpGameTests {
         });
     }
 
-    @GameTest(template = "floor", timeoutTicks = 600, batch = "powerup_fat_man")
-    public static void fatManKillsEveryZombieForTheBonusOnly(GameTestHelper helper) {
-        ServerPlayer player = player(helper, "pap_powerup_fat_man");
+    @GameTest(template = "floor", timeoutTicks = 600, batch = "powerup_fission")
+    public static void fissionKillsEveryZombieForTheBonusOnly(GameTestHelper helper) {
+        ServerPlayer player = player(helper, "pap_powerup_fission");
         GameManager.Active active = fightingGame(helper, player);
         List<GameEvent> events = new ArrayList<>();
         active.game().events().subscribe(events::add);
         helper.succeedWhen(() -> {
             helper.assertTrue(zombies(helper).size() >= 2, "waiting for two game zombies, have " + zombies(helper).size());
             int before = points(active, player);
-            boolean collected = collect(active, player, "fat_man");
+            boolean collected = collect(active, player, "fission");
             int left = zombies(helper).size();
             int tracked = active.game().mobs().size();
             int earned = points(active, player) - before;
-            int bonus = active.game().settings().powerUps().fatManBonus();
+            int bonus = active.game().settings().powerUps().fissionBonus();
             long kills = events.stream().filter(e -> e instanceof GameEvent.ZombieKilled k && k.killer().isEmpty()).count();
             GameManager.end(active);
-            helper.assertTrue(collected, "Fat Man wasn't collected");
+            helper.assertTrue(collected, "Fission wasn't collected");
             helper.assertTrue(left == 0 && tracked == 0, left + " zombies still standing, " + tracked + " still tracked");
-            helper.assertTrue(earned == bonus, "a Fat Man paid " + earned + ", expected only the " + bonus + " bonus");
+            helper.assertTrue(earned == bonus, "a Fission paid " + earned + ", expected only the " + bonus + " bonus");
             helper.assertTrue(kills >= 2, "the zombies should die as kills nobody made, saw " + kills);
         });
     }

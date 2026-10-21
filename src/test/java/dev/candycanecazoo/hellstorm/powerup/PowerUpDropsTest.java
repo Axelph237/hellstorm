@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PowerUpDropsTest {
-    private static final ResourceLocation FAT_MAN = ResourceLocation.tryBuild("hellstorm", "fat_man");
+    private static final ResourceLocation FISSION = ResourceLocation.tryBuild("hellstorm", "fission");
     private static final ResourceLocation MAX_AMMO = ResourceLocation.tryBuild("hellstorm", "max_ammo");
-    private static final PowerUpDrops.Table TABLE = new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(FAT_MAN, 1), new PowerUpDrops.Entry(MAX_AMMO, 3)));
+    private static final PowerUpDrops.Table TABLE = new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(FISSION, 1), new PowerUpDrops.Entry(MAX_AMMO, 3)));
 
     private static GameSettings.PowerUps chance(double chance, int cap) {
         return new GameSettings.PowerUps(chance, cap, 600, 100, 400, 200, Integer.MAX_VALUE, 1.0);
@@ -46,7 +46,7 @@ class PowerUpDropsTest {
 
     @Test
     void zeroWeightNeverDropsAtRandom() {
-        PowerUpDrops.Table onlyForced = new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(FAT_MAN, 0)));
+        PowerUpDrops.Table onlyForced = new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(FISSION, 0)));
         assertEquals(Optional.empty(), PowerUpDrops.roll(chance(1.0, 10), 0, false, onlyForced, RandomSource.create(3)));
         assertEquals(Optional.empty(), PowerUpDrops.roll(chance(1.0, 10), 0, false, PowerUpDrops.Table.EMPTY, RandomSource.create(3)));
     }

@@ -239,11 +239,11 @@ class GameTest {
     @Test
     void gameOverEndsRunningTimedEffects() {
         Game game = startedGame();
-        net.minecraft.resources.ResourceLocation blackFriday = net.minecraft.resources.ResourceLocation.tryBuild("hellstorm", "black_friday");
-        game.startTimed(blackFriday, "powerup.hellstorm.black_friday", 600);
+        net.minecraft.resources.ResourceLocation fireSale = net.minecraft.resources.ResourceLocation.tryBuild("hellstorm", "fire_sale");
+        game.startTimed(fireSale, "powerup.hellstorm.fire_sale", 600);
         game.stop(world);
-        assertFalse(game.timedActive(blackFriday));
-        assertEquals(List.of(blackFriday), world.timedEnded);
+        assertFalse(game.timedActive(fireSale));
+        assertEquals(List.of(fireSale), world.timedEnded);
     }
 
     @Test

@@ -1,6 +1,0 @@
-{
-  "name": "powerup.hellstorm.fat_man",
-  "weight": 6,
-  "item": "minecraft:tnt",
-  "effect": { "type": "fat_man" }
-}

@@ -152,10 +152,10 @@ public final class MysteryBoxGameTests {
             FeatureBlock.use(roller, home);
             assertPoints(helper, active, roller, before, "the old location can't be rolled");
 
-            MysteryBoxes.setBlackFriday(active, true);
-            helper.assertTrue(locations.stream().allMatch(pos -> active(helper, pos)), "a Black Friday opens every location");
-            helper.assertTrue(entity(helper, home).price() == active.game().settings().box().blackFridayCost(), "at the Black Friday price");
-            MysteryBoxes.setBlackFriday(active, false);
+            MysteryBoxes.setFireSale(active, true);
+            helper.assertTrue(locations.stream().allMatch(pos -> active(helper, pos)), "a Fire Sale opens every location");
+            helper.assertTrue(entity(helper, home).price() == active.game().settings().box().fireSaleCost(), "at the Fire Sale price");
+            MysteryBoxes.setFireSale(active, false);
             helper.assertTrue(locations.stream().filter(pos -> active(helper, pos)).toList().equals(List.of(to)), "only the home stays open after it");
         } finally {
             GameManager.end(active);
