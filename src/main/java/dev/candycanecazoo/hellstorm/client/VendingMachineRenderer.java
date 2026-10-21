@@ -29,7 +29,7 @@ import software.bernie.geckolib.renderer.GeoBlockRenderer;
 /**
  * The vending machine's GeckoLib model, front on its -z side, lit or unlit, and what it sells on its shelves. The lit
  * texture is a strip of frames played at {@link #LIT_FPS}; while the machine lights up or goes dark, the lit model is
- * faded in over the unlit one. The window's glass is see-through, so it is drawn last, over the shelves.
+ * faded in over the unlit one. The window's glass is see-through, so it is drawn last, without hiding the stock behind it.
  */
 public final class VendingMachineRenderer implements BlockEntityRenderer<VendingMachineBlock.Entity> {
     private static final ResourceLocation UNLIT = Hellstorm.id("textures/block/" + VendingMachineBlock.MODEL + ".png");
@@ -155,12 +155,12 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
             pose.popPose();
         }
 
-        /** The glass held back this frame, see-through, over everything behind it. */
+        /** The glass held back this frame, see-through, over the machine behind it. */
         void glass(MultiBufferSource buffers, int light, int overlay) {
             if (glass == null) {
                 return;
             }
-            VertexConsumer buffer = buffers.getBuffer(RenderType.entityTranslucent(texture));
+            VertexConsumer buffer = buffers.getBuffer(SeeThrough.of(texture));
             PoseStack at = glass.stack();
             for (GeoCube cube : glass.bone().getCubes()) {
                 at.pushPose();

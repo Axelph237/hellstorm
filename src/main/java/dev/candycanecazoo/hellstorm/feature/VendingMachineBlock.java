@@ -70,9 +70,12 @@ public final class VendingMachineBlock extends TwoBlockMachine {
     public static final Vec3 MODEL_OFFSET = new Vec3(4, 0, 0);
     /** Its item moves the model the other way, so the model's middle is the item's. */
     public static final Vec3 ITEM_OFFSET = MODEL_OFFSET.reverse();
-    /** The model's use animation, and its length: the item is handed over at its end. */
+    /**
+     * The model's use animation, and how long a vend takes: until its last movement, the end of the shake, 1.58 seconds in.
+     * The item is handed over then. The animation itself runs to 4 seconds, still after that.
+     */
     public static final String USE = "use";
-    public static final int VEND_TICKS = 80;
+    public static final int VEND_TICKS = 32;
     /** When each of the use animation's three keys hits bottom, and its click's pitch. */
     private static final int[] PRESS_TICKS = {3, 6, 9};
     private static final float[] PRESS_PITCHES = {1.0f, 1.12f, 0.94f};
