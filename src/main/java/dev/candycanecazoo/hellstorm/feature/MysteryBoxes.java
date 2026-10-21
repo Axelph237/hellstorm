@@ -58,9 +58,14 @@ public final class MysteryBoxes {
     public static void start(GameManager.Active game) {
         State state = state(game);
         List<BlockPos> locations = locations(game);
-        locations.forEach(pos -> setActive(game.level(), pos, false));
         state.home = locations.isEmpty() ? Optional.empty() : Optional.of(locations.get(game.level().getRandom().nextInt(locations.size())));
-        state.home.ifPresent(pos -> activate(game, pos));
+        for (BlockPos pos : locations) {
+            if (state.home.equals(Optional.of(pos))) {
+                activate(game, pos);
+            } else {
+                setPresence(game.level(), pos, MysteryBoxBlock.Presence.AWAY);
+            }
+        }
     }
 
     public static Optional<BlockPos> home(GameManager.Active game) {
@@ -71,11 +76,11 @@ public final class MysteryBoxes {
         return state(game).usesSinceMove;
     }
 
-    /** Puts every box away: idle and inactive. */
+    /** Puts every box away: idle, closed, and back where map makers can see it. */
     public static void resetAll(ServerLevel level, Collection<BlockPos> boxes) {
         for (BlockPos pos : boxes) {
             MysteryBoxBlock.entity(level, pos).ifPresent(MysteryBoxBlock.Entity::idle);
-            setActive(level, pos, false);
+            setPresence(level, pos, MysteryBoxBlock.Presence.STORED);
         }
     }
 
@@ -96,7 +101,7 @@ public final class MysteryBoxes {
                 activate(game, pos);
             } else {
                 MysteryBoxBlock.entity(game.level(), pos).filter(e -> e.phase() == MysteryBoxBlock.Phase.IDLE)
-                        .ifPresent(e -> setActive(game.level(), pos, false));
+                        .ifPresent(e -> setPresence(game.level(), pos, MysteryBoxBlock.Presence.AWAY));
             }
         }
     }
@@ -124,7 +129,7 @@ public final class MysteryBoxes {
             }
             return;
         }
-        if (box.phase() == MysteryBoxBlock.Phase.ROLLING) {
+        if (box.phase() == MysteryBoxBlock.Phase.ROLLING || box.phase() == MysteryBoxBlock.Phase.CLOSING) {
             Shop.refuse(player, new Refusal.Translated("message.hellstorm.box.in_use", List.of(BOX)));
             return;
         }
@@ -172,7 +177,7 @@ public final class MysteryBoxes {
 
     public static void finishRoll(GameManager.Active game, MysteryBoxBlock.Entity box, boolean move) {
         if (box.roller().isEmpty()) {
-            box.idle();
+            box.close();
             return;
         }
         if (move) {
@@ -187,7 +192,8 @@ public final class MysteryBoxes {
         if (stack.isEmpty()) {
             game.game().refund(box.roller().get(), box.paid());
             player.ifPresent(p -> Shop.refuse(p, new Refusal.Translated("message.hellstorm.box.nothing_new", List.of(BOX))));
-            box.idle();
+            box.vanishGun();
+            box.close();
             return;
         }
         state(game).usesSinceMove++;
@@ -207,25 +213,25 @@ public final class MysteryBoxes {
             return;
         }
         player.level().playSound(null, player.blockPosition(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.8f, 1.0f);
-        box.idle();
-        afterUse(game, box);
+        box.close();
     }
 
-    /** A Fire Sale location closes once it's done if the Fire Sale is over. */
+    /** Once the lid is shut, a Fire Sale location goes if the Fire Sale is over. */
     static void afterUse(GameManager.Active game, MysteryBoxBlock.Entity box) {
         State state = state(game);
         if (!state.fireSale && !state.home.equals(Optional.of(box.getBlockPos()))) {
-            setActive(game.level(), box.getBlockPos(), false);
+            setPresence(game.level(), box.getBlockPos(), MysteryBoxBlock.Presence.AWAY);
         }
     }
 
-    /** The box leaves: the roller gets their points back and the box opens somewhere else. */
+    /** The box leaves: the gun over it and then the crate go up in smoke, the roller gets their points back, and the box is somewhere else. */
     private static void move(GameManager.Active game, MysteryBoxBlock.Entity box) {
         State state = state(game);
         BlockPos from = box.getBlockPos();
         box.roller().ifPresent(id -> game.game().refund(id, box.paid()));
+        box.vanishGun();
         box.idle();
-        setActive(game.level(), from, false);
+        setPresence(game.level(), from, MysteryBoxBlock.Presence.AWAY);
         List<BlockPos> others = new ArrayList<>(locations(game));
         others.remove(from);
         if (others.isEmpty()) {
@@ -249,14 +255,24 @@ public final class MysteryBoxes {
     }
 
     private static void activate(GameManager.Active game, BlockPos pos) {
-        setActive(game.level(), pos, true);
+        setPresence(game.level(), pos, MysteryBoxBlock.Presence.HERE);
         MysteryBoxBlock.entity(game.level(), pos).ifPresent(box -> refreshPrice(game, box));
     }
 
-    private static void setActive(ServerLevel level, BlockPos pos, boolean active) {
+    /** On both halves. A crate that was there and goes away bursts into smoke. */
+    private static void setPresence(ServerLevel level, BlockPos pos, MysteryBoxBlock.Presence presence) {
         BlockState state = level.getBlockState(pos);
-        if (state.getBlock() instanceof MysteryBoxBlock && state.getValue(MysteryBoxBlock.ACTIVE) != active) {
-            level.setBlock(pos, state.setValue(MysteryBoxBlock.ACTIVE, active), Block.UPDATE_ALL);
+        if (!(state.getBlock() instanceof MysteryBoxBlock block) || state.getValue(MysteryBoxBlock.BOX) == presence) {
+            return;
+        }
+        if (state.getValue(MysteryBoxBlock.BOX).visible() && !presence.visible()) {
+            MysteryBoxBlock.entity(level, pos).ifPresent(MysteryBoxBlock.Entity::vanish);
+        }
+        for (BlockPos half : block.blocks(state, pos)) {
+            BlockState halfState = level.getBlockState(half);
+            if (halfState.is(block)) {
+                level.setBlock(half, halfState.setValue(MysteryBoxBlock.BOX, presence), Block.UPDATE_ALL);
+            }
         }
     }
 

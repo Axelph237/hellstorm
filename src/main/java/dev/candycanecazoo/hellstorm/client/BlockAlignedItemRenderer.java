@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
@@ -17,14 +18,17 @@ import java.util.function.Supplier;
 
 /**
  * A GeckoLib item drawn where a block model would be, its floor at the bottom of the item's cube, so the item model's
- * display transforms mean what they do for a block. GeckoLib lifts item models 0.51 off that floor.
+ * display transforms mean what they do for a block. GeckoLib lifts item models 0.51 off that floor. {@code offset}, in the
+ * model's pixels, moves the model the way its block's renderer does.
  */
 public class BlockAlignedItemRenderer<T extends Item & GeoAnimatable> extends GeoItemRenderer<T> {
     private final BoneTextures textures;
+    private final Vec3 offset;
 
-    public BlockAlignedItemRenderer(GeoModel<T> model, BoneTextures textures) {
+    public BlockAlignedItemRenderer(GeoModel<T> model, BoneTextures textures, Vec3 offset) {
         super(model);
         this.textures = textures;
+        this.offset = offset;
     }
 
     /** Draws an item with the renderer {@code factory} makes, the first time the item is drawn. */
@@ -47,7 +51,7 @@ public class BlockAlignedItemRenderer<T extends Item & GeoAnimatable> extends Ge
                           boolean isReRender, float partialTick, int light, int overlay, float red, float green, float blue, float alpha) {
         super.preRender(pose, animatable, model, buffers, buffer, isReRender, partialTick, light, overlay, red, green, blue, alpha);
         if (!isReRender) {
-            pose.translate(0, -0.51f, 0);
+            pose.translate(offset.x / 16, offset.y / 16 - 0.51, offset.z / 16);
         }
     }
 

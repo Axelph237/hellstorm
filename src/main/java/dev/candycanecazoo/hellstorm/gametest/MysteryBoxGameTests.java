@@ -8,6 +8,7 @@ import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,9 +30,10 @@ import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 public final class MysteryBoxGameTests {
     private MysteryBoxGameTests() {}
 
+    /** A crate with its foot at {@code x, z} and its head one block south. */
     private static BlockPos box(GameTestHelper helper, int x, int z) {
         BlockPos at = helper.absolutePos(new BlockPos(x, ROOM_Y, z));
-        helper.getLevel().setBlockAndUpdate(at, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
+        MysteryBoxBlock.place(helper.getLevel(), at, Direction.SOUTH);
         return at;
     }
 
@@ -39,8 +41,18 @@ public final class MysteryBoxGameTests {
         return (MysteryBoxBlock.Entity) helper.getLevel().getBlockEntity(at);
     }
 
+    private static MysteryBoxBlock.Presence presence(GameTestHelper helper, BlockPos at) {
+        return helper.getLevel().getBlockState(at).getValue(MysteryBoxBlock.BOX);
+    }
+
     private static boolean active(GameTestHelper helper, BlockPos at) {
-        return helper.getLevel().getBlockState(at).getValue(MysteryBoxBlock.ACTIVE);
+        return presence(helper, at) == MysteryBoxBlock.Presence.HERE;
+    }
+
+    /** Whether both halves have something to bump into. */
+    private static boolean solid(GameTestHelper helper, BlockPos foot) {
+        return !helper.getLevel().getBlockState(foot).getCollisionShape(helper.getLevel(), foot).isEmpty()
+                && !helper.getLevel().getBlockState(foot.south()).getCollisionShape(helper.getLevel(), foot.south()).isEmpty();
     }
 
     private static int items(ServerPlayer player) {
@@ -58,9 +70,11 @@ public final class MysteryBoxGameTests {
         helper.assertTrue(actual == expected, why + ": expected " + expected + " points, have " + actual);
     }
 
+    /** Rolled from the head, since either half of the crate sells. */
     @GameTest(template = "floor", batch = "box_roll", timeoutTicks = 400)
-    public static void aRollChargesThenOffersTheResultOnlyToTheRoller(GameTestHelper helper) {
+    public static void aRollChargesThenOffersTheResultOnlyToTheRollerAndTheLidCloses(GameTestHelper helper) {
         BlockPos at = box(helper, 2, 2);
+        BlockPos head = at.south();
         ServerPlayer roller = player(helper, "pap_box_roller");
         ServerPlayer other = player(helper, "pap_box_other");
         GameManager.Active active = game(helper, roller, at);
@@ -79,9 +93,11 @@ public final class MysteryBoxGameTests {
             helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.IDLE, "rolled without enough points");
             assertPoints(helper, active, roller, start, "a refused roll charges nothing");
 
+            helper.assertTrue(helper.getLevel().getBlockState(head).is(PapRegistries.MYSTERY_BOX.get())
+                    && helper.getLevel().getBlockEntity(head) == null, "the crate is two blocks, and only the foot holds it");
             active.game().refund(roller.getUUID(), cost);
-            FeatureBlock.use(roller, at);
-            helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.ROLLING, "the box rolls");
+            FeatureBlock.use(roller, head);
+            helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.ROLLING, "the box rolls from its head");
             assertPoints(helper, active, roller, start, "a roll costs box.cost");
             FeatureBlock.use(other, at);
             assertPoints(helper, active, other, start, "a busy box charges nothing");
@@ -106,13 +122,53 @@ public final class MysteryBoxGameTests {
                 helper.assertTrue(items(other) == others && box.phase() == MysteryBoxBlock.Phase.OFFERING, "someone else can't take the result");
                 ItemStack offered = box.result().copy();
                 FeatureBlock.use(roller, at);
-                helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.IDLE, "taking the result empties the box");
+                helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.CLOSING && box.result().isEmpty(), "taking the result empties the box and closes the lid");
                 helper.assertTrue(has(roller, offered), "the roller has the offered item");
                 assertPoints(helper, active, roller, start, "taking the result is free");
+                active.game().refund(roller.getUUID(), cost);
+                int before = points(active, roller);
+                FeatureBlock.use(roller, at);
+                assertPoints(helper, active, roller, before, "a closing box charges nothing");
+            } catch (RuntimeException | AssertionError e) {
+                GameManager.end(active);
+                throw e;
+            }
+        });
+        helper.runAfterDelay(rollTicks + 2 + MysteryBoxBlock.LID_TICKS + 2, () -> {
+            try {
+                helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.IDLE, "the lid shuts after LID_TICKS, is " + box.phase());
             } finally {
                 GameManager.end(active);
             }
-            helper.assertFalse(active(helper, at), "ending the game puts the box away");
+            helper.assertTrue(presence(helper, at) == MysteryBoxBlock.Presence.STORED && solid(helper, at), "ending the game puts the box away");
+            helper.succeed();
+        });
+    }
+
+    /** An offer nobody takes goes up in smoke when it runs out, and then the lid closes. */
+    @GameTest(template = "floor", batch = "box_expire", timeoutTicks = 600)
+    public static void anOfferNobodyTakesGoesAndTheLidCloses(GameTestHelper helper) {
+        BlockPos at = box(helper, 2, 2);
+        ServerPlayer roller = player(helper, "pap_box_leaver");
+        GameManager.Active active = game(helper, roller, at);
+        int ticks = active.game().settings().box().rollTicks() + active.game().settings().box().collectTicks();
+        MysteryBoxBlock.Entity box = entity(helper, at);
+        active.game().refund(roller.getUUID(), active.game().settings().box().cost());
+        FeatureBlock.use(roller, at);
+        helper.runAfterDelay(ticks + 2, () -> {
+            try {
+                helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.CLOSING && box.result().isEmpty(), "the offer runs out and the lid closes, is " + box.phase());
+            } catch (RuntimeException | AssertionError e) {
+                GameManager.end(active);
+                throw e;
+            }
+        });
+        helper.runAfterDelay(ticks + 2 + MysteryBoxBlock.LID_TICKS + 2, () -> {
+            try {
+                helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.IDLE && active(helper, at), "then the box waits for the next roll, is " + box.phase());
+            } finally {
+                GameManager.end(active);
+            }
             helper.succeed();
         });
     }
@@ -147,6 +203,9 @@ public final class MysteryBoxGameTests {
             helper.assertTrue(locations.stream().filter(pos -> active(helper, pos)).count() == 1, "exactly one location has the box after a move");
             BlockPos to = MysteryBoxes.home(active).orElseThrow();
             helper.assertTrue(!to.equals(home) && active(helper, to) && !active(helper, home), "the box moved somewhere else");
+            helper.assertTrue(presence(helper, home) == MysteryBoxBlock.Presence.AWAY && !solid(helper, home)
+                    && presence(helper, home.south()) == MysteryBoxBlock.Presence.AWAY, "the crate it left is gone, both halves, with nothing to bump into");
+            helper.assertTrue(solid(helper, to), "the crate it went to is there");
             helper.assertTrue(entity(helper, home).phase() == MysteryBoxBlock.Phase.IDLE, "the old location is idle");
             helper.assertTrue(events.contains(new GameEvent.MysteryBoxMoved(home, to)), "a mystery_box_moved event, got " + events);
             FeatureBlock.use(roller, home);
@@ -160,7 +219,8 @@ public final class MysteryBoxGameTests {
         } finally {
             GameManager.end(active);
         }
-        helper.assertTrue(locations.stream().noneMatch(pos -> active(helper, pos)), "ending the game puts every box away");
+        helper.assertTrue(locations.stream().allMatch(pos -> presence(helper, pos) == MysteryBoxBlock.Presence.STORED && solid(helper, pos)),
+                "ending the game puts every box back for map makers");
         helper.succeed();
     }
 }

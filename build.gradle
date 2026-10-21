@@ -74,7 +74,10 @@ repositories {
     maven {
         name = 'GeckoLib'
         url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
-        content { includeGroup 'software.bernie.geckolib' }
+        content {
+            includeGroup 'software.bernie.geckolib'
+            includeGroup 'com.eliotlash.mclib'
+        }
     }
     maven {
         name = 'JitPack'
@@ -93,6 +96,8 @@ dependencies {
     }
     runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
+    // The animation value type GeckoLib's keyframes use. GeckoLib bundles it, so it's only needed to compile against.
+    compileOnly "com.eliotlash.mclib:mclib:20"
 
     jarJar(group: 'net.createmod.ponder', name: "Ponder-Forge-${minecraft_version}", version: ponder_version_range) {
         jarJar.pin(it, ponder_version)

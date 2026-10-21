@@ -22,7 +22,6 @@ import dev.candycanecazoo.hellstorm.powerup.PowerUpEffect;
 import dev.candycanecazoo.hellstorm.powerup.PowerUpEntity;
 import dev.candycanecazoo.hellstorm.powerup.PowerUpRegistries;
 import dev.candycanecazoo.hellstorm.powerup.PowerUps;
-import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -172,7 +171,7 @@ public final class PowerUpGameTests {
         List<BlockPos> boxes = new ArrayList<>();
         for (int x : new int[] {2, 6}) {
             BlockPos at = helper.absolutePos(new BlockPos(x, ROOM_Y, 2));
-            helper.getLevel().setBlockAndUpdate(at, PapRegistries.MYSTERY_BOX.get().defaultBlockState());
+            MysteryBoxBlock.place(helper.getLevel(), at, net.minecraft.core.Direction.SOUTH);
             boxes.add(at);
         }
         ServerPlayer player = player(helper, "pap_powerup_fire_sale");
@@ -189,7 +188,7 @@ public final class PowerUpGameTests {
                 PowerUps.apply(active, new PowerUpDef(fireSale.name(), fireSale.weight(), 20, fireSale.item(), fireSale.effect()));
                 for (BlockPos box : boxes) {
                     MysteryBoxBlock.Entity entity = (MysteryBoxBlock.Entity) helper.getLevel().getBlockEntity(box);
-                    if (!helper.getLevel().getBlockState(box).getValue(MysteryBoxBlock.ACTIVE) || entity.price() != fireSaleCost) {
+                    if (helper.getLevel().getBlockState(box).getValue(MysteryBoxBlock.BOX) != MysteryBoxBlock.Presence.HERE || entity.price() != fireSaleCost) {
                         GameManager.end(active);
                         helper.fail("box at " + box + " isn't open at the Fire Sale price " + fireSaleCost + " (price " + entity.price() + ")");
                     }
@@ -200,7 +199,7 @@ public final class PowerUpGameTests {
             helper.assertTrue(started[0], "the round hasn't started");
             helper.assertFalse(active.game().timedActive(TimedEffects.FIRE_SALE), "the Fire Sale is still running");
             helper.assertFalse(MysteryBoxes.fireSale(active), "the box still thinks there's a Fire Sale");
-            long open = boxes.stream().filter(b -> helper.getLevel().getBlockState(b).getValue(MysteryBoxBlock.ACTIVE)).count();
+            long open = boxes.stream().filter(b -> helper.getLevel().getBlockState(b).getValue(MysteryBoxBlock.BOX) == MysteryBoxBlock.Presence.HERE).count();
             GameManager.end(active);
             helper.assertTrue(open == 1, "after the Fire Sale only the home location should be open, " + open + " are");
         });

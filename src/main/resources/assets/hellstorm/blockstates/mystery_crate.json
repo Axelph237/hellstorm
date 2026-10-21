@@ -1,10 +1,7 @@
 {
   "variants": {
-    "active=true": {
+    "": {
       "model": "hellstorm:block/mystery_crate"
-    },
-    "active=false": {
-      "model": "hellstorm:block/mystery_crate_closed"
     }
   }
 }

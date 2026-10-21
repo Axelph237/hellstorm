@@ -9,7 +9,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -23,9 +22,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
 /**
  * The machine's GeckoLib model, and the item in it, lying flat along the top of both halves across the seam: the item
@@ -44,7 +41,8 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
     private static final int FLAME_COLUMNS = 5;
     private static final float FLAME_HEIGHT = 0.75f;
     private final ItemRenderer items;
-    private final Model model = new Model();
+    private final BlockModelRenderer<PapMachineBlock.Entity> model = new BlockModelRenderer<>(
+            new DefaultedBlockGeoModel<>(Hellstorm.id(PapMachineBlock.MODEL)), BoneTextures.HELLFIRE_UPGRADER, Vec3.ZERO);
 
     public PapMachineRenderer(BlockEntityRendererProvider.Context context) {
         this.items = context.getItemRenderer();
@@ -122,25 +120,5 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
     private static void vertex(VertexConsumer consumer, Matrix4f matrix, float x, float y, float u, float v) {
         consumer.vertex(matrix, x, y, 0).color(255, 255, 255, 255).uv(u, v).overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(LightTexture.FULL_BRIGHT).normal(0, 1, 0).endVertex();
-    }
-
-    /** The table, running from the foot toward the head along +z, turned as a blockstate turns a block model for its facing. */
-    private static final class Model extends GeoBlockRenderer<PapMachineBlock.Entity> {
-        Model() {
-            super(new DefaultedBlockGeoModel<>(Hellstorm.id(PapMachineBlock.MODEL)));
-        }
-
-        @Override
-        protected void rotateBlock(Direction facing, PoseStack pose) {
-            pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
-        }
-
-        @Override
-        public void renderRecursively(PoseStack pose, PapMachineBlock.Entity machine, GeoBone bone, RenderType renderType, MultiBufferSource buffers,
-                                      VertexConsumer buffer, boolean isReRender, float partialTick, int light, int overlay,
-                                      float red, float green, float blue, float alpha) {
-            super.renderRecursively(pose, machine, bone, renderType, buffers, BoneTextures.HELLFIRE_UPGRADER.buffer(bone, buffers, renderType),
-                    isReRender, partialTick, light, overlay, red, green, blue, alpha);
-        }
     }
 }

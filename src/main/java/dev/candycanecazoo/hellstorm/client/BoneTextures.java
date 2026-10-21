@@ -1,6 +1,7 @@
 package dev.candycanecazoo.hellstorm.client;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +19,11 @@ public record BoneTextures(Map<String, ResourceLocation> byBone) {
     public static final BoneTextures HELLFIRE_UPGRADER = new BoneTextures(Map.of(
             "candles", new ResourceLocation("minecraft", "textures/block/candle_lit.png"),
             "skull", new ResourceLocation("minecraft", "textures/entity/skeleton/skeleton.png")));
+
+    /** The textures for the GeckoLib model {@code model}. */
+    public static BoneTextures of(String model) {
+        return model.equals(PapMachineBlock.MODEL) ? HELLFIRE_UPGRADER : NONE;
+    }
 
     /** The buffer for {@code bone}. Fetched fresh for every bone, since fetching another texture's ends the previous batch. */
     VertexConsumer buffer(GeoBone bone, MultiBufferSource buffers, RenderType modelType) {

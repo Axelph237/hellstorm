@@ -9,6 +9,8 @@ import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.util.Codecs;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -16,37 +18,71 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import software.bernie.geckolib.animatable.GeoBlockEntity;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * One place the Mystery Crate can be. {@code ACTIVE} marks the location the box is at this game (every location during a
- * Fire Sale); the others are empty crates. The game-wide rules (where the box is, moving, pools) live in {@link MysteryBoxes}.
+ * One place the Mystery Crate can be, two blocks long ({@link TwoBlockMachine}). {@link #BOX} says whether the box is here
+ * this game; during a Fire Sale it is at every location. The game-wide rules (where the box is, moving, pools) live in
+ * {@link MysteryBoxes}. A roll opens the lid, guns rise out of the crate flicking past until one settles, and the lid
+ * closes again once it is taken or puffs away.
  */
-public final class MysteryBoxBlock extends Block implements EntityBlock, FeatureBlock {
-    public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
-    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 12, 16);
+public final class MysteryBoxBlock extends TwoBlockMachine {
+    public static final EnumProperty<Presence> BOX = EnumProperty.create("box", Presence.class);
+    /** The GeckoLib model, texture and animations, under {@code geo/block/}, {@code textures/block/} and {@code animations/block/}. */
+    public static final String MODEL = "mystery_crate";
+    /** The model is made with its body's corner at the origin. In its pixels, this centers it on the two blocks. */
+    public static final Vec3 MODEL_OFFSET = new Vec3(-7, 0, -7);
+    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
+    /** How long the lid takes to open, and to close. The client fits the model's animation to it. */
+    public static final int LID_TICKS = 20;
+    /** The middle of a gun as it rises: from inside the crate, under the portal, to where it hangs. In blocks above the floor. */
+    public static final double GUN_LOW = 0.45;
+    public static final double GUN_HIGH = 1.35;
+
+    /** Whether a location has the box. {@code STORED} is every location outside a game, shown closed for map makers. */
+    public enum Presence implements StringRepresentable {
+        STORED, HERE, AWAY;
+
+        /** {@code AWAY} locations are gone: not drawn, and nothing to bump into. */
+        public boolean visible() {
+            return this != AWAY;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
 
     /** {@code cost} overrides {@code box.cost} for this location. */
     public record Config(ResourceLocation pool, Optional<Integer> cost) {
@@ -58,10 +94,16 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
         public static final Config DEFAULT = new Config(BoxPool.DEFAULT_ID, Optional.empty());
     }
 
-    public enum Phase { IDLE, ROLLING, OFFERING }
+    /** {@code ROLLING} starts with {@link #LID_TICKS} of the lid opening, then the guns rise. */
+    public enum Phase { IDLE, ROLLING, OFFERING, CLOSING }
 
-    public static final class Entity extends ConfigBlockEntity<Config> implements Prompted {
+    public static final class Entity extends ConfigBlockEntity<Config> implements Prompted, GeoBlockEntity {
         private static final String STATE = "box";
+        public static final String OPEN = "box_open";
+        public static final String CLOSE = "box_close";
+        private static final RawAnimation OPEN_LID = RawAnimation.begin().thenPlayAndHold(OPEN);
+        private static final RawAnimation CLOSE_LID = RawAnimation.begin().thenPlayAndHold(CLOSE);
+        private final AnimatableInstanceCache animations = GeckoLibUtil.createInstanceCache(this);
 
         private Phase phase = Phase.IDLE;
         private long until;
@@ -135,7 +177,7 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
         }
 
         public boolean active() {
-            return getBlockState().getValue(ACTIVE);
+            return getBlockState().getValue(BOX) == Presence.HERE;
         }
 
         void setPrice(int price) {
@@ -163,6 +205,19 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
             resultLabel = label;
             reel = List.of();
             time(ticks);
+            changed();
+        }
+
+        /** The lid closes, with nothing in the crate. */
+        void close() {
+            phase = Phase.CLOSING;
+            roller = Optional.empty();
+            rollerPlayer = null;
+            paid = 0;
+            reel = List.of();
+            result = ItemStack.EMPTY;
+            resultLabel = "";
+            time(LID_TICKS);
             changed();
         }
 
@@ -195,12 +250,65 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
                     .filter(a -> a.game().map().map().features().get(worldPosition) == FeatureKind.MYSTERY_BOX);
             if (game.isEmpty()) {
                 idle();
-            } else if (phase == Phase.ROLLING) {
-                MysteryBoxes.finishRoll(game.get(), this);
-            } else {
-                idle();
-                MysteryBoxes.afterUse(game.get(), this);
+                return;
             }
+            switch (phase) {
+                case ROLLING -> MysteryBoxes.finishRoll(game.get(), this);
+                case OFFERING -> {
+                    vanishGun();
+                    close();
+                }
+                default -> {
+                    idle();
+                    MysteryBoxes.afterUse(game.get(), this);
+                }
+            }
+        }
+
+        /** Where a gun hangs over the crate: over the seam between the halves, {@code height} blocks up. */
+        public Vec3 gunAt(double height) {
+            Direction facing = getBlockState().getValue(FACING);
+            return Vec3.atBottomCenterOf(worldPosition).add(facing.getStepX() * 0.5, height, facing.getStepZ() * 0.5);
+        }
+
+        /** The gun hanging over the crate bursts into smoke. */
+        void vanishGun() {
+            puff(gunAt(GUN_HIGH), 0.5, 0.15, 25);
+        }
+
+        /** The whole crate bursts into smoke. */
+        void vanish() {
+            puff(gunAt(0.4), 1, 0.4, 70);
+            level.playSound(null, worldPosition, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.6f, 1.2f);
+        }
+
+        /** Smoke spread {@code along} the crate's length and {@code across} its width and height. */
+        private void puff(Vec3 at, double along, double across, int count) {
+            if (level instanceof ServerLevel serverLevel) {
+                boolean x = getBlockState().getValue(FACING).getAxis() == Direction.Axis.X;
+                double dx = x ? along / 2 : across / 2;
+                double dz = x ? across / 2 : along / 2;
+                serverLevel.sendParticles(ParticleTypes.POOF, at.x, at.y, at.z, count, dx, across / 2, dz, 0.02);
+                serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y, at.z, count / 5, dx, across / 2, dz, 0.01);
+            }
+        }
+
+        @Override
+        public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+            controllers.add(new AnimationController<>(this, "lid", 0, state -> switch (phase) {
+                case ROLLING, OFFERING -> state.setAndContinue(OPEN_LID);
+                case CLOSING -> state.setAndContinue(CLOSE_LID);
+                case IDLE -> {
+                    // So the next roll opens from the start, even though the controller last played the same animation.
+                    state.getController().forceAnimationReset();
+                    yield PlayState.STOP;
+                }
+            }));
+        }
+
+        @Override
+        public AnimatableInstanceCache getAnimatableInstanceCache() {
+            return animations;
         }
 
         @Override
@@ -252,29 +360,37 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
             tag.put(STATE, box);
         }
 
+        /** Both halves, the guns over them, and the lid where it falls open to one side. */
         @Override
         public AABB getRenderBoundingBox() {
-            return new AABB(worldPosition).expandTowards(0, 1.5, 0);
+            return new AABB(worldPosition).minmax(new AABB(worldPosition.relative(getBlockState().getValue(FACING))))
+                    .inflate(1, 0, 1).expandTowards(0, 1.5, 0);
         }
     }
 
     public MysteryBoxBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(ACTIVE, false));
+        registerDefaultState(defaultBlockState().setValue(BOX, Presence.STORED));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(ACTIVE);
+        super.createBlockStateDefinition(builder);
+        builder.add(BOX);
+    }
+
+    /** Places a whole crate, foot at {@code foot}, for code that doesn't go through a player placing the item. */
+    public static void place(Level level, BlockPos foot, Direction facing) {
+        place(level, foot, PapRegistries.MYSTERY_BOX.get().defaultBlockState().setValue(FACING, facing));
     }
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return SHAPE;
+        return state.getValue(BOX).visible() ? SHAPE : Shapes.empty();
     }
 
     @Override
-    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+    protected BlockEntity newFootEntity(BlockPos pos, BlockState state) {
         return new Entity(pos, state);
     }
 
@@ -290,14 +406,6 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
     @Override
     public FeatureKind featureKind() {
         return FeatureKind.MYSTERY_BOX;
-    }
-
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (player instanceof ServerPlayer serverPlayer) {
-            FeatureBlock.use(serverPlayer, pos);
-        }
-        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
@@ -318,17 +426,5 @@ public final class MysteryBoxBlock extends Block implements EntityBlock, Feature
         Config c = entity.config();
         return Component.literal("Mystery Crate location: pool " + c.pool() + ", cost " + c.cost().map(String::valueOf).orElse("default (box.cost)")
                 + ". Set with /hs box pool <id> and /hs box cost <points|default>");
-    }
-
-    @Override
-    public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
-        super.onPlace(state, level, pos, oldState, movedByPiston);
-        FeatureBlock.placed(level, pos, state, oldState, featureKind());
-    }
-
-    @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        FeatureBlock.removed(level, pos, state, newState);
-        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 }

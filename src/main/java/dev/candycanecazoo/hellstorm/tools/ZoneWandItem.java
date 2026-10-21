@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
@@ -43,7 +44,7 @@ public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     @Override
     public void initializeClient(Consumer<IClientItemExtensions> consumer) {
         consumer.accept(BlockAlignedItemRenderer.extensions(() -> new BlockAlignedItemRenderer<>(
-                new DefaultedItemGeoModel<ZoneWandItem>(Hellstorm.id("zone_wand")), BoneTextures.NONE)));
+                new DefaultedItemGeoModel<ZoneWandItem>(Hellstorm.id("zone_wand")), BoneTextures.NONE, Vec3.ZERO)));
     }
 
     @Override
