@@ -1,5 +1,1 @@
-{
-  "textures": {
-    "particle": "hellstorm:block/mystery_crate"
-  }
-}
+{"textures":{"particle":"minecraft:block/oak_planks"}}
