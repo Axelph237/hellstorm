@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.MysteryBoxBlock;
+import dev.candycanecazoo.hellstorm.feature.TwoBlockMachine;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -73,7 +74,7 @@ public final class MysteryBoxRenderer implements BlockEntityRenderer<MysteryBoxB
             return;
         }
         model.render(entity, partialTick, pose, buffers, light, overlay);
-        Direction facing = entity.getBlockState().getValue(MysteryBoxBlock.FACING);
+        Direction facing = TwoBlockMachine.along(entity.getBlockState());
         portal(pose, buffers, facing);
         Optional<Float> rise = entity.rise(level.getGameTime() + partialTick);
         ItemStack stack;

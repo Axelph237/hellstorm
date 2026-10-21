@@ -171,7 +171,7 @@ public final class PowerUpGameTests {
         List<BlockPos> boxes = new ArrayList<>();
         for (int x : new int[] {2, 6}) {
             BlockPos at = helper.absolutePos(new BlockPos(x, ROOM_Y, 2));
-            MysteryBoxBlock.place(helper.getLevel(), at, net.minecraft.core.Direction.SOUTH);
+            MysteryBoxBlock.place(helper.getLevel(), at, net.minecraft.core.Direction.EAST);
             boxes.add(at);
         }
         ServerPlayer player = player(helper, "pap_powerup_fire_sale");

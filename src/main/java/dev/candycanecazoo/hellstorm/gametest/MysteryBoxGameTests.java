@@ -12,7 +12,14 @@ import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -33,7 +40,7 @@ public final class MysteryBoxGameTests {
     /** A crate with its foot at {@code x, z} and its head one block south. */
     private static BlockPos box(GameTestHelper helper, int x, int z) {
         BlockPos at = helper.absolutePos(new BlockPos(x, ROOM_Y, z));
-        MysteryBoxBlock.place(helper.getLevel(), at, Direction.SOUTH);
+        MysteryBoxBlock.place(helper.getLevel(), at, Direction.EAST);
         return at;
     }
 
@@ -221,6 +228,54 @@ public final class MysteryBoxGameTests {
         }
         helper.assertTrue(locations.stream().allMatch(pos -> presence(helper, pos) == MysteryBoxBlock.Presence.STORED && solid(helper, pos)),
                 "ending the game puts every box back for map makers");
+        helper.succeed();
+    }
+
+    /**
+     * Places a crate from its item on the floor block at {@code x, z}, the player looking north and aiming {@code aim}
+     * blocks east of the block's middle.
+     */
+    private static void placeAiming(GameTestHelper helper, ServerPlayer player, int x, int z, double aim) {
+        BlockPos floor = helper.absolutePos(new BlockPos(x, ROOM_Y - 1, z));
+        player.setYRot(180);
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(PapRegistries.MYSTERY_BOX_ITEM.get()));
+        Vec3 hit = Vec3.atCenterOf(floor).add(aim, 0.5, 0);
+        player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, Direction.UP, floor, false)));
+    }
+
+    private static String describe(GameTestHelper helper, BlockPos pos) {
+        BlockState state = helper.getLevel().getBlockState(pos);
+        return state.is(PapRegistries.MYSTERY_BOX.get()) ? state.getValue(MysteryBoxBlock.PART) + " facing " + state.getValue(MysteryBoxBlock.FACING) : state.toString();
+    }
+
+    private static void assertHalf(GameTestHelper helper, BlockPos pos, BedPart part, String why) {
+        BlockState state = helper.getLevel().getBlockState(pos);
+        helper.assertTrue(state.is(PapRegistries.MYSTERY_BOX.get()) && state.getValue(MysteryBoxBlock.PART) == part
+                && state.getValue(MysteryBoxBlock.FACING) == Direction.SOUTH, why + ": expected the " + part + " facing south, found " + describe(helper, pos));
+    }
+
+    /** Placed facing the player, its long side across their view, running toward the side of the block they aimed at. */
+    @GameTest(template = "floor", batch = "box_place")
+    public static void aCrateIsPlacedFacingYouTowardTheSideYouAimAt(GameTestHelper helper) {
+        ServerPlayer player = player(helper, "box_place");
+        // Looking north, west is to the left.
+        placeAiming(helper, player, 2, 2, -0.25);
+        BlockPos left = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        assertHalf(helper, left, BedPart.FOOT, "aimed left, the clicked spot");
+        assertHalf(helper, left.west(), BedPart.HEAD, "aimed left, the half to the left");
+
+        placeAiming(helper, player, 6, 2, 0.25);
+        BlockPos right = helper.absolutePos(new BlockPos(6, ROOM_Y, 2));
+        assertHalf(helper, right, BedPart.HEAD, "aimed right, the clicked spot");
+        assertHalf(helper, right.east(), BedPart.FOOT, "aimed right, the half to the right");
+
+        BlockPos blocked = helper.absolutePos(new BlockPos(2, ROOM_Y, 6));
+        helper.getLevel().setBlockAndUpdate(blocked.west(), Blocks.STONE.defaultBlockState());
+        placeAiming(helper, player, 2, 6, -0.25);
+        assertHalf(helper, blocked, BedPart.HEAD, "aimed left with no room there, the clicked spot");
+        assertHalf(helper, blocked.east(), BedPart.FOOT, "aimed left with no room there, the half to the right");
+        helper.assertTrue(MysteryBoxBlock.entity(helper.getLevel(), blocked.east()).isPresent()
+                && MysteryBoxBlock.entity(helper.getLevel(), blocked).isEmpty(), "only the foot holds the block entity");
         helper.succeed();
     }
 }

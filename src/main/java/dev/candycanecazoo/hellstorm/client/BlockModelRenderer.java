@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import dev.candycanecazoo.hellstorm.feature.TwoBlockMachine;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Direction;
@@ -14,8 +15,8 @@ import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
 /**
- * A machine's GeckoLib model, running from the foot toward the head along +z, turned as a blockstate turns a block model
- * for its facing. {@code offset}, in the model's pixels, moves a model made away from the origin onto its blocks.
+ * A two-block machine's GeckoLib model, running from the foot toward the head along +z with its front on +x, turned so
+ * the head is {@link TwoBlockMachine#along} and the front faces the block's facing. {@code offset}, in the model's pixels, moves a model made away from the origin onto its blocks.
  */
 final class BlockModelRenderer<T extends BlockEntity & GeoAnimatable> extends GeoBlockRenderer<T> {
     private final BoneTextures textures;
@@ -29,7 +30,7 @@ final class BlockModelRenderer<T extends BlockEntity & GeoAnimatable> extends Ge
 
     @Override
     protected void rotateBlock(Direction facing, PoseStack pose) {
-        pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
+        pose.mulPose(Axis.YP.rotationDegrees(-TwoBlockMachine.along(facing).toYRot()));
         pose.translate(offset.x / 16, offset.y / 16, offset.z / 16);
     }
 

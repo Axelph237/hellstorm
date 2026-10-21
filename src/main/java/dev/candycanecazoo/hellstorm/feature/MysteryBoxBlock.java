@@ -362,7 +362,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
                 y = 2 + random.nextDouble() * 9.5;
                 z = random.nextBoolean() ? 0.5 : 31.5;
             }
-            Direction along = getBlockState().getValue(FACING);
+            Direction along = along(getBlockState());
             Direction across = along.getCounterClockWise();
             double a = x / 16 - 0.5;
             double b = z / 16 - 0.5;
@@ -372,8 +372,8 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
 
         /** Where a gun hangs over the crate: over the seam between the halves, {@code height} blocks up. */
         public Vec3 gunAt(double height) {
-            Direction facing = getBlockState().getValue(FACING);
-            return Vec3.atBottomCenterOf(worldPosition).add(facing.getStepX() * 0.5, height, facing.getStepZ() * 0.5);
+            Direction along = along(getBlockState());
+            return Vec3.atBottomCenterOf(worldPosition).add(along.getStepX() * 0.5, height, along.getStepZ() * 0.5);
         }
 
         /** The gun hanging over the crate bursts into smoke, to a low cackle. */
@@ -393,7 +393,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         /** Smoke spread {@code along} the crate's length and {@code across} its width and height. */
         private void puff(Vec3 at, double along, double across, int count) {
             if (level instanceof ServerLevel serverLevel) {
-                boolean x = getBlockState().getValue(FACING).getAxis() == Direction.Axis.X;
+                boolean x = along(getBlockState()).getAxis() == Direction.Axis.X;
                 double dx = x ? along / 2 : across / 2;
                 double dz = x ? across / 2 : along / 2;
                 serverLevel.sendParticles(ParticleTypes.POOF, at.x, at.y, at.z, count, dx, across / 2, dz, 0.02);
@@ -471,7 +471,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         /** Both halves, the guns over them, and the lid where it falls open to one side. */
         @Override
         public AABB getRenderBoundingBox() {
-            return new AABB(worldPosition).minmax(new AABB(worldPosition.relative(getBlockState().getValue(FACING))))
+            return new AABB(worldPosition).minmax(new AABB(worldPosition.relative(along(getBlockState()))))
                     .inflate(1, 0, 1).expandTowards(0, 1.5, 0);
         }
     }
@@ -487,7 +487,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         builder.add(BOX);
     }
 
-    /** Places a whole crate, foot at {@code foot}, for code that doesn't go through a player placing the item. */
+    /** Places a whole crate, foot at {@code foot} and front facing {@code facing}, for code that doesn't go through a player placing the item. */
     public static void place(Level level, BlockPos foot, Direction facing) {
         place(level, foot, PapRegistries.MYSTERY_BOX.get().defaultBlockState().setValue(FACING, facing));
     }

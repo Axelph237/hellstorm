@@ -283,7 +283,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
          * between the halves) to {@code 1} (its end over the head).
          */
         public Vec3 along(double t) {
-            Direction facing = getBlockState().getValue(FACING);
+            Direction facing = TwoBlockMachine.along(getBlockState());
             return Vec3.atLowerCornerOf(worldPosition).add(0.5, TOP + 0.08, 0.5)
                     .add(Vec3.atLowerCornerOf(facing.getNormal()).scale(0.5 + t * ITEM_HALF_LENGTH))
                     .add(Vec3.atLowerCornerOf(side(facing).getNormal()).scale(SIDE_OFFSET));
@@ -296,8 +296,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
 
         @Override
         public AABB getRenderBoundingBox() {
-            Direction facing = getBlockState().getValue(FACING);
-            return new AABB(worldPosition).minmax(new AABB(worldPosition.relative(facing))).expandTowards(0, 1, 0);
+            return new AABB(worldPosition).minmax(new AABB(worldPosition.relative(TwoBlockMachine.along(getBlockState())))).expandTowards(0, 1, 0);
         }
 
         /** How far the fire has spread along the item, from 0 to 1. 1 once it's done. */
@@ -350,14 +349,14 @@ public final class PapMachineBlock extends TwoBlockMachine {
         super(properties);
     }
 
-    /** Places a whole machine, foot at {@code foot}, for code that doesn't go through a player placing the item. */
+    /** Places a whole machine, foot at {@code foot} and front facing {@code facing}, for code that doesn't go through a player placing the item. */
     public static void place(Level level, BlockPos foot, Direction facing) {
         place(level, foot, PapRegistries.PAP_MACHINE.get().defaultBlockState().setValue(FACING, facing));
     }
 
-    /** The model's +x side, which the item shifts toward: the table's long side without the skull and candles. */
-    static Direction side(Direction facing) {
-        return facing.getCounterClockWise();
+    /** The model's +x side, which the item shifts toward: the table's long side without the skull and candles, its front. */
+    static Direction side(Direction along) {
+        return along.getCounterClockWise();
     }
 
     /** The candles burn like vanilla candles: a small flame at each wick, now and then smoke and a crackle. */
@@ -366,7 +365,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
         if (state.getValue(PART) != BedPart.FOOT) {
             return;
         }
-        Direction facing = state.getValue(FACING);
+        Direction facing = along(state);
         for (double[] wick : WICKS) {
             Vec3 at = modelPoint(pos, facing, wick[0], wick[1], wick[2]);
             float roll = random.nextFloat();
@@ -382,7 +381,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
 
     /**
      * A point of the model in the world: {@code x, y, z} in pixels from the foot's corner as the model is drawn (head
-     * toward +z), turned the way the blockstate turns the model for {@code facing}.
+     * toward +z), turned so the head is toward {@code facing} ({@link #along}).
      */
     static Vec3 modelPoint(BlockPos foot, Direction facing, double x, double y, double z) {
         double dx = x / 16 - 0.5;

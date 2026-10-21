@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
+import dev.candycanecazoo.hellstorm.feature.TwoBlockMachine;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -61,7 +62,7 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
         if (stack.isEmpty() || machine.getLevel() == null) {
             return;
         }
-        Direction facing = machine.getBlockState().getValue(PapMachineBlock.FACING);
+        Direction facing = TwoBlockMachine.along(machine.getBlockState());
         Direction side = facing.getCounterClockWise();
         pose.pushPose();
         pose.translate(0.5 + facing.getStepX() * 0.5 + side.getStepX() * PapMachineBlock.SIDE_OFFSET, PapMachineBlock.TOP + 0.01,

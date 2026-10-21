@@ -55,7 +55,7 @@ public final class PapGameTests {
 
     private static BlockPos machine(GameTestHelper helper) {
         BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
-        PapMachineBlock.place(helper.getLevel(), at, net.minecraft.core.Direction.EAST);
+        PapMachineBlock.place(helper.getLevel(), at, net.minecraft.core.Direction.NORTH);
         return at;
     }
 
