@@ -11,6 +11,10 @@ import java.util.Optional;
 
 /** The one purchase path every machine and door uses: feature rules, then power and points, then delivery. */
 public final class Shop {
+    /** Quieter and a little lower than the recording, so it doesn't stand out over the game. */
+    private static final float CHA_CHING_VOLUME = 0.5f;
+    private static final float CHA_CHING_PITCH = 0.85f;
+
     /** What a machine sells. */
     public interface Sale {
         int cost();
@@ -60,7 +64,7 @@ public final class Shop {
      * stand.
      */
     public static void chaChing(ServerPlayer player) {
-        player.playNotifySound(PapRegistries.CHA_CHING.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
+        player.playNotifySound(PapRegistries.CHA_CHING.get(), SoundSource.PLAYERS, CHA_CHING_VOLUME, CHA_CHING_PITCH);
     }
 
     public static void refuse(ServerPlayer player, Refusal refusal) {

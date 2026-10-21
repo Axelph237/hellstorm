@@ -53,7 +53,7 @@ public final class WindowOps {
         int boards = boards(level, window);
         if (boards < window.maxBoards()) {
             setBoards(level, window, boards + 1);
-            level.playSound(null, window.opening().center(), SoundEvents.WOOD_FALL, SoundSource.BLOCKS, 1.0f, 1.0f);
+            level.playSound(null, window.opening().center(), SoundEvents.ARMOR_STAND_BREAK, SoundSource.BLOCKS, 1.0f, 1.0f);
         }
     }
 
