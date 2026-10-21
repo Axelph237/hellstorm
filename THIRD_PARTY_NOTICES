@@ -1,0 +1,192 @@
+Hellstorm third-party notices
+=============================
+
+Hellstorm's own code and assets are licensed under the BSD Zero Clause
+License (see LICENSE). This file lists the parts of the released jar and of
+the source repository that belong to others, and the terms they come under.
+A copy of this file is in the jar at META-INF/THIRD_PARTY_NOTICES.
+
+
+1. Libraries bundled in the jar
+-------------------------------
+
+These are packed unmodified inside the Hellstorm jar, under META-INF/jarjar/,
+with Forge's Jar-in-Jar. If another mod (for example Create) ships a newer
+copy, Forge loads only one.
+
+  Ponder 1.0.92 (net.createmod.ponder:Ponder-Forge-1.20.1), including Catnip
+    Copyright (c) 2022 The Create Team. MIT License, text A below.
+
+  Flywheel 1.0.6 (dev.engine-room.flywheel:flywheel-forge-1.20.1)
+    Copyright (c) 2021-2024 Jozufozu. MIT License, text B below.
+
+  GeckoLib 4.8.4 (software.bernie.geckolib:geckolib-forge-1.20.1)
+    Copyright (c) 2026 GeckoLib. MIT License, text C below.
+
+  mclib 20 (com.eliotlash.mclib:mclib), bundled inside GeckoLib
+    Copyright (c) 2018 McHorse. MIT License, text D below.
+
+  LuaJ 3.0.8-figura (com.github.FiguraMC.luaj:luaj-core), FiguraMC's fork
+  of LuaJ
+    Copyright (c) 2007 LuaJ. MIT License, text E below.
+
+
+2. Minecraft textures
+---------------------
+
+  assets/hellstorm/textures/block/hellfire_upgrader.png
+
+    This texture sheet contains unmodified copies of Minecraft's
+    block/stone.png and block/enchanting_table_top.png, and cut pieces of the
+    enchanting table textures. Those parts are Mojang's work. They are not
+    covered by Hellstorm's license and are not relicensed by it; they are used
+    under Mojang's terms for Minecraft content. Only the arrangement and the
+    pixels Hellstorm added are covered by LICENSE.
+
+  Models that only point at minecraft: textures (oak planks, iron block,
+  barrel, and so on) contain no Mojang pixels; the game loads those textures
+  from its own files.
+
+
+3. Not bundled
+--------------
+
+  TacZ (Timeless and Classics Zero) is a separate, required mod. Its code is
+  GPL-3.0 and its assets are CC BY-NC-ND 4.0. Hellstorm contains none of its
+  code or assets.
+
+  The Gradle wrapper in the source repository (gradlew, gradlew.bat,
+  gradle/wrapper/) is Gradle's, under the Apache License 2.0. It is not in the
+  jar.
+
+
+License texts
+=============
+
+A. Ponder (including Catnip)
+----------------------------
+
+MIT License
+
+Copyright (c) 2022 The Create Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+B. Flywheel
+-----------
+
+Copyright (c) 2021-2024 Jozufozu
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+C. GeckoLib
+-----------
+
+MIT License
+
+Copyright (c) 2026 GeckoLib
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+D. mclib
+--------
+
+The MIT License (MIT)
+
+Copyright (c) 2018 McHorse
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished
+to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+
+E. LuaJ (FiguraMC fork)
+-----------------------
+
+MIT License
+
+Copyright (c) 2007 LuaJ. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

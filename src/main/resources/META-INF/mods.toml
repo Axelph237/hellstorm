@@ -29,9 +29,10 @@ description='''${mod_description}'''
     versionRange="${tacz_version_range}"
     ordering="AFTER"
     side="BOTH"
+
 [[dependencies.${mod_id}]]
     modId="geckolib"
     mandatory=true
-    versionRange="[4.8,5.0)"
+    versionRange="${geckolib_version_range}"
     ordering="AFTER"
     side="BOTH"

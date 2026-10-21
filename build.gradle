@@ -135,13 +135,16 @@ tasks.named('processResources', ProcessResources).configure {
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
             mod_authors: mod_authors, mod_description: mod_description,
-            tacz_version_range: tacz_version_range,
+            tacz_version_range: tacz_version_range, geckolib_version_range: geckolib_version_range,
     ]
     inputs.properties replaceProperties
 
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
+
+    // The bundled libraries' MIT notices must travel with the jar.
+    from(['LICENSE', 'THIRD_PARTY_NOTICES']) { into 'META-INF' }
 }
 
 tasks.named('jar', Jar).configure {
