@@ -31,6 +31,10 @@ final class FakeWorld implements GameWorld {
     final java.util.Set<UUID> selfRevivers = new java.util.HashSet<>();
     final List<net.minecraft.resources.ResourceLocation> drops = new ArrayList<>();
     final List<Optional<Float>> fog = new ArrayList<>();
+    /** Windows by id to how many boards each is missing. {@link #addBoard} takes one off. */
+    final Map<String, Integer> boardsMissing = new HashMap<>();
+    final List<String> boardsAdded = new ArrayList<>();
+    final List<UUID> chaChings = new ArrayList<>();
     boolean refuseSpawns;
     java.util.function.BiPredicate<net.minecraft.resources.ResourceLocation, BlockPos> canSpawn = (profile, marker) -> true;
 
@@ -141,5 +145,21 @@ final class FakeWorld implements GameWorld {
     @Override
     public void setFog(Optional<Float> density) {
         fog.add(density);
+    }
+
+    @Override
+    public int boardsMissing(String window) {
+        return boardsMissing.getOrDefault(window, 0);
+    }
+
+    @Override
+    public void addBoard(String window) {
+        boardsAdded.add(window);
+        boardsMissing.computeIfPresent(window, (w, missing) -> Math.max(0, missing - 1));
+    }
+
+    @Override
+    public void chaChing(UUID player) {
+        chaChings.add(player);
     }
 }

@@ -73,6 +73,7 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
   - A cooldown of 0 goes straight back to ready.
   - The cycle is saved and synced.
 - **Prompt.** "<name> [cost]" while ready, and no prompt while it's running or cooling down. Using it then says "<name> is already running" or "<name> is cooling down (Ns)".
+  - **Where it floats.** Traps are usually set into a wall, with wall above them. A machine's world prompt normally floats 0.35 above its top, which there is inside the block above and hidden. So when the block above has any shape (`PromptOverlay`), the prompt keeps that height but moves out over the space in front of the face you're looking at, half a block off it, as if the trap stood a block out from the wall. Then it is pulled 0.4 toward you like any machine's. It reads as a sign on the wall just over the trap. Looking at the trap's top or bottom, it goes in front of the side you're nearer. This applies to every machine with something above it, not just traps.
 - **Buying** goes through `Shop.buy`. The sale checks the refusals above and takes `needsPower` from `requires_power`. Delivering calls `activate` and emits `GameEvent.TrapActivated(player, pos)`.
 - **Redstone.**
   - While `powered`, `getSignal` and `getDirectSignal` return `signal_strength` on every side, so it strongly powers every block it touches.
@@ -93,6 +94,7 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
     - At signal 5, the first dust carries 5, a lamp after 5 dust lights, and a lamp after 6 dust stays dark.
     - A reset, run twice, leaves it ready and off, with its lamp dark.
     - A look is set through `BlockState.use` as a click does: not by a survival player; by a creative one with stone bricks or an oak log; glass and a stone slab are refused and the old look stays; the look survives save and load; sneaking with an empty hand clears it. How it's drawn isn't covered.
+  - **Check in game** (not covered): the prompt of a trap set into a wall, seen head on and from the side, sits clear of the wall over the trap; a trap standing free with air above still prompts over its top.
 
 ## Phase
 

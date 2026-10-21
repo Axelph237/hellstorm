@@ -22,5 +22,13 @@
         "name": "hellstorm:vending_machine/button"
       }
     ]
+  },
+  "cha_ching": {
+    "subtitle": "subtitles.hellstorm.cha_ching",
+    "sounds": [
+      {
+        "name": "hellstorm:cha_ching"
+      }
+    ]
   }
 }

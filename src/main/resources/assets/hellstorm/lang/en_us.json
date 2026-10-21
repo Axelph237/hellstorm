@@ -69,5 +69,6 @@
   "message.hellstorm.pap.max_tier": "This weapon is fully upgraded",
   "subtitles.hellstorm.vending_machine.idle": "Vending machine hums",
   "subtitles.hellstorm.vending_machine.shake": "Vending machine rattles",
-  "subtitles.hellstorm.vending_machine.button": "Vending machine button clicks"
+  "subtitles.hellstorm.vending_machine.button": "Vending machine button clicks",
+  "subtitles.hellstorm.cha_ching": "Cha-ching"
 }

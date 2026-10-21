@@ -29,6 +29,7 @@ public final class Game {
     private static final int STATUS_INTERVAL = 4;
     private static final int REVIVE_COLOR = 0xFFFFFF;
     private static final int BLEED_COLOR = 0xC81E1E;
+    private static final int REPAIR_COLOR = 0xFFFFFF;
 
     private final GameSettings settings;
     private final GameMap map;
@@ -53,6 +54,12 @@ public final class Game {
     private static final int HOLD_GRACE_TICKS = 5;
 
     private record ReviveHold(UUID reviver, long tick) {}
+
+    /** Player to the window they're holding use on. A hold survives {@link #HOLD_GRACE_TICKS} between presses, like a revive. */
+    private final Map<UUID, RepairHold> repairHolds = new LinkedHashMap<>();
+
+    /** {@code started} is the tick the board going on now was started, {@code heard} the last tick use was held. */
+    private record RepairHold(String window, long started, long heard) {}
     private final SurvivalContent content;
     private int dropsThisRound;
     /** Points the whole team has earned this game, and where the next points-triggered drop is due (CoD's score_to_drop). */
@@ -310,6 +317,7 @@ public final class Game {
             tickDowns(world);
             tickRegen(world);
         }
+        tickRepairs(world);
         spawnDrops(world);
         if (ticks % STATUS_INTERVAL == 0) {
             players.keySet().forEach(id -> world.showStatus(id, status(id)));
@@ -499,18 +507,59 @@ public final class Game {
         return phase;
     }
 
-    /** A player put a window board back. Pays until the player hits this round's repair cap. */
-    public void onRepair(UUID repairer) {
-        PlayerState player = players.get(repairer);
-        if (player == null || !player.alive()) {
+    /**
+     * {@code player} is holding use on {@code window} this tick. Held for {@code windows.repair_ticks}, one board goes back
+     * and the next is started, so holding on rebuilds board after board (see {@link #tickRepairs}). Turning to another
+     * window, or letting go for longer than right click's repeat, starts the board over.
+     */
+    public void holdRepair(UUID player, String window) {
+        if (!targetable(player) || phase instanceof GamePhase.GameOver) {
             return;
         }
-        int award = Economy.award(settings.economy(), new PointSource.Repair(), doublePoints());
-        int room = settings.economy().repairCapPerRound() - player.repairPointsThisRound();
-        if (room > 0) {
-            player.addRepairPoints(Math.min(award, room));
-            earned += Math.min(award, room);
+        RepairHold current = repairHolds.get(player);
+        boolean continuing = current != null && current.window().equals(window) && ticks - current.heard() <= HOLD_GRACE_TICKS;
+        repairHolds.put(player, new RepairHold(window, continuing ? current.started() : ticks, ticks));
+    }
+
+    /** Puts a board back for every hold that has lasted a board's time, and drops holds let go of or with nothing left to fix. */
+    private void tickRepairs(GameWorld world) {
+        int perBoard = settings.windows().repairTicks();
+        var holds = repairHolds.entrySet().iterator();
+        while (holds.hasNext()) {
+            Map.Entry<UUID, RepairHold> entry = holds.next();
+            RepairHold hold = entry.getValue();
+            if (ticks - hold.heard() > HOLD_GRACE_TICKS || !targetable(entry.getKey()) || world.boardsMissing(hold.window()) == 0) {
+                holds.remove();
+                continue;
+            }
+            if (ticks - hold.started() < perBoard) {
+                continue;
+            }
+            world.addBoard(hold.window());
+            if (onRepair(entry.getKey()) > 0) {
+                world.chaChing(entry.getKey());
+            }
+            if (world.boardsMissing(hold.window()) == 0) {
+                holds.remove();
+            } else {
+                entry.setValue(new RepairHold(hold.window(), hold.started() + perBoard, hold.heard()));
+            }
         }
+    }
+
+    /** A player put a window board back. Pays until the player hits this round's repair cap, and returns what it paid. */
+    public int onRepair(UUID repairer) {
+        PlayerState player = players.get(repairer);
+        if (player == null || !player.alive()) {
+            return 0;
+        }
+        int award = Economy.award(settings.economy(), new PointSource.Repair(), doublePoints());
+        int paid = Math.max(0, Math.min(award, settings.economy().repairCapPerRound() - player.repairPointsThisRound()));
+        if (paid > 0) {
+            player.addRepairPoints(paid);
+            earned += paid;
+        }
+        return paid;
     }
 
     /** A game zombie took non-lethal damage from a player. */
@@ -719,23 +768,34 @@ public final class Game {
                 .map(p -> new GameWorld.Standing(p.id(), p.points(), p.alive() || p.waiting(), p.life() instanceof LifeState.Downed)).toList();
     }
 
-    /** Downed players see how long they have or how far their revive is; a reviver sees their progress. */
+    /**
+     * Downed players see how long they have or how far their revive is; a reviver sees their progress; a player rebuilding
+     * a window sees the board going on, which is in place the moment the bar fills.
+     */
     private Optional<GameWorld.Bar> bar(UUID id) {
         PlayerState player = players.get(id);
         if (player != null && player.life() instanceof LifeState.Downed down) {
             if (down.reviveTicks() > 0) {
-                return Optional.of(new GameWorld.Bar(down.selfReviving() ? "Reviving" : "Being revived", progress(down), REVIVE_COLOR));
+                return Optional.of(new GameWorld.Bar(down.selfReviving() ? "Reviving" : "Being revived", progress(down), REVIVE_COLOR, perTick(down)));
             }
-            return Optional.of(new GameWorld.Bar("Bleeding out", down.bleedTicksLeft() / (float) settings.downs().bleedOutTicks(), BLEED_COLOR));
+            int bleedOut = settings.downs().bleedOutTicks();
+            return Optional.of(new GameWorld.Bar("Bleeding out", down.bleedTicksLeft() / (float) bleedOut, BLEED_COLOR, -1f / bleedOut));
         }
+        int perBoard = settings.windows().repairTicks();
         return players.values().stream()
                 .filter(p -> p.life() instanceof LifeState.Downed d && d.reviver().filter(id::equals).isPresent() && d.reviveTicks() > 0)
                 .findFirst()
-                .map(p -> new GameWorld.Bar("Reviving", progress((LifeState.Downed) p.life()), REVIVE_COLOR));
+                .map(p -> new GameWorld.Bar("Reviving", progress((LifeState.Downed) p.life()), REVIVE_COLOR, perTick((LifeState.Downed) p.life())))
+                .or(() -> Optional.ofNullable(repairHolds.get(id))
+                        .map(hold -> new GameWorld.Bar("Rebuilding", (ticks - hold.started()) / (float) perBoard, REPAIR_COLOR, 1f / perBoard)));
     }
 
     private static float progress(LifeState.Downed down) {
         return down.reviveNeeded() == 0 ? 0 : down.reviveTicks() / (float) down.reviveNeeded();
+    }
+
+    private static float perTick(LifeState.Downed down) {
+        return down.reviveNeeded() == 0 ? 0 : 1f / down.reviveNeeded();
     }
 
     public GameWorld.Status status(UUID id) {

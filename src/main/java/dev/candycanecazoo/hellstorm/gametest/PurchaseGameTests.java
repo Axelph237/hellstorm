@@ -7,6 +7,8 @@ import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
 import dev.candycanecazoo.hellstorm.game.GamePhase;
+import dev.candycanecazoo.hellstorm.game.Refusal;
+import dev.candycanecazoo.hellstorm.game.Shop;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.Zone;
@@ -26,6 +28,7 @@ import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -109,6 +112,46 @@ public final class PurchaseGameTests {
             GameManager.end(active);
         }
         helper.assertFalse(helper.getLevel().getBlockState(at).getValue(LeverBlock.POWERED), "ending the game resets the switch");
+        helper.succeed();
+    }
+
+    /** A sale for these tests: costs {@code cost}, needs no power, and hands over nothing. */
+    private static Shop.Sale sale(int cost) {
+        return new Shop.Sale() {
+            @Override
+            public int cost() {
+                return cost;
+            }
+
+            @Override
+            public boolean needsPower() {
+                return false;
+            }
+
+            @Override
+            public Optional<Refusal> deliver(GameManager.Active game, ServerPlayer player) {
+                return Optional.empty();
+            }
+        };
+    }
+
+    /** Spending points plays the cha-ching to the buyer alone; a purchase refused, or one that cost nothing, doesn't. */
+    @GameTest(template = "floor", batch = "shop_cha_ching")
+    public static void theBuyerAloneHearsTheChaChingWhenPointsAreSpent(GameTestHelper helper) {
+        ListeningPlayer buyer = new ListeningPlayer(helper.getLevel(), "pap_cha_ching_buyer");
+        ListeningPlayer teammate = new ListeningPlayer(helper.getLevel(), "pap_cha_ching_mate");
+        GameManager.Active active = game(helper, List.<ServerPlayer>of(buyer, teammate));
+        try {
+            helper.assertFalse(Shop.buy(buyer, active, sale(points(active, buyer) + 1)), "bought without enough points");
+            helper.assertTrue(buyer.heard.isEmpty(), "a purchase short of points played " + buyer.heard);
+            helper.assertTrue(Shop.buy(buyer, active, sale(0)), "a free purchase was refused");
+            helper.assertTrue(buyer.heard.isEmpty(), "taking something free played " + buyer.heard);
+            helper.assertTrue(Shop.buy(buyer, active, sale(100)), "the purchase was refused");
+            helper.assertTrue(buyer.heard.equals(List.of(PapRegistries.CHA_CHING.get())), "the buyer should hear one cha-ching, heard " + buyer.heard);
+            helper.assertTrue(teammate.heard.isEmpty(), "a teammate heard " + teammate.heard);
+        } finally {
+            GameManager.end(active);
+        }
         helper.succeed();
     }
 

@@ -104,7 +104,7 @@ class DownsTest {
         game.onLethalDamage(alice, world);
         holdRevive(game, bob, alice, REVIVE - 1);
         assertInstanceOf(LifeState.Downed.class, life(game, alice));
-        assertEquals(Optional.of(new GameWorld.Bar("Reviving", (REVIVE - 1) / (float) REVIVE, 0xFFFFFF)), game.status(bob).bar());
+        assertEquals(Optional.of(new GameWorld.Bar("Reviving", (REVIVE - 1) / (float) REVIVE, 0xFFFFFF, 1f / REVIVE)), game.status(bob).bar());
         holdRevive(game, bob, alice, 1);
         assertInstanceOf(LifeState.Alive.class, life(game, alice));
         assertEquals(List.of(alice), world.revived);
