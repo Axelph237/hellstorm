@@ -5,4 +5,4 @@ events.on("zombie_killed", function(e)
   end
 end)
 
-log.info("pap_example loaded for " .. #game.players() .. " player(s)")
+log.info("hellstorm_example loaded for " .. #game.players() .. " player(s)")

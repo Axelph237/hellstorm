@@ -1,4 +1,4 @@
-local util = require("pap_example:util")
+local util = require("hellstorm_example:util")
 
 local M = {}
 

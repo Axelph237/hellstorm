@@ -1,5 +1,5 @@
 {
   "event": "round_end",
-  "script": "pap_example:announcer",
+  "script": "hellstorm_example:announcer",
   "function": "on_round_end"
 }

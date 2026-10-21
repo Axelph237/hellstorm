@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "Hellstorm sandbox check: tries things the sandbox must block",
+    "pack_format": 15
+  }
+}

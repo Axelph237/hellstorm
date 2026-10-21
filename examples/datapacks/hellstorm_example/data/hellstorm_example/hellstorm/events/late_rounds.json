@@ -1,6 +1,6 @@
 {
   "event": "round_start",
-  "script": "pap_example:announcer",
+  "script": "hellstorm_example:announcer",
   "function": "on_late_round",
   "filter": { "round_min": 3 }
 }

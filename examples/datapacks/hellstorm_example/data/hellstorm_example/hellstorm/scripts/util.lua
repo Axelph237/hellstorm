@@ -1,4 +1,4 @@
--- Helpers shared by the example scripts. Loaded once with require("pap_example:util").
+-- Helpers shared by the example scripts. Loaded once with require("hellstorm_example:util").
 local util = {}
 
 -- Builds a JSON text component for /title and /tellraw, escaping quotes and backslashes.

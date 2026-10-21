@@ -80,7 +80,7 @@ end)
 
 ## Examples
 
-`examples/datapacks/` (in the repo, not the jar) has `pap_example`, a working map script, and `pap_sandbox_check`, which tries what the sandbox must block.
+`examples/datapacks/` (in the repo, not the jar) has `hellstorm_example`, a working map script, and `hellstorm_sandbox_check`, which tries what the sandbox must block.
 
 ## Assets
 
