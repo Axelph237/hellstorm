@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -70,16 +71,21 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
         float lit = machine.lit(level.getGameTime(), partialTick);
         int frame = (int) ((long) ((level.getGameTime() + (double) partialTick) / 20 * LIT_FPS) % LIT_FRAMES);
         ResourceLocation texture = lit >= 1 ? LIT : UNLIT;
+        // Named in the F3+L profile, under blockentities.
+        ProfilerFiller profiler = level.getProfiler();
+        profiler.push(Hellstorm.MOD_ID + "_vending_machine");
         model.begin(texture, frame);
         model.render(machine, partialTick, pose, buffers, light, overlay);
-        if (model.shelves != null) {
-            stock(machine, model.shelves.stack(), buffers, light, overlay);
-        }
         if (lit > 0 && lit < 1) {
             model.fadeIn(machine, pose, buffers, partialTick, light, overlay, lit, frame);
         }
         model.draw(texture, frame);
         model.glass(buffers, light, overlay);
+        profiler.popPush(Hellstorm.MOD_ID + "_vending_machine_stock");
+        if (model.shelves != null) {
+            stock(machine, model.shelves.stack(), buffers, light, overlay);
+        }
+        profiler.pop();
     }
 
     /** Three of what the machine sells, one behind another, at each of the shelves' six spots, upright and facing out. */
