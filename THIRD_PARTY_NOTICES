@@ -43,9 +43,17 @@ copy, Forge loads only one.
     under Mojang's terms for Minecraft content. Only the arrangement and the
     pixels Hellstorm added are covered by LICENSE.
 
+  assets/hellstorm/textures/block/mystery_crate.png
+
+    This texture sheet is built from Minecraft's block/oak_planks.png: its
+    plank pattern, darkened to look charred, with ember pixels added. The
+    plank pattern is Mojang's work. It is not covered by Hellstorm's license
+    and is not relicensed by it; it is used under Mojang's terms for
+    Minecraft content.
+
   Models that only point at minecraft: textures (oak planks, iron block,
-  barrel, and so on) contain no Mojang pixels; the game loads those textures
-  from its own files.
+  redstone lamp, and so on) contain no Mojang pixels; the game loads those
+  textures from its own files.
 
 
 3. Not bundled
