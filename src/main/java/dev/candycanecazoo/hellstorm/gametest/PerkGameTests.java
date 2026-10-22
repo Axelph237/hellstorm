@@ -341,6 +341,35 @@ public final class PerkGameTests {
         helper.succeed();
     }
 
+    @GameTest(template = "floor", batch = "perk_can")
+    public static void aLoadUpCanIsSoldAndDrunkLikeAPotionForLoadUpWithNoTimeLimit(GameTestHelper helper) {
+        BlockPos at = vendingMachine(helper);
+        WallBuyBlock.entity(helper.getLevel(), at).orElseThrow().setConfig(new WallBuy.Config(
+                new dev.candycanecazoo.hellstorm.data.ItemSpec.Plain(Hellstorm.id("load_up"), 1, Optional.empty()),
+                VendingMachineBlock.DEFAULT_COST, WallBuy.Repurchase.DENY, 0, WallBuy.DEFAULT_PAP_AMMO_COST, true));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_perk_can");
+        GameManager.Active active = PurchaseGameTests.game(helper, player, at);
+        try {
+            active.game().refund(player.getUUID(), 10_000);
+            buy(player, at);
+            int slot = player.getInventory().findSlotMatchingItem(new ItemStack(PapRegistries.LOAD_UP_CAN.get()));
+            helper.assertTrue(slot >= 0, "the machine should hand over a Load-Up can");
+            ItemStack can = player.getInventory().removeItemNoUpdate(slot);
+            helper.assertTrue(can.getUseAnimation() == net.minecraft.world.item.UseAnim.DRINK && can.getUseDuration() == 32, "a can is drunk like a potion");
+            helper.assertTrue(drink(player, can), "drinking the can shouldn't be refused");
+            MobEffectInstance loadUp = player.getEffect(PerkEffects.RELOAD.get());
+            helper.assertTrue(loadUp != null && loadUp.isInfiniteDuration(), "the can should give Load-Up with no time limit, got " + loadUp);
+            helper.assertTrue(player.getMainHandItem().isEmpty(), "nothing should be left of the can, hand holds " + player.getMainHandItem());
+
+            WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
+            WallBuy.Action action = WallBuyBlock.action(entity.config(), entity.display(), player, Optional.empty());
+            helper.assertTrue(action.equals(new WallBuy.Action.Deny("You already have Load-Up")), "a second can should be refused, action " + action);
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "floor", batch = "perk_self_revive")
     public static void saintsBrewGivesSoloSelfReviveAndRevivesFaster(GameTestHelper helper) {
         BlockPos at = machine(helper, Hellstorm.id("saints_brew"));

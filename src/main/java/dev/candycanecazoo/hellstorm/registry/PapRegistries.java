@@ -14,6 +14,7 @@ import dev.candycanecazoo.hellstorm.feature.PowerSwitchBlock;
 import dev.candycanecazoo.hellstorm.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.hellstorm.feature.MysteryBoxBlock;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
+import dev.candycanecazoo.hellstorm.perk.PerkCanItem;
 import dev.candycanecazoo.hellstorm.perk.PerkEffects;
 import dev.candycanecazoo.hellstorm.tools.ZoneWandItem;
 import net.minecraft.core.registries.Registries;
@@ -119,6 +120,8 @@ public final class PapRegistries {
     public static final RegistryObject<Item> MYSTERY_BOX_ITEM = ITEMS.register("mystery_crate", () -> new GeoBlockItem(MYSTERY_BOX.get(), new Item.Properties(),
             MysteryBoxBlock.MODEL, MysteryBoxBlock.MODEL_OFFSET));
     public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> LOAD_UP_CAN = ITEMS.register("load_up", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
+            "load_up", PerkEffects.RELOAD));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
@@ -133,6 +136,7 @@ public final class PapRegistries {
                 output.accept(MYSTERY_BOX_ITEM.get());
                 output.accept(PAP_MACHINE_ITEM.get());
                 output.accept(TRAP_CONTROLLER_ITEM.get());
+                output.accept(LOAD_UP_CAN.get());
             })
             .build());
 

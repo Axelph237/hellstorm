@@ -42,9 +42,14 @@ public final class Perks {
         return entity.getActiveEffects().stream().map(MobEffectInstance::getEffect).filter(effect -> is(effect, PerkEffects.PERKS)).toList();
     }
 
-    /** The perks drinking {@code stack} would give. None for anything that isn't a potion. */
+    /** The effects drinking {@code stack} gives: a perk can's perk, or a potion's effects. None for anything else. */
+    public static List<MobEffectInstance> drunk(ItemStack stack) {
+        return stack.getItem() instanceof PerkCanItem can ? List.of(can.effect()) : PotionUtils.getMobEffects(stack);
+    }
+
+    /** The perks drinking {@code stack} would give. None for anything that isn't a potion or a perk can. */
     public static List<MobEffect> given(ItemStack stack) {
-        return PotionUtils.getMobEffects(stack).stream().map(MobEffectInstance::getEffect).filter(effect -> is(effect, PerkEffects.PERKS)).distinct().toList();
+        return drunk(stack).stream().map(MobEffectInstance::getEffect).filter(effect -> is(effect, PerkEffects.PERKS)).distinct().toList();
     }
 
     /** Refuses gaining perks from {@code adding} that aren't {@code held} if that would take the player past {@code limit}. */
@@ -62,9 +67,9 @@ public final class Perks {
                 .flatMap(active -> limitRefusal(held(player), given(stack), active.game().settings().players().perkLimit()));
     }
 
-    /** "You already have Vigoraid" when {@code stack} is a potion and every one of its effects is already active. */
+    /** "You already have Vigoraid" when {@code stack} is a drink and every one of its effects is already active. */
     public static Optional<String> alreadyHas(LivingEntity entity, ItemStack stack) {
-        List<MobEffectInstance> effects = PotionUtils.getMobEffects(stack);
+        List<MobEffectInstance> effects = drunk(stack);
         if (effects.isEmpty() || !effects.stream().allMatch(instance -> entity.hasEffect(instance.getEffect()))) {
             return Optional.empty();
         }
