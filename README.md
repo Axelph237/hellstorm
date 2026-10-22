@@ -1,6 +1,6 @@
 # Hellstorm
 
-Hellstorm is a Minecraft mod for round-based zombie survival, in the style of Call of Duty: Zombies. The guns come from [TacZ](https://modrinth.com/mod/timeless-and-classics-zero). Map makers build an arena by hand out of zones, doors, windows, wall-buys, a Mystery Crate, perk machines, the upgrader, traps and a power switch. Players then fight waves of zombies, earn points, buy their way through the map, and revive each other. Co-op works on dedicated servers, and any mob can be set up as a zombie, including mobs from other mods.
+Hellstorm is a Minecraft mod for round-based zombie survival, in the style of Call of Duty: Zombies. The guns come from [TacZ](https://modrinth.com/mod/timeless-and-classics-zero). Map makers build an arena by hand out of zones, doors, windows, wall-buys, a Mystery Crate, vending machines, the upgrader, traps and a power switch. Players then fight waves of zombies, earn points, buy their way through the map, and revive each other. Co-op works on dedicated servers, and any mob can be set up as a zombie, including mobs from other mods.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ All `/hs` commands below need operator permission, except `join`, `leave`, `stat
 4. Add doors and windows. Select the door's blocks with the Zone Wand and run `/hs door create <id> [cost]`. Select a hole in a zone's wall and run `/hs window add <id> [boards]`.
 5. Place the machines from the creative tab: wall-buys, the Mystery Crate, vending machines, the upgrader, trap controllers and the power switch. In creative mode, use a machine outside a game to open its settings screen. Commands also configure the machine you are looking at, for example `/hs wallbuy set <cost> held`, `/hs wallbuy set <cost> gun <gunId>` or `/hs upgrader cost <points>`. To hide a trap controller in a wall, use it in creative with a full block in hand; sneak and use it with an empty hand to undo.
 6. Run `/hs map validate` and fix what it reports. `/hs map paths` shows how zombies cross between zones.
-7. Run `/hs map mode play`. Edit mode shows the spawn markers and blocks games.
+7. Run `/hs map mode play`. Edit mode blocks games. Spawn markers show between games and hide while one runs.
 8. Each player runs `/hs join`. Then anyone in the game runs `/hs start`. `/hs status` shows the scores, `/hs leave` leaves the game and gives back your inventory, and `/hs stop` ends the game.
 
 To share a map, run `/hs map export <name>`. This writes a map pack to `hellstorm/maps/` in the game folder. Another world loads it with `/hs map import <name> [<pos>]`.
