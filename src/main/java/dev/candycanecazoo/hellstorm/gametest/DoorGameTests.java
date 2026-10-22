@@ -3,10 +3,12 @@ package dev.candycanecazoo.hellstorm.gametest;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.game.DoorFlights;
 import dev.candycanecazoo.hellstorm.game.Doors;
+import dev.candycanecazoo.hellstorm.game.ForgeGameWorld;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.DoorDef;
+import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.Passages;
 import dev.candycanecazoo.hellstorm.map.Zone;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
@@ -15,6 +17,7 @@ import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.mob.path.FlowGraph;
 import dev.candycanecazoo.hellstorm.tools.LevelCellProbe;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -26,6 +29,10 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -126,6 +133,61 @@ public final class DoorGameTests {
         try {
             helper.assertTrue(active.game().unlocked().equals(Set.of(west)), "the east room starts locked, got " + active.game().unlocked());
             Doors.use(player, low);
+            helper.assertTrue(active.game().unlocked().equals(Set.of(west, east)), "the east room didn't unlock: " + active.game().unlocked());
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The rooms of the first test with a wooden door as the door players buy. Zombies walk through wooden doors, so the
+     * world reads its cells as open, but until it's bought the east room is locked and its marker never spawns a zombie.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_wooden")
+    public static void aWoodenDoorKeepsTheRoomBeyondLockedAndItsMarkerQuietUntilBought(GameTestHelper helper) {
+        for (int z = 0; z <= 8; z++) {
+            for (int dy = 0; dy <= 3; dy++) {
+                helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), Blocks.STONE);
+            }
+        }
+        BlockPos low = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
+        BlockState oak = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.EAST);
+        helper.getLevel().setBlock(low, oak.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+        helper.getLevel().setBlock(low.above(), oak.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+        ZoneId west = new ZoneId("gametest_wooden_west");
+        ZoneId east = new ZoneId("gametest_wooden_east");
+        BlockPos westMarker = helper.absolutePos(new BlockPos(3, ROOM_Y, 8));
+        BlockPos eastMarker = helper.absolutePos(new BlockPos(7, ROOM_Y, 4));
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(west, List.of(BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(3, ROOM_Y + 2, 8)))), true))
+                .withZone(new Zone(east, List.of(BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)))), false))
+                .withDoor(DoorDef.empty("oak", 300).withMember(low).withMember(low.above()))
+                .withFeature(westMarker, FeatureKind.SPAWN)
+                .withFeature(eastMarker, FeatureKind.SPAWN);
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_door_wooden_test");
+        BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
+        player.moveTo(stand.getCenter());
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+                id -> id.equals(player.getUUID()) ? player : null);
+        active.game().join(player.getUUID());
+        PurchaseGameTests.play(active);
+        AABB rooms = new AABB(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(9, ROOM_Y + 3, 9)));
+        try {
+            List<Zombie> spawned = List.of();
+            for (int tick = 0; tick < 2400 && spawned.size() < 6; tick++) {
+                active.game().tick(active.world());
+                spawned = helper.getLevel().getEntitiesOfClass(Zombie.class, rooms, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG));
+            }
+            helper.assertTrue(spawned.size() >= 6, "only " + spawned.size() + " zombies spawned");
+            for (Zombie zombie : spawned) {
+                helper.assertTrue(zombie.blockPosition().distManhattan(westMarker) <= 2,
+                        "a zombie spawned at " + zombie.blockPosition() + ", in the locked room (east marker " + eastMarker + ")");
+            }
+            helper.assertTrue(active.game().unlocked().equals(Set.of(west)), "the east room starts locked, got " + active.game().unlocked());
+            Doors.use(player, low);
+            helper.assertTrue(helper.getLevel().getBlockState(low).isAir(), "the wooden door wasn't bought");
             helper.assertTrue(active.game().unlocked().equals(Set.of(west, east)), "the east room didn't unlock: " + active.game().unlocked());
         } finally {
             GameManager.end(active);

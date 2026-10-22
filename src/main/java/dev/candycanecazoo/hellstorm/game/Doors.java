@@ -28,7 +28,9 @@ import net.minecraft.world.level.saveddata.SavedData;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /** Buying, opening, and restoring doors. */
 public final class Doors {
@@ -94,7 +96,8 @@ public final class Doors {
         level.playSound(null, center, door.style() == DoorDef.Style.DOOR ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.GRAVEL_BREAK,
                 SoundSource.BLOCKS, 1.0f, door.style() == DoorDef.Style.DOOR ? 0.8f : 1.0f);
         ZombiesMap map = active.game().map().map();
-        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get());
+        Set<String> open = map.doors().keySet().stream().filter(id -> id.equals(door.id()) || active.game().doorOpen(id)).collect(Collectors.toSet());
+        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get(), open);
         active.game().openDoor(door.id(), by, ZoneGraph.of(map, passages.open()));
         active.pathing().reconnect(passages, active.game().unlocked());
     }
