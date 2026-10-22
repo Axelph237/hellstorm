@@ -3,10 +3,14 @@ package dev.candycanecazoo.hellstorm.mob;
 import dev.candycanecazoo.hellstorm.mob.goals.GameMeleeGoal;
 import dev.candycanecazoo.hellstorm.mob.goals.Navigator;
 import dev.candycanecazoo.hellstorm.mob.goals.TargetGamePlayerGoal;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
@@ -18,6 +22,9 @@ import java.util.function.Supplier;
 /** Turns any mob into a game zombie: goals, round-scaled attributes, and persistence. */
 public final class AiInjector {
     public record Stats(double health, double speed, float damage) {}
+
+    /** Long enough for mobs on vanilla navigation to find players across a map. */
+    private static final double FOLLOW_RANGE = 128.0;
 
     private AiInjector() {}
 
@@ -50,11 +57,23 @@ public final class AiInjector {
         setBase(mob, Attributes.MAX_HEALTH, stats.health());
         mob.setHealth((float) stats.health());
         setBase(mob, Attributes.MOVEMENT_SPEED, stats.speed());
-        // Long enough for mobs on vanilla navigation to find players across a map.
-        setBase(mob, Attributes.FOLLOW_RANGE, 128.0);
+        setBase(mob, Attributes.FOLLOW_RANGE, FOLLOW_RANGE);
+        searchAsFarAsFollowRange(mob);
         mob.setPersistenceRequired();
         mob.setCanPickUpLoot(false);
         return mode;
+    }
+
+    /**
+     * Vanilla navigation stops searching after 16 nodes per block of follow range, a budget it sizes once, when the mob is
+     * constructed, from its type's default range (560 nodes for a zombie, 256 for a wolf). Raising the attribute
+     * afterwards doesn't reach it, so this scales the budget to {@link #FOLLOW_RANGE}.
+     */
+    @SuppressWarnings("unchecked")
+    private static void searchAsFarAsFollowRange(Mob mob) {
+        double builtRange = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) mob.getType()).getBaseValue(Attributes.FOLLOW_RANGE);
+        int builtBudget = Math.max(1, Mth.floor(builtRange * 16));
+        mob.getNavigation().setMaxVisitedNodesMultiplier((float) (Mth.floor(FOLLOW_RANGE * 16) / (double) builtBudget));
     }
 
     private static void setBase(Mob mob, net.minecraft.world.entity.ai.attributes.Attribute attribute, double value) {
