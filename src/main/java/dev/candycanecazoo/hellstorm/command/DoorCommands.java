@@ -18,8 +18,6 @@ import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.tools.DoorBlocks;
 import dev.candycanecazoo.hellstorm.tools.MapHistory;
-import dev.candycanecazoo.hellstorm.tools.Selection;
-import dev.candycanecazoo.hellstorm.tools.ToolState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -30,6 +28,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -95,7 +94,7 @@ final class DoorCommands {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ServerLevel level = player.serverLevel();
         String id = StringArgumentType.getString(ctx, "door");
-        BlockBox box = ZonesCommands.selection(player);
+        List<BlockBox> boxes = ZonesCommands.selection(player);
         ZombiesMap map = MapSavedData.get(level).map();
         DoorDef door = map.doors().get(id);
         if (door == null) {
@@ -104,12 +103,19 @@ final class DoorCommands {
             }
             door = DoorDef.empty(id, cost.orElse(GameManager.settings().doors().defaultCost()));
         }
-        DoorBlocks.Result result = DoorBlocks.add(door, box, pos -> !level.getBlockState(pos).isAir(), pos -> map.doorAt(pos).map(DoorDef::id));
+        int changed = 0;
+        int skipped = 0;
+        for (BlockBox box : boxes) {
+            DoorBlocks.Result step = DoorBlocks.add(door, box, pos -> !level.getBlockState(pos).isAir(), pos -> map.doorAt(pos).map(DoorDef::id));
+            door = step.door();
+            changed += step.changed();
+            skipped += step.skipped();
+        }
+        DoorBlocks.Result result = new DoorBlocks.Result(door, changed, skipped);
         if (result.changed() == 0) {
             throw NOTHING_ADDED.create();
         }
         MapHistory.edit(level, "add door '" + id + "'", m -> m.withDoor(result.door()));
-        ToolState.setSelection(player, Selection.NONE);
         if (result.skipped() > 0) {
             ctx.getSource().sendSuccess(() -> Component.literal("Skipped " + result.skipped() + " blocks in other doors or over the "
                     + DoorBlocks.MAX + "-block limit"), false);
@@ -121,17 +127,19 @@ final class DoorCommands {
     private static int cut(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         DoorDef door = existing(ctx);
-        BlockBox box = ZonesCommands.selection(player);
-        if (door.members().stream().noneMatch(box::contains)) {
+        List<BlockBox> boxes = ZonesCommands.selection(player);
+        if (door.members().stream().noneMatch(p -> ZonesCommands.holds(boxes, p))) {
             throw NOT_IN_DOOR.create(door.id());
         }
-        MapHistory.edit(player.serverLevel(), "cut door '" + door.id() + "'", map -> cut(map, door.id(), box));
-        ToolState.setSelection(player, Selection.NONE);
+        MapHistory.edit(player.serverLevel(), "cut door '" + door.id() + "'", map -> cut(map, door.id(), boxes));
         return 1;
     }
 
-    static ZombiesMap cut(ZombiesMap map, String id, BlockBox box) {
-        DoorDef left = DoorBlocks.cut(map.doors().get(id), box).door();
+    static ZombiesMap cut(ZombiesMap map, String id, List<BlockBox> boxes) {
+        DoorDef left = map.doors().get(id);
+        for (BlockBox box : boxes) {
+            left = DoorBlocks.cut(left, box).door();
+        }
         return left.members().isEmpty() ? map.withoutDoor(id) : map.withDoor(left);
     }
 

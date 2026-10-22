@@ -31,8 +31,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Right-click sets selection corners, sneak-right-click clears. A corner is the block you're looking at. A finished
- * selection that touches no room hints at the add command.
+ * Right-click sets selection corners, and every two add a box to the selection (see {@link Selection}). Sneak-right-click
+ * clears it. A corner is the block you're looking at. Finishing a box when the selection touches no room hints at the add
+ * command.
  */
 public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     /** The two frames turning, from {@code animations/item/zone_wand.animation.json}. */
@@ -93,10 +94,13 @@ public final class ZoneWandItem extends Item implements MapTool, GeoItem {
         return InteractionResultHolder.success(stack);
     }
 
-    /** The add command, once both corners are set and the box touches no room. */
+    /** The add command, once a box is finished (no corner waiting for its pair) and no box of the selection touches a room. */
     public static Optional<Component> hint(ServerLevel level, Selection selection) {
-        return selection.box()
-                .filter(box -> MapSavedData.get(level).map().zones().values().stream().noneMatch(z -> z.boxes().stream().anyMatch(box::intersects)))
-                .map(box -> Component.literal("/hs zones add <room|window|door>"));
+        if (selection.isEmpty() || selection.corner().isPresent()) {
+            return Optional.empty();
+        }
+        boolean touchesRoom = MapSavedData.get(level).map().zones().values().stream()
+                .anyMatch(z -> z.boxes().stream().anyMatch(b -> selection.boxes().stream().anyMatch(b::intersects)));
+        return touchesRoom ? Optional.empty() : Optional.of(Component.literal("/hs zones add <room|window|door>"));
     }
 }

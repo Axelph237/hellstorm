@@ -127,7 +127,7 @@ final class MapPackCommands {
                     .forEach(p -> ctx.getSource().sendFailure(Component.literal(" - " + p.message())));
             throw Targets.fail("The map has errors (above). Fix them, or export anyway with /hs map export " + name + " force");
         }
-        Optional<BlockBox> selected = ctx.getSource().getEntity() instanceof ServerPlayer player ? ToolState.selection(player).box() : Optional.empty();
+        Optional<BlockBox> selected = ctx.getSource().getEntity() instanceof ServerPlayer player ? ToolState.selection(player).bounds() : Optional.empty();
         Optional<BlockBox> area = selected.or(() -> MapGeometry.bounds(map).map(b -> b.grown(ServerConfig.EXPORT_MARGIN.get())));
         if (area.isEmpty()) {
             throw Targets.fail("There's nothing to export: the map is empty and nothing is selected with the Zone Wand");

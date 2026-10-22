@@ -67,8 +67,10 @@ class PacketRoundTripTest {
 
     @Test
     void selection() {
+        Selection two = Selection.NONE.click(new BlockPos(1, 2, 3)).click(new BlockPos(-4, 5, 6))
+                .click(new BlockPos(20, 0, 20)).click(new BlockPos(22, 1, 21));
         for (Selection value : List.of(Selection.NONE, Selection.NONE.click(new BlockPos(1, 2, 3)),
-                Selection.NONE.click(new BlockPos(1, 2, 3)).click(new BlockPos(-4, 5, 6)))) {
+                Selection.NONE.click(new BlockPos(1, 2, 3)).click(new BlockPos(-4, 5, 6)), two, two.click(new BlockPos(7, 7, 7)))) {
             SelectionPacket packet = new SelectionPacket(value);
             assertEquals(packet, roundTrip(packet, SelectionPacket::encode, SelectionPacket::decode));
         }

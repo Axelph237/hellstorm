@@ -20,7 +20,6 @@ import dev.candycanecazoo.hellstorm.map.ZoneIndex;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.tools.MapHistory;
 import dev.candycanecazoo.hellstorm.tools.RoomDetection;
-import dev.candycanecazoo.hellstorm.tools.Selection;
 import dev.candycanecazoo.hellstorm.tools.ToolState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -97,15 +96,16 @@ final class RoomCommands {
     private static int add(CommandContext<CommandSourceStack> ctx, Optional<Boolean> start) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ZoneId id = roomId(ctx);
-        BlockBox box = ZonesCommands.selection(player);
+        List<BlockBox> boxes = ZonesCommands.selection(player);
         ServerLevel level = player.serverLevel();
-        Optional<ZoneId> overlap = MapSavedData.get(level).map().zoneOverlapping(box, id);
-        if (overlap.isPresent()) {
-            throw OVERLAP.create(overlap.get());
+        for (BlockBox box : boxes) {
+            Optional<ZoneId> overlap = MapSavedData.get(level).map().zoneOverlapping(box, id);
+            if (overlap.isPresent()) {
+                throw OVERLAP.create(overlap.get());
+            }
         }
         MapHistory.edit(level, "add room '" + id + "'",
-                map -> map.withZone(map.zone(id).orElse(Zone.empty(id).withStart(start.orElse(false))).withBox(box)));
-        ToolState.setSelection(player, Selection.NONE);
+                map -> map.withZone(map.zone(id).orElse(Zone.empty(id).withStart(start.orElse(false))).withBoxes(boxes)));
         return MapSavedData.get(level).map().zone(id).orElseThrow().boxes().size();
     }
 
@@ -113,18 +113,20 @@ final class RoomCommands {
     private static int cut(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ZoneId id = roomId(ctx);
-        BlockBox box = ZonesCommands.selection(player);
+        List<BlockBox> boxes = ZonesCommands.selection(player);
         ServerLevel level = player.serverLevel();
-        if (existing(level, id).boxes().stream().noneMatch(box::intersects)) {
+        if (existing(level, id).boxes().stream().noneMatch(b -> ZonesCommands.touches(boxes, b))) {
             throw NOT_IN_ROOM.create(id);
         }
-        MapHistory.edit(level, "cut room '" + id + "'", map -> cut(map, id, box));
-        ToolState.setSelection(player, Selection.NONE);
+        MapHistory.edit(level, "cut room '" + id + "'", map -> cut(map, id, boxes));
         return 1;
     }
 
-    static ZombiesMap cut(ZombiesMap map, ZoneId id, BlockBox box) {
-        Zone left = map.zone(id).orElseThrow().without(box);
+    static ZombiesMap cut(ZombiesMap map, ZoneId id, List<BlockBox> boxes) {
+        Zone left = map.zone(id).orElseThrow();
+        for (BlockBox box : boxes) {
+            left = left.without(box);
+        }
         return left.boxes().isEmpty() ? map.withoutZone(id) : map.withZone(left);
     }
 
@@ -210,9 +212,4 @@ final class RoomCommands {
         return pending.boxes().size();
     }
 
-    static int cancel(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ToolState.clearDetection(ctx.getSource().getPlayerOrException());
-        ctx.getSource().sendSuccess(() -> Component.literal("Detection discarded"), false);
-        return 1;
-    }
 }

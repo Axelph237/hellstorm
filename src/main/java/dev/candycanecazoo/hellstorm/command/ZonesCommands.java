@@ -18,13 +18,13 @@ import dev.candycanecazoo.hellstorm.tools.ToolState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -64,42 +64,54 @@ final class ZonesCommands {
                 .then(Commands.literal("list").executes(ZonesCommands::list))
                 .then(RoomCommands.detect())
                 .then(Commands.literal("confirm").executes(RoomCommands::confirm))
-                .then(Commands.literal("cancel").executes(RoomCommands::cancel));
+                .then(Commands.literal("cancel").executes(ZonesCommands::cancel));
     }
 
-    static BlockBox selection(ServerPlayer player) throws CommandSyntaxException {
-        return ToolState.selection(player).box().orElseThrow(NO_SELECTION::create);
+    /** The selection's boxes; there's at least one. */
+    static List<BlockBox> selection(ServerPlayer player) throws CommandSyntaxException {
+        Selection selection = ToolState.selection(player);
+        if (selection.isEmpty()) {
+            throw NO_SELECTION.create();
+        }
+        return selection.boxes();
     }
 
-    private static List<ZoneId> roomsTouching(ZombiesMap map, BlockBox box) {
-        return map.zones().values().stream().filter(z -> z.boxes().stream().anyMatch(box::intersects)).map(Zone::id).toList();
+    static boolean touches(List<BlockBox> boxes, BlockBox box) {
+        return boxes.stream().anyMatch(box::intersects);
     }
 
-    private static List<String> doorsTouching(ZombiesMap map, BlockBox box) {
-        return map.doors().values().stream().filter(d -> d.members().stream().anyMatch(box::contains)).map(DoorDef::id).toList();
+    static boolean holds(List<BlockBox> boxes, BlockPos pos) {
+        return boxes.stream().anyMatch(b -> b.contains(pos));
+    }
+
+    private static List<ZoneId> roomsTouching(ZombiesMap map, List<BlockBox> boxes) {
+        return map.zones().values().stream().filter(z -> z.boxes().stream().anyMatch(b -> touches(boxes, b))).map(Zone::id).toList();
+    }
+
+    private static List<String> doorsTouching(ZombiesMap map, List<BlockBox> boxes) {
+        return map.doors().values().stream().filter(d -> d.members().stream().anyMatch(p -> holds(boxes, p))).map(DoorDef::id).toList();
     }
 
     /** Takes the selection out of every room and door it touches. */
     private static int cut(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        BlockBox box = selection(player);
+        List<BlockBox> boxes = selection(player);
         ServerLevel level = player.serverLevel();
         ZombiesMap map = MapSavedData.get(level).map();
-        List<ZoneId> rooms = roomsTouching(map, box);
-        List<String> doors = doorsTouching(map, box);
+        List<ZoneId> rooms = roomsTouching(map, boxes);
+        List<String> doors = doorsTouching(map, boxes);
         if (rooms.isEmpty() && doors.isEmpty()) {
             throw CUT_NOTHING.create();
         }
         MapHistory.edit(level, "cut", m -> {
             for (ZoneId room : rooms) {
-                m = RoomCommands.cut(m, room, box);
+                m = RoomCommands.cut(m, room, boxes);
             }
             for (String door : doors) {
-                m = DoorCommands.cut(m, door, box);
+                m = DoorCommands.cut(m, door, boxes);
             }
             return m;
         });
-        ToolState.setSelection(player, Selection.NONE);
         return rooms.size() + doors.size();
     }
 
@@ -109,14 +121,14 @@ final class ZonesCommands {
      */
     private static int merge(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        Optional<BlockBox> box = ToolState.selection(player).box();
-        if (box.isEmpty()) {
+        Selection selection = ToolState.selection(player);
+        if (selection.isEmpty()) {
             throw MERGE_WHAT.create();
         }
         ServerLevel level = player.serverLevel();
         ZombiesMap map = MapSavedData.get(level).map();
-        List<ZoneId> rooms = roomsTouching(map, box.get());
-        List<String> doors = doorsTouching(map, box.get());
+        List<ZoneId> rooms = roomsTouching(map, selection.boxes());
+        List<String> doors = doorsTouching(map, selection.boxes());
         if (rooms.size() < 2 && doors.size() < 2) {
             throw MERGE_NOTHING.create();
         }
@@ -135,7 +147,6 @@ final class ZonesCommands {
             }
             return m;
         });
-        ToolState.setSelection(player, Selection.NONE);
         return 1;
     }
 
@@ -155,6 +166,16 @@ final class ZonesCommands {
         } else {
             throw MERGE_MISMATCH.create();
         }
+        return 1;
+    }
+
+    /** Clears the Zone Wand selection and any pending room detection. */
+    private static int cancel(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        boolean detecting = ToolState.detection(player).isPresent();
+        ToolState.setSelection(player, Selection.NONE);
+        ToolState.clearDetection(player);
+        ctx.getSource().sendSuccess(() -> Component.literal(detecting ? "Selection cleared and detection discarded" : "Selection cleared"), false);
         return 1;
     }
 

@@ -53,6 +53,8 @@ public final class MapToolRenderer {
 
     private record PreviewSlot(int box) {}
 
+    private record SelectionSlot(int box) {}
+
     private record ProblemSlot(int index) {}
 
     private record SpawnSlot(BlockPos pos) {}
@@ -207,18 +209,24 @@ public final class MapToolRenderer {
         return best;
     }
 
+    /** Each box of the selection, and the next one from its first corner to the cursor, yellow where it overlaps a room. */
     private static void drawSelection(LocalPlayer player, double reach) {
         Selection selection = ClientMapState.selection();
-        if (selection.first().isEmpty()) {
+        for (int i = 0; i < selection.boxes().size(); i++) {
+            BlockBox box = selection.boxes().get(i);
+            ZoneOutlines.box(new SelectionSlot(i), box.toAabb(), overlapsRoom(box) ? SELECTION_BLOCKED : SELECTION_OK, ZoneOutlines.THICK);
+        }
+        if (selection.corner().isEmpty()) {
             return;
         }
-        Optional<BlockPos> other = selection.second().or(() -> ZoneWandItem.targetCell(player, reach));
-        boolean reachable = other.isPresent();
-        BlockBox box = BlockBox.of(selection.first().get(), other.orElse(selection.first().get()));
-        boolean overlaps = ClientMapState.map().zones().values().stream()
-                .anyMatch(z -> z.boxes().stream().anyMatch(b -> b.intersects(box)));
-        int color = reachable && !overlaps ? SELECTION_OK : SELECTION_BLOCKED;
+        Optional<BlockPos> other = ZoneWandItem.targetCell(player, reach);
+        BlockBox box = BlockBox.of(selection.corner().get(), other.orElse(selection.corner().get()));
+        int color = other.isPresent() && !overlapsRoom(box) ? SELECTION_OK : SELECTION_BLOCKED;
         ZoneOutlines.box(SELECTION_SLOT, box.toAabb(), color, ZoneOutlines.THICK);
+    }
+
+    private static boolean overlapsRoom(BlockBox box) {
+        return ClientMapState.map().zones().values().stream().anyMatch(z -> z.boxes().stream().anyMatch(b -> b.intersects(box)));
     }
 
     private static int trapColor(net.minecraft.world.level.block.entity.BlockEntity entity) {

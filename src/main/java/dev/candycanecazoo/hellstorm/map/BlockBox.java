@@ -7,6 +7,7 @@ import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /** An axis-aligned box of whole blocks. Both corners are inclusive, and {@code min <= max} on every axis. */
 public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
@@ -76,6 +77,14 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
     public BlockBox union(BlockBox o) {
         return new BlockBox(Math.min(minX, o.minX), Math.min(minY, o.minY), Math.min(minZ, o.minZ),
                 Math.max(maxX, o.maxX), Math.max(maxY, o.maxY), Math.max(maxZ, o.maxZ));
+    }
+
+    /** The two as one box, if they fill one exactly: side by side and the same across, or one inside the other. */
+    public Optional<BlockBox> exactUnion(BlockBox o) {
+        BlockBox union = union(o);
+        long shared = intersects(o) ? (long) (Math.min(maxX, o.maxX) - Math.max(minX, o.minX) + 1)
+                * (Math.min(maxY, o.maxY) - Math.max(minY, o.minY) + 1) * (Math.min(maxZ, o.maxZ) - Math.max(minZ, o.minZ) + 1) : 0;
+        return union.volume() == volume() + o.volume() - shared ? Optional.of(union) : Optional.empty();
     }
 
     public BlockBox grown(int by) {

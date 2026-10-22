@@ -41,6 +41,8 @@ final class WindowCommands {
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,32}");
     private static final SimpleCommandExceptionType NO_SELECTION = new SimpleCommandExceptionType(
             Component.literal("Select the window's opening with the Zone Wand: fill the hole with any blocks, then click its corners"));
+    private static final SimpleCommandExceptionType NOT_ONE_BOX = new SimpleCommandExceptionType(Component.literal(
+            "A window's opening is one box, and the selection is several. Sneak-click (or /hs zones cancel) and select just the opening"));
     private static final SuggestionProvider<CommandSourceStack> WINDOWS = (ctx, builder) -> SharedSuggestionProvider.suggest(
             MapSavedData.get(ctx.getSource().getLevel()).map().windows().keySet(), builder);
 
@@ -89,7 +91,11 @@ final class WindowCommands {
             ctx.getSource().sendFailure(Component.literal("Window names use 1-32 of a-z, 0-9, _"));
             return 0;
         }
-        BlockBox opening = ToolState.selection(player).box().orElseThrow(NO_SELECTION::create);
+        Selection selection = ToolState.selection(player);
+        if (selection.isEmpty()) {
+            throw NO_SELECTION.create();
+        }
+        BlockBox opening = selection.single().orElseThrow(NOT_ONE_BOX::create);
         ZombiesMap map = MapSavedData.get(level).map();
         Optional<Direction> outward = outward(opening, ZoneIndex.of(map));
         if (outward.isEmpty()) {
@@ -120,7 +126,6 @@ final class WindowCommands {
             MapEdits.apply(level, m -> m.withWindow(window));
             WindowOps.setBoards(level, window, window.maxBoards());
         });
-        ToolState.setSelection(player, Selection.NONE);
         return 1;
     }
 

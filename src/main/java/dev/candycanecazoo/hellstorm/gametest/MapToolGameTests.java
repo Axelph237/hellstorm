@@ -246,6 +246,41 @@ public final class MapToolGameTests {
         }
     }
 
+    /**
+     * A selection of two boxes that don't make one adds both to a room, stays selected after the command, can't make a
+     * window, and is gone after /hs zones cancel.
+     */
+    @GameTest(template = "floor", batch = "map_tools_selection")
+    public static void theSelectionLastsThroughCommandsUntilCancelled(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ZombiesMap before = MapSavedData.get(level).map();
+        Reader player = new Reader(level);
+        var commands = level.getServer().getCommands();
+        var source = player.createCommandSourceStack().withPermission(2);
+        ZoneId room = new ZoneId("gametest_selection_room");
+        try {
+            BlockBox hall = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)), helper.absolutePos(new BlockPos(6, ROOM_Y + 2, 2)));
+            BlockBox wing = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 3)), helper.absolutePos(new BlockPos(2, ROOM_Y + 2, 6)));
+            ToolState.setSelection(player, Selection.NONE.click(hall.min()).click(hall.max()).click(wing.min()).click(wing.max()));
+            commands.performPrefixedCommand(source, "hs zones add room " + room.value());
+            helper.assertTrue(map(level).zone(room).map(z -> z.volume() == hall.volume() + wing.volume()).orElse(false),
+                    "the room should hold both boxes of the selection");
+            helper.assertTrue(ToolState.selection(player).boxes().equals(List.of(hall, wing)), "the selection should still be there after the add, not "
+                    + ToolState.selection(player).boxes());
+
+            commands.performPrefixedCommand(source, "hs zones add window gametest_selection_window");
+            helper.assertFalse(map(level).windows().containsKey("gametest_selection_window"), "a two-box selection shouldn't make a window");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().contains("one box")), "the refusal should say why, but said " + player.said);
+
+            commands.performPrefixedCommand(source, "hs zones cancel");
+            helper.assertTrue(ToolState.selection(player).isEmpty(), "/hs zones cancel should clear the selection");
+            helper.succeed();
+        } finally {
+            ToolState.forget(player.getUUID());
+            MapEdits.apply(level, m -> before);
+        }
+    }
+
     private static ZombiesMap map(ServerLevel level) {
         return MapSavedData.get(level).map();
     }

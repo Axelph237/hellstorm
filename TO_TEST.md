@@ -8,6 +8,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 - [ ] **Room faces.** Holding the Zone Wand, each nearby room's surface is a plain fill in its outline color at 25% opacity (no planks), from inside the room (on its walls and floor) and from outside.
 - [ ] **Wand corners.** A corner is the block you're looking at, which makes selecting a door's own blocks easy.
 - [ ] **Window workflow.** Fill a hole in a room's wall with any blocks, select them, `/hs zones add window <name>`: the blocks become boards.
+- [ ] **Multi-box selections.** Click two pairs of corners for an L-shaped room: both boxes stay outlined, and one `/hs zones add room` takes both. Two boxes side by side with the same cross-section merge into one outline. The selection stays after the command until sneak-click or `/hs zones cancel`.
 - [ ] **Wand hint.** After the second click, a selection that touches no room shows `/hs zones add <room|window|door>`; one that touches a room shows nothing. No "First corner" or size text appears.
 - [ ] **Undo and redo.** `/hs undo` and `/hs redo` after adding a room, a door, and a window. Undoing the window puts back the blocks you filled the hole with.
 - [ ] **Merge and cut.** `/hs zones merge` with a selection across two rooms; `/hs zones cut` across a room and a door.
