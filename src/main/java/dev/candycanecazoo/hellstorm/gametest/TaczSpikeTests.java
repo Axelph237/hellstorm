@@ -189,6 +189,12 @@ public final class TaczSpikeTests {
         ResourceLocation gunId = ResourceLocation.tryBuild("tacz", "glock_17");
         ItemStack limitedStack = TaczBridge.createGun(gunId, 1).orElseThrow();
         ItemStack unlimitedStack = TaczBridge.createGun(gunId, 1).orElseThrow();
+        // One magazine exactly, whatever the gun's balance gives it.
+        for (ItemStack stack : new ItemStack[] {limitedStack, unlimitedStack}) {
+            IGun gun = IGun.getIGunOrNull(stack);
+            gun.setMaxDummyAmmoAmount(stack, gun.getCurrentAmmoCount(stack));
+            gun.setDummyAmmoAmount(stack, gun.getCurrentAmmoCount(stack));
+        }
         TaczBridge.setUnlimitedAmmo(unlimitedStack, true);
         Zombie limited = gunHolder(helper, new BlockPos(2, TestLayout.ROOM_Y, 4), limitedStack);
         Zombie unlimited = gunHolder(helper, new BlockPos(6, TestLayout.ROOM_Y, 4), unlimitedStack);

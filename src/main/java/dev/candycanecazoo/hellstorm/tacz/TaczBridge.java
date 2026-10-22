@@ -6,6 +6,7 @@ import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.resource.index.CommonGunIndex;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz.guns.util.AttachmentDataUtils;
+import dev.candycanecazoo.hellstorm.data.GunBalances;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -31,7 +32,10 @@ public final class TaczBridge {
         return TimelessAPI.getCommonGunIndex(gunId).isPresent();
     }
 
-    /** A gun with a full magazine and its reserve stored as TacZ dummy ammo, so no ammo items are needed. */
+    /**
+     * A gun with a full magazine and its reserve stored as TacZ dummy ammo, so no ammo items are needed. The reserve is
+     * {@code reserveMagazines} magazines, scaled by the gun's {@link GunBalances balance}.
+     */
     public static Optional<ItemStack> createGun(ResourceLocation gunId, int reserveMagazines) {
         return TimelessAPI.getCommonGunIndex(gunId).map(index -> {
             GunData data = index.getGunData();
@@ -44,7 +48,7 @@ public final class TaczBridge {
                     .setAmmoInBarrel(true)
                     .build();
             IGun gun = IGun.getIGunOrNull(stack);
-            int reserve = magazine * reserveMagazines;
+            int reserve = GunBalances.of(gunId).reserve(magazine, reserveMagazines);
             gun.setMaxDummyAmmoAmount(stack, reserve);
             gun.setDummyAmmoAmount(stack, reserve);
             return stack;

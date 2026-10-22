@@ -24,7 +24,7 @@ These are the parts this plan builds as its foundation. Two of its ideas are wor
 
 ## Project docs: `PLAN.md` and `features/`
 
-`PLAN.md` (this file) is the overview. `features/` holds one implementation plan per feature. `TEXTURES_NEEDED.md` lists the textures the mod is waiting on.
+`PLAN.md` (this file) is the overview. `features/` holds one implementation plan per feature. `TEXTURES_NEEDED.md` lists the textures the mod is waiting on. `TO_TEST.md` lists what still needs checking in game.
 
 Each feature file uses the same sections:
 - **Goal**
@@ -38,6 +38,7 @@ Each feature file uses the same sections:
 
 The feature files:
 - [`tacz-bridge.md`](features/tacz-bridge.md)
+- [`gun-balance.md`](features/gun-balance.md) (the default damage and reserve for TacZ's guns; table in `gun-balance-table.md`)
 - [`configuration.md`](features/configuration.md)
 - [`map-model-and-zones.md`](features/map-model-and-zones.md)
 - [`map-validation.md`](features/map-validation.md)

@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.tacz;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.data.GunBalances;
 import dev.candycanecazoo.hellstorm.game.CombatLog;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +24,17 @@ public final class TaczEvents {
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         if (!event.getEntity().level().isClientSide()) {
             TaczBridge.topUpUnlimitedReserve(event.getEntity().getMainHandItem());
+        }
+    }
+
+    /** The gun's {@link GunBalances balance} scales every hit. Only the server's copy matters: it's the one that hurts. */
+    @SubscribeEvent
+    public static void onGunDamage(EntityHurtByGunEvent.Pre event) {
+        if (event.getLogicalSide() == LogicalSide.SERVER && event.getGunId() != null) {
+            double multiplier = GunBalances.of(event.getGunId()).damageMultiplier();
+            if (multiplier != 1.0) {
+                event.setBaseAmount((float) (event.getBaseAmount() * multiplier));
+            }
         }
     }
 
