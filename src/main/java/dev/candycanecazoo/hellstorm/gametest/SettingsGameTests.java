@@ -61,7 +61,7 @@ public final class SettingsGameTests {
         ItemSpec unknown = new ItemSpec.Plain(ResourceLocation.tryBuild("nope", "item"), 1, Optional.empty());
         assertRefused(helper, perk, encode(perk, WallBuy.Config.forItem(unknown, 500, WallBuy.Repurchase.DENY)), "an unknown item");
         WallBuy.Config cola = VendingMachineBlock.sells(Hellstorm.id("reload"), 1234);
-        helper.assertTrue(perk.trySet(encode(perk, cola)).isEmpty(), "a RE:Load potion should be accepted");
+        helper.assertTrue(perk.trySet(encode(perk, cola)).isEmpty(), "a Load-Up potion should be accepted");
         helper.assertTrue(perk.config().equals(cola), "the vending machine should keep what was sent, has " + perk.config());
 
         MysteryBoxBlock.Entity box = place(helper, 3, PapRegistries.MYSTERY_BOX.get().defaultBlockState());

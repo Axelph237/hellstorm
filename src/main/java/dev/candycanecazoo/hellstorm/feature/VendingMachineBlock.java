@@ -59,7 +59,7 @@ import java.util.Optional;
 /**
  * A wall-buy in a vending machine two blocks wide and two tall ({@link TwoBlockMachine}). It sells any item the same way
  * and stocks its shelves with it. Buying presses three keys and shakes the machine for {@link #VEND_TICKS}, and then the
- * item is the buyer's. By default it sells a Vigorade potion and needs the power. While it can sell, it is lit and hums.
+ * item is the buyer's. By default it sells a Vigoraid potion and needs the power. While it can sell, it is lit and hums.
  */
 public final class VendingMachineBlock extends TwoBlockMachine {
     public static final int DEFAULT_COST = 2500;

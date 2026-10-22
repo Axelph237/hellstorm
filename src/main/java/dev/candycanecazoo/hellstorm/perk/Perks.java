@@ -62,7 +62,7 @@ public final class Perks {
                 .flatMap(active -> limitRefusal(held(player), given(stack), active.game().settings().players().perkLimit()));
     }
 
-    /** "You already have Vigorade" when {@code stack} is a potion and every one of its effects is already active. */
+    /** "You already have Vigoraid" when {@code stack} is a potion and every one of its effects is already active. */
     public static Optional<String> alreadyHas(LivingEntity entity, ItemStack stack) {
         List<MobEffectInstance> effects = PotionUtils.getMobEffects(stack);
         if (effects.isEmpty() || !effects.stream().allMatch(instance -> entity.hasEffect(instance.getEffect()))) {

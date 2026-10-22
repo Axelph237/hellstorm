@@ -168,7 +168,7 @@ public final class PerkGameTests {
         active.game().refund(player.getUUID(), 10_000);
         int start = PurchaseGameTests.points(active, player);
         FeatureBlock.use(player, at);
-        helper.assertTrue(takePotion(player).isEmpty(), "a new vending machine sold its Vigorade without power");
+        helper.assertTrue(takePotion(player).isEmpty(), "a new vending machine sold its Vigoraid without power");
         helper.assertTrue(PurchaseGameTests.points(active, player) == start, "charged without power");
 
         active.game().turnPowerOn(Optional.empty());
@@ -193,7 +193,7 @@ public final class PerkGameTests {
             try {
                 ItemStack bought = takePotion(player);
                 helper.assertTrue(PotionUtils.getMobEffects(bought).stream().anyMatch(e -> e.getEffect() == PerkEffects.VIGORADE.get()),
-                        "expected a Vigorade potion after the vend, got " + bought + " " + bought.getTag());
+                        "expected a Vigoraid potion after the vend, got " + bought + " " + bought.getTag());
                 helper.assertTrue(PurchaseGameTests.points(active, player) == paid, "paid " + (start - PurchaseGameTests.points(active, player)));
                 helper.assertTrue(events.contains(new GameEvent.PerkBought(player.getUUID(), "hellstorm:vigorade", VendingMachineBlock.DEFAULT_COST)),
                         "no perk_bought event: " + events);
@@ -249,15 +249,15 @@ public final class PerkGameTests {
             active.game().refund(player.getUUID(), 10_000);
             buy(player, at);
             player.setHealth(10);
-            helper.assertTrue(drink(player, takePotion(player)), "the bought Vigorade couldn't be drunk");
+            helper.assertTrue(drink(player, takePotion(player)), "the bought Vigoraid couldn't be drunk");
             MobEffectInstance effect = player.getEffect(PerkEffects.VIGORADE.get());
-            helper.assertTrue(effect != null && effect.isInfiniteDuration(), "Vigorade should last forever, is " + effect);
+            helper.assertTrue(effect != null && effect.isInfiniteDuration(), "Vigoraid should last forever, is " + effect);
             helper.assertTrue(player.getMaxHealth() == BASE_HEALTH + 20, "max health is " + player.getMaxHealth());
             helper.assertTrue(player.getHealth() == 30, "drinking should heal the 20 it adds, health " + player.getHealth());
         } finally {
             GameManager.end(active);
         }
-        helper.assertFalse(player.hasEffect(PerkEffects.VIGORADE.get()), "Vigorade outlived the game");
+        helper.assertFalse(player.hasEffect(PerkEffects.VIGORADE.get()), "Vigoraid outlived the game");
         helper.assertTrue(player.getMaxHealth() == BASE_HEALTH, "max health after the game is " + player.getMaxHealth());
         helper.assertTrue(player.getHealth() <= BASE_HEALTH, "health above the restored max");
         helper.succeed();
@@ -305,7 +305,7 @@ public final class PerkGameTests {
             ItemStack jockeyEnergy = takePotion(player);
             helper.assertFalse(jockeyEnergy.isEmpty(), "at the limit the machine still sells a perk you don't have");
             helper.assertFalse(drink(player, jockeyEnergy), "drinking a perk past the limit should be refused");
-            helper.assertFalse(player.hasEffect(PerkEffects.JOCKEY_ENERGY.get()), "Jockey Energy was added past the limit");
+            helper.assertFalse(player.hasEffect(PerkEffects.JOCKEY_ENERGY.get()), "Wandering Spirit was added past the limit");
             helper.assertTrue(player.getMainHandItem().is(Items.POTION), "the refused potion should not be used up");
 
             helper.assertTrue(drink(player, potion(PerkEffects.VIGORADE.get())), "drinking a perk already held isn't a new perk");
@@ -329,12 +329,12 @@ public final class PerkGameTests {
             give(player, PerkEffects.VIGORADE.get());
             WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
             WallBuy.Action action = WallBuyBlock.action(entity.config(), entity.display(), player, Optional.empty());
-            helper.assertTrue(action.equals(new WallBuy.Action.Deny("You already have Vigorade")), "the prompt should hide, action " + action);
+            helper.assertTrue(action.equals(new WallBuy.Action.Deny("You already have Vigoraid")), "the prompt should hide, action " + action);
 
             int before = PurchaseGameTests.points(active, player);
             buy(player, at);
-            helper.assertTrue(takePotion(player).isEmpty(), "sold a Vigorade to a player who has it");
-            helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused Vigorade");
+            helper.assertTrue(takePotion(player).isEmpty(), "sold a Vigoraid to a player who has it");
+            helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused Vigoraid");
         } finally {
             GameManager.end(active);
         }
@@ -361,7 +361,7 @@ public final class PerkGameTests {
     public static void aMachineSavedWithAPerkLoadsAsThatPerksPotion(GameTestHelper helper) {
         BlockPos at = vendingMachine(helper);
         WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
-        helper.assertTrue(entity.config().equals(VendingMachineBlock.DEFAULT), "a new machine should sell Vigorade, sells " + entity.config());
+        helper.assertTrue(entity.config().equals(VendingMachineBlock.DEFAULT), "a new machine should sell Vigoraid, sells " + entity.config());
 
         entity.load(legacy("hellstorm:saints_brew", Optional.of(1500)));
         helper.assertTrue(entity.config().equals(VendingMachineBlock.sells(Hellstorm.id("saints_brew"), 1500)), "with its cost: " + entity.config());
@@ -421,18 +421,18 @@ public final class PerkGameTests {
             long elapsed = feed * 3 / 4;
             Reloaded before = reloadAfter(player, elapsed);
             helper.assertTrue(before.state() == ReloadState.StateType.EMPTY_RELOAD_FEEDING && before.magazine() == 0,
-                    "without RE:Load, " + elapsed + " of " + feed + " ms in should still be feeding, was " + before);
+                    "without Load-Up, " + elapsed + " of " + feed + " ms in should still be feeding, was " + before);
 
             AttributeInstance reloadSpeed = player.getAttribute(PapRegistries.RELOAD_SPEED);
             helper.assertTrue(reloadSpeed != null && reloadSpeed.getValue() == 1, "players should start at reload speed 1");
 
             active.game().refund(player.getUUID(), 10_000);
             buy(player, at);
-            helper.assertTrue(drink(player, takePotion(player)), "RE:Load wasn't bought");
-            helper.assertTrue(reloadSpeed.getValue() == 2, "RE:Load should add 1 to reload speed, is " + reloadSpeed.getValue());
+            helper.assertTrue(drink(player, takePotion(player)), "Load-Up wasn't bought");
+            helper.assertTrue(reloadSpeed.getValue() == 2, "Load-Up should add 1 to reload speed, is " + reloadSpeed.getValue());
             Reloaded after = reloadAfter(player, elapsed);
             helper.assertTrue(after.state() != ReloadState.StateType.EMPTY_RELOAD_FEEDING && after.magazine() > 0,
-                    "with RE:Load, " + elapsed + " of " + feed + " ms in should have fed the magazine, was " + after);
+                    "with Load-Up, " + elapsed + " of " + feed + " ms in should have fed the magazine, was " + after);
         } finally {
             GameManager.end(active);
         }

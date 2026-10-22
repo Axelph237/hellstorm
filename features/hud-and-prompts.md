@@ -24,7 +24,7 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
   - Perk row (bottom left above the round).
   - Power-up timers (bottom center).
   - Revive bar and downed indicators.
-- **Prompts.** When the crosshair targets a feature block within reach, show what it is and its cost in gold brackets, for example "AK-47 [1000]", "Vigorade [2500]", "Mystery Crate [950]", "Dante's Toil [5000]", or "Door [750]". Show the cost in red when the player can't afford it, and "No power" in red instead when it needs the power on.
+- **Prompts.** When the crosshair targets a feature block within reach, show what it is and its cost in gold brackets, for example "AK-47 [1000]", "Vigoraid [2500]", "Mystery Crate [950]", "Dante's Toil [5000]", or "Door [750]". Show the cost in red when the player can't afford it, and "No power" in red instead when it needs the power on.
 - **Sync.** The server sends `HudSyncPacket` deltas once per tick at most. Points popups are client-side animations from the delta.
 - **Text only until icons exist.** Perks and power-ups render their name and color as text badges until you supply icons.
 

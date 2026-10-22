@@ -29,7 +29,7 @@ public sealed interface Refusal {
         }
     }
 
-    /** A feature-specific reason, such as "You already have Vigorade" or "Your inventory is full". */
+    /** A feature-specific reason, such as "You already have Vigoraid" or "Your inventory is full". */
     record Because(String message) implements Refusal {}
 
     /**

@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class MachineNamesLintTest {
     private static final Pattern PLAYER_TEXT = Pattern.compile("(?:new Prompt|Refusal\\.Because|\\.announce)\\(\"([^\"]*)\"");
-    private static final Pattern NAMES = Pattern.compile("Pack-a-Punch|Pack-A-Punch|Mystery Crate|Vigorade|RE:Load|Hellfire|Saint's Brew|Off-Hand|"
-            + "Jockey Energy|Insta-Kill|Max Ammo|Double Points|Fire Sale|Carpenter|Nuke", Pattern.CASE_INSENSITIVE);
+    private static final Pattern NAMES = Pattern.compile("Pack-a-Punch|Pack-A-Punch|Mystery Crate|Vigoraid|Vigorade|Load-Up|RE:Load|Hellfire|Saint's Brew|Off-Hand|"
+            + "Wandering Spirit|Jockey Energy|Insta-Kill|Max Ammo|Double Points|Fire Sale|Carpenter|Nuke", Pattern.CASE_INSENSITIVE);
     private static final Pattern KEY = Pattern.compile("\"((?:name|message)\\.hellstorm\\.[a-z0-9_.]*[a-z0-9_])\"");
 
     private static List<Path> sources() throws IOException {

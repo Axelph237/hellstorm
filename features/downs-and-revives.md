@@ -86,5 +86,5 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
   - regen waits for the delay
   - downed players earn kill points
 
-  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer who bought and drank a Vigorade (crawl pose, slowed, pistol held, Vigorade's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `PerkGameTests` checks which effects going down and dying take. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
+  GameTest `DownsGameTests`: real lethal damage downs a FakePlayer who bought and drank a Vigoraid (crawl pose, slowed, pistol held, Vigoraid's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `PerkGameTests` checks which effects going down and dying take. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
 

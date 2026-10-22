@@ -2,7 +2,7 @@
 
 ## Goal
 
-Machines sell perks like Vigorade, RE:Load, Hellfire, Saint's Brew, Jockey Energy, and Off-Hand. A perk is a potion effect with no time limit. The machine sells the potion, and the player drinks it to get the perk. Perks need power by default and are lost when the player goes down.
+Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Spirit, and Off-Hand. A perk is a potion effect with no time limit. The machine sells the potion, and the player drinks it to get the perk. Perks need power by default and are lost when the player goes down.
 
 ## Data shape
 
@@ -41,7 +41,7 @@ Machines sell perks like Vigorade, RE:Load, Hellfire, Saint's Brew, Jockey Energ
 ## Verification
 
 - GameTest: buying a perk potion needs power, charges the cost, and emits `perk_bought`.
-- GameTest: drinking Vigorade gives an endless effect that raises max health and heals; going down takes it.
+- GameTest: drinking Vigoraid gives an endless effect that raises max health and heals; going down takes it.
 - GameTest: at the perk limit a new perk can be bought but not drunk, and other sources still add it.
 - GameTest: a machine refuses a potion whose effects the player already has.
 - GameTest: a machine saved with the old `{ perk, cost }` settings loads as that perk's potion.
@@ -51,6 +51,8 @@ Machines sell perks like Vigorade, RE:Load, Hellfire, Saint's Brew, Jockey Energ
 5. Reworked to potions after phase 6.
 
 ## As built
+
+- **Renamed** (2026-10-22): Vigorade is Vigoraid, RE:Load is Load-Up, and Jockey Energy is Wandering Spirit. Only the lang entries changed. The effect and potion ids stay `hellstorm:vigorade`, `hellstorm:reload`, and `hellstorm:jockey_energy`, so saved machines, maps, and datapacks keep working, and the Java names (`PerkEffects.VIGORADE`, ...) are unchanged.
 
 - **Effects** (`perk/PerkEffects`, all `BENEFICIAL`, colors from the old perk JSONs). Each modifier has a fixed UUID.
 
@@ -64,31 +66,31 @@ Machines sell perks like Vigorade, RE:Load, Hellfire, Saint's Brew, Jockey Energ
   | `jockey_energy` | `minecraft:generic.movement_speed` | +0.07, `multiply_base` |
 
   - Gaining max health heals the gain, and losing it clamps health, as vanilla Health Boost does.
-  - The amplifier scales the modifier as vanilla does, so a Vigorade II from a command adds 40.
+  - The amplifier scales the modifier as vanilla does, so a Vigoraid II from a command adds 40.
   - `saints_brew` is also in the `hellstorm:self_revive` tag, which is what gives the solo self-revive.
 - **Attributes** (`registry/PapRegistries`). All four are syncable and added to every player.
   - `hellstorm:reload_speed` (base 1, 0.1 to 10) and `hellstorm:revive_speed` (base 1, 0.1 to 10) as before.
   - `hellstorm:fire_rate` (base 1, 0.1 to 10) multiplies a TacZ gun's rounds per minute.
   - `hellstorm:extra_weapon_slots` (base 0, 0 to 9) adds to `players.weapon_slots` (`game/WeaponSlots`).
   - The attributes are built outside their suppliers, because mob effects register before attributes and the effects need them.
-- **Potions.** One per effect, so each effect also has splash, lingering, and tipped arrow forms, all named in the lang file (`item.minecraft.potion.effect.vigorade` is "Vigorade").
+- **Potions.** One per effect, so each effect also has splash, lingering, and tipped arrow forms, all named in the lang file (`item.minecraft.potion.effect.vigorade` is "Vigoraid").
 - **Effect icons.** No textures ship. `client/PerkEffectIcon` (`IClientMobEffectExtensions`) draws each perk's icon in the HUD and inventory as a square in the effect's color with the first letter of its name, so nothing draws as a missing texture.
 - **What a perk is** (`perk/Perks`). An effect in `hellstorm:perks`. `Perks.held` lists the ones a player has active, and `players.perk_limit` counts them.
   - `Perks.limitRefusal(held, adding, limit)` refuses a potion whose new perks would take the player past the limit: "You can only hold 4 perks". Perks the player already has and non-perk effects don't count. A potion of two new perks needs room for both.
   - Drinking: `LivingEntityUseItemEvent.Start` is cancelled on the server for a player in a game when the potion would go past the limit, with the usual refusal notice. The client keeps its drinking pose until the player lets go of use, since it doesn't know the limit. Splash and lingering potions and `/effect` aren't checked, on purpose. A machine sells a perk potion at the limit too (it only refuses an effect you already have), since the potion can wait in the inventory.
 - **Leftovers** (`game/Leftovers`). For a player in a game, what drinking or eating leaves behind is thrown away: a potion's bottle, a stew's bowl. When the used stack is gone, `LivingEntityUseItemEvent.Finish`'s result is cleared. When some of the stack is left (honey bottles), the leftover went straight into the inventory, so the counts from the last use tick are compared and only what was added is removed. Bottles got any other way stay. Outside a game nothing changes. A leftover dropped on the ground because the inventory was full stays there.
-- **Losing buffs.** `Perks.clearBuffs(player)` removes every `BENEFICIAL` effect, perk or not. It runs on going down (`Downs.knockDown`), on dying in a game (`GameHooks.onDeath`), on `/hs game leave`, on logout, and for every player when the game ends (`GameManager.end`). Harmful and neutral effects stay. Removing an effect undoes its attribute modifier, so Off-Hand's slot and Vigorade's health go with it.
+- **Losing buffs.** `Perks.clearBuffs(player)` removes every `BENEFICIAL` effect, perk or not. It runs on going down (`Downs.knockDown`), on dying in a game (`GameHooks.onDeath`), on `/hs game leave`, on logout, and for every player when the game ends (`GameManager.end`). Harmful and neutral effects stay. Removing an effect undoes its attribute modifier, so Off-Hand's slot and Vigoraid's health go with it.
 - **Fire rate on TacZ guns** (`tacz/PerkGunEffects`). `AttachmentPropertyEvent` multiplies `ROUNDS_PER_MINUTE` by the holder's `hellstorm:fire_rate`. The event only carries the stack, so the holder is the player (server thread) or the local player (client thread) whose main hand is that exact stack; game players are searched too, since test players aren't in the server's player list. It multiplies what is there, so the upgrader's change stacks.
   - Server: any perk effect with a fire rate modifier re-evaluates the held gun when it is added or removed.
   - Client: TacZ times shots on the client too. `tacz/LocalGunPerks` checks the local player's synced `fire_rate` each client tick and re-evaluates the held gun when it changes. This replaces `PerkSyncPacket`.
-- **Reload speed and RE:Load** (`tacz/ReloadTimes`, two mixins in `tacz/mixin`).
+- **Reload speed and Load-Up** (`tacz/ReloadTimes`, two mixins in `tacz/mixin`).
   - **Why this seam.** TacZ 1.1.8 has no reload-time property, but every reload asks one method how long ago it started: `ModernKineticGunScriptAPI.getReloadTime()`. That covers the built-in `defaultTickReload` (magazine guns like the AK) and every gun pack's Lua `tick_reload` (shell-by-shell guns like the M870 read `api:getReloadTime()` for each shell and for interruptions). Reloads tick only on the server (`LivingEntityMixin.onTickServerSide`), and the client learns the state through TacZ's synced reload state.
   - **Server.** `ModernKineticGunScriptAPIMixin` scales the answer at `RETURN` by the shooter's `hellstorm:reload_speed`: `elapsed * speed`. Mobs without the attribute reload at normal speed.
   - **Client.** The client only plays the animation. `ObjectAnimationRunnerMixin` (a `client` mixin) speeds up `updateProgress` for animations whose name starts with `reload`, from both `update` and `updateSoundOnly`, so the hands and the sounds keyed to the animation keep pace with the server. Draw, inspect, and shooting animations are untouched.
 - **Machine block.** Replaced by the vending machine; see "As built (vending machine)" below. These still hold:
-  - **Defaults.** A new machine sells a Vigorade potion for 2500, `repurchase: deny`, `requires_power: true` (`VendingMachineBlock.sells(potion, cost)`).
+  - **Defaults.** A new machine sells a Vigoraid potion for 2500, `repurchase: deny`, `requires_power: true` (`VendingMachineBlock.sells(potion, cost)`).
   - **Old saves.** The machine's codec also reads the old `{ perk, cost }` shape. It becomes the potion with the perk's id at that cost (2500 if none), `deny`, needing power. A perk id with no potion is logged and the machine keeps its default. Saving writes the wall-buy shape.
-  - **Prompt.** "Vigorade [2500]", or "No power" while it needs power and the power is off. Hidden for a potion whose effects the player already has, from the local player's synced effects.
+  - **Prompt.** "Vigoraid [2500]", or "No power" while it needs power and the power is off. Hidden for a potion whose effects the player already has, from the local player's synced effects.
   - **Settings.** The wall-buy screen (titled with the block's name, "Vending Machine"), with a "Needs power" row. `/hs wallbuy ...` works on it too, including `/hs wallbuy power <true|false>`, looking at any of its blocks.
   - **Event.** `GameEvent.PerkBought(player, item, cost)`, Lua `perk_bought` with `player`, `item` (the potion id for a potion, such as `hellstorm:vigorade`; the item spec otherwise), and `cost`. It fires when the item is handed over, at the end of the vend. A vending machine doesn't emit `wall_buy`.
 - **HUD.** Perks show where every effect does, top right and in the inventory, with the icons from `client/PerkEffectIcon`. The bottom-left list of perk names was removed once that was enough.
@@ -96,16 +98,16 @@ Machines sell perks like Vigorade, RE:Load, Hellfire, Saint's Brew, Jockey Energ
 - **Tests.**
   - JUnit: `PerksTest` (the limit rule), `WallBuyTest.requiresPowerIsOffUnlessSetAndRoundTrips`, `DownsTest` (solo self-revive through `GameWorld.canSelfRevive`; the fake world loses it on going down), `LuaEventsTest.aPerkPurchaseCarriesTheItemAndCost`, `ReloadAnimationTest`.
   - GameTests in `PerkGameTests`:
-    - a new machine sells its Vigorade only with the power on, for 2500, charged from any of its blocks, refuses a second buy while busy without charging, and hands the potion over only once its vend ends, with a `perk_bought` event then and no `wall_buy`
+    - a new machine sells its Vigoraid only with the power on, for 2500, charged from any of its blocks, refuses a second buy while busy without charging, and hands the potion over only once its vend ends, with a `perk_bought` event then and no `wall_buy`
     - placed from its item looking north and aiming left, it is four blocks (foot and head, lower and upper) facing south with the block entity in the lower foot; it isn't placed without room above; removing one block takes all four
-    - drinking Vigorade gives an endless effect, 40 max health, and heals 20, all gone when the game ends
-    - going down takes Vigorade, Off-Hand, and Resistance but not Weakness; dying takes Jockey Energy
+    - drinking Vigoraid gives an endless effect, 40 max health, and heals 20, all gone when the game ends
+    - going down takes Vigoraid, Off-Hand, and Resistance but not Weakness; dying takes Wandering Spirit
     - at the limit, the machine charges nothing and sells nothing, and drinking a new perk is refused without using the potion; an already-held perk and Swiftness can be drunk
-    - a machine refuses Vigorade to a player who has it, and its action is the denial the prompt hides on
+    - a machine refuses Vigoraid to a player who has it, and its action is the denial the prompt hides on
     - Saint's Brew gives self-revive and revive speed 2
     - old `{ perk, cost }` settings load as the potion, with and without a cost, and an unknown perk keeps what was there
     - Hellfire raises the held AK's cached RPM by 1.33 when the effect is added, and the game ending restores it
-    - RE:Load, bought and drunk, makes TacZ's own `reload()` and `tickReload` feed an empty AK in three quarters of the time; a plain `multiply_base` reload speed modifier does the same
+    - Load-Up, bought and drunk, makes TacZ's own `reload()` and `tickReload` feed an empty AK in three quarters of the time; a plain `multiply_base` reload speed modifier does the same
 
 ## As built (vending machine)
 

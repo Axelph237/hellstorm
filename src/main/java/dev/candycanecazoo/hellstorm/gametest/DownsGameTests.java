@@ -49,7 +49,7 @@ public final class DownsGameTests {
         helper.runAfterDelay(1, () -> {
             try {
                 bob.moveTo(alice.position().add(1, 0, 0));
-                helper.assertTrue(bought, "Vigorade wasn't bought");
+                helper.assertTrue(bought, "Vigoraid wasn't bought");
 
                 boolean cancelled = ForgeHooks.onLivingDamage(alice, alice.damageSources().generic(), alice.getHealth() + 100) == 0;
                 helper.assertTrue(cancelled, "lethal damage should be cancelled");
@@ -59,7 +59,7 @@ public final class DownsGameTests {
                 helper.assertTrue(alice.getAttributeValue(Attributes.MOVEMENT_SPEED) < baseSpeed, "alice should be slowed");
                 helper.assertTrue(TaczBridge.inspect(alice.getMainHandItem()).map(i -> "pistol".equals(i.type())).orElse(false),
                         "alice should hold a pistol, holds " + alice.getMainHandItem());
-                helper.assertTrue(alice.getMaxHealth() == baseHealth, "going down should take Vigorade, max health " + alice.getMaxHealth());
+                helper.assertTrue(alice.getMaxHealth() == baseHealth, "going down should take Vigoraid, max health " + alice.getMaxHealth());
                 helper.assertFalse(active.game().targetable(alice.getUUID()), "zombies should ignore a downed player");
             } catch (RuntimeException e) {
                 GameManager.end(active);

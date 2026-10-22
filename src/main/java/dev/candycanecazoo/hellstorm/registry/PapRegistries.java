@@ -45,7 +45,7 @@ public final class PapRegistries {
 
     /**
      * How fast a player reloads TacZ guns, as a multiple of normal: 2 reloads in half the time. Every player has it at a
-     * base of 1; RE:Load adds 1, and anything else (effects, items, commands) can modify it like any attribute.
+     * base of 1; Load-Up adds 1, and anything else (effects, items, commands) can modify it like any attribute.
      */
     public static final Attribute RELOAD_SPEED = new RangedAttribute("attribute.name.hellstorm.reload_speed", 1.0, 0.1, 10.0).setSyncable(true);
 
