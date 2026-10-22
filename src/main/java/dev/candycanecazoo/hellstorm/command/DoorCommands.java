@@ -116,6 +116,7 @@ final class DoorCommands {
             throw NOTHING_ADDED.create();
         }
         MapHistory.edit(level, "add door '" + id + "'", m -> m.withDoor(result.door()));
+        ZonesCommands.used(player);
         if (result.skipped() > 0) {
             ctx.getSource().sendSuccess(() -> Component.literal("Skipped " + result.skipped() + " blocks in other doors or over the "
                     + DoorBlocks.MAX + "-block limit"), false);
@@ -132,6 +133,7 @@ final class DoorCommands {
             throw NOT_IN_DOOR.create(door.id());
         }
         MapHistory.edit(player.serverLevel(), "cut door '" + door.id() + "'", map -> cut(map, door.id(), boxes));
+        ZonesCommands.used(player);
         return 1;
     }
 

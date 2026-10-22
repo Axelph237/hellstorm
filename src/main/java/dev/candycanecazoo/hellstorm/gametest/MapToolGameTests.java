@@ -2,9 +2,11 @@ package dev.candycanecazoo.hellstorm.gametest;
 
 import com.mojang.authlib.GameProfile;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.feature.BarricadeBlock;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.DoorDef;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
+import dev.candycanecazoo.hellstorm.map.WindowDef;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
@@ -247,11 +249,11 @@ public final class MapToolGameTests {
     }
 
     /**
-     * A selection of two boxes that don't make one adds both to a room, stays selected after the command, can't make a
-     * window, and is gone after /hs zones cancel.
+     * A selection of two boxes that don't make one adds both to a room, and the add clears it. A refused command leaves the
+     * selection, /hs zones cancel clears it, and a window can be made with no boards.
      */
     @GameTest(template = "floor", batch = "map_tools_selection")
-    public static void theSelectionLastsThroughCommandsUntilCancelled(GameTestHelper helper) {
+    public static void anAddUsesTheSelectionUpAndARefusalLeavesIt(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         ZombiesMap before = MapSavedData.get(level).map();
         Reader player = new Reader(level);
@@ -261,22 +263,38 @@ public final class MapToolGameTests {
         try {
             BlockBox hall = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)), helper.absolutePos(new BlockPos(6, ROOM_Y + 2, 2)));
             BlockBox wing = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 3)), helper.absolutePos(new BlockPos(2, ROOM_Y + 2, 6)));
-            ToolState.setSelection(player, Selection.NONE.click(hall.min()).click(hall.max()).click(wing.min()).click(wing.max()));
+            Selection both = Selection.NONE.click(hall.min()).click(hall.max()).click(wing.min()).click(wing.max());
+            ToolState.setSelection(player, both);
             commands.performPrefixedCommand(source, "hs zones add room " + room.value());
             helper.assertTrue(map(level).zone(room).map(z -> z.volume() == hall.volume() + wing.volume()).orElse(false),
                     "the room should hold both boxes of the selection");
-            helper.assertTrue(ToolState.selection(player).boxes().equals(List.of(hall, wing)), "the selection should still be there after the add, not "
+            helper.assertTrue(ToolState.selection(player).isEmpty(), "the add should clear the selection it used, not leave "
                     + ToolState.selection(player).boxes());
 
+            ToolState.setSelection(player, both);
             commands.performPrefixedCommand(source, "hs zones add window gametest_selection_window");
             helper.assertFalse(map(level).windows().containsKey("gametest_selection_window"), "a two-box selection shouldn't make a window");
             helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().contains("one box")), "the refusal should say why, but said " + player.said);
-
+            helper.assertTrue(ToolState.selection(player).equals(both), "a refused command should leave the selection");
             commands.performPrefixedCommand(source, "hs zones cancel");
             helper.assertTrue(ToolState.selection(player).isEmpty(), "/hs zones cancel should clear the selection");
+
+            BlockPos hole = helper.absolutePos(new BlockPos(7, ROOM_Y, 1));
+            level.setBlockAndUpdate(hole, Blocks.STONE.defaultBlockState());
+            select(player, BlockBox.single(hole));
+            commands.performPrefixedCommand(source, "hs zones add window gametest_open_window 0");
+            helper.assertTrue(map(level).windows().containsKey("gametest_open_window") && map(level).windows().get("gametest_open_window").maxBoards() == 0,
+                    "a window can be added with no boards");
+            helper.assertTrue(level.getBlockState(hole).is(PapRegistries.BARRICADE.get()) && level.getBlockState(hole).getValue(BarricadeBlock.BOARDS) == 0,
+                    "a no-board window's opening holds bare barricades");
             helper.succeed();
         } finally {
             ToolState.forget(player.getUUID());
+            for (WindowDef window : map(level).windows().values()) {
+                if (!before.windows().containsKey(window.id())) {
+                    BlockPos.betweenClosed(window.opening().min(), window.opening().max()).forEach(p -> level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState()));
+                }
+            }
             MapEdits.apply(level, m -> before);
         }
     }

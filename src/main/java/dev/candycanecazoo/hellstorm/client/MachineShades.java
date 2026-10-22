@@ -6,12 +6,14 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Repaints a texture's green in another color, keeping its shading. Each green shade is placed relative to the median
- * green: its hue is turned by the same angle from the target's hue, and its saturation and brightness sit the same way
- * above or below the target's as they did the median's, stretched to stay in range. Colors are packed {@code 0xRRGGBB}.
+ * Repaints the vending machine around a new basis color, keeping its shading. The basis is the median of the machine's
+ * green, and it becomes the target color. Every other color is placed relative to it: its hue is turned by the same angle
+ * from the target's hue, and its saturation and brightness sit the same way above or below the target's as they did the
+ * median's, stretched to stay in range. Greys stay grey. Only the keypad's red and green lights keep their colors. Colors
+ * are packed {@code 0xRRGGBB}.
  */
 public final class MachineShades {
-    /** What counts as the machine's green. The shades painted measure hue 89 to 142, saturation 0.33 up, brightness 0.47 up. */
+    /** What counts as the machine's green, for the basis. The shades painted measure hue 89 to 142, saturation 0.33 up, brightness 0.47 up. */
     private static final float MIN_HUE = 75 / 360f;
     private static final float MAX_HUE = 155 / 360f;
     private static final float MIN_SATURATION = 0.25f;
@@ -45,9 +47,30 @@ public final class MachineShades {
 
     private MachineShades() {}
 
+    /**
+     * The keypad, in pixels of one 128-pixel frame of either texture: its lights are two green pixels and three red ones
+     * (the red blinks lighter on the lit strip), inside this box.
+     */
+    private static final int KEYPAD_MIN_X = 55;
+    private static final int KEYPAD_MAX_X = 62;
+    private static final int KEYPAD_MIN_Y = 58;
+    private static final int KEYPAD_MAX_Y = 62;
+    private static final float MAX_RED_HUE = 20 / 360f;
+    private static final float MIN_RED_HUE = 330 / 360f;
+
     public static boolean isGreen(int rgb) {
         Hsv c = Hsv.of(rgb);
         return c.h() >= MIN_HUE && c.h() <= MAX_HUE && c.s() >= MIN_SATURATION && c.v() >= MIN_BRIGHTNESS;
+    }
+
+    private static boolean isRed(int rgb) {
+        Hsv c = Hsv.of(rgb);
+        return (c.h() >= MIN_RED_HUE || c.h() <= MAX_RED_HUE) && c.s() >= MIN_SATURATION && c.v() >= MIN_BRIGHTNESS;
+    }
+
+    /** Whether the pixel at {@code (x, frameY)} of a frame is one of the keypad's red or green lights. */
+    public static boolean keypadLight(int x, int frameY, int rgb) {
+        return x >= KEYPAD_MIN_X && x <= KEYPAD_MAX_X && frameY >= KEYPAD_MIN_Y && frameY <= KEYPAD_MAX_Y && (isGreen(rgb) || isRed(rgb));
     }
 
     /** The median hue, saturation, and brightness of the green pixels, each taken on its own; empty if there are none. */
@@ -71,11 +94,8 @@ public final class MachineShades {
         return values[values.length / 2];
     }
 
-    /** {@code rgb} repainted for {@code target}, if it's green; any other color comes back as it was. */
+    /** {@code rgb} repainted around the new basis: {@code median} becomes {@code target}, and every color moves with it. */
     public static int recolor(int rgb, Hsv median, Hsv target) {
-        if (!isGreen(rgb)) {
-            return rgb;
-        }
         Hsv c = Hsv.of(rgb);
         float h = target.h() + c.h() - median.h();
         return new Hsv(h - (float) Math.floor(h), stretch(c.s(), median.s(), target.s()), stretch(c.v(), median.v(), target.v())).rgb();

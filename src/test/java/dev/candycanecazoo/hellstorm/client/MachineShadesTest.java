@@ -68,13 +68,49 @@ class MachineShadesTest {
     }
 
     @Test
-    void colorsThatArentTheGreenAreLeftAlone() throws IOException {
+    void everyOtherColorTurnsWithTheBasisAndGreysStayGrey() throws IOException {
         MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         MachineShades.Hsv red = MachineShades.Hsv.of(HEALING_RED);
         int[] others = Arrays.stream(texture()).filter(c -> !MachineShades.isGreen(c)).distinct().toArray();
-        assertTrue(others.length > 0);
+        assertTrue(others.length > 10, "the machine has purples, greys, and white besides its green");
         for (int c : others) {
-            assertEquals(c, MachineShades.recolor(c, median, red));
+            MachineShades.Hsv before = MachineShades.Hsv.of(c);
+            int painted = MachineShades.recolor(c, median, red);
+            MachineShades.Hsv after = MachineShades.Hsv.of(painted);
+            if (before.s() == 0) {
+                assertTrue((painted >> 16 & 0xff) == (painted >> 8 & 0xff) && (painted >> 8 & 0xff) == (painted & 0xff),
+                        String.format("grey #%06x became #%06x", c, painted));
+            } else if (before.s() > 0.2 && before.v() > 0.2) {
+                double turn = ((after.h() - red.h()) - (before.h() - median.h()) + 2.5) % 1 - 0.5;
+                assertEquals(0, turn, 0.02, String.format("#%06x kept its hue offset from the basis (became #%06x)", c, painted));
+            }
         }
+        assertNotEquals(0xa289b3, MachineShades.recolor(0xa289b3, median, red), "the purple trim moves too");
+    }
+
+    @Test
+    void theKeypadsRedAndGreenLightsAreTheOnlyColorsLeftAlone() throws IOException {
+        int[] lit;
+        int width;
+        int height;
+        try (InputStream in = MachineShadesTest.class.getResourceAsStream("/assets/hellstorm/textures/block/vending_machine_on.png")) {
+            BufferedImage image = ImageIO.read(in);
+            width = image.getWidth();
+            height = image.getHeight();
+            lit = image.getRGB(0, 0, width, height, null, 0, width);
+        }
+        int lights = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int rgb = lit[y * width + x] & 0xffffff;
+                if (lit[y * width + x] >>> 24 != 0 && MachineShades.keypadLight(x, y % width, rgb)) {
+                    lights++;
+                    assertTrue(x >= 58 && x <= 59 && (y % width == 58 || y % width == 59 || y % width == 61), "keypad light at " + x + ", " + y);
+                }
+            }
+        }
+        assertEquals(5 * height / width, lights, "five lights a frame, in every frame");
+        assertFalse(MachineShades.keypadLight(58, 60, 0x8c78a5), "the keypad's own purple is repainted");
+        assertFalse(MachineShades.keypadLight(10, 10, 0x9de64e), "a green like the keypad's elsewhere is repainted");
     }
 }

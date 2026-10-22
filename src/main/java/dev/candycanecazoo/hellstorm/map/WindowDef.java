@@ -18,7 +18,7 @@ public record WindowDef(String id, BlockBox opening, Direction outward, int maxB
             Codec.STRING.fieldOf("id").forGetter(WindowDef::id),
             BlockBox.CODEC.fieldOf("opening").forGetter(WindowDef::opening),
             Direction.CODEC.fieldOf("outward").forGetter(WindowDef::outward),
-            Codecs.strictOptional(Codec.intRange(1, MAX_BOARDS), "max_boards", MAX_BOARDS).forGetter(WindowDef::maxBoards),
+            Codecs.strictOptional(Codec.intRange(0, MAX_BOARDS), "max_boards", MAX_BOARDS).forGetter(WindowDef::maxBoards),
             ZoneId.CODEC.fieldOf("zone").forGetter(WindowDef::zone)
     ).apply(i, WindowDef::new));
 

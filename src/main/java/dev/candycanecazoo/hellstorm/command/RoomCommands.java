@@ -106,6 +106,7 @@ final class RoomCommands {
         }
         MapHistory.edit(level, "add room '" + id + "'",
                 map -> map.withZone(map.zone(id).orElse(Zone.empty(id).withStart(start.orElse(false))).withBoxes(boxes)));
+        ZonesCommands.used(player);
         return MapSavedData.get(level).map().zone(id).orElseThrow().boxes().size();
     }
 
@@ -119,6 +120,7 @@ final class RoomCommands {
             throw NOT_IN_ROOM.create(id);
         }
         MapHistory.edit(level, "cut room '" + id + "'", map -> cut(map, id, boxes));
+        ZonesCommands.used(player);
         return 1;
     }
 

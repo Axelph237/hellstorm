@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 
 /**
  * The vending machine's textures in the color of what it sells. An item with a color of its own (a potion's liquid, dyed
- * leather, anything with an item color on its first layer) gets the machine's green repainted in that color by
+ * leather, anything with an item color on its first layer) gets the machine repainted around that color by
  * {@link MachineShades}, the unlit texture and the lit strip both, built in memory the first time the color is seen.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
@@ -99,7 +99,7 @@ public final class VendingMachineSkins {
         return color & 0xff00ff00 | (color & 0xff) << 16 | color >> 16 & 0xff;
     }
 
-    /** The strip has only a few colors, so each is worked out once. */
+    /** The strip has only a few colors, so each is worked out once. Its frames are square, one under another. */
     private static void repaint(NativeImage image, MachineShades.Hsv median, MachineShades.Hsv target) {
         Map<Integer, Integer> painted = new HashMap<>();
         for (int y = 0; y < image.getHeight(); y++) {
@@ -109,6 +109,9 @@ public final class VendingMachineSkins {
                     continue;
                 }
                 int rgb = swap(abgr) & 0xffffff;
+                if (MachineShades.keypadLight(x, y % image.getWidth(), rgb)) {
+                    continue;
+                }
                 int next = painted.computeIfAbsent(rgb, c -> MachineShades.recolor(c, median, target));
                 if (next != rgb) {
                     image.setPixelRGBA(x, y, swap(abgr & 0xff000000 | next));

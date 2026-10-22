@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 /**
  * {@code /hs zones ...}: the rooms, doors, and windows of a level's map. Every edit here goes into {@link MapHistory}, so
- * {@code /hs undo} takes it back.
+ * {@code /hs undo} takes it back. An add, cut, or merge that uses the Zone Wand selection clears it once it succeeds.
  */
 final class ZonesCommands {
     private static final SimpleCommandExceptionType NO_SELECTION =
@@ -76,6 +76,11 @@ final class ZonesCommands {
         return selection.boxes();
     }
 
+    /** An add, cut, or merge has used the selection up. */
+    static void used(ServerPlayer player) {
+        ToolState.setSelection(player, Selection.NONE);
+    }
+
     static boolean touches(List<BlockBox> boxes, BlockBox box) {
         return boxes.stream().anyMatch(box::intersects);
     }
@@ -112,6 +117,7 @@ final class ZonesCommands {
             }
             return m;
         });
+        used(player);
         return rooms.size() + doors.size();
     }
 
@@ -147,6 +153,7 @@ final class ZonesCommands {
             }
             return m;
         });
+        used(player);
         return 1;
     }
 

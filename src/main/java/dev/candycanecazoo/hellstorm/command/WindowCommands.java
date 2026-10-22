@@ -51,7 +51,7 @@ final class WindowCommands {
     static LiteralArgumentBuilder<CommandSourceStack> add() {
         return Commands.literal("window").then(name()
                 .executes(ctx -> add(ctx, OptionalInt.empty()))
-                .then(Commands.argument("boards", IntegerArgumentType.integer(1, WindowDef.MAX_BOARDS))
+                .then(Commands.argument("boards", IntegerArgumentType.integer(0, WindowDef.MAX_BOARDS))
                         .executes(ctx -> add(ctx, OptionalInt.of(IntegerArgumentType.getInteger(ctx, "boards"))))));
     }
 
@@ -80,8 +80,8 @@ final class WindowCommands {
     }
 
     /**
-     * Makes the selection a window. A new window holds {@code boards}, or the most there can be; adding an existing one
-     * moves its opening and keeps its boards.
+     * Makes the selection a window. A new window holds {@code boards} (0 is an open hole zombies climb straight through),
+     * or the most there can be; adding an existing one moves its opening and keeps its boards.
      */
     private static int add(CommandContext<CommandSourceStack> ctx, OptionalInt boards) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -126,6 +126,7 @@ final class WindowCommands {
             MapEdits.apply(level, m -> m.withWindow(window));
             WindowOps.setBoards(level, window, window.maxBoards());
         });
+        ZonesCommands.used(player);
         return 1;
     }
 
