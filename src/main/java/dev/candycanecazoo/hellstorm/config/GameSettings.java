@@ -205,7 +205,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 3000, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
-            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, false, 2, 4, 4, 1200),
+            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, true, 2, 4, 4, 1200),
             new Windows(5, 4, 30, 15, 6.0),
             new Doors(750),
             new Box(950, 10, 80, 240, 4, 0.15),
