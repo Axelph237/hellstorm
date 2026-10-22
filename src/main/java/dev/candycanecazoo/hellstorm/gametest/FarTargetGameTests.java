@@ -17,10 +17,12 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -45,25 +47,35 @@ public final class FarTargetGameTests {
 
     private FarTargetGameTests() {}
 
-    /** Floors {@code width} x {@code length} cells from the test origin and builds {@code wall} cells three blocks high. Returns what clears it again. */
+    /**
+     * Floors {@code width} x {@code length} cells from the test origin, builds {@code wall} cells up to a stone ceiling four
+     * blocks up, and takes out any mobs left from an earlier run. The ceiling seals the arena from the world around it: the
+     * test world is kept between runs and may be natural terrain, where lava flowed in over open-topped walls. Returns what
+     * clears it again, mobs and all.
+     */
     private static Runnable build(GameTestHelper helper, int width, int length, BiPredicate<Integer, Integer> wall) {
+        AABB arena = new AABB(helper.absolutePos(new BlockPos(0, FLOOR_Y, 0)), helper.absolutePos(new BlockPos(width, ROOM_Y + 4, length)));
+        Runnable discardMobs = () -> helper.getLevel().getEntitiesOfClass(Mob.class, arena).forEach(Entity::discard);
+        discardMobs.run();
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < length; z++) {
                 helper.setBlock(new BlockPos(x, FLOOR_Y, z), Blocks.STONE);
                 Block block = wall.test(x, z) ? Blocks.STONE : Blocks.AIR;
                 for (int dy = 0; dy <= 3; dy++) {
-                    helper.setBlock(new BlockPos(x, ROOM_Y + dy, z), dy < 3 ? block : Blocks.AIR);
+                    helper.setBlock(new BlockPos(x, ROOM_Y + dy, z), block);
                 }
+                helper.setBlock(new BlockPos(x, ROOM_Y + 4, z), Blocks.STONE);
             }
         }
         return () -> {
             for (int x = 0; x < width; x++) {
                 for (int z = 0; z < length; z++) {
-                    for (int dy = -1; dy <= 3; dy++) {
+                    for (int dy = -1; dy <= 4; dy++) {
                         helper.setBlock(new BlockPos(x, ROOM_Y + dy, z), Blocks.AIR);
                     }
                 }
             }
+            discardMobs.run();
         };
     }
 
