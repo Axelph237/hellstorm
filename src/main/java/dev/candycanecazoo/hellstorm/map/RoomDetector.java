@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
-/** Flood-fills the open space around a start position, for `/hs zone detect`. */
+/** Flood-fills the open space around a start position, for `/hs zones detect`. */
 public final class RoomDetector {
     private RoomDetector() {}
 

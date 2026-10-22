@@ -16,20 +16,19 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.List;
 import java.util.Optional;
 
-/** `/hs join|leave|start|stop|status`: one game per level, played on that level's map. */
+/** `/hs game join|leave|start|stop|status`: one game per level, played on that level's map. */
 final class GameCommands {
     private GameCommands() {}
 
-    static List<LiteralArgumentBuilder<CommandSourceStack>> all() {
-        return List.of(
-                Commands.literal("join").executes(GameCommands::join),
-                Commands.literal("leave").executes(GameCommands::leave),
-                Commands.literal("start").requires(GameCommands::opOrPlayerInGame).executes(GameCommands::start),
-                Commands.literal("stop").requires(HellstormCommand::op).executes(GameCommands::stop),
-                Commands.literal("status").executes(GameCommands::status));
+    static LiteralArgumentBuilder<CommandSourceStack> game() {
+        return Commands.literal("game")
+                .then(Commands.literal("join").executes(GameCommands::join))
+                .then(Commands.literal("leave").executes(GameCommands::leave))
+                .then(Commands.literal("start").requires(GameCommands::opOrPlayerInGame).executes(GameCommands::start))
+                .then(Commands.literal("stop").requires(HellstormCommand::op).executes(GameCommands::stop))
+                .then(Commands.literal("status").executes(GameCommands::status));
     }
 
     private static boolean opOrPlayerInGame(CommandSourceStack source) {
@@ -40,7 +39,7 @@ final class GameCommands {
     private static int join(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         if (GameManager.forPlayer(player.getUUID()).isPresent()) {
-            ctx.getSource().sendFailure(Component.literal("You're already in a game. /hs leave first"));
+            ctx.getSource().sendFailure(Component.literal("You're already in a game. /hs game leave first"));
             return 0;
         }
         ServerLevel level = player.serverLevel();
@@ -61,7 +60,7 @@ final class GameCommands {
                 return 0;
             }
             if (result instanceof GameManager.CreateResult.NoStartCells) {
-                ctx.getSource().sendFailure(Component.literal("No start zone has a spot to stand on (solid floor and two blocks of headroom)"));
+                ctx.getSource().sendFailure(Component.literal("No start room has a spot to stand on (solid floor and two blocks of headroom)"));
                 return 0;
             }
             active = ((GameManager.CreateResult.Created) result).active();
@@ -80,7 +79,7 @@ final class GameCommands {
             active.world().enterGame(player.getUUID());
             active.world().spectate(player.getUUID());
         }
-        String next = active.game().phase() instanceof GamePhase.Lobby ? " /hs start when everyone is in"
+        String next = active.game().phase() instanceof GamePhase.Lobby ? " /hs game start when everyone is in"
                 : waiting ? " It's about to start" : " You'll spawn next round";
         ctx.getSource().sendSuccess(() -> Component.literal("Joined the game." + next).withStyle(ChatFormatting.GREEN), false);
         return 1;
@@ -109,7 +108,7 @@ final class GameCommands {
     private static int start(CommandContext<CommandSourceStack> ctx) {
         Optional<GameManager.Active> active = GameManager.get(ctx.getSource().getLevel());
         if (active.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("No game here. /hs join first"));
+            ctx.getSource().sendFailure(Component.literal("No game here. /hs game join first"));
             return 0;
         }
         if (!active.get().game().start()) {

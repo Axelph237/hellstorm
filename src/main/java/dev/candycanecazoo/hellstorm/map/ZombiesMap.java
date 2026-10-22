@@ -8,10 +8,13 @@ import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -139,6 +142,31 @@ public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> fea
         Map<BlockPos, FeatureKind> next = new LinkedHashMap<>(features);
         next.remove(pos);
         return new ZombiesMap(zones, next, windows, doors);
+    }
+
+    /**
+     * This map with every zone, window, door, and feature that differs between {@code from} and {@code to} set as it is in
+     * {@code to}. Undo and redo use it, so edits made since to anything else are kept.
+     */
+    public ZombiesMap patched(ZombiesMap from, ZombiesMap to) {
+        return new ZombiesMap(patch(zones, from.zones, to.zones), patch(features, from.features, to.features),
+                patch(windows, from.windows, to.windows), patch(doors, from.doors, to.doors));
+    }
+
+    private static <K, V> Map<K, V> patch(Map<K, V> current, Map<K, V> from, Map<K, V> to) {
+        Map<K, V> next = new LinkedHashMap<>(current);
+        Set<K> keys = new HashSet<>(from.keySet());
+        keys.addAll(to.keySet());
+        for (K key : keys) {
+            if (!Objects.equals(from.get(key), to.get(key))) {
+                if (to.containsKey(key)) {
+                    next.put(key, to.get(key));
+                } else {
+                    next.remove(key);
+                }
+            }
+        }
+        return next;
     }
 
     public List<Zone> startZones() {

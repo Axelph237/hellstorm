@@ -22,14 +22,14 @@ record Spectating(boolean respawnNextRound) implements LifeState {}
 final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocation> perks; Stats stats; }
 ```
 
-`Game` holds the current `GamePhase`, the players, the unlocked zone set, power state, active power-ups, and the resolved `GameSettings`.
+`Game` holds the current `GamePhase`, the players, the unlocked room set, power state, active power-ups, and the resolved `GameSettings`.
 
 ## Implementation
 
 - **`GameManager`** keeps one `Game` per map level. Nothing is static, so several maps (in several dimensions) can run at once.
 - **Tick.** `Game.tick()` switches on the phase and returns the next phase. Transitions:
-  - `Lobby → Countdown` on `/hs start`. The first `/hs join` in a level runs `MapValidator` and refuses to open a lobby on any ERROR.
-  - `Countdown → RoundActive(1)` when the timer ends. Every player is moved to a standable cell in a start zone (`StartCells`) in adventure mode. Joining before that doesn't move anyone: they wait (`LifeState.Waiting`, unable to buy or be targeted, with their own inventory), and the end of the countdown saves their state, gives the starting loadout, and puts them in play (see `sessions-and-multiplayer.md`, "As built (waiting for the start)"). Only the largest walkable piece of each start zone is used (`StandingArea`), so a box drawn past a wall never gets players.
+  - `Lobby → Countdown` on `/hs game start`. The first `/hs game join` in a level runs `MapValidator` and refuses to open a lobby on any ERROR.
+  - `Countdown → RoundActive(1)` when the timer ends. Every player is moved to a standable cell in a start room (`StartCells`) in adventure mode. Joining before that doesn't move anyone: they wait (`LifeState.Waiting`, unable to buy or be targeted, with their own inventory), and the end of the countdown saves their state, gives the starting loadout, and puts them in play (see `sessions-and-multiplayer.md`, "As built (waiting for the start)"). Only the largest walkable piece of each start room is used (`StandingArea`), so a box drawn past a wall never gets players.
   - `Intermission(r) → RoundActive(r)` after `rounds.intermission_ms` (milliseconds, default 3000, rounded up to whole ticks).
   - `RoundActive(r) → Intermission(r+1)` when `toSpawn == 0 && alive == 0`.
   - any phase `→ GameOver` when no player is `Alive`.
@@ -42,7 +42,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
   - Max alive at once: `rounds.max_alive` (24).
 - **Events.** Emits `game_start`, `round_start`, `round_end`, `game_end`, `zombie_spawned`, `zombie_killed` on the game's `GameEvents` bus.
 - **Effects go through `GameWorld`.** `Game` is pure: spawning, teleporting, spectating, and status text go through the `GameWorld` interface. `ForgeGameWorld` implements it for a level, and the unit tests use a fake.
-- **Commands.** `/hs join`, `/hs leave`, and `/hs status` are open to everyone. `/hs start` is for players in the game (or ops). `/hs stop` is op-only.
+- **Commands.** `/hs game join`, `/hs game leave`, and `/hs game status` are open to everyone. `/hs game start` is for players in the game (or ops). `/hs game stop` is op-only. These were `/hs join`, `/hs leave`, `/hs start`, `/hs stop`, and `/hs status` before the command restructure that also made `/hs zones`.
 - **Until downs exist (phase 6)**, a player who would die is set to spectator instead, and comes back at the next round start. Until the HUD exists (phase 5), the round, points, and zombies left show on the action bar.
 - **Crash safety.** `MapSavedData.gameInProgress` is set at start and cleared at a clean end. If it's still set on server start, the map resets. Games are not resumed.
 
@@ -62,7 +62,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 
 - JUnit on `Game.tick()` with fake time: every transition above fires exactly when its condition holds and not before.
 - JUnit on `RoundPlan`: values for rounds 1, 9, 10, 30 match the formulas.
-- In game: play rounds 1 to 3 on the two-zone map and see the counter advance.
+- In game: play rounds 1 to 3 on the two-room map and see the counter advance.
 
 ## Phase
 

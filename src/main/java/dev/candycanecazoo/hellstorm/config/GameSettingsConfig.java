@@ -105,7 +105,7 @@ public final class GameSettingsConfig {
         gameOverTicks = b.defineInRange("game_over_ticks", d.rounds().gameOverTicks(), 0, 12000);
         b.pop();
         b.push("spawning");
-        adjacentHops = b.comment("Spawn markers are active in each player's zone and zones this many connections away.")
+        adjacentHops = b.comment("Spawn markers are active in each player's room and rooms this many connections away.")
                 .defineInRange("adjacent_hops", d.spawning().adjacentHops(), 0, 10);
         falloffBlocks = b.comment("Markers this far from the nearest player are half as likely to be picked.")
                 .defineInRange("falloff_blocks", d.spawning().falloffBlocks(), 1.0, 512.0);
@@ -126,7 +126,7 @@ public final class GameSettingsConfig {
         windowMaxHeight = b.comment("Tallest window opening allowed, in blocks.").defineInRange("max_height", d.windows().maxHeight(), 1, 16);
         tearTicks = b.comment("Ticks a zombie needs to tear off one board.").defineInRange("tear_ticks", d.windows().tearTicks(), 1, 1200);
         repairTicks = b.comment("Ticks between boards a player puts back while holding use.").defineInRange("repair_ticks", d.windows().repairTicks(), 1, 1200);
-        linkRange = b.comment("A spawn marker outside every zone links to the nearest window facing it within this many blocks.")
+        linkRange = b.comment("A spawn marker outside every room links to the nearest window facing it within this many blocks.")
                 .defineInRange("link_range", d.windows().linkRange(), 1.0, 64.0);
         b.pop();
         b.push("players");

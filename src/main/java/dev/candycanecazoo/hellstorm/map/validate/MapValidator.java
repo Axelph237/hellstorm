@@ -63,7 +63,7 @@ public final class MapValidator {
         int maxGap = context.maxPassageGap();
         List<Problem> problems = new ArrayList<>();
         if (map.zones().isEmpty()) {
-            problems.add(Problem.error(NO_ZONES, "The map has no zones", null));
+            problems.add(Problem.error(NO_ZONES, "The map has no rooms", null));
             return new ValidationReport(problems);
         }
         checkZones(map, problems);
@@ -87,8 +87,8 @@ public final class MapValidator {
                         + ", over the " + context.windows().maxWidth() + "x" + context.windows().maxHeight() + " limit", at));
             }
             if (window.zoneBehind(index).isEmpty()) {
-                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, "Window '" + window.id() + "' doesn't open into a zone. The block just inside it, at "
-                        + window.insideSpot().toShortString() + ", is in no zone. Redraw the zone behind it or remove the window", at));
+                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, "Window '" + window.id() + "' doesn't open into a room. The block just inside it, at "
+                        + window.insideSpot().toShortString() + ", is in no room. Redraw the room behind it or remove the window", at));
             }
             if (links.values().stream().noneMatch(l -> l.window().equals(Optional.of(window.id())))) {
                 problems.add(Problem.warning(WINDOW_WITHOUT_SPAWN, "No spawn marker outside window '" + window.id()
@@ -107,11 +107,11 @@ public final class MapValidator {
         List<Zone> zones = List.copyOf(map.zones().values());
         for (Zone zone : zones) {
             if (zone.boxes().isEmpty()) {
-                problems.add(Problem.error(EMPTY_ZONE, "Zone '" + zone.id() + "' has no boxes", null));
+                problems.add(Problem.error(EMPTY_ZONE, "Room '" + zone.id() + "' has no boxes", null));
             }
         }
         if (map.startZones().isEmpty()) {
-            problems.add(Problem.error(NO_START_ZONE, "No zone is marked as a start zone (/hs zone start <zone>)", null));
+            problems.add(Problem.error(NO_START_ZONE, "No room is marked as a start room (/hs zones set room <room> start true)", null));
         }
         for (int i = 0; i < zones.size(); i++) {
             for (int j = i + 1; j < zones.size(); j++) {
@@ -120,7 +120,7 @@ public final class MapValidator {
                         if (a.intersects(b)) {
                             BlockPos at = new BlockPos(Math.max(a.minX(), b.minX()), Math.max(a.minY(), b.minY()), Math.max(a.minZ(), b.minZ()));
                             problems.add(Problem.error(ZONE_OVERLAP,
-                                    "Zones '" + zones.get(i).id() + "' and '" + zones.get(j).id() + "' overlap", at));
+                                    "Rooms '" + zones.get(i).id() + "' and '" + zones.get(j).id() + "' overlap", at));
                         }
                     }
                 }
@@ -133,7 +133,7 @@ public final class MapValidator {
         for (Zone zone : map.startZones()) {
             List<List<BlockPos>> pieces = StandingArea.pieces(zone, context.standable());
             for (List<BlockPos> piece : pieces.subList(Math.min(1, pieces.size()), pieces.size())) {
-                problems.add(Problem.warning(SPLIT_START_ZONE, "Start zone '" + zone.id() + "' has " + piece.size()
+                problems.add(Problem.warning(SPLIT_START_ZONE, "Start room '" + zone.id() + "' has " + piece.size()
                         + " standing spots players can't walk to from the rest of it. Players won't spawn there; remove the box if it's a mistake",
                         piece.get(0)));
             }
@@ -145,13 +145,13 @@ public final class MapValidator {
         ZoneGraph open = ZoneGraph.of(map, passages.open());
         for (DoorDef door : map.doors().values()) {
             if (door.members().isEmpty()) {
-                problems.add(Problem.error(EMPTY_DOOR, "Door '" + door.id() + "' has no blocks. Select some with the Zone Wand, then /hs door add " + door.id(), null));
+                problems.add(Problem.error(EMPTY_DOOR, "Door '" + door.id() + "' has no blocks. Select some with the Zone Wand, then /hs zones add door " + door.id(), null));
                 continue;
             }
             BlockPos at = door.members().iterator().next();
             Set<ZoneId> zones = door.zones(index);
             if (zones.size() < 2) {
-                problems.add(Problem.error(DOOR_NOT_BETWEEN_ZONES, "Door '" + door.id() + "' must stand between two zones, but it borders "
+                problems.add(Problem.error(DOOR_NOT_BETWEEN_ZONES, "Door '" + door.id() + "' must stand between two rooms, but it borders "
                         + (zones.isEmpty() ? "none" : "only " + zones), at));
             } else if (door.links(index).stream().allMatch(link -> open.neighbors(link.a()).contains(link.b()))) {
                 problems.add(Problem.warning(DOOR_NOT_NEEDED, "Door '" + door.id() + "' joins " + zones
@@ -172,14 +172,14 @@ public final class MapValidator {
         Set<ZoneId> reachable = ZoneGraph.of(map, withDoors).reachableFrom(starts);
         passages.closedDoors().forEach((link, door) -> {
             if (!graph.neighbors(link.a()).contains(link.b())) {
-                problems.add(Problem.warning(CLOSED_DOOR_GAP, "Zones '" + link.a() + "' and '" + link.b()
-                        + "' are only joined through a closed door. Zombies can't open it: open it, remove it, or make it a door players buy (/hs door)", door));
+                problems.add(Problem.warning(CLOSED_DOOR_GAP, "Rooms '" + link.a() + "' and '" + link.b()
+                        + "' are only joined through a closed door. Zombies can't open it: open it, remove it, or make it a door players buy (/hs zones add door)", door));
             }
         });
         for (Zone zone : map.zones().values()) {
             if (!reachable.contains(zone.id()) && !zone.boxes().isEmpty()) {
                 problems.add(Problem.error(UNREACHABLE_ZONE,
-                        "Zone '" + zone.id() + "' can't be reached from a start zone", null));
+                        "Room '" + zone.id() + "' can't be reached from a start room", null));
             }
         }
     }
@@ -192,13 +192,13 @@ public final class MapValidator {
                 zonesWithSpawns.add(link.zone());
             } else {
                 problems.add(Problem.warning(SPAWN_OUTSIDE_ZONE,
-                        "Spawn marker isn't inside a zone or in front of a window", spawn));
+                        "Spawn marker isn't inside a room or in front of a window", spawn));
             }
         }
         for (Zone zone : map.zones().values()) {
             if (!zonesWithSpawns.contains(zone.id()) && !zone.boxes().isEmpty()) {
                 problems.add(Problem.warning(ZONE_WITHOUT_SPAWN,
-                        "Zone '" + zone.id() + "' has no spawn markers", null));
+                        "Room '" + zone.id() + "' has no spawn markers", null));
             }
         }
     }

@@ -47,7 +47,7 @@ final class ScriptCommands {
                 : List.of();
         if (active.isEmpty()) {
             ctx.getSource().sendSuccess(() -> Component.literal(scripts + " scripts and " + defs
-                    + " event defs loaded. Join a game (/hs join) to check them against a map"), false);
+                    + " event defs loaded. Join a game (/hs game join) to check them against a map"), false);
             return 1;
         }
         return report(ctx, errors, scripts + " scripts and " + defs + " event defs load cleanly");

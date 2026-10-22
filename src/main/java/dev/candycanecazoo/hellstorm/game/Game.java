@@ -472,7 +472,7 @@ public final class Game {
         if (fallback.isEmpty()) {
             if (!warnedNoSpawns) {
                 warnedNoSpawns = true;
-                Hellstorm.LOG.warn("No usable spawn markers near the players or in a start zone; zombies can't spawn");
+                Hellstorm.LOG.warn("No usable spawn markers near the players or in a start room; zombies can't spawn");
             }
             return Optional.empty();
         }

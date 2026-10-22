@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.gametest;
 import com.mojang.authlib.GameProfile;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
+import dev.candycanecazoo.hellstorm.map.DoorDef;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
@@ -28,10 +29,14 @@ import java.util.UUID;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
-/** The Zone Wand picks the block looked at, adding a zone, window, or door says nothing, and a cut takes blocks out of a zone. */
+/**
+ * The Zone Wand picks the block looked at and hints at the add command; adding a room, window, or door says nothing; a cut
+ * takes blocks out; merges join rooms and doors; and undo and redo step through every edit, blocks and all.
+ */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class MapToolGameTests {
+    // Each test has a batch to itself: they all edit the level's one map and its one undo history.
     private static final ZoneId ZONE = new ZoneId("gametest_tools");
 
     private MapToolGameTests() {}
@@ -67,12 +72,12 @@ public final class MapToolGameTests {
 
             BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)), helper.absolutePos(new BlockPos(5, ROOM_Y + 2, 5)));
             select(player, room);
-            commands.performPrefixedCommand(source, "hs zone add " + ZONE.value());
-            helper.assertTrue(MapSavedData.get(level).map().zone(ZONE).map(z -> z.volume() == room.volume()).orElse(false), "zone add didn't add the room");
+            commands.performPrefixedCommand(source, "hs zones add room " + ZONE.value());
+            helper.assertTrue(MapSavedData.get(level).map().zone(ZONE).map(z -> z.volume() == room.volume()).orElse(false), "room add didn't add the room");
 
             BlockBox slice = new BlockBox(room.minX() + 2, room.minY(), room.minZ(), room.minX() + 2, room.maxY(), room.maxZ());
             select(player, slice);
-            commands.performPrefixedCommand(source, "hs zone cut " + ZONE.value());
+            commands.performPrefixedCommand(source, "hs zones cut room " + ZONE.value());
             var cut = MapSavedData.get(level).map().zone(ZONE).orElseThrow();
             helper.assertTrue(cut.volume() == room.volume() - slice.volume(), "the cut should take exactly the slice, leaving " + cut.volume());
             helper.assertFalse(cut.contains(slice.center()), "the cut slice is still in the zone");
@@ -82,29 +87,175 @@ public final class MapToolGameTests {
             BlockBox opening = BlockBox.of(hole, hole.above());
             BlockPos.betweenClosed(opening.min(), opening.max()).forEach(p -> level.setBlockAndUpdate(p, Blocks.STONE.defaultBlockState()));
             select(player, opening);
-            commands.performPrefixedCommand(source, "hs window add gametest_tools_window");
+            commands.performPrefixedCommand(source, "hs zones add window gametest_tools_window");
             helper.assertTrue(MapSavedData.get(level).map().windows().containsKey("gametest_tools_window"), "window add didn't add the window");
             helper.assertTrue(level.getBlockState(hole).is(PapRegistries.BARRICADE.get()), "the filled hole should now hold the boards");
 
             BlockPos door = helper.absolutePos(new BlockPos(3, ROOM_Y, 7));
             level.setBlockAndUpdate(door, Blocks.OAK_PLANKS.defaultBlockState());
             select(player, BlockBox.single(door));
-            commands.performPrefixedCommand(source, "hs door create gametest_tools_door 500");
-            helper.assertTrue(MapSavedData.get(level).map().doors().containsKey("gametest_tools_door"), "door create didn't add the door");
+            commands.performPrefixedCommand(source, "hs zones add door gametest_tools_door 500");
+            helper.assertTrue(MapSavedData.get(level).map().doors().containsKey("gametest_tools_door"), "door add didn't add the door");
             helper.assertTrue(player.said.isEmpty(), "adding and cutting should say nothing, but said " + player.said);
 
             select(player, BlockBox.single(helper.absolutePos(new BlockPos(1, ROOM_Y + 6, 1))));
-            commands.performPrefixedCommand(source, "hs zone cut " + ZONE.value());
-            helper.assertFalse(player.said.isEmpty(), "a cut that misses the zone should say so");
+            commands.performPrefixedCommand(source, "hs zones cut room " + ZONE.value());
+            helper.assertFalse(player.said.isEmpty(), "a cut that misses the room should say so");
 
             select(player, room.grown(1));
-            commands.performPrefixedCommand(source, "hs zone cut " + ZONE.value());
-            helper.assertTrue(MapSavedData.get(level).map().zone(ZONE).isEmpty(), "a zone cut down to nothing should be gone");
+            commands.performPrefixedCommand(source, "hs zones cut room " + ZONE.value());
+            helper.assertTrue(MapSavedData.get(level).map().zone(ZONE).isEmpty(), "a room cut down to nothing should be gone");
             helper.succeed();
         } finally {
             ToolState.forget(player.getUUID());
             MapEdits.apply(level, m -> before);
         }
+    }
+
+    @GameTest(template = "floor", batch = "map_tools_hint")
+    public static void theWandHintsAtAddOnlyForAFinishedSelectionOutsideEveryRoom(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ZombiesMap before = MapSavedData.get(level).map();
+        try {
+            BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)), helper.absolutePos(new BlockPos(3, ROOM_Y + 2, 3)));
+            MapEdits.apply(level, m -> m.withZone(new dev.candycanecazoo.hellstorm.map.Zone(ZONE, List.of(room), false)));
+            BlockPos outside = helper.absolutePos(new BlockPos(6, ROOM_Y, 6));
+            helper.assertTrue(ZoneWandItem.hint(level, Selection.NONE.click(outside)).isEmpty(), "one corner shouldn't hint");
+            Optional<String> hint = ZoneWandItem.hint(level, Selection.NONE.click(outside).click(outside.offset(1, 1, 0))).map(Component::getString);
+            helper.assertTrue(hint.equals(Optional.of("/hs zones add <room|window|door>")), "a finished selection outside rooms should hint, not " + hint);
+            helper.assertTrue(ZoneWandItem.hint(level, Selection.NONE.click(room.max()).click(outside)).isEmpty(), "a selection touching a room shouldn't hint");
+            helper.succeed();
+        } finally {
+            MapEdits.apply(level, m -> before);
+        }
+    }
+
+    /** A new door takes the given cost or the default; adding to a door that exists keeps its price. */
+    @GameTest(template = "floor", batch = "map_tools_doors")
+    public static void addingADoorCreatesItOrGrowsItKeepingItsPrice(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ZombiesMap before = MapSavedData.get(level).map();
+        Reader player = new Reader(level);
+        var commands = level.getServer().getCommands();
+        var source = player.createCommandSourceStack().withPermission(2);
+        try {
+            BlockPos a = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
+            BlockPos b = helper.absolutePos(new BlockPos(3, ROOM_Y, 1));
+            BlockPos c = helper.absolutePos(new BlockPos(5, ROOM_Y, 1));
+            for (BlockPos pos : List.of(a, b, c)) {
+                level.setBlockAndUpdate(pos, Blocks.OAK_PLANKS.defaultBlockState());
+            }
+            select(player, BlockBox.single(a));
+            commands.performPrefixedCommand(source, "hs zones add door gametest_default_door");
+            int defaultCost = dev.candycanecazoo.hellstorm.game.GameManager.settings().doors().defaultCost();
+            helper.assertTrue(door(level, "gametest_default_door").cost() == defaultCost, "a door added with no cost should cost " + defaultCost);
+            select(player, BlockBox.single(b));
+            commands.performPrefixedCommand(source, "hs zones add door gametest_priced_door 750");
+            helper.assertTrue(door(level, "gametest_priced_door").cost() == 750, "a new door should take the cost given");
+            select(player, BlockBox.single(c));
+            commands.performPrefixedCommand(source, "hs zones add door gametest_priced_door 900");
+            DoorDef grown = door(level, "gametest_priced_door");
+            helper.assertTrue(grown.members().equals(java.util.Set.of(b, c)), "adding to a door should add the blocks, not " + grown.members());
+            helper.assertTrue(grown.cost() == 750, "adding to a door should keep its price, not make it " + grown.cost());
+            helper.assertTrue(player.said.isEmpty(), "adding doors should say nothing, but said " + player.said);
+            helper.succeed();
+        } finally {
+            ToolState.forget(player.getUUID());
+            MapEdits.apply(level, m -> before);
+        }
+    }
+
+    /**
+     * Undo takes back each edit in turn, an add that made a new door, a window with the blocks it boarded over, a merge, and
+     * a cut, and redo puts them back. Edits made in between to other things are kept.
+     */
+    @GameTest(template = "floor", batch = "map_tools_undo")
+    public static void undoAndRedoStepThroughEveryEdit(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ZombiesMap before = MapSavedData.get(level).map();
+        Reader player = new Reader(level);
+        var commands = level.getServer().getCommands();
+        var source = player.createCommandSourceStack().withPermission(2);
+        ZoneId hall = new ZoneId("gametest_undo_hall");
+        ZoneId side = new ZoneId("gametest_undo_side");
+        try {
+            BlockBox hallBox = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)), helper.absolutePos(new BlockPos(4, ROOM_Y + 2, 5)));
+            BlockBox sideBox = BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 1)), helper.absolutePos(new BlockPos(6, ROOM_Y + 2, 5)));
+            select(player, hallBox);
+            commands.performPrefixedCommand(source, "hs zones add room " + hall.value() + " true");
+            select(player, sideBox);
+            commands.performPrefixedCommand(source, "hs zones add room " + side.value());
+            helper.assertTrue(map(level).zone(hall).map(z -> z.start()).orElse(false), "a new room should take the start flag given");
+
+            BlockPos hole = helper.absolutePos(new BlockPos(0, ROOM_Y, 3));
+            level.setBlockAndUpdate(hole, Blocks.STONE.defaultBlockState());
+            select(player, BlockBox.single(hole));
+            commands.performPrefixedCommand(source, "hs zones add window gametest_undo_window");
+            helper.assertTrue(level.getBlockState(hole).is(PapRegistries.BARRICADE.get()), "the window should board the hole");
+
+            BlockPos plank = helper.absolutePos(new BlockPos(2, ROOM_Y, 7));
+            level.setBlockAndUpdate(plank, Blocks.OAK_PLANKS.defaultBlockState());
+            select(player, BlockBox.single(plank));
+            commands.performPrefixedCommand(source, "hs zones add door gametest_undo_door");
+            helper.assertTrue(map(level).doors().containsKey("gametest_undo_door"), "door add didn't add the door");
+
+            BlockPos marker = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
+            MapEdits.apply(level, m -> m.withFeature(marker, dev.candycanecazoo.hellstorm.map.FeatureKind.SPAWN));
+
+            commands.performPrefixedCommand(source, "hs zones merge " + side.value() + " " + hall.value());
+            helper.assertTrue(map(level).zone(side).isEmpty() && map(level).zone(hall).orElseThrow().volume() == hallBox.volume() + sideBox.volume(),
+                    "the named merge should fold the side room into the hall");
+
+            commands.performPrefixedCommand(source, "hs undo");
+            helper.assertTrue(map(level).zone(side).isPresent() && map(level).zone(hall).orElseThrow().volume() == hallBox.volume(),
+                    "undoing the merge should bring both rooms back as they were");
+            helper.assertTrue(map(level).features().containsKey(marker), "undo shouldn't take back an edit it didn't record");
+
+            commands.performPrefixedCommand(source, "hs undo");
+            helper.assertFalse(map(level).doors().containsKey("gametest_undo_door"), "undoing the door's first add should remove the door it made");
+            commands.performPrefixedCommand(source, "hs undo");
+            helper.assertFalse(map(level).windows().containsKey("gametest_undo_window"), "undoing the window add should remove the window");
+            helper.assertTrue(level.getBlockState(hole).is(Blocks.STONE), "undoing the window add should put back the blocks it boarded over");
+
+            commands.performPrefixedCommand(source, "hs redo");
+            helper.assertTrue(map(level).windows().containsKey("gametest_undo_window") && level.getBlockState(hole).is(PapRegistries.BARRICADE.get()),
+                    "redo should bring the window and its boards back");
+            commands.performPrefixedCommand(source, "hs redo");
+            commands.performPrefixedCommand(source, "hs redo");
+            helper.assertTrue(map(level).doors().containsKey("gametest_undo_door") && map(level).zone(side).isEmpty(), "redo should replay the door and the merge");
+
+            commands.performPrefixedCommand(source, "hs undo");
+            select(player, BlockBox.of(hallBox.max(), sideBox.min()));
+            commands.performPrefixedCommand(source, "hs zones merge");
+            helper.assertTrue(map(level).zone(side).isEmpty() && map(level).zone(hall).orElseThrow().volume() == hallBox.volume() + sideBox.volume(),
+                    "a selection merge should fold the smaller room into the bigger one");
+            commands.performPrefixedCommand(source, "hs redo");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().equals("Nothing to redo")), "a new edit should clear what there was to redo");
+
+            BlockBox slice = new BlockBox(hallBox.minX(), hallBox.minY(), hallBox.minZ(), sideBox.maxX(), hallBox.maxY(), hallBox.minZ());
+            select(player, slice);
+            commands.performPrefixedCommand(source, "hs zones cut");
+            helper.assertTrue(map(level).zone(hall).orElseThrow().volume() == hallBox.volume() + sideBox.volume() - slice.volume(),
+                    "a plain cut should take the selection out of the rooms it touches");
+            commands.performPrefixedCommand(source, "hs undo");
+            helper.assertTrue(map(level).zone(hall).orElseThrow().volume() == hallBox.volume() + sideBox.volume(), "undoing the cut should restore it");
+            helper.succeed();
+        } finally {
+            ToolState.forget(player.getUUID());
+            MapEdits.apply(level, m -> before);
+        }
+    }
+
+    private static ZombiesMap map(ServerLevel level) {
+        return MapSavedData.get(level).map();
+    }
+
+    private static DoorDef door(ServerLevel level, String id) {
+        DoorDef door = map(level).doors().get(id);
+        if (door == null) {
+            throw new IllegalStateException("no door '" + id + "'");
+        }
+        return door;
     }
 
     private static void select(Reader player, BlockBox box) {

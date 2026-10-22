@@ -16,7 +16,7 @@ public final class ClientConfig {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.push("tools");
         OUTLINE_RANGE = builder
-                .comment("Zones within this many blocks are outlined while a map tool is held.")
+                .comment("Rooms, doors, and windows within this many blocks are outlined while a map tool is held.")
                 .defineInRange("outline_range", 64, 8, 256);
         builder.pop();
         builder.push("hud");

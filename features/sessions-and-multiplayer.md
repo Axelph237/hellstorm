@@ -14,13 +14,13 @@ Snapshots are stored in `MapSavedData` so they survive a crash.
 
 ## Implementation
 
-- **Joining** (`/hs join` or a join pad block):
+- **Joining** (`/hs game join` or a join pad block):
   1. Save an `InventorySnapshot`.
-  2. Clear the inventory and effects. The player stays where they are until the game starts; the countdown ending moves everyone to the start zone in adventure mode.
+  2. Clear the inventory and effects. The player stays where they are until the game starts; the countdown ending moves everyone to the start room in adventure mode.
   3. Give the starting loadout (configurable `ItemSpec` list, default a TacZ pistol and a knife).
   4. Set starting points.
 - **Late join.** Joining during `RoundActive` puts the player in `Spectating(respawnNextRound = true)`.
-- **Leaving** (`/hs leave`, game over, or kick): restore the snapshot exactly and delete it.
+- **Leaving** (`/hs game leave`, game over, or kick): restore the snapshot exactly and delete it.
 - **Disconnect.** The player's state is kept for `sessions.reconnect_grace_ticks`. Reconnecting in time restores their game state. After that they are removed from the game, and their snapshot is restored on their next login.
 - **Crash.** On server start, any leftover snapshot is restored the next time that player logs in.
 - **Server authority.** Every purchase, revive, and pickup is decided on the server. Clients only send intent packets ("use pressed on block X"), which the server validates.
@@ -53,9 +53,10 @@ None.
 
 ## As built (phase 7)
 
-- **Joining and leaving** (built in phase 2): the game saves a snapshot (`game/Sessions`: inventory, effects, game mode, health, food, XP, position) once and clears the player when it takes them over: at the end of the countdown for someone who joined before the start (see "As built (waiting for the start)" below), at `/hs join` for a late joiner. Leaving, game end, or the next login outside a game restores it exactly.
+- **Joining and leaving** (built in phase 2): the game saves a snapshot (`game/Sessions`: inventory, effects, game mode, health, food, XP, position) once and clears the player when it takes them over: at the end of the countdown for someone who joined before the start (see "As built (waiting for the start)" below), at `/hs game join` for a late joiner. Leaving, game end, or the next login outside a game restores it exactly.
+- **Commands live under `/hs game`.** `join`, `leave`, `start`, `stop`, and `status` (see `game-loop-and-rounds.md` for who may run each).
 - **Late join.** Joining during a round or the break spectates until the next round (`Game.join`).
-- **Player cap.** `players.max_players` (4). `/hs join` on a full game says so; `Game.join` refuses too.
+- **Player cap.** `players.max_players` (4). `/hs game join` on a full game says so; `Game.join` refuses too.
 - **Disconnect grace** (`Game.disconnect`, `Game.reconnect`, `players.reconnect_grace_ticks`, 1200 = one minute).
   - In the lobby or after game over, a disconnect simply leaves the game.
   - Otherwise the player keeps their place and points, and their perks and game inventory stay on their saved player. Someone down becomes a spectator instead of bleeding out unseen, and spectators who are away aren't respawned at the next round. Someone up still counts as fighting, so a dropped connection doesn't end the game by itself.
@@ -69,15 +70,15 @@ None.
 
 - **State.** `LifeState.Waiting`, next to `Alive`, `Downed`, and `Spectating`. `Game.join` gives it to anyone who joins in the lobby or the countdown; joining a running game still spectates until the next round. `PlayerState.waiting()` asks for it, and `PlayerState.inPlay()` is now only alive or down.
 - **What waiting means.** As in a CoD pregame lobby: you're on the roster, nothing more.
-  - The game takes nothing yet. No snapshot, no loadout, no adventure mode, no move: `/hs join` leaves the inventory, effects, game mode, and position alone. The hooks that run a game's rules on its players use `GameManager.playing`, which skips waiting players: food isn't held at 17, a death is a vanilla death rather than a game one, and a drink's bottle stays (`Leftovers`), as does the perk limit on drinking (`Perks.limitRefusal`). Leaving, the game ending, or logging out doesn't touch their effects (`Perks.clearBuffs` is skipped) and has no snapshot to restore.
+  - The game takes nothing yet. No snapshot, no loadout, no adventure mode, no move: `/hs game join` leaves the inventory, effects, game mode, and position alone. The hooks that run a game's rules on its players use `GameManager.playing`, which skips waiting players: food isn't held at 17, a death is a vanilla death rather than a game one, and a drink's bottle stays (`Leftovers`), as does the perk limit on drinking (`Perks.limitRefusal`). Leaving, the game ending, or logging out doesn't touch their effects (`Perks.clearBuffs` is skipped) and has no snapshot to restore.
   - No buying: `Game.charge` refuses with `Refusal.NotStarted` ("Wait for the game to start"), so every machine, door, wall-buy, box, trap, and switch refuses. No earning (hits, kills, repairs), no window repairs, no power-ups, no reviving, and nothing targets them (`Game.targetable`).
   - They get the HUD: the phase ("Waiting to start", "Starting in N") and the roster, where they're listed as up.
-  - They can `/hs start` (it's open to players in the game) and `/hs leave` ("Left the game", no inventory message). `/hs status` lists them as "waiting for the start".
+  - They can `/hs game start` (it's open to players in the game) and `/hs game leave` ("Left the game", no inventory message). `/hs game status` lists them as "waiting for the start".
   - A waiting player who disconnects, in the lobby or the countdown, simply leaves the game (`Game.disconnect`): the start can't take over someone offline.
   - Damage still can't hurt them, as before, since the lobby and countdown protect every game player (`Game.protectsPlayers`).
-- **The start.** When the countdown ends, every player (all of them waiting) becomes `Alive`, then `GameWorld.enterGame` saves their snapshot and gives the starting loadout, and `respawn` moves them to a start cell in adventure mode. A late joiner gets `enterGame` from `/hs join` and then spectates, as before.
+- **The start.** When the countdown ends, every player (all of them waiting) becomes `Alive`, then `GameWorld.enterGame` saves their snapshot and gives the starting loadout, and `respawn` moves them to a start cell in adventure mode. A late joiner gets `enterGame` from `/hs game join` and then spectates, as before.
 - **Tests.**
   - JUnit `GameTest.joiningBeforeTheStartWaitsUntilTheCountdownEnds`: waiting isn't alive or in play, isn't a target, can't buy (`NotStarted`), earns nothing from a repair, can't collect a power-up; someone joining in the countdown waits too; nobody is taken over before the countdown ends; then both are alive, targetable, entered, respawned, and can buy. `lateJoinersSpectateUntilTheNextRound` now checks they spectate rather than wait.
   - JUnit `DisconnectTest.droppingOutDuringTheCountdownJustLeavesToo`.
-  - GameTest `GameLoopGameTests.joiningBeforeTheStartWaitsAndTheStartPutsThemInPlay`: through the real `/hs join` and `/hs start`, a creative fake player with diamonds keeps them and creative mode, has no snapshot, can't buy, and isn't a target; after the countdown they're alive, a target, able to buy, in adventure mode, saved, and holding the starting pistol; restoring gives the diamonds and creative back.
+  - GameTest `GameLoopGameTests.joiningBeforeTheStartWaitsAndTheStartPutsThemInPlay`: through the real `/hs game join` and `/hs game start`, a creative fake player with diamonds keeps them and creative mode, has no snapshot, can't buy, and isn't a target; after the countdown they're alive, a target, able to buy, in adventure mode, saved, and holding the starting pistol; restoring gives the diamonds and creative back.
   - GameTests that buy or fight now play the game first: `PurchaseGameTests.play` starts it and runs the countdown out within the tick, and `PurchaseGameTests.game` calls it.

@@ -88,7 +88,7 @@ public final class GameLoopGameTests {
     }
 
     /**
-     * {@code /hs join} before the start leaves the player as they were: their own inventory and game mode, nothing saved,
+     * {@code /hs game join} before the start leaves the player as they were: their own inventory and game mode, nothing saved,
      * unable to buy or be targeted. The end of the countdown saves them and puts them in play with the starting loadout.
      */
     @GameTest(template = "floor", batch = "game_waiting")
@@ -106,7 +106,7 @@ public final class GameLoopGameTests {
         UUID id = player.getUUID();
         var commands = helper.getLevel().getServer().getCommands();
         try {
-            commands.performPrefixedCommand(player.createCommandSourceStack(), "hs join");
+            commands.performPrefixedCommand(player.createCommandSourceStack(), "hs game join");
             helper.assertTrue(active.game().player(id).map(PlayerState::waiting).orElse(false),
                     "joining the lobby should wait, not " + active.game().player(id).map(PlayerState::life).orElse(null));
             helper.assertTrue(ItemStack.matches(player.getInventory().getItem(0), new ItemStack(Items.DIAMOND, 17)), "a waiting player keeps their inventory");
@@ -115,8 +115,8 @@ public final class GameLoopGameTests {
             helper.assertTrue(active.game().charge(id, 0, false).equals(Optional.of(new Refusal.NotStarted())), "a waiting player can't buy");
             helper.assertFalse(active.game().targetable(id), "a waiting player can't be targeted");
 
-            commands.performPrefixedCommand(player.createCommandSourceStack(), "hs start");
-            helper.assertTrue(active.game().phase() instanceof GamePhase.Countdown, "/hs start should count down, not " + active.game().phase());
+            commands.performPrefixedCommand(player.createCommandSourceStack(), "hs game start");
+            helper.assertTrue(active.game().phase() instanceof GamePhase.Countdown, "/hs game start should count down, not " + active.game().phase());
             while (active.game().phase() instanceof GamePhase.Countdown) {
                 active.game().tick(active.world());
             }

@@ -43,7 +43,7 @@ end)
 **Event bus.** `GameEvents.emit(game, event)` delivers to subscribers in priority order on the server thread. The Lua runtime is one subscriber. A Forge-event adapter for Java addons can be added later as another. In the MVP events are notifications only. Cancellable events come later.
 
 **Runtime** (`script/LuaRuntime`), one per game:
-- Built when the game's lobby opens (the first `/hs join` in a level) from the current datapack scripts, and discarded with the game, so globals never leak between games. `/hs scripts reload` rebuilds it for a running game. `/hs scripts check` loads everything with commands switched off and lists the load errors.
+- Built when the game's lobby opens (the first `/hs game join` in a level) from the current datapack scripts, and discarded with the game, so globals never leak between games. `/hs scripts reload` rebuilds it for a running game. `/hs scripts check` loads everything with commands switched off and lists the load errors.
 - **Entry scripts.** Each namespace's `main` script (`data/<ns>/hellstorm/scripts/main.lua`) runs on build, as does every script an EventDef names. Other scripts run only when something `require`s them.
 - LuaJ from FiguraMC's fork (`com.github.FiguraMC.luaj:luaj-core`, `3.0.8-figura`, MIT), compile-only and bundled with jarJar using range `[3.0.8-figura,)`. TacZ jarJars the same artifact, so Forge loads one shared copy (confirmed on a real server boot).
 

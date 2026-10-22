@@ -4,8 +4,10 @@ import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.client.BlockAlignedItemRenderer;
 import dev.candycanecazoo.hellstorm.client.BoneTextures;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
+import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -28,7 +30,10 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-/** Right-click sets selection corners, sneak-right-click clears. A corner is the block you're looking at. */
+/**
+ * Right-click sets selection corners, sneak-right-click clears. A corner is the block you're looking at. A finished
+ * selection that touches no room hints at the add command.
+ */
 public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     /** The two frames turning, from {@code animations/item/zone_wand.animation.json}. */
     private static final RawAnimation SPIN = RawAnimation.begin().thenLoop("zone_wand_spin");
@@ -84,9 +89,14 @@ public final class ZoneWandItem extends Item implements MapTool, GeoItem {
         }
         Selection next = ToolState.selection(serverPlayer).click(cell.get());
         ToolState.setSelection(serverPlayer, next);
-        dev.candycanecazoo.hellstorm.game.Notices.show(serverPlayer, next.box()
-                .map(box -> Component.literal("Selected " + box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ() + ". /hs zone add <zone>"))
-                .orElse(Component.literal("First corner " + cell.get().toShortString())));
+        hint(serverPlayer.serverLevel(), next).ifPresent(hint -> dev.candycanecazoo.hellstorm.game.Notices.show(serverPlayer, hint));
         return InteractionResultHolder.success(stack);
+    }
+
+    /** The add command, once both corners are set and the box touches no room. */
+    public static Optional<Component> hint(ServerLevel level, Selection selection) {
+        return selection.box()
+                .filter(box -> MapSavedData.get(level).map().zones().values().stream().noneMatch(z -> z.boxes().stream().anyMatch(box::intersects)))
+                .map(box -> Component.literal("/hs zones add <room|window|door>"));
     }
 }

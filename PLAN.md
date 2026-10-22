@@ -205,9 +205,9 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
 ## Map-maker tools
 
-- **Zone Wand.** Select two corners, then `/hs zone add <zone>`. Several boxes can make up one zone.
-- **Room detection.** `/hs zone detect <zone>` flood-fills the air volume from the player, stopping at solids, door members, and barricades, up to a volume cap. Greedy box merging turns the result into AABBs.
-- **Doors from the Zone Wand.** (Was a separate Door Wand; removed in phase 5.) Select a box, then `/hs door create|add|cut`. Each door shows as a Create-style cluster outline. Blocks already in another door are skipped. Zones on each side are inferred.
+- **Zone Wand.** Select two corners, then `/hs zones add room <room>`. Several boxes can make up one room.
+- **Room detection.** `/hs zones detect <room>` flood-fills the air volume from the player, stopping at solids, door members, and barricades, up to a volume cap. Greedy box merging turns the result into AABBs.
+- **Doors from the Zone Wand.** (Was a separate Door Wand; removed in phase 5.) Select a box, then `/hs zones add door` or `/hs zones cut door`. Each door shows as a Create-style cluster outline. Blocks already in another door are skipped. Zones on each side are inferred.
 - **Window Tool.** Drag a rectangle on a wall face, using the same snapping Create-style selection box. Confirming fills the opening with barricade blocks and places the controller. The tool refuses openings over the configured maximum and shows them in yellow.
 - **Link Tool.** It links a door to its two zones and a spawn marker to its window. The links are inferred when a door sits between two zones.
 - **Feature configuration.** In creative mode, right-clicking a feature block opens a config screen for gun id, cost, perk, and so on.
@@ -232,7 +232,7 @@ Create's glue selection is drawn by the **Outliner** in Catnip (`net.createmod.c
 - **What shows.** While a map tool is held, every zone within range draws its boxes. The color is derived from the zone id, so it stays the same across sessions, and the lines are 1/64 wide.
 - **Hover.** The zone box under the cursor is found with a ray-clip and gets 1/16 lines. The face texture comes later, once you supply one.
 - **Selecting.** The first click sets a corner. The selection box then snaps to the cursor every tick. It turns yellow when the box is out of reach or overlaps another zone.
-- **Room detection.** The `zone detect` result previews as a `showCluster` before you confirm it.
+- **Room detection.** The `zones detect` result previews as a `showCluster` before you confirm it.
 - **Other map elements.**
   - Door links draw as lines between the door and its two zones.
   - Spawn points and windows draw as small boxes.

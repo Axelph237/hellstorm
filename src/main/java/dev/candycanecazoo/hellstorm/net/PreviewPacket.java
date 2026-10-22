@@ -11,7 +11,7 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.List;
 import java.util.function.Supplier;
 
-/** Boxes from a pending `/hs zone detect`, drawn until confirmed or cancelled. An empty list clears the preview. */
+/** Boxes from a pending `/hs zones detect`, drawn until confirmed or cancelled. An empty list clears the preview. */
 public record PreviewPacket(List<BlockBox> boxes) {
     void encode(FriendlyByteBuf buf) {
         buf.writeCollection(boxes, (b, element) -> b.writeWithCodec(NbtOps.INSTANCE, BlockBox.CODEC, element));

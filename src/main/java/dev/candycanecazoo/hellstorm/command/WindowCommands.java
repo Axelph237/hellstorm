@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
@@ -16,6 +17,7 @@ import dev.candycanecazoo.hellstorm.map.WindowDef;
 import dev.candycanecazoo.hellstorm.map.ZoneIndex;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.tools.MapEdits;
+import dev.candycanecazoo.hellstorm.tools.MapHistory;
 import dev.candycanecazoo.hellstorm.tools.Selection;
 import dev.candycanecazoo.hellstorm.tools.ToolState;
 import net.minecraft.commands.CommandSourceStack;
@@ -31,9 +33,10 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.regex.Pattern;
 
-/** `/hs window add|remove|list`. A window is made from the Zone Wand selection: select the hole in the wall, then add it. */
+/** The window branches of {@code /hs zones}. A window is made from the Zone Wand selection: select the hole in the wall, then add it. */
 final class WindowCommands {
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,32}");
     private static final SimpleCommandExceptionType NO_SELECTION = new SimpleCommandExceptionType(
@@ -43,20 +46,24 @@ final class WindowCommands {
 
     private WindowCommands() {}
 
-    static LiteralArgumentBuilder<CommandSourceStack> window() {
-        return Commands.literal("window")
-                .then(Commands.literal("add").then(Commands.argument("window", StringArgumentType.word())
-                        .executes(ctx -> add(ctx, WindowDef.MAX_BOARDS))
-                        .then(Commands.argument("boards", IntegerArgumentType.integer(1, WindowDef.MAX_BOARDS))
-                                .executes(ctx -> add(ctx, IntegerArgumentType.getInteger(ctx, "boards"))))))
-                .then(Commands.literal("remove").then(Commands.argument("window", StringArgumentType.word()).suggests(WINDOWS)
-                        .executes(WindowCommands::remove)))
-                .then(Commands.literal("list").executes(WindowCommands::list));
+    static LiteralArgumentBuilder<CommandSourceStack> add() {
+        return Commands.literal("window").then(name()
+                .executes(ctx -> add(ctx, OptionalInt.empty()))
+                .then(Commands.argument("boards", IntegerArgumentType.integer(1, WindowDef.MAX_BOARDS))
+                        .executes(ctx -> add(ctx, OptionalInt.of(IntegerArgumentType.getInteger(ctx, "boards"))))));
+    }
+
+    static LiteralArgumentBuilder<CommandSourceStack> remove() {
+        return Commands.literal("window").then(name().executes(WindowCommands::remove));
+    }
+
+    private static RequiredArgumentBuilder<CommandSourceStack, String> name() {
+        return Commands.argument("window", StringArgumentType.word()).suggests(WINDOWS);
     }
 
     /**
-     * Which way is out. The opening must be one block thick along that axis, with a zone right behind it on one side and
-     * no zone on the other.
+     * Which way is out. The opening must be one block thick along that axis, with a room right behind it on one side and
+     * no room on the other.
      */
     static Optional<Direction> outward(BlockBox opening, ZoneIndex index) {
         BlockPos base = new BlockPos(opening.center().getX(), opening.minY(), opening.center().getZ());
@@ -70,12 +77,16 @@ final class WindowCommands {
         return outs.size() == 1 ? Optional.of(outs.get(0)) : Optional.empty();
     }
 
-    private static int add(CommandContext<CommandSourceStack> ctx, int boards) throws CommandSyntaxException {
+    /**
+     * Makes the selection a window. A new window holds {@code boards}, or the most there can be; adding an existing one
+     * moves its opening and keeps its boards.
+     */
+    private static int add(CommandContext<CommandSourceStack> ctx, OptionalInt boards) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ServerLevel level = player.serverLevel();
         String id = StringArgumentType.getString(ctx, "window");
         if (!ID.matcher(id).matches()) {
-            ctx.getSource().sendFailure(Component.literal("Window ids use 1-32 of a-z, 0-9, _"));
+            ctx.getSource().sendFailure(Component.literal("Window names use 1-32 of a-z, 0-9, _"));
             return 0;
         }
         BlockBox opening = ToolState.selection(player).box().orElseThrow(NO_SELECTION::create);
@@ -83,10 +94,11 @@ final class WindowCommands {
         Optional<Direction> outward = outward(opening, ZoneIndex.of(map));
         if (outward.isEmpty()) {
             ctx.getSource().sendFailure(Component.literal("Couldn't tell inside from outside. The selection must be one block thick, "
-                    + "with a zone on exactly one side and no zone on the other"));
+                    + "with a room on exactly one side and no room on the other"));
             return 0;
         }
-        WindowDef window = new WindowDef(id, opening, outward.get(), boards,
+        Optional<WindowDef> old = Optional.ofNullable(map.windows().get(id));
+        WindowDef window = new WindowDef(id, opening, outward.get(), old.map(WindowDef::maxBoards).orElse(boards.orElse(WindowDef.MAX_BOARDS)),
                 ZoneIndex.of(map).zoneAt(opening.min().relative(outward.get().getOpposite())).orElseThrow());
         GameSettings.Windows rules = ServerConfig.GAME.get().windows();
         if (window.width() > rules.maxWidth() || window.height() > rules.maxHeight()) {
@@ -100,11 +112,22 @@ final class WindowCommands {
             ctx.getSource().sendFailure(Component.literal("That overlaps window '" + overlap.get().id() + "'"));
             return 0;
         }
-        map.windows().values().stream().filter(w -> w.id().equals(id)).findFirst().ifPresent(old -> clear(level, old));
-        MapEdits.apply(level, m -> m.withWindow(window));
-        WindowOps.setBoards(level, window, boards);
+        List<BlockPos> blocks = new ArrayList<>();
+        old.ifPresent(w -> blocks.addAll(cells(w.opening())));
+        blocks.addAll(cells(opening));
+        MapHistory.record(level, "add window '" + id + "'", blocks, () -> {
+            old.ifPresent(w -> clear(level, w));
+            MapEdits.apply(level, m -> m.withWindow(window));
+            WindowOps.setBoards(level, window, window.maxBoards());
+        });
         ToolState.setSelection(player, Selection.NONE);
         return 1;
+    }
+
+    private static List<BlockPos> cells(BlockBox box) {
+        List<BlockPos> cells = new ArrayList<>();
+        BlockPos.betweenClosed(box.min(), box.max()).forEach(p -> cells.add(p.immutable()));
+        return cells;
     }
 
     private static void clear(ServerLevel level, WindowDef window) {
@@ -121,23 +144,19 @@ final class WindowCommands {
             ctx.getSource().sendFailure(Component.literal("No window named '" + id + "'"));
             return 0;
         }
-        clear(level, window.get());
-        MapEdits.apply(level, m -> m.withoutWindow(id));
+        MapHistory.record(level, "remove window '" + id + "'", cells(window.get().opening()), () -> {
+            clear(level, window.get());
+            MapEdits.apply(level, m -> m.withoutWindow(id));
+        });
         ctx.getSource().sendSuccess(() -> Component.literal("Removed window '" + id + "'"), false);
         return 1;
     }
 
-    private static int list(CommandContext<CommandSourceStack> ctx) {
+    static void list(CommandContext<CommandSourceStack> ctx, ZombiesMap map) {
         ServerLevel level = ctx.getSource().getLevel();
-        var windows = MapSavedData.get(level).map().windows().values();
-        if (windows.isEmpty()) {
-            ctx.getSource().sendSuccess(() -> Component.literal("No windows yet. Select a hole in a zone's wall with the Zone Wand, then /hs window add <id>"), false);
-            return 0;
-        }
-        for (WindowDef w : windows) {
-            ctx.getSource().sendSuccess(() -> Component.literal(w.id() + ": " + w.width() + "x" + w.height() + " into '" + w.zone() + "', "
+        for (WindowDef w : map.windows().values()) {
+            ctx.getSource().sendSuccess(() -> Component.literal("Window " + w.id() + ": " + w.width() + "x" + w.height() + " into '" + w.zone() + "', "
                     + WindowOps.boards(level, w) + "/" + w.maxBoards() + " boards"), false);
         }
-        return windows.size();
     }
 }

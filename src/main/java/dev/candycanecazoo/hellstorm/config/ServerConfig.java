@@ -20,7 +20,7 @@ public final class ServerConfig {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.push("tools");
         DETECT_MAX_VOLUME = builder
-                .comment("Largest room, in blocks, that /hs zone detect will fill before reporting the room is not closed.")
+                .comment("Largest room, in blocks, that /hs zones detect will fill before reporting the room is not closed.")
                 .defineInRange("detect_max_volume", 32768, 64, 1_000_000);
         TOOL_REACH = builder
                 .comment("How far, in blocks, map tools can select and highlight.")
@@ -28,12 +28,12 @@ public final class ServerConfig {
         builder.pop();
         builder.push("map");
         MAX_PASSAGE_GAP = builder
-                .comment("Two zones count as connected when a mob could walk between them through at most this many cells that belong to no zone (a doorway, an arch, an open door).")
+                .comment("Two rooms count as connected when a mob could walk between them through at most this many cells that belong to no room (a doorway, an arch, an open door).")
                 .defineInRange("max_passage_gap", 2, 0, 8);
         builder.pop();
         builder.push("export");
         EXPORT_MARGIN = builder
-                .comment("/hs map export without a Zone Wand selection saves the map's zones, machines, windows, and doors plus this many blocks around them, for walls, floors, and spawn areas.")
+                .comment("/hs map export without a Zone Wand selection saves the map's rooms, machines, windows, and doors plus this many blocks around them, for walls, floors, and spawn areas.")
                 .defineInRange("margin", 6, 0, 64);
         builder.pop();
         GAME = new GameSettingsConfig(builder);

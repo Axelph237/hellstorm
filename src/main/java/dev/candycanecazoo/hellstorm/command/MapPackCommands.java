@@ -112,7 +112,7 @@ final class MapPackCommands {
 
     private static void notWhilePlaying(ServerLevel level) throws CommandSyntaxException {
         if (GameManager.get(level).isPresent()) {
-            throw Targets.fail("A game is running here. /hs stop first");
+            throw Targets.fail("A game is running here. /hs game stop first");
         }
     }
 

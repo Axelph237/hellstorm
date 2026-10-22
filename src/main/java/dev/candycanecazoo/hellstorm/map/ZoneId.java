@@ -12,14 +12,14 @@ public record ZoneId(String value) implements Comparable<ZoneId> {
 
     public ZoneId {
         if (!VALID.matcher(value).matches()) {
-            throw new IllegalArgumentException("Invalid zone id '" + value + "': use 1-32 of a-z, 0-9, _");
+            throw new IllegalArgumentException("Invalid room id '" + value + "': use 1-32 of a-z, 0-9, _");
         }
     }
 
     public static DataResult<ZoneId> parse(String value) {
         return VALID.matcher(value).matches()
                 ? DataResult.success(new ZoneId(value))
-                : DataResult.error(() -> "Invalid zone id '" + value + "': use 1-32 of a-z, 0-9, _");
+                : DataResult.error(() -> "Invalid room id '" + value + "': use 1-32 of a-z, 0-9, _");
     }
 
     public static boolean isValid(String value) {

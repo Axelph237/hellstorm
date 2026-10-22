@@ -2,7 +2,7 @@
 
 ## Goal
 
-Players spend points to open doors and clear debris, which unlocks new zones. A door is any group of ordinary blocks the map maker selects with the Zone Wand, so a door can look like anything: a wooden door, a pile of gravel, a bookshelf wall. Opening it grows where zombies spawn and where they can path.
+Players spend points to open doors and clear debris, which unlocks new rooms. A door is any group of ordinary blocks the map maker selects with the Zone Wand, so a door can look like anything: a wooden door, a pile of gravel, a bookshelf wall. Opening it grows where zombies spawn and where they can path.
 
 ## Data shape
 
@@ -28,10 +28,10 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 ## Implementation
 
 **Making a door** (with the Zone Wand selection):
-- Select a box around the door's blocks, then `/hs door create <door> [cost]`. Add more boxes with `/hs door add <door>` and take blocks out with `/hs door cut <door>`.
+- Select a box around the door's blocks, then `/hs zones add door <door> [cost]`. Run it again with the same door to add more boxes, and take blocks out with `/hs zones cut door <door>`.
 - Doors show as Create-style `showCluster` outlines around their blocks while a map tool is held.
-- `/hs door set <door> cost|power|style <value>`.
-- Zones are inferred from the zones touching the group on each side.
+- `/hs zones set door <door> cost|power|style <value>`.
+- Rooms are inferred from the rooms touching the group on each side.
 - In edit mode, breaking a member removes it from the group. Removing the last member deletes the door.
 
 **Snapshot and reset.**
@@ -43,14 +43,14 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 - On success:
   1. Charge the cost.
   2. Set every member to air (no drops, no block updates that could break neighbors). DEBRIS plays falling-block particles from each block's own state. DOOR plays a door sound.
-  3. Add both zones to the game's unlocked set.
-  4. Tell pathfinding to compute portal edges for the newly reachable zones (see `zombie-pathfinding.md`).
+  3. Add both rooms to the game's unlocked set.
+  4. Tell pathfinding to compute portal edges for the newly reachable rooms (see `zombie-pathfinding.md`).
   5. Emit `door_opened` (see `scripting-and-events.md`).
 - **Prompts.** `DoorIndex` membership for nearby doors is synced to clients so the HUD can show "Door [750]" while looking at any member.
 
 **Interaction with other systems.**
-- Room detection (`zone detect`) treats door members as walls, so a closed door splits two zones.
-- Pathfinding treats the member positions as the portal. The passability grid for a zone is built after the door opens, so the opening is walkable.
+- Room detection (`zones detect`) treats door members as walls, so a closed door splits two rooms.
+- Pathfinding treats the member positions as the portal. The passability grid for a room is built after the door opens, so the opening is walkable.
 - Map export writes `DoorDef`s into `map.json`. The blocks themselves come along in the structure templates.
 
 ## Config surface
@@ -69,7 +69,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 
 ## Verification
 
-- GameTest: a door made of mixed blocks (planks, a chest with items, a slab) opens fully when bought, unlocks both zones, and charges exactly the cost. With too few points nothing changes.
+- GameTest: a door made of mixed blocks (planks, a chest with items, a slab) opens fully when bought, unlocks both rooms, and charges exactly the cost. With too few points nothing changes.
 - GameTest: reset restores every member exactly, including the chest's contents. Resetting twice changes nothing.
 - GameTest: a power-gated door refuses until power is on.
 - GameTest: a block can't be in two doors.
@@ -81,25 +81,26 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 
 ## As built (phase 5)
 
-- **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The zones aren't stored. `DoorDef.zones(index)` finds the zones its blocks border, looking up to 2 cells out from each block, so editing zones never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "Door" or "Debris".
+- **`DoorDef`** (`map/`): id, member blocks, cost, `requires_power`, style `door | debris`. It lives in `ZombiesMap.doors()`, saved and synced with the map. The rooms aren't stored. `DoorDef.zones(index)` finds the rooms its blocks border, looking up to 2 cells out from each block, so editing rooms never leaves a door pointing at the wrong ones. There's no display name yet; prompts say "Door" or "Debris".
 - **No Door Wand.** Doors are made from the Zone Wand selection (removed the Door Wand in phase 5). Every door shows as a gold cluster outline while a map tool is held.
-- **Commands** (`/hs door`), each acting on the Zone Wand selection where it takes blocks. The selection clears afterwards:
-  - `create <id> [cost]` makes a door from every non-air block in the selection, at `doors.default_cost` unless a cost is given.
-  - `add <id>` adds the selection's blocks to a door, for doors that aren't one box.
-  - `cut <id>` takes the selection's blocks out of a door.
-  - Blocks in another door are skipped, and a door holds at most 256 blocks (`tools/DoorBlocks`). `create` and `add` fail if nothing would be added.
-  - `set <id> cost <points> | power <bool> | style <door|debris>`.
-  - `remove <id>` (the blocks stay in the world).
-  - `list`, which shows each door's zones.
+- **Commands** (`/hs zones ... door`), each acting on the Zone Wand selection where it takes blocks. The selection clears afterwards:
+  - `add door <id> [cost]` adds every non-air block in the selection to the door. If no door has that id, it makes one, at the given cost or `doors.default_cost`. If the door exists, the blocks join it and a cost given here is ignored, so doors that aren't one box are built by adding again. `/hs door create` is gone.
+  - `cut door <id>` takes the selection's blocks out of a door. A plain `/hs zones cut` cuts every door (and room) the selection touches.
+  - Blocks in another door are skipped, and a door holds at most 256 blocks (`tools/DoorBlocks`). `add` fails if nothing would be added.
+  - `set door <id> cost <points> | power <bool> | style <door|debris>`.
+  - `remove door <id>` (the blocks stay in the world).
+  - `merge`, which joins the doors the selection touches, or `merge <from> <into>` by name (see `zone-tools-and-outlines.md`).
+  - `/hs zones list` shows each door's rooms.
+  - `/hs undo` takes back any of these, including a door that `add` created.
 - **Edit mode.** Outside a game, breaking a door's block removes it from the door. Breaking the last block deletes the door.
-- **Locked zones.** A game unlocks zones reachable from a start zone through open passages only. `Game.unlocked()` replaces the fixed `GameMap.unlocked` for spawning and pathing.
-- **Doors inside zone boxes.** Zones whose boxes touch connect only where a mob can step across: `Passages` reads the cell on each side of the shared face and links the zones only when neither is solid, and only between cells in each zone's walkable space (`Passages.walkableSpace`: the largest connected group of the zone's non-solid cells). The walkable-space rule came from the Test map's barrel door, two blocks thick with air gaps in its near layer: the gaps belong to the far zone's box and touch the near zone, but the far layer seals them off, so they are pockets and no longer count. It applies to passages found through gaps outside every zone as well. A door's blocks may sit inside the boxes, and the zones stay apart until it opens. Before this, touching boxes always connected, so a zone drawn up to a door was unlocked from the start and spawned zombies that couldn't get out. Offline validation (`MapValidator.validate(map)`) reads every cell inside a zone as open and the rest as solid (`CellProbe.zonesOnly`).
+- **Locked rooms.** A game unlocks rooms reachable from a start room through open passages only. `Game.unlocked()` replaces the fixed `GameMap.unlocked` for spawning and pathing.
+- **Doors inside room boxes.** Rooms whose boxes touch connect only where a mob can step across: `Passages` reads the cell on each side of the shared face and links the rooms only when neither is solid, and only between cells in each room's walkable space (`Passages.walkableSpace`: the largest connected group of the room's non-solid cells). The walkable-space rule came from the Test map's barrel door, two blocks thick with air gaps in its near layer: the gaps belong to the far room's box and touch the near room, but the far layer seals them off, so they are pockets and no longer count. It applies to passages found through gaps outside every room as well. A door's blocks may sit inside the boxes, and the rooms stay apart until it opens. Before this, touching boxes always connected, so a room drawn up to a door was unlocked from the start and spawned zombies that couldn't get out. Offline validation (`MapValidator.validate(map)`) reads every cell inside a room as open and the rest as solid (`CellProbe.zonesOnly`).
 - **A shut door is a wall, whatever it's made of.** `Passages.find` reads every block of a door not yet bought as solid, and `Doors.open` passes the doors bought so far. Before, passages took door blocks as the world has them, and the world reads a wooden door (zombies open those), a cobweb or a carpet as open, so the room behind such a door was unlocked from the start and its markers spawned zombies. Validation sees doors shut too, so `door_not_needed` only warns about a real way around the door. JUnit `PassagesTest.aBoughtDoorOfPassableBlocksKeepsTheZonesApartUntilItIsOpen`; GameTest `aWoodenDoorKeepsTheRoomBeyondLockedAndItsMarkerQuietUntilBought` (6 spawns all from the start room's marker, then buying the door unlocks the room).
 - **Buying.** Right-click any block of a door, or press the use key on it (default O). Purchases go through `Shop` with the door's cost and power requirement, and an open door refuses.
 - **Opening** (`game/Doors.open`):
   1. Set every block to air without drops or neighbour updates. Debris plays block-break particles, and doors play a door sound. The doorway is passable from this tick, while the blocks are still seen floating away (step 5), the way Call of Duty opens a door as it moves.
   2. Find passages in the world again; the opening is now a doorway.
-  3. Unlock whatever became reachable through `Game.openDoor`, which emits `door_opened` with the door and the newly unlocked zones.
+  3. Unlock whatever became reachable through `Game.openDoor`, which emits `door_opened` with the door and the newly unlocked rooms.
   4. Rebuild zombie pathing over the bigger area with `GamePathing.reconnect`.
   5. The blocks float away (`game/DoorFlights`). Each non-air block gets a copy: a vanilla `block_display` entity tagged `hellstorm_door_flight`, standing where the block was and drawn exactly like it. Two ticks later (a client sent a display's start and end in the same tick draws only the end) each copy is given its end pose, a delay, and a 16-tick interpolation, and the client moves it by itself: it rises 1.5 blocks while shrinking about its own centre to nothing. That is one spawn and one data update per block, and nothing per frame. An Eye of Ender launch sound plays at the door's centre as they set off.
      - **Stagger.** The top layer goes first and each layer below follows one step later; along a layer the wave spreads from the door's middle out to its edges at half that speed (a block's step count is `layers below the top + horizontal distance from the middle / 2`). Top-first means a rising block never passes through one still waiting above it. A step is 3 ticks, shortened for big doors so the whole wave takes at most 24 ticks. A 1x2 doorway takes 24 ticks (1.2 seconds) from purchase to the last copy gone; the longest any door can take is 45 ticks (2 + 24 + 16, plus 3 ticks' grace for a client running behind).
@@ -109,11 +110,11 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 - **Snapshot and reset.** `GameManager.register` saves every door block's state and block entity data to world saved data (`hellstorm_door_snapshots`). `MapReset` puts them back and forgets them, so a crash mid-game is fixed by the next game's creation.
 - **Validation.**
   - ERROR for a door with no blocks.
-  - ERROR for a door bordering fewer than two zones.
-  - WARNING for a door whose zones are already connected without it.
-  - Zones reachable only through doors count as reachable.
+  - ERROR for a door bordering fewer than two rooms.
+  - WARNING for a door whose rooms are already connected without it.
+  - Rooms reachable only through doors count as reachable.
 - **Tests.**
-  - JUnit: zone inference and validation (`MapValidatorTest`), the codec (`ZombiesMapCodecTest`), and unlocking (`GameTest.openingADoorUnlocksTheZonesBeyondItOnce`).
-  - GameTests (`DoorGameTests`): buying a door removes its blocks, charges, unlocks the zone beyond, and extends pathing through the doorway; the reset bricks the doorway back up; a player who can't afford it gets nothing and pays nothing; a barrel door inside two touching zones keeps the far one locked until bought. Flights: a bought door leaves a copy of each block (showing the right block) that's gone after the longest flight; a wall-wide door is partway gone mid-wave and fully gone within the bound; ending the game mid-flight bricks the door up and leaves no copies, then and after; a tagged copy loaded from disk is refused, while fresh copies and other displays aren't.
+  - JUnit: room inference and validation (`MapValidatorTest`), the codec (`ZombiesMapCodecTest`), and unlocking (`GameTest.openingADoorUnlocksTheZonesBeyondItOnce`).
+  - GameTests (`DoorGameTests`): buying a door removes its blocks, charges, unlocks the room beyond, and extends pathing through the doorway; the reset bricks the doorway back up; a player who can't afford it gets nothing and pays nothing; a barrel door inside two touching rooms keeps the far one locked until bought. Flights: a bought door leaves a copy of each block (showing the right block) that's gone after the longest flight; a wall-wide door is partway gone mid-wave and fully gone within the bound; ending the game mid-flight bricks the door up and leaves no copies, then and after; a tagged copy loaded from disk is refused, while fresh copies and other displays aren't.
   - JUnit `DoorFlightsTest`: the stagger goes top first one step apart, spreads evenly from the middle of a layer, never starts a block before the one above it, and fits the biggest door (256 blocks) into 24 ticks.
-  - JUnit `PassagesTest`: touching zones connect over open cells and not over a door's blocks.
+  - JUnit `PassagesTest`: touching rooms connect over open cells and not over a door's blocks.

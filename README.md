@@ -1,6 +1,6 @@
 # Hellstorm
 
-Hellstorm is a Minecraft mod for round-based zombie survival, in the style of Call of Duty: Zombies. The guns come from [TacZ](https://modrinth.com/mod/timeless-and-classics-zero). Map makers build an arena by hand out of zones, doors, windows, wall-buys, a Mystery Crate, vending machines, the upgrader, traps and a power switch. Players then fight waves of zombies, earn points, buy their way through the map, and revive each other. Co-op works on dedicated servers, and any mob can be set up as a zombie, including mobs from other mods.
+Hellstorm is a Minecraft mod for round-based zombie survival, in the style of Call of Duty: Zombies. The guns come from [TacZ](https://modrinth.com/mod/timeless-and-classics-zero). Map makers build an arena by hand out of rooms, doors, windows, wall-buys, a Mystery Crate, vending machines, the upgrader, traps and a power switch. Players then fight waves of zombies, earn points, buy their way through the map, and revive each other. Co-op works on dedicated servers, and any mob can be set up as a zombie, including mobs from other mods.
 
 ## Requirements
 
@@ -12,16 +12,16 @@ Ponder, Flywheel, GeckoLib and LuaJ are bundled in the jar, so you don't install
 
 ## Quick start for map makers
 
-All `/hs` commands below need operator permission, except `join`, `leave`, `status`, and `start` for players already in a game.
+All `/hs` commands below need operator permission, except `/hs game join`, `leave` and `status`, and `/hs game start` for players already in a game.
 
 1. Create a world with the **Zombies Builder** world type, a void world, or use any world. Get the tools from the **Hellstorm Map Tools** creative tab.
-2. Mark the rooms. Hold the Zone Wand and right-click two corners (sneak-right-click clears the selection), then run `/hs zone add <zone>`. The corners are the blocks you look at. `/hs zone cut <zone>` takes the selection back out. Or stand inside a closed room and run `/hs zone detect <zone>`, check the preview, then run `/hs zone confirm`. Make at least one zone a start zone with `/hs zone start <zone> true`.
-3. Place Zombie Spawn Markers inside the zones.
-4. Add doors and windows. Select the door's blocks with the Zone Wand and run `/hs door create <id> [cost]`. Fill a hole in a zone's wall with any blocks, select them, and run `/hs window add <id> [boards]`.
+2. Mark the rooms. Hold the Zone Wand and right-click two corners (sneak-right-click clears the selection), then run `/hs zones add room <room>`. The corners are the blocks you look at. `/hs zones cut` takes the selection back out of every room and door it touches. Or stand inside a closed room and run `/hs zones detect <room>`, check the preview, then run `/hs zones confirm`. Make at least one room a start room, with `/hs zones add room <room> true` when you create it or `/hs zones set room <room> start true` later. `/hs undo` and `/hs redo` step back and forward through your `/hs zones` edits.
+3. Place Zombie Spawn Markers inside the rooms.
+4. Add doors and windows. Select the door's blocks with the Zone Wand and run `/hs zones add door <id> [cost]`. Run it again with the same id to add more blocks to that door. Fill a hole in a room's wall with any blocks, select them, and run `/hs zones add window <id> [boards]`.
 5. Place the machines from the creative tab: wall-buys, the Mystery Crate, vending machines, the upgrader, trap controllers and the power switch. In creative mode, use a machine outside a game to open its settings screen. Commands also configure the machine you are looking at, for example `/hs wallbuy set <cost> held`, `/hs wallbuy set <cost> gun <gunId>` or `/hs upgrader cost <points>`. To hide a trap controller in a wall, use it in creative with a full block in hand; sneak and use it with an empty hand to undo.
-6. Run `/hs map validate` and fix what it reports. `/hs map paths` shows how zombies cross between zones.
+6. Run `/hs map validate` and fix what it reports. `/hs map paths` shows how zombies cross between rooms.
 7. Run `/hs map mode play`. Edit mode blocks games. Spawn markers show between games and hide while one runs.
-8. Each player runs `/hs join`. Then anyone in the game runs `/hs start`. `/hs status` shows the scores, `/hs leave` leaves the game and gives back your inventory, and `/hs stop` ends the game.
+8. Each player runs `/hs game join`. Then anyone in the game runs `/hs game start`. `/hs game status` shows the scores, `/hs game leave` leaves the game and gives back your inventory, and `/hs game stop` ends the game.
 
 To share a map, run `/hs map export <name>`. This writes a map pack to `hellstorm/maps/` in the game folder. Another world loads it with `/hs map import <name> [<pos>]`.
 
