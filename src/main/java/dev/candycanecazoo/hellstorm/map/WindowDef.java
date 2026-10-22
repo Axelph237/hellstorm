@@ -53,6 +53,14 @@ public record WindowDef(String id, BlockBox opening, Direction outward, int maxB
         return bottomCenter().relative(outward);
     }
 
+    /**
+     * The zone the window opens into now: the one holding {@link #insideSpot}. {@code zone} records where it opened when
+     * it was made, and goes stale when the zones behind it are redrawn.
+     */
+    public java.util.Optional<ZoneId> zoneBehind(ZoneIndex index) {
+        return index.zoneAt(insideSpot());
+    }
+
     /** Where a zombie ends up after climbing through: just inside the bottom-middle of the opening. */
     public BlockPos insideSpot() {
         return bottomCenter().relative(outward.getOpposite());

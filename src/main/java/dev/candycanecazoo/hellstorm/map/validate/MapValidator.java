@@ -79,15 +79,16 @@ public final class MapValidator {
     }
 
     private static void checkWindows(ZombiesMap map, Map<BlockPos, SpawnLinks.Link> links, ValidationContext context, List<Problem> problems) {
+        ZoneIndex index = ZoneIndex.of(map);
         for (WindowDef window : map.windows().values()) {
             BlockPos at = window.bottomCenter();
             if (window.width() > context.windows().maxWidth() || window.height() > context.windows().maxHeight()) {
                 problems.add(Problem.error(WINDOW_TOO_LARGE, "Window '" + window.id() + "' is " + window.width() + "x" + window.height()
                         + ", over the " + context.windows().maxWidth() + "x" + context.windows().maxHeight() + " limit", at));
             }
-            if (!map.zones().containsKey(window.zone())) {
-                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, "Window '" + window.id() + "' opens into zone '" + window.zone()
-                        + "', which doesn't exist", at));
+            if (window.zoneBehind(index).isEmpty()) {
+                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, "Window '" + window.id() + "' doesn't open into a zone. The block just inside it, at "
+                        + window.insideSpot().toShortString() + ", is in no zone. Redraw the zone behind it or remove the window", at));
             }
             if (links.values().stream().noneMatch(l -> l.window().equals(Optional.of(window.id())))) {
                 problems.add(Problem.warning(WINDOW_WITHOUT_SPAWN, "No spawn marker outside window '" + window.id()

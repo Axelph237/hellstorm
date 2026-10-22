@@ -96,15 +96,17 @@ class MapValidatorTest {
         ZombiesMap map = twoTouchingZonesWithSpawns()
                 .withWindow(new WindowDef("huge", new BlockBox(2, 0, -1, 9, 1, -1), Direction.NORTH, 6, START))
                 .withWindow(new WindowDef("lost", new BlockBox(12, 0, -1, 12, 1, -1), Direction.NORTH, 6, new ZoneId("nowhere")))
-                .withFeature(new BlockPos(12, 0, -3), FeatureKind.SPAWN);
+                .withFeature(new BlockPos(12, 0, -3), FeatureKind.SPAWN)
+                .withWindow(new WindowDef("orphan", new BlockBox(25, 0, -1, 25, 1, -1), Direction.NORTH, 6, NEXT));
         ValidationReport report = MapValidator.validate(map, new dev.candycanecazoo.hellstorm.map.validate.ValidationContext(
                 CellProbe.zonesOnly(ZoneIndex.of(map)), pos -> false, 2, new dev.candycanecazoo.hellstorm.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
                 List.of(new dev.candycanecazoo.hellstorm.map.validate.ValidationContext.MobSize("test:giant", 3.6f, 12f))));
         assertTrue(report.has(MapValidator.WINDOW_TOO_LARGE), "8 wide is over 5");
-        assertTrue(report.has(MapValidator.WINDOW_UNKNOWN_ZONE));
+        assertEquals(List.of("orphan"), report.problems().stream().filter(p -> p.code().equals(MapValidator.WINDOW_UNKNOWN_ZONE))
+                .map(p -> p.message().split("'")[1]).toList(), "only a window with no zone right behind it opens into no zone");
         assertTrue(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'huge'")));
         assertFalse(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'lost'")),
-                "the marker in front of 'lost' links to it");
+                "the marker in front of 'lost' links to it and feeds the zone behind it, whatever zone the window was made in");
         assertTrue(report.has(MapValidator.MOB_TOO_BIG_FOR_WINDOW));
     }
 

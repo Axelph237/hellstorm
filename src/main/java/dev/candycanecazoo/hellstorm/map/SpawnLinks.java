@@ -10,7 +10,8 @@ import java.util.Optional;
 
 /**
  * Which zone each spawn marker feeds. A marker inside a zone spawns zombies straight into it. A marker outside every zone
- * links to the nearest window it stands in front of, within range, and its zombies break in through that window.
+ * links to the nearest window it stands in front of, within range, and its zombies break in through that window into the
+ * zone behind it.
  */
 public final class SpawnLinks {
     public record Link(ZoneId zone, Optional<String> window) {}
@@ -26,7 +27,8 @@ public final class SpawnLinks {
                 links.put(marker, new Link(zone.get(), Optional.empty()));
                 continue;
             }
-            nearestWindowFacing(map, marker, linkRange).ifPresent(w -> links.put(marker, new Link(w.zone(), Optional.of(w.id()))));
+            nearestWindowFacing(map, marker, linkRange).ifPresent(w ->
+                    w.zoneBehind(index).ifPresent(behind -> links.put(marker, new Link(behind, Optional.of(w.id())))));
         }
         return links;
     }
