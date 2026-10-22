@@ -2,7 +2,7 @@ Hellstorm third-party notices
 =============================
 
 Hellstorm's own code and assets are licensed under the BSD Zero Clause
-License (see LICENSE). This file lists the parts of the released jar and of
+License (see LICENSE), except the Minecraft textures and Pixabay sounds below. This file lists the parts of the released jar and of
 the source repository that belong to others, and the terms they come under.
 A copy of this file is in the jar at META-INF/THIRD_PARTY_NOTICES.
 
@@ -55,8 +55,23 @@ copy, Forge loads only one.
   textures from its own files.
 
 
-3. Not bundled
---------------
+3. Sounds from Pixabay
+----------------------
+
+  assets/hellstorm/sounds/cha_ching.ogg
+  assets/hellstorm/sounds/vending_machine/button.ogg
+  assets/hellstorm/sounds/vending_machine/idle.ogg
+  assets/hellstorm/sounds/vending_machine/shake.ogg
+
+    Cut, made mono, and re-encoded from free recordings on Pixabay. They are
+    excluded from Hellstorm's license (see LICENSE) and are used under the
+    Pixabay Content License (https://pixabay.com/service/license-summary/).
+    That license allows using and modifying them without credit, but not
+    selling or distributing them on their own.
+
+
+4. Not bundled
+---------------
 
   TacZ (Timeless and Classics Zero) is a separate, required mod. Its code is
   GPL-3.0 and its assets are CC BY-NC-ND 4.0. Hellstorm contains none of its

@@ -1,5 +1,5 @@
-Hellstorm is licensed under the BSD Zero Clause License below, with one
-exception: content from Minecraft.
+Hellstorm is licensed under the BSD Zero Clause License below, with two
+exceptions: content from Minecraft, and sounds from Pixabay.
 
 Minecraft content is not covered by this license and is not relicensed by it.
 It is Mojang's property, used under Mojang's terms (the Minecraft EULA,
@@ -14,6 +14,16 @@ excluded from the license below as whole files:
 THIRD_PARTY_NOTICES says what in each comes from Minecraft. Models that only
 name a minecraft: texture contain no Minecraft content; the game loads that
 texture from its own files.
+
+These sounds are cut from recordings on Pixabay and are excluded from the
+license below as whole files. They are used under the Pixabay Content License
+(https://pixabay.com/service/license-summary/), which does not allow
+distributing them on their own:
+
+  src/main/resources/assets/hellstorm/sounds/cha_ching.ogg
+  src/main/resources/assets/hellstorm/sounds/vending_machine/button.ogg
+  src/main/resources/assets/hellstorm/sounds/vending_machine/idle.ogg
+  src/main/resources/assets/hellstorm/sounds/vending_machine/shake.ogg
 
 NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG
 OR MICROSOFT.
