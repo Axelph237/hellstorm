@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * A dropped power-up, floating where its zombie died. Any player of the level's game who touches it collects it (found
+ * A dropped power-up, floating at eye level over where its zombie died. Any player of the level's game who touches it collects it (found
  * through the game, not the level's entity list). It
  * blinks for its last {@code blink} ticks and is gone after its lifetime, or as soon as the level has no game.
  */
@@ -30,6 +30,8 @@ public final class PowerUpEntity extends Entity {
     private static final EntityDataAccessor<Integer> TICKS_LEFT = SynchedEntityData.defineId(PowerUpEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> BLINK_TICKS = SynchedEntityData.defineId(PowerUpEntity.class, EntityDataSerializers.INT);
     private static final double REACH = 0.4;
+    /** How far above the entity its renderer draws the item, before the bob. */
+    public static final double ITEM_LIFT = 0.15;
     private static final String POWER_UP = "power_up";
 
     private ResourceLocation powerUp = PowerUpDef.DEFAULT_ITEM;

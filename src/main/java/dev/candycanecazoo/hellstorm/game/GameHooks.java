@@ -79,6 +79,15 @@ public final class GameHooks {
         }
     }
 
+    /** A player in a game is knocked back {@code 1 - players.knockback_reduction} as far as usual. */
+    @SubscribeEvent
+    public static void onKnockback(net.minecraftforge.event.entity.living.LivingKnockBackEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            GameManager.forPlayer(player.getUUID()).ifPresent(active ->
+                    event.setStrength((float) (event.getStrength() * (1 - active.game().settings().players().knockbackReduction()))));
+        }
+    }
+
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
         GameManager.endAll();

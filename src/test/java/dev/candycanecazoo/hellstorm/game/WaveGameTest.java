@@ -37,7 +37,7 @@ class WaveGameTest {
         GameSettings d = GameSettings.DEFAULT;
         GameSettings settings = new GameSettings(new GameSettings.Rounds(16, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 2, 1.0, 150, 2, 2),
                 new GameSettings.Spawning(1, 24.0, 0.0), d.economy(), d.players(), d.windows(), d.doors(), d.box(), d.pap(), d.downs(),
-                new GameSettings.PowerUps(0.0, 4, 600, 100, 400, 200, Integer.MAX_VALUE, 1.0), d.traps(), d.waveEvents());
+                new GameSettings.PowerUps(0.0, 4, 600, 100, 400, 200, Integer.MAX_VALUE, 1.0, 0), d.traps(), d.waveEvents());
         WaveEventDef hounds = new WaveEventDef(new WaveTrigger.Rounds(List.of(2)), List.of(
                 new WaveEffect.MobOverride(List.of(HOUND)), new WaveEffect.Count(0.5), new WaveEffect.Fog(0.6f),
                 new WaveEffect.LastKillDrop(MAX_AMMO)), Optional.of("wave.test.hounds"));

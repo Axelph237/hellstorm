@@ -249,7 +249,10 @@ public final class PowerUpGameTests {
         });
     }
 
-    /** A drop puts a pickup in the world; walking into it collects it once and removes it. */
+    /**
+     * A drop puts a pickup in the world, its item floating at eye level over the floor (also when the zombie died mid-jump);
+     * a player standing under it collects it once and it's removed.
+     */
     @GameTest(template = "floor", batch = "powerup_pickup")
     public static void walkingIntoAPickupCollectsItOnce(GameTestHelper helper) {
         ServerPlayer player = player(helper, "pap_powerup_pickup");
@@ -258,14 +261,25 @@ public final class PowerUpGameTests {
         active.game().events().subscribe(events::add);
         BlockPos at = helper.absolutePos(new BlockPos(6, ROOM_Y, 6));
         PowerUps.drop(helper.getLevel(), active.game().settings().powerUps(), id("double_points"), Vec3.atBottomCenterOf(at));
+        BlockPos jumpedAt = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
+        PowerUps.drop(helper.getLevel(), active.game().settings().powerUps(), id("double_points"), Vec3.atBottomCenterOf(jumpedAt).add(0, 0.9, 0));
         AABB area = new AABB(at).inflate(3);
+        double itemAt = at.getY() + 1.5;
         helper.runAfterDelay(2, () -> {
             List<PowerUpEntity> pickups = helper.getLevel().getEntities(PowerUpRegistries.POWER_UP.get(), area, e -> true);
-            if (pickups.size() != 1) {
+            List<PowerUpEntity> jumped = helper.getLevel().getEntities(PowerUpRegistries.POWER_UP.get(), new AABB(jumpedAt).inflate(1.5), e -> true);
+            if (pickups.size() != 1 || jumped.size() != 1) {
                 GameManager.end(active);
-                helper.fail("expected one pickup, found " + pickups.size());
+                helper.fail("expected one pickup at each drop, found " + pickups.size() + " and " + jumped.size());
             }
-            player.moveTo(pickups.get(0).position());
+            double drawn = pickups.get(0).getY() + PowerUpEntity.ITEM_LIFT;
+            double drawnJumped = jumped.get(0).getY() + PowerUpEntity.ITEM_LIFT;
+            jumped.get(0).discard();
+            if (Math.abs(drawn - itemAt) > 1e-6 || Math.abs(drawnJumped - itemAt) > 1e-6) {
+                GameManager.end(active);
+                helper.fail("the items should float 1.5 over the floor, at " + itemAt + ", not " + drawn + " and (died mid-jump) " + drawnJumped);
+            }
+            player.moveTo(pickups.get(0).getX(), at.getY(), pickups.get(0).getZ());
         });
         helper.runAfterDelay(6, () -> {
             boolean gone = helper.getLevel().getEntities(PowerUpRegistries.POWER_UP.get(), area, e -> true).isEmpty();

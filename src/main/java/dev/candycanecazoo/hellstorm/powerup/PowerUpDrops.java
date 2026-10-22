@@ -6,6 +6,7 @@ import net.minecraft.util.RandomSource;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** Whether a zombie kill drops a power-up, and which one. Pure, so the cap and the odds are testable. */
 public final class PowerUpDrops {
@@ -17,6 +18,11 @@ public final class PowerUpDrops {
 
         public Table {
             entries = List.copyOf(entries);
+        }
+
+        /** The table without {@code excluded}, such as power-ups still cooling down since their last pickup. */
+        public Table without(Set<ResourceLocation> excluded) {
+            return excluded.isEmpty() ? this : new Table(entries.stream().filter(e -> !excluded.contains(e.powerUp())).toList());
         }
 
         /** A weighted pick. Empty when nothing has weight. */

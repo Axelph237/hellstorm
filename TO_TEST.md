@@ -7,6 +7,12 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 - [ ] **Selections clear once used.** After `/hs zones add`, `/hs zones cut`, or `/hs zones merge` with a selection, the selection outline is gone. `/hs map export` leaves it.
 - [ ] **Windows with 0 to 6 boards.** `/hs zones add window <name> 0` makes an open hole: zombies climb straight in and there's nothing to repair. Other counts start that many boards.
 
+## Power-ups and players
+
+- [ ] **Power-ups at eye level.** A dropped power-up floats in the second block above the floor, about eye height, and walking under it picks it up. One from a zombie killed mid-jump floats at the same height.
+- [ ] **Pickup cooldown.** After picking up a power-up, it doesn't drop again for the next 25 zombie deaths (others still can).
+- [ ] **Knockback.** In a game, a zombie's hit barely pushes you (15% of normal). Outside a game, knockback is normal.
+
 ## Machines
 
 - [ ] **Vending machine hum.** A lit machine's idle hum is about a quarter as loud as before, and still fades with the light.

@@ -11,6 +11,8 @@ import dev.candycanecazoo.hellstorm.game.WindowOps;
 import dev.candycanecazoo.hellstorm.map.WindowDef;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -21,6 +23,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -35,10 +38,29 @@ import java.util.UUID;
 public final class PowerUps {
     private PowerUps() {}
 
-    /** Puts a dropped power-up in the game's level, slightly above where the zombie died. */
+    /** How high over the floor a power-up's item floats: in the second block up, at a standing player's eye level. */
+    static final double FLOAT_HEIGHT = 1.5;
+    /** How far below where the zombie died to look for the floor, for one killed mid-jump or falling. */
+    private static final int FLOOR_SEARCH = 4;
+
+    /** Puts a dropped power-up in the game's level, floating at eye level over the floor where the zombie died. */
     public static void drop(ServerLevel level, GameSettings.PowerUps settings, ResourceLocation powerUp, Vec3 at) {
+        Vec3 pos = new Vec3(at.x, floor(level, at) + FLOAT_HEIGHT - PowerUpEntity.ITEM_LIFT, at.z);
         PowerUpDefs.get(powerUp).ifPresent(def -> level.addFreshEntity(
-                PowerUpEntity.create(level, powerUp, def, at.add(0, 0.5, 0), settings.lifetimeTicks(), settings.blinkTicks())));
+                PowerUpEntity.create(level, powerUp, def, pos, settings.lifetimeTicks(), settings.blinkTicks())));
+    }
+
+    /** The top of the first thing to stand on at or below {@code at}, or {@code at}'s own height if there's nothing close. */
+    static double floor(ServerLevel level, Vec3 at) {
+        BlockPos start = BlockPos.containing(at);
+        for (int down = 0; down <= FLOOR_SEARCH; down++) {
+            BlockPos pos = start.below(down);
+            VoxelShape shape = level.getBlockState(pos).getCollisionShape(level, pos);
+            if (!shape.isEmpty() && pos.getY() + shape.max(Direction.Axis.Y) <= at.y + 0.5) {
+                return pos.getY() + shape.max(Direction.Axis.Y);
+            }
+        }
+        return at.y;
     }
 
     /** {@code player} touched the power-up. Returns true if it was collected, so the pickup should go. */

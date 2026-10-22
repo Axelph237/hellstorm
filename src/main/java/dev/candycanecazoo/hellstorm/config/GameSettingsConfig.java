@@ -21,6 +21,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.DoubleValue spawnDelayFactor;
     private final ForgeConfigSpec.IntValue dropIncrement;
     private final ForgeConfigSpec.DoubleValue dropIncrementGrowth;
+    private final ForgeConfigSpec.IntValue pickupCooldownKills;
     private final ForgeConfigSpec.IntValue intermissionMs;
     private final ForgeConfigSpec.IntValue countdownTicks;
     private final ForgeConfigSpec.IntValue gameOverTicks;
@@ -47,6 +48,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue perkLimit;
     private final ForgeConfigSpec.IntValue maxPlayers;
     private final ForgeConfigSpec.IntValue reconnectGraceTicks;
+    private final ForgeConfigSpec.DoubleValue knockbackReduction;
     private final ForgeConfigSpec.IntValue doorDefaultCost;
     private final ForgeConfigSpec.IntValue boxCost;
     private final ForgeConfigSpec.IntValue boxFireSaleCost;
@@ -143,6 +145,8 @@ public final class GameSettingsConfig {
         maxPlayers = b.comment("Most players in one game.").defineInRange("max_players", d.players().maxPlayers(), 1, 64);
         reconnectGraceTicks = b.comment("A player who disconnects mid-game keeps their place, points, and perks this long (20 ticks = 1 second).")
                 .defineInRange("reconnect_grace_ticks", d.players().reconnectGraceTicks(), 0, 72_000);
+        knockbackReduction = b.comment("How much knockback a player in a game is spared: 0 keeps all of it, 1 none (0.85 leaves 15%).")
+                .defineInRange("knockback_reduction", d.players().knockbackReduction(), 0.0, 1.0);
         b.pop();
         b.push("doors");
         doorDefaultCost = b.comment("What a new door costs until set otherwise.").defineInRange("default_cost", d.doors().defaultCost(), 0, 1_000_000);
@@ -184,6 +188,8 @@ public final class GameSettingsConfig {
                 .defineInRange("drop_increment", d.powerUps().dropIncrement(), 1, Integer.MAX_VALUE);
         dropIncrementGrowth = b.comment("Each points-triggered drop makes the next threshold this much bigger (CoD: 1.14).")
                 .defineInRange("drop_increment_growth", d.powerUps().dropIncrementGrowth(), 1.0, 10.0);
+        pickupCooldownKills = b.comment("Once a power-up is picked up, it can't drop again until this many more zombies have died.")
+                .defineInRange("pickup_cooldown_kills", d.powerUps().pickupCooldownKills(), 0, 10_000);
         b.pop();
         b.push("traps");
         trapDefaultCost = b.defineInRange("default_cost", d.traps().defaultCost(), 0, 1_000_000);
@@ -230,7 +236,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
                         r.read(repair), r.read(repairCapPerRound)),
                 new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines),
-                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks)),
+                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks), r.read(knockbackReduction)),
                 new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),
                 new GameSettings.Doors(r.read(doorDefaultCost)),
                 new GameSettings.Box(r.read(boxCost), r.read(boxFireSaleCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),
@@ -240,7 +246,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Downs(r.read(bleedOutTicks), r.read(reviveTicks), r.read(reviveRange), r.read(soloSelfRevives),
                         r.read(regenDelayTicks), r.read(regenPerSecond)),
                 new GameSettings.PowerUps(r.read(dropChance), r.read(maxPowerUpsPerRound), r.read(powerUpLifetimeTicks), r.read(powerUpBlinkTicks),
-                        r.read(nukeBonus), r.read(carpenterBonus), r.read(dropIncrement), r.read(dropIncrementGrowth)),
+                        r.read(nukeBonus), r.read(carpenterBonus), r.read(dropIncrement), r.read(dropIncrementGrowth), r.read(pickupCooldownKills)),
                 new GameSettings.Traps(r.read(trapDefaultCost), r.read(trapDefaultActiveTicks), r.read(trapDefaultCooldownTicks)),
                 new GameSettings.WaveEvents(r.read(waveEventsEnabled), ids(r.read(waveEventsDisabled))));
     }

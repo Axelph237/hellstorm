@@ -12,6 +12,7 @@ import net.minecraft.util.RandomSource;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -67,6 +68,8 @@ public final class Game {
     private long nextDropAt;
     private double dropIncrement;
     private final List<Drop> pendingDrops = new ArrayList<>();
+    /** Power-ups picked up lately, and how many more zombie deaths until each can drop again. */
+    private final Map<ResourceLocation, Integer> pickupCooldowns = new HashMap<>();
     private final WaveSchedule waves;
     /** The current round's wave event, if it is a special round. */
     private Optional<RoundRules> rules = Optional.empty();
@@ -587,7 +590,8 @@ public final class Game {
         // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
         if (player.isPresent()) {
             boolean pointsDue = earned >= nextDropAt;
-            PowerUpDrops.roll(settings.powerUps(), dropsThisRound, pointsDue, content.powerUps(), random).ifPresent(powerUp -> {
+            PowerUpDrops.Table eligible = content.powerUps().without(pickupCooldowns.keySet());
+            PowerUpDrops.roll(settings.powerUps(), dropsThisRound, pointsDue, eligible, random).ifPresent(powerUp -> {
                 dropsThisRound++;
                 if (pointsDue) {
                     // As CoD does: grow the increment, then measure the next threshold from here with it.
@@ -597,6 +601,9 @@ public final class Game {
                 pendingDrops.add(new Drop(powerUp, pos));
             });
         }
+        // Every zombie death counts down the cooldowns, after this one's roll: a cooldown of N keeps the next N deaths from dropping it.
+        pickupCooldowns.replaceAll((powerUp, left) -> left - 1);
+        pickupCooldowns.values().removeIf(left -> left <= 0);
     }
 
     private boolean doublePoints() {
@@ -623,6 +630,9 @@ public final class Game {
             return false;
         }
         events.emit(new GameEvent.PowerUpCollected(powerUp, collector));
+        if (settings.powerUps().pickupCooldownKills() > 0) {
+            pickupCooldowns.put(powerUp, settings.powerUps().pickupCooldownKills());
+        }
         return true;
     }
 

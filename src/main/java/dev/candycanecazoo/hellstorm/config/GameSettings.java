@@ -76,9 +76,13 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
         ).apply(i, Windows::new));
     }
 
-    /** {@code weaponSlots}: TacZ guns a player can carry before buying one replaces the held gun (Off-Hand adds one). */
+    /**
+     * {@code weaponSlots}: TacZ guns a player can carry before buying one replaces the held gun (Off-Hand adds one).
+     * {@code knockbackReduction}: how much of the knockback a player in a game takes away, 0 (all of it kept) to 1 (none).
+     */
     public record Players(List<ResourceLocation> startingGuns, List<ResourceLocation> startingItems, int reserveMagazines,
-                          boolean startingGunsUnlimitedAmmo, int weaponSlots, int perkLimit, int maxPlayers, int reconnectGraceTicks) {
+                          boolean startingGunsUnlimitedAmmo, int weaponSlots, int perkLimit, int maxPlayers, int reconnectGraceTicks,
+                          double knockbackReduction) {
         public static final Codec<Players> CODEC = RecordCodecBuilder.create(i -> i.group(
                 ResourceLocation.CODEC.listOf().fieldOf("starting_guns").forGetter(Players::startingGuns),
                 ResourceLocation.CODEC.listOf().fieldOf("starting_items").forGetter(Players::startingItems),
@@ -87,7 +91,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
                 Codec.INT.fieldOf("weapon_slots").forGetter(Players::weaponSlots),
                 Codec.INT.fieldOf("perk_limit").forGetter(Players::perkLimit),
                 Codec.INT.fieldOf("max_players").forGetter(Players::maxPlayers),
-                Codec.INT.fieldOf("reconnect_grace_ticks").forGetter(Players::reconnectGraceTicks)
+                Codec.INT.fieldOf("reconnect_grace_ticks").forGetter(Players::reconnectGraceTicks),
+                Codec.doubleRange(0, 1).fieldOf("knockback_reduction").forGetter(Players::knockbackReduction)
         ).apply(i, Players::new));
 
         public Players {
@@ -149,10 +154,11 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     /**
      * {@code dropIncrement} and {@code dropIncrementGrowth}: CoD's points-triggered drops. Once the team has earned that
      * many points since the last such drop, the next kill drops a power-up, and the next threshold is that much further
-     * on, times the growth.
+     * on, times the growth. {@code pickupCooldownKills}: once a power-up is picked up, it can't drop again until this many
+     * more zombies have died.
      */
     public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int nukeBonus, int carpenterBonus,
-                           int dropIncrement, double dropIncrementGrowth) {
+                           int dropIncrement, double dropIncrementGrowth, int pickupCooldownKills) {
         public static final Codec<PowerUps> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.fieldOf("drop_chance").forGetter(PowerUps::dropChance),
                 Codec.INT.fieldOf("max_per_round").forGetter(PowerUps::maxPerRound),
@@ -161,7 +167,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
                 Codec.INT.fieldOf("nuke_bonus").forGetter(PowerUps::nukeBonus),
                 Codec.INT.fieldOf("carpenter_bonus").forGetter(PowerUps::carpenterBonus),
                 Codec.INT.fieldOf("drop_increment").forGetter(PowerUps::dropIncrement),
-                Codec.DOUBLE.fieldOf("drop_increment_growth").forGetter(PowerUps::dropIncrementGrowth)
+                Codec.DOUBLE.fieldOf("drop_increment_growth").forGetter(PowerUps::dropIncrementGrowth),
+                Codec.INT.fieldOf("pickup_cooldown_kills").forGetter(PowerUps::pickupCooldownKills)
         ).apply(i, PowerUps::new));
     }
 
@@ -205,13 +212,13 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 3000, 100, 200),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
-            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, true, 2, 4, 4, 1200),
+            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, true, 2, 4, 4, 1200, 0.85),
             new Windows(5, 4, 30, 15, 6.0),
             new Doors(750),
             new Box(950, 10, 80, 240, 4, 0.15),
             new Pap(5000, 60, 240, 1, 2.0, 1.5, 1.2),
             new Downs(600, 60, 2.5, 3, 80, 4.0),
-            new PowerUps(0.02, 4, 600, 100, 400, 200, 2000, 1.14),
+            new PowerUps(0.02, 4, 600, 100, 400, 200, 2000, 1.14, 25),
             new Traps(1000, 200, 600),
             new WaveEvents(true, List.of()));
 }

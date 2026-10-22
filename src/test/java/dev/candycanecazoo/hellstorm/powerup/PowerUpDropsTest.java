@@ -19,7 +19,7 @@ class PowerUpDropsTest {
     private static final PowerUpDrops.Table TABLE = new PowerUpDrops.Table(List.of(new PowerUpDrops.Entry(NUKE, 1), new PowerUpDrops.Entry(MAX_AMMO, 3)));
 
     private static GameSettings.PowerUps chance(double chance, int cap) {
-        return new GameSettings.PowerUps(chance, cap, 600, 100, 400, 200, Integer.MAX_VALUE, 1.0);
+        return new GameSettings.PowerUps(chance, cap, 600, 100, 400, 200, Integer.MAX_VALUE, 1.0, 0);
     }
 
     @Test

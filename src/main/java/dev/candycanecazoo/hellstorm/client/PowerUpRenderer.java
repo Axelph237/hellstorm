@@ -36,7 +36,7 @@ public final class PowerUpRenderer extends EntityRenderer<PowerUpEntity> {
         if (!entity.blinkedOut()) {
             float time = entity.tickCount + partialTick;
             pose.pushPose();
-            pose.translate(0, 0.15 + Math.sin(time / 8.0) * 0.08, 0);
+            pose.translate(0, PowerUpEntity.ITEM_LIFT + Math.sin(time / 8.0) * 0.08, 0);
             pose.mulPose(Axis.YP.rotationDegrees(time * 4));
             pose.scale(SCALE, SCALE, SCALE);
             items.renderStatic(entity.item(), ItemDisplayContext.GROUND, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, pose, buffers,
