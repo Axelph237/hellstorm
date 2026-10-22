@@ -40,7 +40,19 @@ public final class Passages {
 
     private Passages() {}
 
-    public static Result find(ZombiesMap map, ZoneIndex index, CellProbe probe, int maxGap) {
+    /** Passages with every door players buy still shut, as before a game and while editing. */
+    public static Result find(ZombiesMap map, ZoneIndex index, CellProbe world, int maxGap) {
+        return find(map, index, world, maxGap, Set.of());
+    }
+
+    /**
+     * Passages with only the doors in {@code openDoors} bought. A shut door's blocks are a wall whatever they're made of:
+     * the world reads a wooden door, a cobweb or a carpet as open, but nothing gets through until the door is bought.
+     */
+    public static Result find(ZombiesMap map, ZoneIndex index, CellProbe world, int maxGap, Set<String> openDoors) {
+        Set<BlockPos> shut = new HashSet<>();
+        map.doors().values().stream().filter(d -> !openDoors.contains(d.id())).forEach(d -> shut.addAll(d.members()));
+        CellProbe probe = pos -> shut.contains(pos) ? CellProbe.Cell.SOLID : world.at(pos);
         Set<Link> open = new HashSet<>();
         Map<Link, BlockPos> closedDoors = new LinkedHashMap<>();
         Map<ZoneId, Set<BlockPos>> spaces = new HashMap<>();

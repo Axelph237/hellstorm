@@ -98,6 +98,19 @@ class PassagesTest {
     }
 
     /**
+     * A door players buy made of blocks a mob walks through, such as a wooden door, which the world reads as open. It is
+     * still shut until bought, so the zones stay apart; once bought its blocks are air and the doorway connects them.
+     */
+    @Test
+    void aBoughtDoorOfPassableBlocksKeepsTheZonesApartUntilItIsOpen() {
+        ZombiesMap map = rooms(1).withDoor(DoorDef.empty("oak", 750).withMember(new BlockPos(3, 0, 1)).withMember(new BlockPos(3, 1, 1)));
+        CellProbe world = openings(map, Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(3, 1, 1), CellProbe.Cell.OPEN));
+        assertEquals(Set.of(), find(map, world, 2).open(), "a closed door is no passage, whatever it's made of");
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), Passages.find(map, ZoneIndex.of(map), world, 2, Set.of("oak")).open());
+        assertFalse(MapValidator.validate(map, world, 2).has(MapValidator.DOOR_NOT_NEEDED), "the door is the only way through");
+    }
+
+    /**
      * The Test map's barrel door: two blocks thick inside the east zone's box (x 3 and 4), with an air gap in the near layer.
      * The gap touches the west zone but is sealed off from the rest of the east zone, so it mustn't connect them.
      */

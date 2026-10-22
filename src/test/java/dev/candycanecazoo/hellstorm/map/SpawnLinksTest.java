@@ -44,6 +44,27 @@ class SpawnLinksTest {
         assertFalse(links.containsKey(besideTheRoom), "not on the window's outer side");
     }
 
+    /**
+     * The window was added while one zone covered the whole room, and the back of the room was later redrawn as a zone of
+     * its own. The window opens into the back zone now, so its markers feed that zone, not the one it was made in.
+     */
+    @Test
+    void aWindowFeedsTheZoneBehindItNotTheOneItWasMadeIn() {
+        ZoneId back = new ZoneId("back");
+        BlockPos outside = new BlockPos(4, 0, -4);
+        ZombiesMap redrawn = map(outside)
+                .withZone(new Zone(ROOM, List.of(new BlockBox(0, 0, 5, 9, 3, 9)), true))
+                .withZone(new Zone(back, List.of(new BlockBox(0, 0, 0, 9, 3, 4)), false));
+        assertEquals(new SpawnLinks.Link(back, Optional.of("north")), SpawnLinks.resolve(redrawn, 6).get(outside));
+    }
+
+    @Test
+    void aWindowWithNoZoneBehindItFeedsNothing() {
+        BlockPos outside = new BlockPos(4, 0, -4);
+        ZombiesMap moved = map(outside).withZone(new Zone(ROOM, List.of(new BlockBox(0, 0, 5, 9, 3, 9)), true));
+        assertFalse(SpawnLinks.resolve(moved, 6).containsKey(outside));
+    }
+
     @Test
     void theNearestFacingWindowWins() {
         WindowDef farther = new WindowDef("farther", new BlockBox(8, 0, -1, 8, 1, -1), Direction.NORTH, 6, ROOM);
