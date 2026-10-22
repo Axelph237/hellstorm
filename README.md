@@ -35,7 +35,7 @@ You need JDK 17.
 ./gradlew build
 ```
 
-The mod jar is `build/libs/hellstorm-<version>.jar`. The `-slim` jar next to it has no bundled libraries, so don't ship it. `./gradlew test runGameTestServer` runs the unit tests and the in-game tests.
+The mod jar is `build/libs/hellstorm-<version>.jar`. The `-slim` jar next to it has no bundled libraries, so don't ship it. `./gradlew test runGameTestServer` runs the unit tests and the in-game tests. The in-game tests aren't in either jar.
 
 ## License
 

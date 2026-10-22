@@ -147,8 +147,9 @@ tasks.named('processResources', ProcessResources).configure {
     from(['LICENSE', 'THIRD_PARTY_NOTICES']) { into 'META-INF' }
 }
 
-// DevLan is a local, untracked dev helper (see .gitignore); it never goes in a released jar.
-def devOnly = 'dev/candycanecazoo/hellstorm/DevLan*'
+// Never in a released jar: DevLan, a local, untracked dev helper (see .gitignore), and the GameTests with their template.
+// runGameTestServer runs them from the compiled classes, not the jar.
+def devOnly = ['dev/candycanecazoo/hellstorm/DevLan*', 'dev/candycanecazoo/hellstorm/gametest/**', 'data/hellstorm/structures/floor.nbt']
 
 tasks.named('jar', Jar).configure {
     archiveClassifier = 'slim'
