@@ -31,10 +31,9 @@ import software.bernie.geckolib.renderer.GeoBlockRenderer;
  * The vending machine's GeckoLib model, front on its -z side, lit or unlit, and what it sells on its shelves. The lit
  * texture is a strip of frames played at {@link #LIT_FPS}; while the machine lights up or goes dark, the lit model is
  * faded in over the unlit one. The window's glass is see-through, so it is drawn last, without hiding the stock behind it.
+ * Both textures are in the color of what it sells, if that has one ({@link VendingMachineSkins}).
  */
 public final class VendingMachineRenderer implements BlockEntityRenderer<VendingMachineBlock.Entity> {
-    private static final ResourceLocation UNLIT = Hellstorm.id("textures/block/" + VendingMachineBlock.MODEL + ".png");
-    private static final ResourceLocation LIT = Hellstorm.id("textures/block/" + VendingMachineBlock.MODEL + "_on.png");
     private static final int LIT_FRAMES = 45;
     private static final float LIT_FPS = 15;
     /** The window's glass is the root bone's own cube; the shelves are the cabin's. */
@@ -70,16 +69,18 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
         }
         float lit = machine.lit(level.getGameTime(), partialTick);
         int frame = (int) ((long) ((level.getGameTime() + (double) partialTick) / 20 * LIT_FPS) % LIT_FRAMES);
-        ResourceLocation texture = lit >= 1 ? LIT : UNLIT;
         // Named in the F3+L profile, under blockentities.
         ProfilerFiller profiler = level.getProfiler();
         profiler.push(Hellstorm.MOD_ID + "_vending_machine");
-        model.begin(texture, frame);
+        VendingMachineSkins.Skin skin = VendingMachineSkins.of(machine.display());
+        boolean onStrip = lit >= 1;
+        ResourceLocation texture = onStrip ? skin.lit() : skin.unlit();
+        model.begin(texture, onStrip, frame);
         model.render(machine, partialTick, pose, buffers, light, overlay);
         if (lit > 0 && lit < 1) {
-            model.fadeIn(machine, pose, buffers, partialTick, light, overlay, lit, frame);
+            model.fadeIn(machine, skin.lit(), pose, buffers, partialTick, light, overlay, lit, frame);
         }
-        model.draw(texture, frame);
+        model.draw(texture, onStrip, frame);
         model.glass(buffers, light, overlay);
         profiler.popPush(Hellstorm.MOD_ID + "_vending_machine_stock");
         if (model.shelves != null) {
@@ -121,7 +122,7 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
 
     private static final class Model extends GeoBlockRenderer<VendingMachineBlock.Entity> {
         /** The texture being drawn, and the frame of the lit strip, or -1 when the texture isn't the lit one. */
-        private ResourceLocation texture = UNLIT;
+        private ResourceLocation texture = VendingMachineSkins.GREEN.unlit();
         private int stripFrame = -1;
         /** Where the glass and the shelves were drawn this frame, to draw the glass and the stock over them afterward. */
         private @Nullable Placed glass;
@@ -133,22 +134,22 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
         }
 
         /** Starts a frame: nothing placed yet. */
-        void begin(ResourceLocation texture, int frame) {
+        void begin(ResourceLocation texture, boolean onStrip, int frame) {
             glass = null;
             shelves = null;
-            draw(texture, frame);
+            draw(texture, onStrip, frame);
         }
 
-        void draw(ResourceLocation texture, int frame) {
+        void draw(ResourceLocation texture, boolean onStrip, int frame) {
             this.texture = texture;
-            stripFrame = texture == LIT ? frame : -1;
+            stripFrame = onStrip ? frame : -1;
         }
 
         /** The lit model again over the unlit one just drawn, see-through by {@code 1 - lit}, in the same pose. */
-        void fadeIn(VendingMachineBlock.Entity machine, PoseStack pose, MultiBufferSource buffers, float partialTick, int light, int overlay,
-                    float lit, int frame) {
-            draw(LIT, frame);
-            RenderType type = RenderType.entityTranslucent(LIT);
+        void fadeIn(VendingMachineBlock.Entity machine, ResourceLocation strip, PoseStack pose, MultiBufferSource buffers, float partialTick,
+                    int light, int overlay, float lit, int frame) {
+            draw(strip, true, frame);
+            RenderType type = RenderType.entityTranslucent(strip);
             BakedGeoModel baked = getGeoModel().getBakedModel(getGeoModel().getModelResource(machine));
             pose.pushPose();
             pose.translate(0.5, 0, 0.5);
