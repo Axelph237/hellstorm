@@ -8,7 +8,7 @@ Hellstorm is a Minecraft mod for round-based zombie survival, in the style of Ca
 - Forge 47.x. NeoForge for 1.20.1 also works.
 - TacZ (Timeless and Classics Zero) 1.1.8 or newer, on both the client and the server
 
-Ponder, Flywheel, GeckoLib and LuaJ are bundled in the jar, so you don't install them. If Create is installed, Forge loads only one copy of Ponder and Flywheel.
+GeckoLib and LuaJ are bundled in the jar, so you don't install them.
 
 ## Quick start for map makers
 

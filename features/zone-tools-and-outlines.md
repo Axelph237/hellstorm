@@ -21,12 +21,12 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 
 ## Implementation
 
-**Outline library.** Create's outlines come from the Outliner in Catnip, which is compiled into the Ponder library (MIT, no Create needed).
-- Dependency: `net.createmod.ponder:Ponder-Forge-1.20.1:1.0.92` from `https://maven.createmod.net`, plus Flywheel `[1.0.0,2.0)`, which Ponder requires on the client.
-- Both are bundled with ForgeGradle jarJar. Version ranges include Create 6.0.8's pins so a pack with Create resolves to one copy.
-- Ship Ponder's MIT notice.
-
-**Boundary.** Only `client/outline/ZoneOutlines` imports `net.createmod.*`. Ponder ticks and renders the Outliner itself, so our code only calls `showAABB`, `showCluster`, and `showLine` each client tick. Outlines fade on their own about 8 ticks after we stop calling.
+**Outline renderer.** `client/outline/Outlines`, ported from the Outliner in Catnip (Ponder 1.0.92, MIT), which this used to depend on. `client/outline/ZoneOutlines` is the map tools' face onto it.
+- Each outline sits in a slot and lives one client tick after it was last shown or kept, then fades over 8 ticks and is removed. Callers show their outlines every client tick while a tool is held.
+- Lines are thin solid boxes, not GL lines (GL line width does nothing on macOS): a box's 12 edges, a line turned from +z to point from its start to its end, or a cluster's edges. They're drawn after particles with vanilla's `entitySolid` render type (the same shader, culling, and lighting as Catnip's `outline_solid`) on a white pixel made in memory (`client/WhiteTexture`), full bright.
+- A box's edges are pushed 1/128 out from a camera outside it, and pulled 1/128 in from one inside, so the walls they lie on don't hide them.
+- A cluster's edges are where its surface folds: each block toggles its 12 edges, so edges two or four blocks share cancel out, and the outside of a corner and the inside of a bend stay.
+- While fading, an outline's lines thin with alpha cubed, and it isn't drawn once that is under 1/8.
 
 **Behavior** (modeled on Create's `SuperGlueSelectionHandler`):
 - While the wand is held, every room within range draws as one cluster outline around the union of its boxes (built once per geometry change and kept alive with `keep`). Rooms over 65,536 blocks fall back to one outline per box. The color comes from a hash of the room id, so it stays stable. Lines are 1/64 wide.
@@ -49,7 +49,7 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 
 ## Assets
 
-- Room faces use vanilla's `minecraft:textures/block/oak_planks.png`, tinted.
+- None. Lines and room faces are vertex colors on a white pixel made in memory.
 - **Needed from you:** a face texture for the hovered room highlight. Until then, hover shows thicker lines only. Listed in `TEXTURES_NEEDED.md`.
 
 ## Depends on
@@ -61,7 +61,7 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 - JUnit: greedy box merging covers exactly the input voxels with no overlaps, on an L-shaped room and a room with a pillar.
 - JUnit: flood fill stops at the volume cap on an open map.
 - In game: holding the wand shows both test rooms in distinct colors, hovering thickens one, and the selection box follows the cursor and turns yellow on overlap.
-- Launch with Create 6.0.8 installed: one copy of Ponder loads and outlines still draw.
+- Launch with Create 6.0.8 installed: Create brings its own Ponder, and Hellstorm's outlines still draw.
 
 ## Phase
 
@@ -75,7 +75,8 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 - **`/hs zones cut`** takes the selection out of every box of every room it touches (`BlockBox.minus` splits a box into up to six around the cut; `Zone.without`) and out of every door it touches (`DoorBlocks.cut`). `/hs zones cut room <room>` or `cut door <door>` cuts only that one. A room or door cut down to nothing is removed. A selection that touches nothing it can cut is refused. Windows aren't cut; remove them instead. JUnit `BlockBoxTest`, `ZoneTest`.
 - **`/hs zones merge`.** With a Zone Wand selection, it merges the rooms the selection touches into the largest of them (by volume), and the doors it touches into the largest of them (by blocks). The merged room is a start room if any of the parts was; the merged door keeps the largest door's cost, power, and style. Without a selection, `/hs zones merge <from> <into>` merges two rooms or two doors by name. Names are looked up as rooms first, then as doors.
 - **Undo and redo** (`tools/MapHistory`, `/hs undo`, `/hs redo`). Every `/hs zones` edit is recorded: add (including the room, door, or window it creates), cut, merge, remove, set, and detect then confirm. The history is per level, shared by everyone editing that map, up to 64 steps, and kept in memory only, so a server restart clears it. A new edit clears the redo steps. Each step records the map before and after, and undo puts back only the rooms, doors, windows, and features that step changed, so an untracked edit in between (a block broken out of a door, a machine placed) survives. A window add or remove also records the opening's blocks, so undo puts back the blocks that filled the hole, and redo the boards. Breaking or placing blocks by hand and `/hs map import` aren't recorded.
-- **Zone faces.** While the wand is held, `client/ZonePlanks` draws each nearby room's outer surface in oak planks tinted the room's color at 20% opacity, one plank tile per block. It's drawn after translucent blocks, not culled, nudged toward the camera (`SeeThrough.decal`), and without writing depth, so it shows from inside a room on the walls and floor it lies against, and from outside where it lies on an outer surface. Ponder's own face textures are culled from inside and offset into the wall, which hides them in a room. The surface is found block by block and cached per room geometry. Rooms over 65,536 blocks draw each box's six sides whole instead. Checked in game, not by tests.
+- **Room faces.** While the wand is held, `client/ZoneFaces` fills each nearby room's outer surface in its outline color at 25% opacity. It's drawn after translucent blocks, not culled, nudged toward the camera (`SeeThrough.decal`), and without writing depth, so it shows from inside a room on the walls and floor it lies against, and from outside where it lies on an outer surface. The surface is found block by block and cached per room geometry. Rooms over 65,536 blocks draw each box's six sides whole instead. Checked in game, not by tests. (It was oak planks tinted at 20% before.)
+- **Ponder and Flywheel are gone** (2026-10-22). The outlines were the only thing they were used for, and they were 1.66 MB of the 3.89 MB jar. `client/outline/Outlines` draws the same outlines. JUnit `OutlinesTest`: a block has 12 edges, two side by side 16, a 2x1x2 square 20, the inside of an L keeps its edge, a line points from its start to its end in any direction, and the fade's curve.
 - GameTest `MapToolGameTests`:
   - The wand picks the block looked at, and hints only for a finished selection that touches no room.
   - `zones add room`, `zones cut`, `zones add window` on a filled hole, and `zones add door` say nothing and do their edit. A missed cut says why. A room cut to nothing is gone.

@@ -165,7 +165,7 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 - `tools/` holds the map-maker items, the `/hs` commands, room detection, and map and room export.
 - `script/` holds `GameEvents` with the sealed `GameEvent` type, `EventDef` loading, `LuaRuntime` (sandboxed globals, instruction hook, `require` searcher), and the Lua API bindings.
 - `net/` holds the `SimpleChannel` packets.
-- `client/` holds the HUD overlays, look-at purchase prompts, feature config screens, and `outline/ZoneOutlines` (the only place that uses Ponder).
+- `client/` holds the HUD overlays, look-at purchase prompts, feature config screens, and `outline/Outlines`, the outline renderer (ported from Catnip; Ponder is no longer a dependency).
 - Datapack resources live in `src/main/resources/data/hellstorm/` and cover the default mob profiles, power-ups, wave events, box pool, and the perk mob effect tags. A void "Zombies Builder" world preset gives map makers an empty world to build in.
 
 ## Gameplay systems
@@ -218,6 +218,8 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 - **Edit mode and play mode.** Markers show and games are blocked while the map is in edit mode.
 
 ## Zone visuals (Create-style outlines)
+
+> **Superseded:** the outlines are now drawn by our own port of Catnip's Outliner (`client/outline/Outlines`), and Ponder and Flywheel are no longer dependencies. See `features/zone-tools-and-outlines.md`. The plan below is kept as history.
 
 Create's glue selection is drawn by the **Outliner** in Catnip (`net.createmod.catnip.outliner`). On 1.20.1, Catnip is compiled into the **Ponder** library, which is MIT licensed and does not need Create. We depend on Ponder directly.
 

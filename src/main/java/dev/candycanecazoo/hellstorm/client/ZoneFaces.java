@@ -17,7 +17,6 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
@@ -33,22 +32,21 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * While a map tool is held, each zone's outer surface is drawn in faint oak planks of the zone's color, from inside and
+ * While a map tool is held, each room's outer surface is filled in its outline color at {@link #ALPHA}, from inside and
  * out, over the walls and floors it lies on.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID, value = Dist.CLIENT)
-public final class ZonePlanks {
-    private static final ResourceLocation PLANKS = new ResourceLocation("minecraft", "textures/block/oak_planks.png");
-    private static final float ALPHA = 0.2f;
+public final class ZoneFaces {
+    private static final float ALPHA = 0.25f;
     /** Bigger zones draw each box's sides whole, inner sides and all, instead of finding the surface block by block. */
     private static final long MAX_SURFACE_VOLUME = 65_536;
 
-    /** One side of a box, tiled with a plank texture per block. */
+    /** One side of a box. */
     private record Face(BlockBox box, Direction side) {}
 
     private static final Map<Zone, List<Face>> SURFACES = new HashMap<>();
 
-    private ZonePlanks() {}
+    private ZoneFaces() {}
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
@@ -64,7 +62,7 @@ public final class ZonePlanks {
         Vec3 camera = event.getCamera().getPosition();
         PoseStack.Pose pose = event.getPoseStack().last();
         MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-        RenderType type = SeeThrough.decal(PLANKS);
+        RenderType type = SeeThrough.decal(WhiteTexture.get());
         VertexConsumer out = buffers.getBuffer(type);
         Set<Zone> shown = new HashSet<>();
         for (Zone zone : ClientMapState.map().zones().values()) {
@@ -76,7 +74,7 @@ public final class ZonePlanks {
             float r = (color >> 16 & 0xff) / 255f;
             float g = (color >> 8 & 0xff) / 255f;
             float b = (color & 0xff) / 255f;
-            for (Face face : SURFACES.computeIfAbsent(zone, ZonePlanks::surface)) {
+            for (Face face : SURFACES.computeIfAbsent(zone, ZoneFaces::surface)) {
                 draw(out, pose, camera, face, r, g, b);
             }
         }

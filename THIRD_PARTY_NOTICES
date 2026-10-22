@@ -14,21 +14,15 @@ These are packed unmodified inside the Hellstorm jar, under META-INF/jarjar/,
 with Forge's Jar-in-Jar. If another mod (for example Create) ships a newer
 copy, Forge loads only one.
 
-  Ponder 1.0.92 (net.createmod.ponder:Ponder-Forge-1.20.1), including Catnip
-    Copyright (c) 2022 The Create Team. MIT License, text A below.
-
-  Flywheel 1.0.6 (dev.engine-room.flywheel:flywheel-forge-1.20.1)
-    Copyright (c) 2021-2024 Jozufozu. MIT License, text B below.
-
   GeckoLib 4.8.4 (software.bernie.geckolib:geckolib-forge-1.20.1)
-    Copyright (c) 2026 GeckoLib. MIT License, text C below.
+    Copyright (c) 2026 GeckoLib. MIT License, text B below.
 
   mclib 20 (com.eliotlash.mclib:mclib), bundled inside GeckoLib
-    Copyright (c) 2018 McHorse. MIT License, text D below.
+    Copyright (c) 2018 McHorse. MIT License, text C below.
 
   LuaJ 3.0.8-figura (com.github.FiguraMC.luaj:luaj-core), FiguraMC's fork
   of LuaJ
-    Copyright (c) 2007 LuaJ. MIT License, text E below.
+    Copyright (c) 2007 LuaJ. MIT License, text D below.
 
 
 2. Minecraft textures
@@ -70,7 +64,18 @@ copy, Forge loads only one.
     selling or distributing them on their own.
 
 
-4. Not bundled
+4. Code adapted from others
+---------------------------
+
+  client/outline/Outlines.java is ported from the Outliner in Catnip, as
+  compiled into Ponder 1.0.92 (net.createmod.ponder:Ponder-Forge-1.20.1): how
+  outlines are kept, fade, and are drawn as thin boxes, and how a block
+  cluster's edges are found. Earlier versions of Hellstorm bundled Ponder (and
+  Flywheel, which it needs); they no longer do.
+    Copyright (c) 2022 The Create Team. MIT License, text A below.
+
+
+5. Not bundled
 ---------------
 
   TacZ (Timeless and Classics Zero) is a separate, required mod. Its code is
@@ -85,8 +90,8 @@ copy, Forge loads only one.
 License texts
 =============
 
-A. Ponder (including Catnip)
-----------------------------
+A. Catnip (Ponder)
+------------------
 
 MIT License
 
@@ -111,32 +116,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-B. Flywheel
------------
-
-Copyright (c) 2021-2024 Jozufozu
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
-C. GeckoLib
+B. GeckoLib
 -----------
 
 MIT License
@@ -162,7 +142,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-D. mclib
+C. mclib
 --------
 
 The MIT License (MIT)
@@ -188,7 +168,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-E. LuaJ (FiguraMC fork)
+D. LuaJ (FiguraMC fork)
 -----------------------
 
 MIT License

@@ -27,7 +27,7 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             property 'forge.enabledGameTestNamespaces', mod_id
-            // TacZ and Ponder ship mixins with SRG refmaps; remap them to dev names.
+            // TacZ ships mixins with SRG refmaps; remap them to dev names.
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             // Our mixin config (in the jar it comes from the manifest below). Its mixins target TacZ only, unremapped, so no refmap.
@@ -70,7 +70,6 @@ repositories {
         url = 'https://api.modrinth.com/maven'
         content { includeGroup 'maven.modrinth' }
     }
-    maven { name = 'Create'; url = 'https://maven.createmod.net' }
     maven {
         name = 'GeckoLib'
         url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
@@ -91,22 +90,10 @@ dependencies {
 
     implementation fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_modrinth_version}")
 
-    implementation(fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")) {
-        transitive = false
-    }
-    runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
     // The animation value type GeckoLib's keyframes use. GeckoLib bundles it, so it's only needed to compile against.
     compileOnly "com.eliotlash.mclib:mclib:20"
 
-    jarJar(group: 'net.createmod.ponder', name: "Ponder-Forge-${minecraft_version}", version: ponder_version_range) {
-        jarJar.pin(it, ponder_version)
-        transitive = false
-    }
-    jarJar(group: 'dev.engine-room.flywheel', name: "flywheel-forge-${minecraft_version}", version: flywheel_version_range) {
-        jarJar.pin(it, flywheel_version)
-        transitive = false
-    }
     jarJar(group: 'software.bernie.geckolib', name: "geckolib-forge-${minecraft_version}", version: geckolib_version_range) {
         jarJar.pin(it, geckolib_version)
         transitive = false

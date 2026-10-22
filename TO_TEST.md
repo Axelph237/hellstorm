@@ -4,7 +4,8 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Map tools
 
-- [ ] **Room planks.** Holding the Zone Wand, each nearby room's surface shows faint oak planks in the room's color, from inside the room (on its walls and floor) and from outside. (`zone-tools-and-outlines.md`)
+- [ ] **Outlines look and behave as before.** Ponder is gone and the outlines are now our own renderer. Compare with the last build: room, door, window, trap, spawn-marker, and problem outlines; line thickness (thin, and thick on the hovered room); the selection box following the cursor and turning yellow; spawn-to-window lines; outlines fading out over about half a second after you put the wand away; and lines still showing from inside a room. (`zone-tools-and-outlines.md`)
+- [ ] **Room faces.** Holding the Zone Wand, each nearby room's surface is a plain fill in its outline color at 25% opacity (no planks), from inside the room (on its walls and floor) and from outside.
 - [ ] **Wand corners.** A corner is the block you're looking at, which makes selecting a door's own blocks easy.
 - [ ] **Window workflow.** Fill a hole in a room's wall with any blocks, select them, `/hs zones add window <name>`: the blocks become boards.
 - [ ] **Wand hint.** After the second click, a selection that touches no room shows `/hs zones add <room|window|door>`; one that touches a room shows nothing. No "First corner" or size text appears.
@@ -29,7 +30,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Release
 
-- [ ] **The built jar.** `build/libs/hellstorm-<version>.jar` loads on a client, alone and alongside Create 6.0.8.
+- [ ] **The built jar.** `build/libs/hellstorm-<version>.jar` loads on a client, alone and alongside Create 6.0.8 (which brings its own Ponder and Flywheel; Hellstorm no longer does).
 
 ## Open questions
 
