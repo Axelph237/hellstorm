@@ -9,7 +9,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Machines
 
-- [ ] **Vending machine remap.** A machine selling a colored potion is repainted all over around the potion's color (the purple trim, base, and screen glow turn too; white and greys stay neutral), lit and unlit and through the fade. The keypad's red and green lights keep their colors. Preview of the unlit texture: the scratchpad's `vending_machine_colors_v2.png` from 2026-10-22.
+- [ ] **Vending machine hum.** A lit machine's idle hum is about a quarter as loud as before, and still fades with the light.
 
 ## Guns
 

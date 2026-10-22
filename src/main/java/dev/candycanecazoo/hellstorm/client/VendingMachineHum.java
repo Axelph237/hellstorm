@@ -14,7 +14,7 @@ import java.util.WeakHashMap;
 
 /** A lit vending machine's buzz, looping from its middle, as loud as the machine is lit, so it fades with the light. */
 public final class VendingMachineHum extends AbstractTickableSoundInstance {
-    private static final float VOLUME = 0.6f;
+    private static final float VOLUME = 0.15f;
     /** Each machine's hum, held weakly both ways so neither keeps a machine of a world that's gone. */
     private static final Map<VendingMachineBlock.Entity, WeakReference<VendingMachineHum>> PLAYING = new WeakHashMap<>();
 
