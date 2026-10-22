@@ -13,7 +13,6 @@ import dev.candycanecazoo.hellstorm.game.WindowOps;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.map.WindowDef;
-import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZoneIndex;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.tools.MapEdits;
@@ -38,7 +37,7 @@ import java.util.regex.Pattern;
 final class WindowCommands {
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,32}");
     private static final SimpleCommandExceptionType NO_SELECTION = new SimpleCommandExceptionType(
-            Component.literal("Select the window's opening with the Zone Wand: click the inside of the hole's edges so the box covers the hole"));
+            Component.literal("Select the window's opening with the Zone Wand: fill the hole with any blocks, then click its corners"));
     private static final SuggestionProvider<CommandSourceStack> WINDOWS = (ctx, builder) -> SharedSuggestionProvider.suggest(
             MapSavedData.get(ctx.getSource().getLevel()).map().windows().keySet(), builder);
 
@@ -105,10 +104,6 @@ final class WindowCommands {
         MapEdits.apply(level, m -> m.withWindow(window));
         WindowOps.setBoards(level, window, boards);
         ToolState.setSelection(player, Selection.NONE);
-        ZoneId zone = window.zone();
-        ctx.getSource().sendSuccess(() -> Component.literal("Window '" + id + "' (" + window.width() + "x" + window.height()
-                + ", " + boards + " boards) opens " + window.outward().getOpposite().getName() + " into zone '" + zone
-                + "'. Put a spawn marker outside it"), false);
         return 1;
     }
 

@@ -14,16 +14,21 @@ import java.util.function.Function;
  * after every block entity, so glass that wrote depth would hide the items behind it.
  */
 final class SeeThrough extends RenderType {
-    private static final Function<ResourceLocation, RenderType> TYPES = Util.memoize(texture -> create(Hellstorm.MOD_ID + "_see_through",
-            DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 256, true, true, CompositeState.builder()
-                    .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
-                    .setTextureState(new TextureStateShard(texture, false, false))
-                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-                    .setCullState(NO_CULL)
-                    .setLightmapState(LIGHTMAP)
-                    .setOverlayState(OVERLAY)
-                    .setWriteMaskState(COLOR_WRITE)
-                    .createCompositeState(true)));
+    private static final Function<ResourceLocation, RenderType> TYPES = Util.memoize(texture -> create("see_through", texture, NO_LAYERING));
+    private static final Function<ResourceLocation, RenderType> DECALS = Util.memoize(texture -> create("see_through_decal", texture, VIEW_OFFSET_Z_LAYERING));
+
+    private static RenderType create(String name, ResourceLocation texture, LayeringStateShard layering) {
+        return create(Hellstorm.MOD_ID + "_" + name, DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 256, true, true, CompositeState.builder()
+                .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                .setTextureState(new TextureStateShard(texture, false, false))
+                .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                .setCullState(NO_CULL)
+                .setLightmapState(LIGHTMAP)
+                .setOverlayState(OVERLAY)
+                .setWriteMaskState(COLOR_WRITE)
+                .setLayeringState(layering)
+                .createCompositeState(true));
+    }
 
     private SeeThrough(String name, VertexFormat format, VertexFormat.Mode mode, int size, boolean crumbling, boolean sort, Runnable setup, Runnable clear) {
         super(name, format, mode, size, crumbling, sort, setup, clear);
@@ -31,5 +36,10 @@ final class SeeThrough extends RenderType {
 
     static RenderType of(ResourceLocation texture) {
         return TYPES.apply(texture);
+    }
+
+    /** The same, nudged toward the camera so it shows on a surface it lies flat against. */
+    static RenderType decal(ResourceLocation texture) {
+        return DECALS.apply(texture);
     }
 }

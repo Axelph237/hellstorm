@@ -52,10 +52,9 @@ public record Zone(ZoneId id, List<BlockBox> boxes, boolean start) {
         return zone;
     }
 
-    public Zone withoutBox(int index) {
-        List<BlockBox> next = new ArrayList<>(boxes);
-        next.remove(index);
-        return new Zone(id, next, start);
+    /** The zone with a box's blocks taken out of it. */
+    public Zone without(BlockBox cut) {
+        return new Zone(id, boxes.stream().flatMap(b -> b.minus(cut).stream()).toList(), start);
     }
 
     public Zone withStart(boolean start) {

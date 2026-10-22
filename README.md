@@ -15,9 +15,9 @@ Ponder, Flywheel, GeckoLib and LuaJ are bundled in the jar, so you don't install
 All `/hs` commands below need operator permission, except `join`, `leave`, `status`, and `start` for players already in a game.
 
 1. Create a world with the **Zombies Builder** world type, a void world, or use any world. Get the tools from the **Hellstorm Map Tools** creative tab.
-2. Mark the rooms. Hold the Zone Wand and right-click two corners (sneak-right-click clears the selection), then run `/hs zone add <zone>`. Or stand inside a closed room and run `/hs zone detect <zone>`, check the preview, then run `/hs zone confirm`. Make at least one zone a start zone with `/hs zone start <zone> true`.
+2. Mark the rooms. Hold the Zone Wand and right-click two corners (sneak-right-click clears the selection), then run `/hs zone add <zone>`. The corners are the blocks you look at. `/hs zone cut <zone>` takes the selection back out. Or stand inside a closed room and run `/hs zone detect <zone>`, check the preview, then run `/hs zone confirm`. Make at least one zone a start zone with `/hs zone start <zone> true`.
 3. Place Zombie Spawn Markers inside the zones.
-4. Add doors and windows. Select the door's blocks with the Zone Wand and run `/hs door create <id> [cost]`. Select a hole in a zone's wall and run `/hs window add <id> [boards]`.
+4. Add doors and windows. Select the door's blocks with the Zone Wand and run `/hs door create <id> [cost]`. Fill a hole in a zone's wall with any blocks, select them, and run `/hs window add <id> [boards]`.
 5. Place the machines from the creative tab: wall-buys, the Mystery Crate, vending machines, the upgrader, trap controllers and the power switch. In creative mode, use a machine outside a game to open its settings screen. Commands also configure the machine you are looking at, for example `/hs wallbuy set <cost> held`, `/hs wallbuy set <cost> gun <gunId>` or `/hs upgrader cost <points>`. To hide a trap controller in a wall, use it in creative with a full block in hand; sneak and use it with an empty hand to undo.
 6. Run `/hs map validate` and fix what it reports. `/hs map paths` shows how zombies cross between zones.
 7. Run `/hs map mode play`. Edit mode blocks games. Spawn markers show between games and hide while one runs.

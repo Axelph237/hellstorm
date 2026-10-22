@@ -28,10 +28,7 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-/**
- * Right-click sets selection corners, sneak-right-click clears. A corner is the air block in front of the clicked face,
- * so a zone holds the room's open space and two rooms sharing a wall don't overlap.
- */
+/** Right-click sets selection corners, sneak-right-click clears. A corner is the block you're looking at. */
 public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     /** The two frames turning, from {@code animations/item/zone_wand.animation.json}. */
     private static final RawAnimation SPIN = RawAnimation.begin().thenLoop("zone_wand_spin");
@@ -61,7 +58,7 @@ public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     public static Optional<BlockPos> targetCell(Player player, double reach) {
         HitResult hit = player.pick(reach, 1.0f, false);
         if (hit instanceof BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK) {
-            return Optional.of(blockHit.getBlockPos().relative(blockHit.getDirection()));
+            return Optional.of(blockHit.getBlockPos());
         }
         return Optional.empty();
     }

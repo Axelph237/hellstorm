@@ -28,4 +28,17 @@ class ZoneTest {
         assertEquals(List.of(ROOM, wing), zone.boxes());
         assertTrue(zone.contains(new net.minecraft.core.BlockPos(12, 0, 12)));
     }
+
+    @Test
+    void cuttingAZoneRemovesTheCutBlocksFromEveryBoxAndKeepsTheRest() {
+        BlockBox wing = new BlockBox(10, 0, 0, 14, 3, 9);
+        Zone zone = new Zone(new ZoneId("hall"), List.of(ROOM, wing), true).without(new BlockBox(8, 0, 0, 11, 3, 9));
+        assertTrue(zone.start());
+        assertTrue(zone.contains(new net.minecraft.core.BlockPos(7, 0, 0)));
+        assertFalse(zone.contains(new net.minecraft.core.BlockPos(9, 2, 5)));
+        assertFalse(zone.contains(new net.minecraft.core.BlockPos(11, 2, 5)));
+        assertTrue(zone.contains(new net.minecraft.core.BlockPos(12, 2, 5)));
+        assertEquals(ROOM.volume() + wing.volume() - 4L * 4 * 10, zone.volume());
+        assertTrue(Zone.empty(new ZoneId("hall")).withBox(ROOM).without(ROOM.grown(1)).boxes().isEmpty());
+    }
 }

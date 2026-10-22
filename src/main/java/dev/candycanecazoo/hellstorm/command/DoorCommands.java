@@ -94,14 +94,14 @@ final class DoorCommands {
             throw EXISTS.create(id);
         }
         int price = cost >= 0 ? cost : GameManager.settings().doors().defaultCost();
-        return addSelection(ctx, player, DoorDef.empty(id, price), "Created");
+        return addSelection(ctx, player, DoorDef.empty(id, price));
     }
 
     private static int add(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        return addSelection(ctx, ctx.getSource().getPlayerOrException(), existing(ctx), "Added to");
+        return addSelection(ctx, ctx.getSource().getPlayerOrException(), existing(ctx));
     }
 
-    private static int addSelection(CommandContext<CommandSourceStack> ctx, ServerPlayer player, DoorDef door, String verb) throws CommandSyntaxException {
+    private static int addSelection(CommandContext<CommandSourceStack> ctx, ServerPlayer player, DoorDef door) throws CommandSyntaxException {
         ServerLevel level = player.serverLevel();
         BlockBox box = ToolState.selection(player).box().orElseThrow(NO_SELECTION::create);
         ZombiesMap map = MapSavedData.get(level).map();
@@ -111,9 +111,10 @@ final class DoorCommands {
         }
         MapEdits.apply(level, m -> m.withDoor(result.door()));
         ToolState.setSelection(player, Selection.NONE);
-        ctx.getSource().sendSuccess(() -> Component.literal(verb + " door '" + door.id() + "': " + result.changed() + " blocks"
-                + (result.skipped() > 0 ? " (skipped " + result.skipped() + " in other doors or over the " + DoorBlocks.MAX + "-block limit)" : "")
-                + ". " + summary(level, result.door())), false);
+        if (result.skipped() > 0) {
+            ctx.getSource().sendSuccess(() -> Component.literal("Skipped " + result.skipped() + " blocks in other doors or over the "
+                    + DoorBlocks.MAX + "-block limit"), false);
+        }
         return result.changed();
     }
 

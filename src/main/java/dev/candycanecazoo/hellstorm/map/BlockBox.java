@@ -5,6 +5,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** An axis-aligned box of whole blocks. Both corners are inclusive, and {@code min <= max} on every axis. */
 public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
     public static final Codec<BlockBox> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -81,6 +84,40 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
 
     public boolean intersects(BlockBox o) {
         return minX <= o.maxX && maxX >= o.minX && minY <= o.maxY && maxY >= o.minY && minZ <= o.maxZ && maxZ >= o.minZ;
+    }
+
+    /**
+     * What's left of this box with another taken out, as up to six boxes that don't overlap: the slabs below and above the
+     * cut, then the sides left and right of it between those, then the front and back between the sides.
+     */
+    public List<BlockBox> minus(BlockBox cut) {
+        if (!intersects(cut)) {
+            return List.of(this);
+        }
+        List<BlockBox> left = new ArrayList<>();
+        int y0 = Math.max(minY, cut.minY);
+        int y1 = Math.min(maxY, cut.maxY);
+        int x0 = Math.max(minX, cut.minX);
+        int x1 = Math.min(maxX, cut.maxX);
+        if (minY < y0) {
+            left.add(new BlockBox(minX, minY, minZ, maxX, y0 - 1, maxZ));
+        }
+        if (y1 < maxY) {
+            left.add(new BlockBox(minX, y1 + 1, minZ, maxX, maxY, maxZ));
+        }
+        if (minX < x0) {
+            left.add(new BlockBox(minX, y0, minZ, x0 - 1, y1, maxZ));
+        }
+        if (x1 < maxX) {
+            left.add(new BlockBox(x1 + 1, y0, minZ, maxX, y1, maxZ));
+        }
+        if (minZ < cut.minZ) {
+            left.add(new BlockBox(x0, y0, minZ, x1, y1, cut.minZ - 1));
+        }
+        if (cut.maxZ < maxZ) {
+            left.add(new BlockBox(x0, y0, cut.maxZ + 1, x1, y1, maxZ));
+        }
+        return left;
     }
 
     public AABB toAabb() {

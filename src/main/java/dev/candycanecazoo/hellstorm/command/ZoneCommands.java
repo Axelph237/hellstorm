@@ -53,6 +53,8 @@ final class ZoneCommands {
             new DynamicCommandExceptionType(id -> Component.literal("Invalid zone id '" + id + "': use 1-32 of a-z, 0-9, _"));
     private static final DynamicCommandExceptionType UNKNOWN_ZONE =
             new DynamicCommandExceptionType(id -> Component.literal("No zone named '" + id + "'"));
+    private static final DynamicCommandExceptionType NOT_IN_ZONE =
+            new DynamicCommandExceptionType(id -> Component.literal("The selection doesn't touch zone '" + id + "'"));
     private static final DynamicCommandExceptionType OVERLAP =
             new DynamicCommandExceptionType(id -> Component.literal("That box overlaps zone '" + id + "'"));
 
@@ -64,6 +66,7 @@ final class ZoneCommands {
     static LiteralArgumentBuilder<CommandSourceStack> zone() {
         return Commands.literal("zone")
                 .then(Commands.literal("add").then(zoneArg().executes(ZoneCommands::add)))
+                .then(Commands.literal("cut").then(zoneArg().executes(ZoneCommands::cut)))
                 .then(Commands.literal("remove").then(zoneArg().executes(ZoneCommands::remove)))
                 .then(Commands.literal("merge").then(Commands.argument("from", StringArgumentType.word()).suggests(ZONES)
                         .then(Commands.argument("into", StringArgumentType.word()).suggests(ZONES).executes(ZoneCommands::merge))))
@@ -112,15 +115,25 @@ final class ZoneCommands {
         if (overlap.isPresent()) {
             throw OVERLAP.create(overlap.get());
         }
-        boolean existed = MapSavedData.get(level).map().zone(id).isPresent();
         MapEdits.apply(level, map -> map.withZone(map.zone(id).orElse(Zone.empty(id)).withBox(box)));
         ToolState.setSelection(player, Selection.NONE);
-        int boxes = MapSavedData.get(level).map().zone(id).orElseThrow().boxes().size();
-        String size = box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ();
-        ctx.getSource().sendSuccess(() -> Component.literal(existed
-                ? "Added a " + size + " box to zone '" + id + "'. It now has " + boxes + " boxes, treated as one zone"
-                : "Created zone '" + id + "' from a " + size + " box. Run /hs zone add " + id + " again to extend it with more boxes"), false);
-        return boxes;
+        return MapSavedData.get(level).map().zone(id).orElseThrow().boxes().size();
+    }
+
+    /** Takes the selection out of a zone. A zone with nothing left is removed. */
+    private static int cut(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        ZoneId id = zoneId(ctx);
+        BlockBox box = ToolState.selection(player).box().orElseThrow(NO_SELECTION::create);
+        ServerLevel level = player.serverLevel();
+        Zone zone = existing(level, id);
+        if (zone.boxes().stream().noneMatch(box::intersects)) {
+            throw NOT_IN_ZONE.create(id);
+        }
+        Zone left = zone.without(box);
+        MapEdits.apply(level, map -> left.boxes().isEmpty() ? map.withoutZone(id) : map.withZone(left));
+        ToolState.setSelection(player, Selection.NONE);
+        return left.boxes().size();
     }
 
     private static int remove(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -217,7 +230,6 @@ final class ZoneCommands {
         }
         MapEdits.apply(level, map -> map.withZone(map.zone(pending.zone()).orElse(Zone.empty(pending.zone())).withBoxes(pending.boxes())));
         ToolState.clearDetection(player);
-        ctx.getSource().sendSuccess(() -> Component.literal("Added " + pending.boxes().size() + " boxes to zone '" + pending.zone() + "'"), false);
         return pending.boxes().size();
     }
 
