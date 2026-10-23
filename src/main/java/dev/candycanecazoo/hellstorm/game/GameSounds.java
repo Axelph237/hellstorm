@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.game;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -71,6 +72,19 @@ public final class GameSounds {
     static final List<Note> REVIVED = List.of(new Note(PapRegistries.REVIVED, 0, 1.0f, 1.0f));
     static final List<Note> BLED_OUT = List.of(new Note(PapRegistries.BLED_OUT, 0, 0.6f, 0.85f));
 
+    /** A long track played quietly now and then through a game, {@code ticks} long, at a volume that evens out their loudness. */
+    public record Track(Supplier<SoundEvent> sound, int ticks, float volume) {}
+
+    /** Their volumes put each at the loudness of the quietest, Alone in the Dark, at half volume. */
+    public static final List<Track> AMBIENT = List.of(
+            new Track(PapRegistries.AMBIENT_ALONE_IN_THE_DARK, 127 * 20, 0.5f),
+            new Track(PapRegistries.AMBIENT_EYES_IN_THE_SKY, 185 * 20, 0.26f),
+            new Track(PapRegistries.AMBIENT_KEEPER_OF_SECRETS, 12 * 20, 0.15f),
+            new Track(PapRegistries.AMBIENT_LUMINOUS_LIFE, 122 * 20, 0.066f));
+    /** The first track comes this long into a game, give or take {@link #AMBIENT_JITTER_TICKS}; each next one this long after the last ends. */
+    public static final int AMBIENT_GAP_TICKS = 90 * 20;
+    public static final int AMBIENT_JITTER_TICKS = 45 * 20;
+
     private record Pending(ServerLevel level, long due, Runnable play) {}
 
     private static final List<Pending> PENDING = new ArrayList<>();
@@ -84,6 +98,9 @@ public final class GameSounds {
     private static void on(GameManager.Active active, GameEvent event) {
         if (event instanceof GameEvent.GameStart) {
             everyone(active, GAME_START);
+            nextAmbient(active, null);
+        } else if (event instanceof GameEvent.GameEnd) {
+            active.game().players().forEach(state -> active.world().entity(state.id()).ifPresent(GameSounds::stopAmbient));
         } else if (event instanceof GameEvent.RoundStart start && start.round() > 1) {
             // Round 1 starts with the game, under the game's own start.
             everyone(active, ROUND_START);
@@ -100,6 +117,32 @@ public final class GameSounds {
         } else if (event instanceof GameEvent.PlayerBledOut) {
             everyone(active, BLED_OUT);
         }
+    }
+
+    /** After a gap, plays a track other than {@code last}, while {@code active} is still this level's game. */
+    private static void nextAmbient(GameManager.Active active, Track last) {
+        ServerLevel level = active.level();
+        int gap = AMBIENT_GAP_TICKS + level.random.nextIntBetweenInclusive(-AMBIENT_JITTER_TICKS, AMBIENT_JITTER_TICKS);
+        PENDING.add(new Pending(level, level.getGameTime() + gap, () -> {
+            if (GameManager.get(level).filter(game -> game == active).isPresent()) {
+                playAmbient(active, last);
+            }
+        }));
+    }
+
+    /** Plays a track other than {@code last} to everyone in the game, and the next after it ends and a gap. */
+    public static void playAmbient(GameManager.Active active, Track last) {
+        ServerLevel level = active.level();
+        List<Track> others = AMBIENT.stream().filter(track -> track != last).toList();
+        Track track = others.get(level.random.nextInt(others.size()));
+        active.game().players().forEach(state -> active.world().entity(state.id()).ifPresent(player ->
+                player.playNotifySound(track.sound().get(), SoundSource.AMBIENT, track.volume(), 1.0f)));
+        PENDING.add(new Pending(level, level.getGameTime() + track.ticks(), () -> nextAmbient(active, track)));
+    }
+
+    /** Stops any ambient track {@code player} is hearing, when the game ends or they leave it. */
+    public static void stopAmbient(ServerPlayer player) {
+        AMBIENT.forEach(track -> player.connection.send(new ClientboundStopSoundPacket(track.sound().get().getLocation(), SoundSource.AMBIENT)));
     }
 
     /** Heard by those near {@code pos}. */

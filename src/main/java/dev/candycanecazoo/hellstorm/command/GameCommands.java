@@ -5,6 +5,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GamePhase;
+import dev.candycanecazoo.hellstorm.game.GameSounds;
 import dev.candycanecazoo.hellstorm.game.PlayerState;
 import dev.candycanecazoo.hellstorm.game.Sessions;
 import dev.candycanecazoo.hellstorm.map.validate.Problem;
@@ -90,6 +91,7 @@ final class GameCommands {
         }
         active.get().game().leave(player.getUUID());
         Sessions.get(player.server).restore(player);
+        GameSounds.stopAmbient(player);
         if (active.get().game().players().isEmpty()) {
             GameManager.end(active.get());
         }

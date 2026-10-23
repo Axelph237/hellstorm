@@ -88,5 +88,6 @@
   "subtitles.hellstorm.upgrader.fire": "Fire whooshes",
   "subtitles.hellstorm.player.bleeding": "Heart pounds",
   "subtitles.hellstorm.player.revived": "Heart beats",
-  "subtitles.hellstorm.player.bled_out": "Bell tolls"
+  "subtitles.hellstorm.player.bled_out": "Bell tolls",
+  "subtitles.hellstorm.ambient": "Eerie music plays"
 }

@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.gametest;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.game.GameSounds;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -42,6 +43,24 @@ public final class GameSoundsGameTests {
             heard(helper, player, new GameEvent.PlayerRevived(player.getUUID(), Optional.empty()), active, List.of(PapRegistries.REVIVED.get()));
             heard(helper, player, new GameEvent.PlayerBledOut(player.getUUID()), active, List.of(PapRegistries.BLED_OUT.get()));
             helper.assertTrue(outsider.heard.isEmpty(), "a player outside the game heard " + outsider.heard);
+            List<SoundEvent> tracks = GameSounds.AMBIENT.stream().map(t -> t.sound().get()).toList();
+            helper.assertTrue(player.heard.stream().noneMatch(tracks::contains), "no ambient track should play right at the start");
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    /** An ambient track, when its time comes, plays once to each player in the game. */
+    @GameTest(template = "floor", batch = "game_sounds_ambient")
+    public static void anAmbientTrackPlaysOnceToEachPlayerInTheGame(GameTestHelper helper) {
+        ListeningPlayer player = new ListeningPlayer(helper.getLevel(), "pap_sounds_ambient");
+        GameManager.Active active = PurchaseGameTests.game(helper, List.<ServerPlayer>of(player));
+        List<SoundEvent> tracks = GameSounds.AMBIENT.stream().map(t -> t.sound().get()).toList();
+        try {
+            player.heard.clear();
+            GameSounds.playAmbient(active, null);
+            helper.assertTrue(player.heard.size() == 1 && tracks.contains(player.heard.get(0)), "one ambient track should play, heard " + player.heard);
         } finally {
             GameManager.end(active);
         }

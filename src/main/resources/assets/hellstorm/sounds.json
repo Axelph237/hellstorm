@@ -200,5 +200,41 @@
         "stream": true
       }
     ]
+  },
+  "ambient.alone_in_the_dark": {
+    "subtitle": "subtitles.hellstorm.ambient",
+    "sounds": [
+      {
+        "name": "hellstorm:ambient/alone_in_the_dark",
+        "stream": true
+      }
+    ]
+  },
+  "ambient.eyes_in_the_sky": {
+    "subtitle": "subtitles.hellstorm.ambient",
+    "sounds": [
+      {
+        "name": "hellstorm:ambient/eyes_in_the_sky",
+        "stream": true
+      }
+    ]
+  },
+  "ambient.keeper_of_secrets": {
+    "subtitle": "subtitles.hellstorm.ambient",
+    "sounds": [
+      {
+        "name": "hellstorm:ambient/keeper_of_secrets",
+        "stream": true
+      }
+    ]
+  },
+  "ambient.luminous_life": {
+    "subtitle": "subtitles.hellstorm.ambient",
+    "sounds": [
+      {
+        "name": "hellstorm:ambient/luminous_life",
+        "stream": true
+      }
+    ]
   }
 }

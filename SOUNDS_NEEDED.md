@@ -15,7 +15,7 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 | `music/round_end` | 6 to 10 s | `RoundEnd`: the last zombie of a round dies | Everyone in the game | Fire breath, its silent intro clipped |
 | `music/special_round_start` | 5 to 10 s | `WaveEventStarted`: a special round (hounds) begins | Everyone in the game | None |
 | `music/game_over` | 10 to 20 s | `GameEnd`: everyone is down or out | Everyone in the game | None |
-| `music/ambient` | 1 to 3 min, loops | Played quietly under the whole game, between the stings | Everyone in the game | None |
+| `music/ambient` | 1 to 3 min, loops | Played quietly under the whole game, between the stings | Everyone in the game | Four tracks you supplied (Alone in the Dark, Eyes in the Sky, Keeper of Secrets, Luminous Life), one at a time, quietly, now and then (`ambient/`) |
 | `music/fire_sale` | 30 s, loops | While Fire Sale lasts, from every Mystery Box location | Nearby, from the boxes | None |
 
 ## Machines
@@ -69,4 +69,5 @@ The rows above whose stand-in names a recording play it now. `game/GameSounds` h
 - **Replaced.** The power-up pickup's beacon, the upgrader's fire charge and smithing table, a door's wooden door opening, and debris's gravel break.
 - **Second pass** (same day): power-on moved from every player to the switch, and its files made mono; doors got the burst and sounds; the upgrader got the anvil (pitch 0.6) and a louder fire; the pickup's raid horn became the ender dragon's growl.
 - **Tests.** GameTest `GameSoundsGameTests`: each game event plays its cue to the players in the game, round 1 plays none, and a player outside hears nothing. `DoorGameTests.debrisRisesThenBurstsOnTheImpactsPeak`: the copies are at 0.85 before the peak, 1.25 on it, 0 after, and gone in time. Sounds played at a place aren't caught by the tests (a fake player has no connection), so the switch's, the upgrader's, and a door's are checked in game. `PurchaseGameTests` checks a refused purchase plays the denied sound once.
-- **Not yet played:** the ambient music, Fire Sale's loop, the perk jingles, the box spin, the trap, the power-up's floating loop and timer end, the downed sting, zombie and hound voices, and the window rebuild.
+- **Ambient** (2026-10-23, `GameSounds.AMBIENT`). From 45 to 135 s into a game, then 45 to 135 s after each one ends, one of your four `_daub` tracks plays to every player in the game, never the same twice running, on the Ambient/Environment volume. Each one's volume puts it at the loudness of the quietest (Alone in the Dark) at half volume: 0.5, 0.26, 0.15, and 0.066 (Luminous Life is about eight times as loud). Each file fades in over 2 s and out over its last 4 s. The game's end, or leaving it, stops it. `no_evidence_of_disease` stays the round-start sting only. The four come to about 6 MB in the jar. GameTest `GameSoundsGameTests`: no track plays at the start, and one played plays once to each player.
+- **Not yet played:** Fire Sale's loop, the perk jingles, the box spin, the trap, the power-up's floating loop and timer end, the downed sting, zombie and hound voices, and the window rebuild.

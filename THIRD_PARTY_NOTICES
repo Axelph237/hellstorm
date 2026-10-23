@@ -78,6 +78,10 @@ copy, Forge loads only one.
   assets/hellstorm/sounds/player/bleeding.ogg
   assets/hellstorm/sounds/player/revived.ogg
   assets/hellstorm/sounds/player/bled_out.ogg
+  assets/hellstorm/sounds/ambient/alone_in_the_dark.ogg
+  assets/hellstorm/sounds/ambient/eyes_in_the_sky.ogg
+  assets/hellstorm/sounds/ambient/keeper_of_secrets.ogg
+  assets/hellstorm/sounds/ambient/luminous_life.ogg
 
     Cut, faded, mixed down to mono where they play in the world, and
     re-encoded from recordings supplied for Hellstorm. Their source and license

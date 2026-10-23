@@ -108,6 +108,10 @@ public final class PapRegistries {
     public static final RegistryObject<SoundEvent> BLEEDING = sound("player.bleeding");
     public static final RegistryObject<SoundEvent> REVIVED = sound("player.revived");
     public static final RegistryObject<SoundEvent> BLED_OUT = sound("player.bled_out");
+    public static final RegistryObject<SoundEvent> AMBIENT_ALONE_IN_THE_DARK = sound("ambient.alone_in_the_dark");
+    public static final RegistryObject<SoundEvent> AMBIENT_EYES_IN_THE_SKY = sound("ambient.eyes_in_the_sky");
+    public static final RegistryObject<SoundEvent> AMBIENT_KEEPER_OF_SECRETS = sound("ambient.keeper_of_secrets");
+    public static final RegistryObject<SoundEvent> AMBIENT_LUMINOUS_LIFE = sound("ambient.luminous_life");
     public static final RegistryObject<Block> WALL_BUY = BLOCKS.register("wall_buy", () -> new WallBuyBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.WOOD)));
     public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> WALL_BUY_ENTITY = BLOCK_ENTITIES.register("wall_buy",

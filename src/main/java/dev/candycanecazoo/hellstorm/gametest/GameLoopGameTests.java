@@ -223,9 +223,9 @@ public final class GameLoopGameTests {
         helper.succeed();
     }
 
-    /** A hellhound spawned in round 5, the first hounds round, has a third of the health of a zombie spawned in the same round. */
+    /** A hellhound spawned in round 5, the first hounds round, has 2 HP: nearly one shot from the starting pistol. */
     @GameTest(template = "floor", batch = "game_hound_health")
-    public static void aHoundHasAThirdOfAZombiesHealth(GameTestHelper helper) {
+    public static void aHoundInTheFirstHoundsRoundHasTwoHealth(GameTestHelper helper) {
         BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
         BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8));
         BlockPos marker = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
@@ -244,7 +244,7 @@ public final class GameLoopGameTests {
             GameManager.end(active);
         }
         helper.assertTrue(Math.abs(zombieHealth - roundHealth) < 1e-3, "zombie max health " + zombieHealth + ", round 5 is " + roundHealth);
-        helper.assertTrue(Math.abs(houndHealth / zombieHealth - 0.33) < 1e-3, "hound max health " + houndHealth + " against a zombie's " + zombieHealth);
+        helper.assertTrue(Math.abs(houndHealth - 2) < 1e-3, "hound max health " + houndHealth + ", should be 2");
         helper.succeed();
     }
 
