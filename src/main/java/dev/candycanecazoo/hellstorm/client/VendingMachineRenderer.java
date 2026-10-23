@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
+import dev.candycanecazoo.hellstorm.perk.PerkCanItem;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -41,12 +42,13 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
     private static final String SHELVES = "cabin";
     /**
      * Where the items stand, in the model's pixels: over the two dark marks on each shelf's front edge, on the shelves' tops,
-     * three deep from the front (-z) back.
+     * at the front (-z).
      */
     private static final float[] SPOTS_X = {3.5f, 9.5f};
     private static final float[] SHELF_TOPS = {12, 18, 24};
-    private static final float[] ROWS_Z = {-6, -4, -2};
+    private static final float FRONT_Z = -6;
     private static final float ITEM_SCALE = 0.28f;
+    private static final float CAN_SCALE = ITEM_SCALE * 0.75f;
 
     private final ItemRenderer items;
     private final Model model = new Model();
@@ -89,23 +91,23 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
         profiler.pop();
     }
 
-    /** Three of what the machine sells, one behind another, at each of the shelves' six spots, upright and facing out. */
+    /** One of what the machine sells at each of the shelves' six spots, upright and facing out. */
     private void stock(VendingMachineBlock.Entity machine, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
         ItemStack stack = machine.display();
         if (stack.isEmpty()) {
             return;
         }
         int seed = (int) machine.getBlockPos().asLong();
-        float lift = ITEM_SCALE / 2;
+        float scale = stack.getItem() instanceof PerkCanItem ? CAN_SCALE : ITEM_SCALE;
         for (float top : SHELF_TOPS) {
             for (float x : SPOTS_X) {
-                for (float z : ROWS_Z) {
-                    pose.pushPose();
-                    pose.translate(x / 16, top / 16 + lift, z / 16);
-                    pose.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
-                    items.renderStatic(stack, ItemDisplayContext.FIXED, light, overlay, pose, buffers, machine.getLevel(), seed);
-                    pose.popPose();
-                }
+                pose.pushPose();
+                pose.translate(x / 16, top / 16, FRONT_Z / 16);
+                pose.scale(scale, scale, scale);
+                // Scaled from the shelf's top, so the bottom of the item's cube stays on the shelf whatever its size.
+                pose.translate(0, 0.5, 0);
+                items.renderStatic(stack, ItemDisplayContext.FIXED, light, overlay, pose, buffers, machine.getLevel(), seed);
+                pose.popPose();
             }
         }
     }
