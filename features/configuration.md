@@ -65,8 +65,8 @@ Nothing. Everything else depends on this.
 
 - `players.max_players` (4): most players in one game.
 - `players.reconnect_grace_ticks` (1200): how long a player who disconnects mid-game keeps their place, points, and perks (see `sessions-and-multiplayer.md`).
-- `players.knockback_reduction` (0.85): how much knockback a player in a game is spared, 0 to 1. At 0.85 they're pushed 15% as far as usual. It scales `LivingKnockBackEvent`'s strength (`GameHooks.onKnockback`) for any player in a game, so zombie hits and any other knockback through `knockback()`; explosions push separately and aren't changed. GameTest `KnockbackGameTests`.
-- `powerups.pickup_cooldown_kills` (25): zombie deaths before a picked-up power-up can drop again (see `power-ups.md`).
+- `players.knockback_reduction` (0.85): how much knockback a player in a game is spared, 0 to 1. At 0.85 they're pushed 15% as far as usual. It scales `LivingKnockBackEvent`'s strength (`GameHooks.onKnockback`) for any player in a game, so zombie hits and any other knockback through `knockback()`. Explosions push separately: a gun's explosion pushes nothing during a match (see `tacz-bridge.md`), whatever this is set to. A vanilla explosion (TNT in a map maker's trap) still pushes as usual. GameTest `KnockbackGameTests`.
+- `powerups.repeat_cooldown_kills` (25): zombie deaths before a power-up that dropped can drop again (see `power-ups.md`). Until 2026-10-23 this was `pickup_cooldown_kills` and counted from the pickup; a map override still naming the old key is ignored.
 - `rounds.intermission_ms` (3000): the break between rounds, in milliseconds, rounded up to whole ticks. Replaces `rounds.intermission_ticks`.
 - `export.margin` (6): blocks around the map's zones and machines that `/hs map export` saves when there's no Zone Wand selection (see `map-export-import.md`).
 - Per-map, not server config: `/hs map mode edit|play`, saved with the map.

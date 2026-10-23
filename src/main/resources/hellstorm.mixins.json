@@ -7,7 +7,8 @@
     "AttachmentDataUtilsMixin",
     "DestroyGlassBlockMixin",
     "EntityKineticBulletMixin",
-    "ModernKineticGunScriptAPIMixin"
+    "ModernKineticGunScriptAPIMixin",
+    "ProjectileExplosionMixin"
   ],
   "client": [
     "ObjectAnimationRunnerMixin"
