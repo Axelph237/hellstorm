@@ -46,6 +46,8 @@ public final class PapNetwork {
                 .encoder(RevivePacket::encode).decoder(RevivePacket::decode).consumerMainThread(RevivePacket::handle).add();
         CHANNEL.messageBuilder(FogPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(FogPacket::encode).decoder(FogPacket::decode).consumerMainThread(FogPacket::handle).add();
+        CHANNEL.messageBuilder(LimbsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(LimbsPacket::encode).decoder(LimbsPacket::decode).consumerMainThread(LimbsPacket::handle).add();
     }
 
     public static void send(ServerPlayer player, Object packet) {

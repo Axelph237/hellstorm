@@ -6,6 +6,7 @@
   "mixins": [
     "AttachmentDataUtilsMixin",
     "DestroyGlassBlockMixin",
+    "EntityKineticBulletHitMixin",
     "EntityKineticBulletMixin",
     "ModernKineticGunScriptAPIMixin",
     "ProjectileExplosionMixin"

@@ -1,0 +1,6 @@
+{
+  "entity": "minecraft:zombie",
+  "weight": 0,
+  "ai": "replace",
+  "nbt": "{ForgeData:{hellstorm_crawler:{speed_multiplier:0.5f}}}"
+}

@@ -2,6 +2,10 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Zombies
+
+- [ ] **Dismemberment.** Shoot zombies' arms and legs in a game. An arm comes off (one pistol shot early on) and the zombie keeps coming; a leg comes off and it drops to a crawl: lying face down, pulling itself along with its arms, at about half speed, and small enough to shoot low. Check both sides come off the side you shot, the crawl looks right from the front, side, and behind, and the head looks forward. To see one up close, `/summon minecraft:zombie ~ ~ ~ {ForgeData:{hellstorm_crawler:{speed_multiplier:0.5f}}}` makes a crawler (and `{ForgeData:{hellstorm_limbs:5b}}` one missing its left arm and left leg).
+
 ## Downs
 
 - [ ] **Hellhounds.** In round 5 a hound has 2 HP and dies to about one pistol shot.

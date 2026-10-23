@@ -6,6 +6,8 @@ import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.data.GunBalances;
 import dev.candycanecazoo.hellstorm.game.CombatLog;
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.mob.Dismemberment;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -51,8 +53,12 @@ public final class TaczEvents {
     @SubscribeEvent
     public static void onGunHitSurvived(EntityHurtByGunEvent.Post event) {
         if (event.getLogicalSide() == LogicalSide.SERVER && event.getHurtEntity() != null && event.getAttacker() instanceof ServerPlayer player) {
-            GameManager.forMob(event.getHurtEntity().getUUID())
-                    .ifPresent(a -> a.game().onMobHit(event.getHurtEntity().getUUID(), player.getUUID()));
+            GameManager.forMob(event.getHurtEntity().getUUID()).ifPresent(a -> {
+                a.game().onMobHit(event.getHurtEntity().getUUID(), player.getUUID());
+                if (event.getHurtEntity() instanceof Mob mob) {
+                    BulletHits.of(event.getBullet()).ifPresent(hit -> Dismemberment.shot(mob, hit, event.isHeadShot(), event.getAmount()));
+                }
+            });
         }
     }
 }
