@@ -359,6 +359,7 @@ public final class PerkGameTests {
             helper.assertTrue(drink(player, can), "drinking the can shouldn't be refused");
             MobEffectInstance loadUp = player.getEffect(PerkEffects.RELOAD.get());
             helper.assertTrue(loadUp != null && loadUp.isInfiniteDuration(), "the can should give Load-Up with no time limit, got " + loadUp);
+            helper.assertTrue(!loadUp.isVisible() && loadUp.showIcon(), "the can's Load-Up should give off no particles but keep its icon, got " + loadUp);
             helper.assertTrue(player.getMainHandItem().isEmpty(), "nothing should be left of the can, hand holds " + player.getMainHandItem());
 
             WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();

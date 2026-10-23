@@ -51,8 +51,9 @@ public final class PerkCanItem extends Item implements GeoItem {
         this.perk = perk;
     }
 
+    /** The perk with no time limit and no particles, its icon still shown. */
     public MobEffectInstance effect() {
-        return new MobEffectInstance(perk.get(), MobEffectInstance.INFINITE_DURATION);
+        return new MobEffectInstance(perk.get(), MobEffectInstance.INFINITE_DURATION, 0, false, false, true);
     }
 
     public int color(ItemStack stack) {
