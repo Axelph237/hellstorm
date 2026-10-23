@@ -8,8 +8,8 @@
   "display": {
     "thirdperson_righthand": {
       "translation": [
-        -1,
-        -2,
+        -0.5,
+        -2.5,
         0
       ],
       "scale": [
@@ -20,8 +20,8 @@
     },
     "thirdperson_lefthand": {
       "translation": [
-        1,
-        -2,
+        0.25,
+        -2.5,
         0
       ],
       "scale": [
@@ -31,34 +31,37 @@
       ]
     },
     "firstperson_righthand": {
-      "translation": [
-        -0.75,
+      "rotation": [
         0,
+        90,
+        0
+      ],
+      "translation": [
+        0,
+        -0.25,
         0
       ],
       "scale": [
         0.75,
         0.75,
-        0.63
+        0.75
       ]
     },
     "firstperson_lefthand": {
-      "translation": [
-        1.5,
+      "rotation": [
         0,
+        -90,
+        0
+      ],
+      "translation": [
+        2.5,
+        -0.25,
         0
       ],
       "scale": [
         0.75,
         0.75,
-        0.63
-      ]
-    },
-    "ground": {
-      "translation": [
-        -1.5,
-        0,
-        -1.25
+        0.75
       ]
     },
     "gui": {
@@ -68,22 +71,8 @@
         0
       ],
       "translation": [
-        -0.25,
-        -4.5,
-        0
-      ]
-    },
-    "head": {
-      "translation": [
-        -1,
-        6.5,
-        -1.75
-      ]
-    },
-    "fixed": {
-      "translation": [
-        -2.25,
-        -7.75,
+        0,
+        -5,
         0
       ],
       "scale": [
@@ -91,9 +80,45 @@
         1.25,
         1.25
       ]
+    },
+    "head": {
+      "translation": [
+        0,
+        6.5,
+        0
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        -90,
+        0
+      ],
+      "translation": [
+        1,
+        -8.75,
+        1
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ]
+    },
+    "on_shelf": {
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "scale": [
+        1.75,
+        1.75,
+        1.75
+      ]
     }
   },
   "textures": {
-    "particle": "hellstorm:item/vigoraid"
+    "particle": "hellstorm:item/load_up"
   }
 }

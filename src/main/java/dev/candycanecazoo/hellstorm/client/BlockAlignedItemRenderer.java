@@ -31,8 +31,17 @@ public class BlockAlignedItemRenderer<T extends Item & GeoAnimatable> extends Ge
         this.offset = offset;
     }
 
-    /** Draws an item with the renderer {@code factory} makes, the first time the item is drawn. */
-    public static IClientItemExtensions extensions(Supplier<? extends BlockEntityWithoutLevelRenderer> factory) {
+    /**
+     * Draws an item with the renderer {@code factory} makes, the first time the item is drawn. The supplier's type is exactly
+     * this renderer so that a lambda in a common item class returns the type it builds: a wider type would have the server's
+     * verifier load renderer classes to check the item, which a dedicated server refuses.
+     */
+    public static IClientItemExtensions extensions(Supplier<BlockAlignedItemRenderer<?>> factory) {
+        return lazy(factory);
+    }
+
+    /** {@link #extensions} for any renderer, for callers that are themselves client-only. */
+    static IClientItemExtensions lazy(Supplier<? extends BlockEntityWithoutLevelRenderer> factory) {
         return new IClientItemExtensions() {
             private BlockEntityWithoutLevelRenderer renderer;
 
