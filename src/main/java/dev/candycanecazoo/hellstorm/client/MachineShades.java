@@ -8,8 +8,8 @@ import java.util.Optional;
 /**
  * Repaints the vending machine around a new basis color, keeping its shading. The basis is the median of the machine's
  * green, and it becomes the target color. Each color is repainted by its {@link Role}: the brand shades follow the target,
- * the purple-tinted greys turn greyer the further the target is from green, and the whites and lights keep their colors, as
- * do the keypad's red and green lights. Colors are packed {@code 0xRRGGBB}.
+ * the purple-tinted greys take on the target's hue the further it is from green, keeping their saturation, and the whites
+ * and lights keep their colors, as do the keypad's red and green lights. Colors are packed {@code 0xRRGGBB}.
  */
 public final class MachineShades {
     /** What counts as the machine's green, for the basis. The shades painted measure hue 89 to 142, saturation 0.33 up, brightness 0.47 up. */
@@ -48,11 +48,11 @@ public final class MachineShades {
     public enum Role {
         /** The machine's own color: the greens, lighter shades leaning toward yellow and darker ones toward blue. */
         BRAND,
-        /** Greys and near-blacks, tinted purple to read as grey beside green. */
+        /** Greys and near-blacks, tinted purple to read as grey beside green, the darker ones bluer. */
         GREY,
         /** The DRINK letters, the counter, the highlights. */
         WHITE,
-        /** The cyan glow of the screen strip, the top bar, and the lit glass. */
+        /** Lights: the cyan glow of the screen strip, the top bar, and the lit glass, and the keypad's red. */
         LIGHT
     }
 
@@ -61,11 +61,16 @@ public final class MachineShades {
     private static final float MIN_LIGHT_HUE = 170 / 360f;
     private static final float MAX_LIGHT_HUE = 215 / 360f;
     private static final float MIN_LIGHT_BRIGHTNESS = 0.85f;
+    /** Any color but the brand's this saturated is a light; the greys are 0.42 at most. */
+    private static final float MIN_LIGHT_SATURATION = 0.5f;
     /** Toward this hue is cooler, away from it warmer. */
     private static final float BLUE = 240 / 360f;
-    /** The greys keep their saturation with a green target and fall to {@link #FARTHEST_GREY} of it from this far off. */
-    private static final float GREY_FADE = 60 / 360f;
-    private static final float FARTHEST_GREY = 0.4f;
+    /** The greys keep their purple for a target this close to green, and are wholly in the target's hue from {@link #GREY_TINTED} off. */
+    private static final float GREY_KEPT = 15 / 360f;
+    private static final float GREY_TINTED = 60 / 360f;
+
+    /** What the machine is repainted around: the median of its greens, and the median hue of its greys. */
+    public record Basis(Hsv green, float greyHue) {}
 
     private MachineShades() {}
 
@@ -77,7 +82,8 @@ public final class MachineShades {
         if (c.s() <= MAX_WHITE_SATURATION && c.v() >= MIN_WHITE_BRIGHTNESS) {
             return Role.WHITE;
         }
-        if (c.h() >= MIN_LIGHT_HUE && c.h() <= MAX_LIGHT_HUE && c.s() >= MIN_SATURATION && c.v() >= MIN_LIGHT_BRIGHTNESS) {
+        if (c.s() >= MIN_LIGHT_SATURATION
+                || c.h() >= MIN_LIGHT_HUE && c.h() <= MAX_LIGHT_HUE && c.s() >= MIN_SATURATION && c.v() >= MIN_LIGHT_BRIGHTNESS) {
             return Role.LIGHT;
         }
         return Role.GREY;
@@ -109,11 +115,19 @@ public final class MachineShades {
         return x >= KEYPAD_MIN_X && x <= KEYPAD_MAX_X && frameY >= KEYPAD_MIN_Y && frameY <= KEYPAD_MAX_Y && (isGreen(rgb) || isRed(rgb));
     }
 
-    /** The median hue, saturation, and brightness of the green pixels, each taken on its own; empty if there are none. */
-    public static Optional<Hsv> median(int[] pixels) {
+    /**
+     * The median hue, saturation, and brightness of the green pixels, each taken on its own, and the median hue of the grey
+     * ones; empty if there are no greens.
+     */
+    public static Optional<Basis> basis(int[] pixels) {
         int[] green = Arrays.stream(pixels).filter(MachineShades::isGreen).toArray();
         if (green.length == 0) {
             return Optional.empty();
+        }
+        int[] grey = Arrays.stream(pixels).filter(c -> role(c) == Role.GREY).toArray();
+        float[] greys = new float[grey.length];
+        for (int i = 0; i < grey.length; i++) {
+            greys[i] = Hsv.of(grey[i]).h();
         }
         float[][] parts = new float[3][green.length];
         for (int i = 0; i < green.length; i++) {
@@ -122,7 +136,8 @@ public final class MachineShades {
             parts[1][i] = c.s();
             parts[2][i] = c.v();
         }
-        return Optional.of(new Hsv(middle(parts[0]), middle(parts[1]), middle(parts[2])));
+        Hsv median = new Hsv(middle(parts[0]), middle(parts[1]), middle(parts[2]));
+        return Optional.of(new Basis(median, greys.length == 0 ? median.h() : middle(greys)));
     }
 
     private static float middle(float[] values) {
@@ -130,21 +145,30 @@ public final class MachineShades {
         return values[values.length / 2];
     }
 
-    /** {@code rgb} repainted around the new basis, {@code median} becoming {@code target}. */
-    public static int recolor(int rgb, Hsv median, Hsv target) {
+    /** {@code rgb} repainted around {@code basis}, its median green becoming {@code target}. */
+    public static int recolor(int rgb, Basis basis, Hsv target) {
         Hsv c = Hsv.of(rgb);
+        Hsv green = basis.green();
         return switch (role(rgb)) {
-            case BRAND -> {
-                // A shade cooler than the median stays as much cooler than the target, whichever way cooler is from there.
-                float h = target.h() + turn(median.h(), c.h()) * coolward(median.h()) * coolward(target.h());
-                yield new Hsv(h - (float) Math.floor(h), stretch(c.s(), median.s(), target.s()), stretch(c.v(), median.v(), target.v())).rgb();
-            }
+            case BRAND -> new Hsv(shade(c.h(), green.h(), target.h()), stretch(c.s(), green.s(), target.s()),
+                    stretch(c.v(), green.v(), target.v())).rgb();
             case GREY -> {
-                float away = Math.min(1, Math.abs(turn(median.h(), target.h())) / GREY_FADE);
-                yield new Hsv(c.h(), c.s() * (1 - (1 - FARTHEST_GREY) * away), c.v()).rgb();
+                float away = (Math.abs(turn(green.h(), target.h())) - GREY_KEPT) / (GREY_TINTED - GREY_KEPT);
+                float tinted = Mth.clamp(away, 0, 1);
+                float h = c.h() + turn(c.h(), shade(c.h(), basis.greyHue(), target.h())) * tinted * tinted * (3 - 2 * tinted);
+                yield new Hsv(h - (float) Math.floor(h), c.s(), c.v()).rgb();
             }
             case WHITE, LIGHT -> rgb;
         };
+    }
+
+    /**
+     * {@code hue}, a shade of {@code from}, as the same shade of {@code to}: as much cooler or warmer than {@code to} as it is
+     * than {@code from}, whichever way cooler is from each.
+     */
+    private static float shade(float hue, float from, float to) {
+        float h = to + turn(from, hue) * coolward(from) * coolward(to);
+        return h - (float) Math.floor(h);
     }
 
     /** The shortest turn from hue {@code from} to hue {@code to}, in (-0.5, 0.5]. */
