@@ -2,7 +2,6 @@ package dev.candycanecazoo.hellstorm.perk;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.client.BlockAlignedItemRenderer;
-import dev.candycanecazoo.hellstorm.client.BoneTextures;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,13 +20,13 @@ import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.model.DefaultedItemGeoModel;
+import software.bernie.geckolib.renderer.GeoItemRenderer;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
@@ -36,7 +35,8 @@ import java.util.function.Supplier;
 
 /**
  * A can of one perk, drunk like a potion for the perk with no time limit, and drawn with its own GeckoLib model
- * ({@code geo/item/<id>.geo.json}). Nothing is left once it's drunk. Its item color is the perk's, or the stack's
+ * ({@code geo/item/<id>.geo.json}) by GeckoLib's own item renderer, whose lift the GeckoLib Blockbench plugin's display
+ * preview assumes, so {@code models/item/<id>.json} exported from there means what it showed. Nothing is left once it's drunk. Its item color is the perk's, or the stack's
  * {@code CustomPotionColor} if it has one, so a vending machine selling it takes that color.
  */
 public final class PerkCanItem extends Item implements GeoItem {
@@ -103,8 +103,7 @@ public final class PerkCanItem extends Item implements GeoItem {
 
     @Override
     public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(BlockAlignedItemRenderer.extensions(() -> new BlockAlignedItemRenderer<>(
-                new DefaultedItemGeoModel<PerkCanItem>(Hellstorm.id(model)), BoneTextures.NONE, Vec3.ZERO)));
+        consumer.accept(BlockAlignedItemRenderer.extensions(() -> new GeoItemRenderer<>(new DefaultedItemGeoModel<PerkCanItem>(Hellstorm.id(model)))));
     }
 
     @Override

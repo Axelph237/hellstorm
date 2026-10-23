@@ -32,7 +32,7 @@ public class BlockAlignedItemRenderer<T extends Item & GeoAnimatable> extends Ge
     }
 
     /** Draws an item with the renderer {@code factory} makes, the first time the item is drawn. */
-    public static IClientItemExtensions extensions(Supplier<BlockAlignedItemRenderer<?>> factory) {
+    public static IClientItemExtensions extensions(Supplier<? extends BlockEntityWithoutLevelRenderer> factory) {
         return new IClientItemExtensions() {
             private BlockEntityWithoutLevelRenderer renderer;
 
