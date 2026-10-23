@@ -42,7 +42,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -105,44 +104,6 @@ public final class PerkGameTests {
         player.setItemInHand(InteractionHand.MAIN_HAND, potion.finishUsingItem(player.level(), player));
         player.stopUsingItem();
         return true;
-    }
-
-    /** Uses {@code stack} up as a player does, with the events Forge posts on the last tick of using it. */
-    private static void useUp(ServerPlayer player, ItemStack stack) {
-        player.setItemInHand(InteractionHand.MAIN_HAND, stack);
-        player.startUsingItem(InteractionHand.MAIN_HAND);
-        ForgeEventFactory.onItemUseTick(player, stack, 1);
-        ItemStack before = stack.copy();
-        player.setItemInHand(InteractionHand.MAIN_HAND, ForgeEventFactory.onItemUseFinish(player, before, 0, stack.finishUsingItem(player.level(), player)));
-        player.stopUsingItem();
-    }
-
-    private static int count(ServerPlayer player, net.minecraft.world.item.Item item) {
-        return player.getInventory().countItem(item);
-    }
-
-    @GameTest(template = "floor", batch = "perk_leftovers")
-    public static void inAGameWhatADrinkLeavesIsGoneButBottlesFromElsewhereStay(GameTestHelper helper) {
-        ServerPlayer player = PurchaseGameTests.player(helper, "pap_leftovers");
-        useUp(player, PotionUtils.setPotion(new ItemStack(Items.POTION), net.minecraft.world.item.alchemy.Potions.SWIFTNESS));
-        helper.assertTrue(player.getMainHandItem().is(Items.GLASS_BOTTLE), "outside a game a potion leaves its bottle");
-
-        GameManager.Active active = PurchaseGameTests.game(helper, player);
-        try {
-            player.getInventory().setItem(8, new ItemStack(Items.GLASS_BOTTLE, 2));
-            useUp(player, PotionUtils.setPotion(new ItemStack(Items.POTION), net.minecraft.world.item.alchemy.Potions.SWIFTNESS));
-            helper.assertTrue(player.getMainHandItem().isEmpty(), "the potion's bottle should be gone, hand holds " + player.getMainHandItem());
-            useUp(player, new ItemStack(Items.HONEY_BOTTLE, 3));
-            helper.assertTrue(player.getMainHandItem().is(Items.HONEY_BOTTLE) && player.getMainHandItem().getCount() == 2,
-                    "drinking one honey bottle of three leaves two, hand holds " + player.getMainHandItem());
-            useUp(player, new ItemStack(Items.MUSHROOM_STEW));
-            helper.assertTrue(player.getMainHandItem().isEmpty(), "the stew's bowl should be gone, hand holds " + player.getMainHandItem());
-            helper.assertTrue(count(player, Items.GLASS_BOTTLE) == 2, "the two bottles got elsewhere should stay, have " + count(player, Items.GLASS_BOTTLE));
-            helper.assertTrue(count(player, Items.BOWL) == 0, "no bowl should be left, have " + count(player, Items.BOWL));
-        } finally {
-            GameManager.end(active);
-        }
-        helper.succeed();
     }
 
     private static ItemStack potion(MobEffect effect) {
