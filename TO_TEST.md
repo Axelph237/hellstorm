@@ -4,6 +4,8 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Map tools
 
+- [ ] **Command errors.** Run a few failing commands: `/hs map validate` on a map with a gap around a door, `/hs zones remove room nosuchroom`, `/hs game start` with no game. Each shows a red underlined title ("Unable to validate map"), then `ERROR:` in red and the message in white with room names, numbers, positions and commands in gold, and nothing else underlined.
+- [ ] **Loopholes block games.** Leave a gap above a door (or draw a room taller than its wall). `/hs map validate` reports "Loophole found between <room> and <room> at (x, y, z)" with a red marker at that spot while you hold a map tool, and `/hs game join` refuses to start the game with the same error.
 - [ ] **Windows with 0 to 6 boards.** `/hs zones add window <name> 0` makes an open hole: zombies climb straight in and there's nothing to repair. Other counts start that many boards.
 
 ## Power-ups and players
