@@ -69,7 +69,8 @@ public final class Game {
     private double dropIncrement;
     private final List<Drop> pendingDrops = new ArrayList<>();
     /** Power-ups picked up lately, and how many more zombie deaths until each can drop again. */
-    private final Map<ResourceLocation, Integer> pickupCooldowns = new HashMap<>();
+    /** Power-ups that dropped lately, with how many more zombie deaths they sit out. */
+    private final Map<ResourceLocation, Integer> repeatCooldowns = new HashMap<>();
     private final WaveSchedule waves;
     /** The current round's wave event, if it is a special round. */
     private Optional<RoundRules> rules = Optional.empty();
@@ -584,13 +585,16 @@ public final class Game {
             p.countKill(headshot);
         });
         events.emit(new GameEvent.ZombieKilled(mob, player.map(PlayerState::id), headshot, melee, pos));
+        // Every zombie death counts the cooldowns down before its own drops.
+        repeatCooldowns.replaceAll((powerUp, left) -> left - 1);
+        repeatCooldowns.values().removeIf(left -> left <= 0);
         if (phase instanceof GamePhase.RoundActive round && round.toSpawn() == 0 && mobs.isEmpty()) {
-            rules.flatMap(RoundRules::lastKillDrop).ifPresent(powerUp -> pendingDrops.add(new Drop(powerUp, pos)));
+            rules.flatMap(RoundRules::lastKillDrop).ifPresent(powerUp -> drop(powerUp, pos));
         }
         // Only kills a player makes drop power-ups: not traps, falls, or a Nuke.
         if (player.isPresent()) {
             boolean pointsDue = earned >= nextDropAt;
-            PowerUpDrops.Table eligible = content.powerUps().without(pickupCooldowns.keySet());
+            PowerUpDrops.Table eligible = content.powerUps().without(repeatCooldowns.keySet());
             PowerUpDrops.roll(settings.powerUps(), dropsThisRound, pointsDue, eligible, random).ifPresent(powerUp -> {
                 dropsThisRound++;
                 if (pointsDue) {
@@ -598,12 +602,18 @@ public final class Game {
                     dropIncrement *= settings.powerUps().dropIncrementGrowth();
                     nextDropAt = earned + Math.round(dropIncrement);
                 }
-                pendingDrops.add(new Drop(powerUp, pos));
+                drop(powerUp, pos);
             });
         }
-        // Every zombie death counts down the cooldowns, after this one's roll: a cooldown of N keeps the next N deaths from dropping it.
-        pickupCooldowns.replaceAll((powerUp, left) -> left - 1);
-        pickupCooldowns.values().removeIf(left -> left <= 0);
+    }
+
+    /** Drops {@code powerUp} at {@code pos} next tick, and starts its repeat cooldown. */
+    private void drop(ResourceLocation powerUp, BlockPos pos) {
+        pendingDrops.add(new Drop(powerUp, pos));
+        if (settings.powerUps().repeatCooldownKills() > 0) {
+            // One more than the deaths it sits out: the count goes down at the start of each, and is gone at the first that can drop it.
+            repeatCooldowns.put(powerUp, settings.powerUps().repeatCooldownKills() + 1);
+        }
     }
 
     private boolean doublePoints() {
@@ -630,9 +640,6 @@ public final class Game {
             return false;
         }
         events.emit(new GameEvent.PowerUpCollected(powerUp, collector));
-        if (settings.powerUps().pickupCooldownKills() > 0) {
-            pickupCooldowns.put(powerUp, settings.powerUps().pickupCooldownKills());
-        }
         return true;
     }
 

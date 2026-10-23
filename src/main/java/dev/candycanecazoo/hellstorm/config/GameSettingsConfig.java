@@ -21,7 +21,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.DoubleValue spawnDelayFactor;
     private final ForgeConfigSpec.IntValue dropIncrement;
     private final ForgeConfigSpec.DoubleValue dropIncrementGrowth;
-    private final ForgeConfigSpec.IntValue pickupCooldownKills;
+    private final ForgeConfigSpec.IntValue repeatCooldownKills;
     private final ForgeConfigSpec.IntValue intermissionMs;
     private final ForgeConfigSpec.IntValue countdownTicks;
     private final ForgeConfigSpec.IntValue gameOverTicks;
@@ -188,8 +188,8 @@ public final class GameSettingsConfig {
                 .defineInRange("drop_increment", d.powerUps().dropIncrement(), 1, Integer.MAX_VALUE);
         dropIncrementGrowth = b.comment("Each points-triggered drop makes the next threshold this much bigger (CoD: 1.14).")
                 .defineInRange("drop_increment_growth", d.powerUps().dropIncrementGrowth(), 1.0, 10.0);
-        pickupCooldownKills = b.comment("Once a power-up is picked up, it can't drop again until this many more zombies have died.")
-                .defineInRange("pickup_cooldown_kills", d.powerUps().pickupCooldownKills(), 0, 10_000);
+        repeatCooldownKills = b.comment("Once a power-up drops, it can't drop again until this many more zombies have died, so the same one doesn't come up twice in quick succession.")
+                .defineInRange("repeat_cooldown_kills", d.powerUps().repeatCooldownKills(), 0, 10_000);
         b.pop();
         b.push("traps");
         trapDefaultCost = b.defineInRange("default_cost", d.traps().defaultCost(), 0, 1_000_000);
@@ -246,7 +246,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Downs(r.read(bleedOutTicks), r.read(reviveTicks), r.read(reviveRange), r.read(soloSelfRevives),
                         r.read(regenDelayTicks), r.read(regenPerSecond)),
                 new GameSettings.PowerUps(r.read(dropChance), r.read(maxPowerUpsPerRound), r.read(powerUpLifetimeTicks), r.read(powerUpBlinkTicks),
-                        r.read(nukeBonus), r.read(carpenterBonus), r.read(dropIncrement), r.read(dropIncrementGrowth), r.read(pickupCooldownKills)),
+                        r.read(nukeBonus), r.read(carpenterBonus), r.read(dropIncrement), r.read(dropIncrementGrowth), r.read(repeatCooldownKills)),
                 new GameSettings.Traps(r.read(trapDefaultCost), r.read(trapDefaultActiveTicks), r.read(trapDefaultCooldownTicks)),
                 new GameSettings.WaveEvents(r.read(waveEventsEnabled), ids(r.read(waveEventsDisabled))));
     }

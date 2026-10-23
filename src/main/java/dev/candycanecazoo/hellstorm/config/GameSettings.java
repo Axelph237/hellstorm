@@ -154,11 +154,11 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     /**
      * {@code dropIncrement} and {@code dropIncrementGrowth}: CoD's points-triggered drops. Once the team has earned that
      * many points since the last such drop, the next kill drops a power-up, and the next threshold is that much further
-     * on, times the growth. {@code pickupCooldownKills}: once a power-up is picked up, it can't drop again until this many
-     * more zombies have died.
+     * on, times the growth. {@code repeatCooldownKills}: once a power-up drops, it can't drop again until this many more
+     * zombies have died.
      */
     public record PowerUps(double dropChance, int maxPerRound, int lifetimeTicks, int blinkTicks, int nukeBonus, int carpenterBonus,
-                           int dropIncrement, double dropIncrementGrowth, int pickupCooldownKills) {
+                           int dropIncrement, double dropIncrementGrowth, int repeatCooldownKills) {
         public static final Codec<PowerUps> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.fieldOf("drop_chance").forGetter(PowerUps::dropChance),
                 Codec.INT.fieldOf("max_per_round").forGetter(PowerUps::maxPerRound),
@@ -168,7 +168,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
                 Codec.INT.fieldOf("carpenter_bonus").forGetter(PowerUps::carpenterBonus),
                 Codec.INT.fieldOf("drop_increment").forGetter(PowerUps::dropIncrement),
                 Codec.DOUBLE.fieldOf("drop_increment_growth").forGetter(PowerUps::dropIncrementGrowth),
-                Codec.INT.fieldOf("pickup_cooldown_kills").forGetter(PowerUps::pickupCooldownKills)
+                Codec.INT.fieldOf("repeat_cooldown_kills").forGetter(PowerUps::repeatCooldownKills)
         ).apply(i, PowerUps::new));
     }
 

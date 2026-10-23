@@ -40,11 +40,11 @@ class PowerUpGameTest {
         return settings(dropChance, cap, increment, growth, 0);
     }
 
-    private static GameSettings settings(double dropChance, int cap, int increment, double growth, int pickupCooldownKills) {
+    private static GameSettings settings(double dropChance, int cap, int increment, double growth, int repeatCooldownKills) {
         GameSettings d = GameSettings.DEFAULT;
         return new GameSettings(new GameSettings.Rounds(16, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 3, 2, 2),
                 new GameSettings.Spawning(1, 24.0, 0.0), d.economy(), d.players(), d.windows(), d.doors(), d.box(), d.pap(), d.downs(),
-                new GameSettings.PowerUps(dropChance, cap, 600, 100, 400, 200, increment, growth, pickupCooldownKills), d.traps(), d.waveEvents());
+                new GameSettings.PowerUps(dropChance, cap, 600, 100, 400, 200, increment, growth, repeatCooldownKills), d.traps(), d.waveEvents());
     }
 
     private Game game(GameSettings settings) {
@@ -119,20 +119,20 @@ class PowerUpGameTest {
 
     /** With a cooldown of 2, a picked-up Nuke can't drop for the next two zombie deaths, whoever caused them; the third can. */
     @Test
-    void aPickedUpPowerUpSitsOutTheNextKillsBeforeItCanDropAgain() {
+    void aDroppedPowerUpSitsOutTheNextKillsBeforeItCanDropAgainPickedUpOrNot() {
         Game game = game(settings(1.0, 10, Integer.MAX_VALUE, 1.0, 2));
         List<UUID> mobs = new ArrayList<>(game.mobs());
         game.onMobDied(mobs.get(0), Optional.of(alice), false, false, BlockPos.ZERO);
         tick(game, 1);
-        assertEquals(List.of(NUKE), world.drops, "dropping alone starts no cooldown");
-        assertTrue(game.collectPowerUp(NUKE, alice));
+        assertEquals(List.of(NUKE), world.drops);
         game.onMobDied(mobs.get(1), Optional.empty(), false, false, BlockPos.ZERO);
         game.onMobDied(mobs.get(2), Optional.of(alice), false, false, BlockPos.ZERO);
         tick(game, 1);
-        assertEquals(List.of(NUKE), world.drops, "the two deaths after the pickup, a trap's and a player's, drop nothing");
+        assertEquals(List.of(NUKE), world.drops, "the two deaths after the drop, a trap's and a player's, drop nothing, though it wasn't picked up");
+        assertTrue(game.collectPowerUp(NUKE, alice));
         game.onMobDied(mobs.get(3), Optional.of(alice), false, false, BlockPos.ZERO);
         tick(game, 1);
-        assertEquals(List.of(NUKE, NUKE), world.drops, "the third death after the pickup can drop it again");
+        assertEquals(List.of(NUKE, NUKE), world.drops, "the third death after the drop can drop it again: picking it up started nothing");
     }
 
     @Test
