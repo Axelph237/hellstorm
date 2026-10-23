@@ -68,6 +68,8 @@ The feature files:
 
 ## Asset rule: never add textures
 
+Sounds follow the same rule: this mod makes no sound files. What a feature needs is listed in `SOUNDS_NEEDED.md` for you to supply, and a supplied file is copied in unchanged.
+
 - **No texture files.** Never add a texture file to the repo, under any circumstances.
 - **When a feature needs a custom texture,** leave it missing (the purple-and-black checkerboard). Add a row to `TEXTURES_NEEDED.md` with the path, what it's for, its size, and the feature that needs it, and tell you in the reply for that work.
 - **Models may reference vanilla textures.** That isn't adding a texture, and it's the default stand-in. Window boards use a custom block model whose cuboids reference `minecraft:block/oak_planks`.
@@ -288,6 +290,27 @@ The design as researched:
 - **Validation.** `MapValidator` must accept a layout before it is used. If it doesn't, the generator retries with the next sub-seed.
 - **Placement.** Each piece is placed in `applyBiomeDecoration`, clipped to the chunk. This avoids jigsaw's limits of depth 7 and 128-block radius.
 - **Room authoring.** Rooms come from a `/hs room export` tool that saves part of a hand-built map as an NBT template plus socket metadata.
+
+## Scope after v0.1.0 (decided 2026-10-23)
+
+**Before v0.1.0:**
+- Perk cans for Hellfire, Saint's Brew, Off-Hand, and Jockey Energy, from your models (Load-Up and Vigoraid are in). Then the default machines sell cans instead of potions.
+- The sounds and music in `SOUNDS_NEEDED.md`, as you supply them.
+- Possibly the extras below (GobbleGum-style buffs, point sharing), or they go to an addon.
+
+**After v0.1.0, in the base mod:**
+- More enemy variety (crawlers, mini-bosses, special zombies).
+- More perks and more power-ups.
+- Wonder weapons.
+- Buildables, map objectives, and Easter eggs, together with better map-making features.
+- Stronger zombie AI.
+- Procedural generation (above).
+
+**As addons, not the base mod:**
+- Equipment: lethals, tacticals (Monkey Bombs), claymores, shields.
+- Pack-a-Punch effects (elemental rounds): datapacks and Lua scripts can already build them, or an addon can.
+
+**Not planned:** a random-perk machine (Der Wunderfizz).
 
 ## Phases (each ends in a check)
 
