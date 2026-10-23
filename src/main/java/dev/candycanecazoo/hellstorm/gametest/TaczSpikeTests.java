@@ -44,9 +44,16 @@ public final class TaczSpikeTests {
 
     private TaczSpikeTests() {}
 
+    /**
+     * A zombie holding {@code gun}, which nothing moves or hurts: with more guns than spots, two holders can share a block,
+     * and a holder pushed into a wall, or burning in the sun, used to die mid-reload and leave its gun never reloaded.
+     */
     private static Zombie gunHolder(GameTestHelper helper, BlockPos pos, ItemStack gun) {
         Zombie zombie = helper.spawn(EntityType.ZOMBIE, pos);
         zombie.setNoAi(true);
+        zombie.setInvulnerable(true);
+        zombie.setNoGravity(true);
+        zombie.noPhysics = true;
         zombie.setItemInHand(InteractionHand.MAIN_HAND, gun);
         IGunOperator operator = IGunOperator.fromLivingEntity(zombie);
         operator.initialData();
