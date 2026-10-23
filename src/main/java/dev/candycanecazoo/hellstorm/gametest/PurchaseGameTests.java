@@ -137,7 +137,7 @@ public final class PurchaseGameTests {
 
     /** Spending points plays the cha-ching to the buyer alone; a purchase refused, or one that cost nothing, doesn't. */
     @GameTest(template = "floor", batch = "shop_cha_ching")
-    public static void theBuyerAloneHearsTheChaChingWhenPointsAreSpent(GameTestHelper helper) {
+    public static void spendingPointsPlaysNoChaChing(GameTestHelper helper) {
         ListeningPlayer buyer = new ListeningPlayer(helper.getLevel(), "pap_cha_ching_buyer");
         ListeningPlayer teammate = new ListeningPlayer(helper.getLevel(), "pap_cha_ching_mate");
         GameManager.Active active = game(helper, List.<ServerPlayer>of(buyer, teammate));
@@ -147,7 +147,7 @@ public final class PurchaseGameTests {
             helper.assertTrue(Shop.buy(buyer, active, sale(0)), "a free purchase was refused");
             helper.assertTrue(buyer.heard.isEmpty(), "taking something free played " + buyer.heard);
             helper.assertTrue(Shop.buy(buyer, active, sale(100)), "the purchase was refused");
-            helper.assertTrue(buyer.heard.equals(List.of(PapRegistries.CHA_CHING.get())), "the buyer should hear one cha-ching, heard " + buyer.heard);
+            helper.assertTrue(buyer.heard.isEmpty(), "a paid purchase played " + buyer.heard);
             helper.assertTrue(teammate.heard.isEmpty(), "a teammate heard " + teammate.heard);
         } finally {
             GameManager.end(active);

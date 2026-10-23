@@ -33,9 +33,9 @@ public final class Shop {
     private Shop() {}
 
     /**
-     * Returns true if the purchase went through. Either way the player sees the result; only a purchase makes a sound: the
-     * cha-ching when points were spent, a chime for something free (taking a finished upgrade, a free power switch), since
-     * no points moved.
+     * Returns true if the purchase went through. Either way the player sees the result. A paid purchase makes no sound of its
+     * own here (the cha-ching is kept for a rebuilt board's pay); something free (taking a finished upgrade, a free power
+     * switch) plays a chime.
      */
     public static boolean buy(ServerPlayer player, GameManager.Active game, Sale sale) {
         Optional<Refusal> refusal = sale.check(game, player)
@@ -50,18 +50,15 @@ public final class Shop {
             refuse(player, refusal.get());
             return false;
         }
-        if (sale.cost() > 0) {
-            chaChing(player);
-        } else {
+        if (sale.cost() == 0) {
             player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.8f, 0.7f);
         }
         return true;
     }
 
     /**
-     * The register's cha-ching, for points changing hands: spent here, or earned rebuilding a board. Only this player hears
-     * it, as in CoD: it is their points, and in a busy room everyone else's purchases would be noise. It plays where they
-     * stand.
+     * The register's cha-ching, for points earned rebuilding a board. Only this player hears it, as in CoD: it is their
+     * points, and in a busy room everyone else's would be noise. It plays where they stand.
      */
     public static void chaChing(ServerPlayer player) {
         player.playNotifySound(PapRegistries.CHA_CHING.get(), SoundSource.PLAYERS, CHA_CHING_VOLUME, CHA_CHING_PITCH);
