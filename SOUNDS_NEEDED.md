@@ -11,7 +11,7 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 | Path | Length | Trigger | Heard by | Stand-in |
 |---|---|---|---|---|
 | `music/game_start` | 5 to 15 s | `GameStart`: the game begins | Everyone in the game | Funeral chant, pitch 0.9 |
-| `music/round_start` | 4 to 8 s | `RoundStart`: each round begins (the classic round-change sting) | Everyone in the game | "No Evidence of Disease", faded out from 3 s to 4 s; not on round 1, which starts with the game |
+| `music/round_start` | 4 to 8 s | `RoundStart`: each round begins (the classic round-change sting) | Everyone in the game | "No Evidence of Disease" at volume 0.75, faded out from 3 s to 4 s; not on round 1, which starts with the game |
 | `music/round_end` | 6 to 10 s | `RoundEnd`: the last zombie of a round dies | Everyone in the game | Fire breath, its silent intro clipped |
 | `music/special_round_start` | 5 to 10 s | `WaveEventStarted`: a special round (hounds) begins | Everyone in the game | None |
 | `music/game_over` | 10 to 20 s | `GameEnd`: everyone is down or out | Everyone in the game | None |
@@ -35,9 +35,9 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 
 | Path | Length | Trigger | Heard by | Stand-in |
 |---|---|---|---|---|
-| `powerup/spawn` | under 1 s | `PowerUpSpawned`: a power-up appears | Nearby, from the drop | The elder guardian's curse at pitch 1.2 (bad omen is 1.20.5's; 1.20.1 has none) |
+| `powerup/spawn` | under 1 s | `PowerUpSpawned`: a power-up appears | Nearby, from the drop | The elder guardian's curse at pitch 1.2, volume 0.5 (bad omen is 1.20.5's; 1.20.1 has none) |
 | `powerup/loop` | 2 to 4 s, loops | While a power-up floats on the ground | Nearby, from the drop | None |
-| `powerup/grab` | under 1 s | `PowerUpCollected`: the pickup sting | Everyone in the game | The ender dragon's fourth growl and the ravager's first celebrate, both at pitch 0.9, to everyone in the game |
+| `powerup/grab` | under 1 s | `PowerUpCollected`: the pickup sting | Everyone in the game | The ender dragon's fourth growl and the ravager's first celebrate, both at pitch 0.9 and volume 0.5, to everyone in the game |
 | `announcer/<powerup_id>` | 1 to 2 s each | `PowerUpCollected`: the announcer names it (max_ammo, insta_kill, double_points, nuke, carpenter, fire_sale) | Everyone in the game | None |
 | `powerup/timer_end` | under 1 s | Insta-Kill, Double Points, or Fire Sale running out | Everyone in the game | None |
 

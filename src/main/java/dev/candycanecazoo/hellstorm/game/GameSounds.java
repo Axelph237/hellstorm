@@ -47,11 +47,11 @@ public final class GameSounds {
             new Note(PapRegistries.POWER_DOOR, 0, 0.75f, 1.0f),
             new Note(PapRegistries.POWER_GENERATOR, 0, 1.0f, 1.0f));
     /** Stands in for 1.20.5's bad omen, which 1.20.1 lacks: the elder guardian's curse, sped up. */
-    static final List<Note> POWER_UP_SPAWN = List.of(new Note(PapRegistries.POWER_UP_SPAWN, 0, 1.0f, 1.2f));
+    static final List<Note> POWER_UP_SPAWN = List.of(new Note(PapRegistries.POWER_UP_SPAWN, 0, 0.5f, 1.2f));
     /** The ender dragon's fourth growl and the ravager's first celebrate, both pitched down. */
     static final List<Note> POWER_UP_GRAB = List.of(
-            new Note(PapRegistries.POWER_UP_DRAGON, 0, 1.0f, 0.9f),
-            new Note(PapRegistries.POWER_UP_CELEBRATE, 0, 1.0f, 0.9f));
+            new Note(PapRegistries.POWER_UP_DRAGON, 0, 0.5f, 0.9f),
+            new Note(PapRegistries.POWER_UP_CELEBRATE, 0, 0.5f, 0.9f));
     static final List<Note> PURCHASE_DENIED = List.of(new Note(PapRegistries.PURCHASE_DENIED, 0, 0.5f, 0.85f));
     /** A door or debris bought: the cha-ching and the impact. The impact peaks {@link #IMPACT_PEAK_TICKS} in, when the blocks burst. */
     static final List<Note> DOOR_OPENED = List.of(
@@ -60,7 +60,7 @@ public final class GameSounds {
     /** {@code debris/impact} peaks 0.95 s in. */
     public static final int IMPACT_PEAK_TICKS = 19;
     static final List<Note> GAME_START = List.of(new Note(PapRegistries.GAME_START, 0, 1.0f, 0.9f));
-    static final List<Note> ROUND_START = List.of(new Note(PapRegistries.ROUND_START, 0, 1.0f, 1.0f));
+    static final List<Note> ROUND_START = List.of(new Note(PapRegistries.ROUND_START, 0, 0.75f, 1.0f));
     static final List<Note> ROUND_END = List.of(new Note(PapRegistries.ROUND_END, 0, 1.0f, 1.0f));
     /**
      * An item going into the upgrader: the anvil, pitched down and so slowed, and the fire, whose file is stretched so that at
