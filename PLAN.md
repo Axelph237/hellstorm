@@ -304,6 +304,10 @@ The design as researched:
 - Wonder weapons.
 - Buildables, map objectives, and Easter eggs, together with better map-making features.
 - Damageable areas: zones drawn with the Zone Wand where TacZ's normal block damage applies (glass shattering, incendiary fire, explosive rounds where the gun allows it), restored when the game ends, even after a crash. First version: breakable areas must stay off zombie routes; updating zombie paths when blocks break comes after.
+- Characters, as in CoD's crews (Dempsey, Nikolai, Takeo, Richtofen):
+  - **Map characters.** A map defines its own cast, each with a name and a look, in its map pack.
+  - **Character delegation.** How players get a character when they join: a free pick, first come first served, or assigned, with no two players the same character.
+  - **Character events.** A character reacts to what happens in the game, such as quotes when buying a perk, getting a power-up, going down, or reviving someone, through the game events scripts already receive.
 - Stronger zombie AI.
 - Procedural generation (above).
 
