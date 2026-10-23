@@ -1,26 +1,31 @@
 package dev.candycanecazoo.hellstorm.client;
 
-import dev.candycanecazoo.hellstorm.net.RevivePacket;
-import net.minecraft.world.phys.EntityHitResult;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
 import dev.candycanecazoo.hellstorm.net.PapNetwork;
+import dev.candycanecazoo.hellstorm.net.RevivePacket;
 import dev.candycanecazoo.hellstorm.net.UsePacket;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.Optional;
 
 /**
  * A second use button for windows and machines, for when right click is busy aiming a gun. Defaults to the same key as
@@ -51,6 +56,22 @@ public final class UseKey {
 
         private Ticks() {}
 
+        /**
+         * Right click on a downed teammate lying in grass or flowers: vanilla's crosshair stops at the plant, so it never
+         * sends the click to them. Vanilla repeats the click while it's held, so holding it revives.
+         */
+        @SubscribeEvent
+        public static void onUse(InputEvent.InteractionKeyMappingTriggered event) {
+            if (!event.isUseItem() || event.getHand() != InteractionHand.MAIN_HAND || Minecraft.getInstance().hitResult instanceof EntityHitResult) {
+                return;
+            }
+            ReviveTarget.find().ifPresent(downed -> {
+                PapNetwork.CHANNEL.sendToServer(new RevivePacket(downed.getId()));
+                event.setSwingHand(false);
+                event.setCanceled(true);
+            });
+        }
+
         @SubscribeEvent
         public static void tick(TickEvent.ClientTickEvent event) {
             Minecraft mc = Minecraft.getInstance();
@@ -61,10 +82,11 @@ public final class UseKey {
             boolean down = KEY.isDown();
             boolean firstPress = down && !wasDown;
             wasDown = down;
-            if (down && mc.hitResult instanceof EntityHitResult target && HudState.downed(target.getEntity())) {
+            Optional<Entity> downed = down ? ReviveTarget.find() : Optional.empty();
+            if (downed.isPresent()) {
                 if (firstPress || sinceSent >= SEND_EVERY_TICKS) {
                     sinceSent = 0;
-                    PapNetwork.CHANNEL.sendToServer(new RevivePacket(target.getEntity().getId()));
+                    PapNetwork.CHANNEL.sendToServer(new RevivePacket(downed.get().getId()));
                 }
                 return;
             }

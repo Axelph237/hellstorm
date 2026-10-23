@@ -67,8 +67,9 @@ public final class PromptOverlay {
 
     /** What the crosshair is on, if it is a downed teammate, a door, a window with boards missing, or a machine with something to sell. */
     static Optional<Target> target(Minecraft mc) {
-        if (mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult target && HudState.downed(target.getEntity())) {
-            Entity entity = target.getEntity();
+        Optional<Entity> downed = ReviveTarget.find();
+        if (downed.isPresent()) {
+            Entity entity = downed.get();
             return Optional.of(new Target(new Prompted.Prompt("Revive " + entity.getName().getString(), 0, false),
                     entity.position().add(0, entity.getBbHeight() + ABOVE, 0)));
         }

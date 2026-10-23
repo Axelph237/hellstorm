@@ -2,6 +2,10 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Downs
+
+- [ ] **Revive through grass.** Go down in tall grass or flowers. A teammate looking at you through them sees "Revive", and holding the revive key or right click revives you. A solid block in the way (glass, a wall) still blocks it.
+
 ## Sounds
 
 - [ ] **Round break.** The wait between rounds is 5 seconds (your Test world's config was updated from 3000 to 5000).
