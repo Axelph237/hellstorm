@@ -4,7 +4,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.DoorDef;
@@ -32,19 +31,6 @@ import java.util.stream.Stream;
  * {@code /hs undo} takes it back. An add, cut, or merge that uses the Zone Wand selection clears it once it succeeds.
  */
 final class ZonesCommands {
-    private static final SimpleCommandExceptionType NO_SELECTION =
-            new SimpleCommandExceptionType(Component.literal("Select two corners with the Zone Wand first"));
-    private static final SimpleCommandExceptionType CUT_NOTHING =
-            new SimpleCommandExceptionType(Component.literal("The selection doesn't touch any room or door"));
-    private static final SimpleCommandExceptionType MERGE_NOTHING = new SimpleCommandExceptionType(Component.literal(
-            "The selection touches fewer than two rooms and fewer than two doors, so there's nothing to merge"));
-    private static final SimpleCommandExceptionType MERGE_WHAT = new SimpleCommandExceptionType(Component.literal(
-            "Select the rooms or doors to merge with the Zone Wand, or name them: /hs zones merge <from> <into>"));
-    private static final SimpleCommandExceptionType MERGE_SAME =
-            new SimpleCommandExceptionType(Component.literal("Pick two different rooms or doors"));
-    private static final SimpleCommandExceptionType MERGE_MISMATCH =
-            new SimpleCommandExceptionType(Component.literal("Those aren't two rooms or two doors"));
-
     private static final SuggestionProvider<CommandSourceStack> ROOMS_AND_DOORS = (ctx, builder) -> {
         ZombiesMap map = MapSavedData.get(ctx.getSource().getLevel()).map();
         return SharedSuggestionProvider.suggest(Stream.concat(map.zones().keySet().stream().map(ZoneId::value), map.doors().keySet().stream()), builder);
@@ -55,23 +41,23 @@ final class ZonesCommands {
     static LiteralArgumentBuilder<CommandSourceStack> zones() {
         return Commands.literal("zones")
                 .then(Commands.literal("add").then(RoomCommands.add()).then(DoorCommands.add()).then(WindowCommands.add()))
-                .then(Commands.literal("cut").executes(ZonesCommands::cut).then(RoomCommands.cut()).then(DoorCommands.cut()))
-                .then(Commands.literal("merge").executes(ZonesCommands::merge)
+                .then(Commands.literal("cut").executes(CommandErrors.titled("Unable to cut zones", ZonesCommands::cut)).then(RoomCommands.cut()).then(DoorCommands.cut()))
+                .then(Commands.literal("merge").executes(CommandErrors.titled("Unable to merge zones", ZonesCommands::merge))
                         .then(Commands.argument("from", StringArgumentType.word()).suggests(ROOMS_AND_DOORS)
-                                .then(Commands.argument("into", StringArgumentType.word()).suggests(ROOMS_AND_DOORS).executes(ZonesCommands::mergeNamed))))
+                                .then(Commands.argument("into", StringArgumentType.word()).suggests(ROOMS_AND_DOORS).executes(CommandErrors.titled("Unable to merge zones", ZonesCommands::mergeNamed)))))
                 .then(Commands.literal("remove").then(RoomCommands.remove()).then(DoorCommands.remove()).then(WindowCommands.remove()))
                 .then(Commands.literal("set").then(RoomCommands.set()).then(DoorCommands.set()))
-                .then(Commands.literal("list").executes(ZonesCommands::list))
+                .then(Commands.literal("list").executes(CommandErrors.titled("Unable to list zones", ZonesCommands::list)))
                 .then(RoomCommands.detect())
-                .then(Commands.literal("confirm").executes(RoomCommands::confirm))
-                .then(Commands.literal("cancel").executes(ZonesCommands::cancel));
+                .then(Commands.literal("confirm").executes(CommandErrors.titled("Unable to confirm room", RoomCommands::confirm)))
+                .then(Commands.literal("cancel").executes(CommandErrors.titled("Unable to cancel", ZonesCommands::cancel)));
     }
 
     /** The selection's boxes; there's at least one. */
     static List<BlockBox> selection(ServerPlayer player) throws CommandSyntaxException {
         Selection selection = ToolState.selection(player);
         if (selection.isEmpty()) {
-            throw NO_SELECTION.create();
+            throw CommandErrors.fail("Select two corners with the Zone Wand first");
         }
         return selection.boxes();
     }
@@ -106,7 +92,7 @@ final class ZonesCommands {
         List<ZoneId> rooms = roomsTouching(map, boxes);
         List<String> doors = doorsTouching(map, boxes);
         if (rooms.isEmpty() && doors.isEmpty()) {
-            throw CUT_NOTHING.create();
+            throw CommandErrors.fail("The selection doesn't touch any room or door");
         }
         MapHistory.edit(level, "cut", m -> {
             for (ZoneId room : rooms) {
@@ -129,14 +115,14 @@ final class ZonesCommands {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         Selection selection = ToolState.selection(player);
         if (selection.isEmpty()) {
-            throw MERGE_WHAT.create();
+            throw CommandErrors.fail("Select the rooms or doors to merge with the Zone Wand, or name them: {}", "/hs zones merge <from> <into>");
         }
         ServerLevel level = player.serverLevel();
         ZombiesMap map = MapSavedData.get(level).map();
         List<ZoneId> rooms = roomsTouching(map, selection.boxes());
         List<String> doors = doorsTouching(map, selection.boxes());
         if (rooms.size() < 2 && doors.size() < 2) {
-            throw MERGE_NOTHING.create();
+            throw CommandErrors.fail("The selection touches fewer than two rooms and fewer than two doors, so there's nothing to merge");
         }
         ZoneId roomInto = rooms.stream().max(Comparator.comparingLong(id -> map.zones().get(id).volume())).orElse(null);
         String doorInto = doors.stream().max(Comparator.comparingInt(id -> map.doors().get(id).members().size())).orElse(null);
@@ -163,7 +149,7 @@ final class ZonesCommands {
         String from = StringArgumentType.getString(ctx, "from");
         String into = StringArgumentType.getString(ctx, "into");
         if (from.equals(into)) {
-            throw MERGE_SAME.create();
+            throw CommandErrors.fail("Pick two different rooms or doors");
         }
         ZombiesMap map = MapSavedData.get(level).map();
         if (ZoneId.isValid(from) && ZoneId.isValid(into) && map.zones().containsKey(new ZoneId(from)) && map.zones().containsKey(new ZoneId(into))) {
@@ -171,7 +157,7 @@ final class ZonesCommands {
         } else if (map.doors().containsKey(from) && map.doors().containsKey(into)) {
             MapHistory.edit(level, "merge door '" + from + "' into '" + into + "'", m -> DoorCommands.merge(m, from, into));
         } else {
-            throw MERGE_MISMATCH.create();
+            throw CommandErrors.fail("Those aren't two rooms or two doors");
         }
         return 1;
     }

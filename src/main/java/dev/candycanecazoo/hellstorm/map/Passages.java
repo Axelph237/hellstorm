@@ -27,10 +27,15 @@ public final class Passages {
     }
 
     /**
+     * {@code openings} holds, for each open link, the first cell found where a mob crosses into the other zone.
      * {@code gaps} holds, for each open link, the open cells outside every zone that both zones' searches reached: the
      * doorway itself. Zones joined only where their boxes touch have an empty gap.
      */
-    public record Result(Set<Link> open, Map<Link, BlockPos> closedDoors, Map<Link, Set<BlockPos>> gaps) {
+    public record Result(Map<Link, BlockPos> openings, Map<Link, BlockPos> closedDoors, Map<Link, Set<BlockPos>> gaps) {
+        public Set<Link> open() {
+            return openings.keySet();
+        }
+
         public Set<BlockPos> gap(Link link) {
             return gaps.getOrDefault(link, Set.of());
         }
@@ -53,7 +58,7 @@ public final class Passages {
         Set<BlockPos> shut = new HashSet<>();
         map.doors().values().stream().filter(d -> !openDoors.contains(d.id())).forEach(d -> shut.addAll(d.members()));
         CellProbe probe = pos -> shut.contains(pos) ? CellProbe.Cell.SOLID : world.at(pos);
-        Set<Link> open = new HashSet<>();
+        Map<Link, BlockPos> open = new LinkedHashMap<>();
         Map<Link, BlockPos> closedDoors = new LinkedHashMap<>();
         Map<ZoneId, Set<BlockPos>> spaces = new HashMap<>();
         for (Zone zone : map.zones().values()) {
@@ -63,9 +68,9 @@ public final class Passages {
         for (Zone zone : map.zones().values()) {
             openCells.put(zone.id(), search(zone, index, probe, maxGap, spaces, open, closedDoors));
         }
-        closedDoors.keySet().removeAll(open);
+        closedDoors.keySet().removeAll(open.keySet());
         Map<Link, Set<BlockPos>> gaps = new HashMap<>();
-        for (Link link : open) {
+        for (Link link : open.keySet()) {
             Set<BlockPos> shared = new HashSet<>(openCells.getOrDefault(link.a(), Set.of()));
             shared.retainAll(openCells.getOrDefault(link.b(), Set.of()));
             gaps.put(link, Set.copyOf(shared));
@@ -114,7 +119,7 @@ public final class Passages {
 
     /** Searches out from one zone's walkable space. Returns the open (not door) cells it reached. */
     private static Set<BlockPos> search(Zone zone, ZoneIndex index, CellProbe probe, int maxGap, Map<ZoneId, Set<BlockPos>> spaces,
-                                        Set<Link> open, Map<Link, BlockPos> closedDoors) {
+                                        Map<Link, BlockPos> open, Map<Link, BlockPos> closedDoors) {
         Set<BlockPos> own = spaces.get(zone.id());
         Set<BlockPos> reachedOpen = new HashSet<>();
         Deque<Step> queue = new ArrayDeque<>();
@@ -132,7 +137,7 @@ public final class Passages {
                     crossing(probe, inside, cell).ifPresent(door -> {
                         Link link = Link.of(zone.id(), owner.get());
                         if (door.isEmpty()) {
-                            open.add(link);
+                            open.putIfAbsent(link, cell);
                         } else {
                             closedDoors.putIfAbsent(link, door.get());
                         }
@@ -161,7 +166,7 @@ public final class Passages {
                     if (!owner.get().equals(zone.id()) && spaces.get(owner.get()).contains(next)) {
                         Link link = Link.of(zone.id(), owner.get());
                         if (door == null) {
-                            open.add(link);
+                            open.putIfAbsent(link, step.pos);
                         } else {
                             closedDoors.putIfAbsent(link, door);
                         }

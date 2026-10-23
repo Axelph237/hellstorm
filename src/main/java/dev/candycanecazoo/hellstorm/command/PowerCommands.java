@@ -15,7 +15,7 @@ final class PowerCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> power() {
         return Commands.literal("power")
-                .then(Commands.literal("cost").then(Commands.argument("points", IntegerArgumentType.integer(0)).executes(PowerCommands::cost)));
+                .then(Commands.literal("cost").then(Commands.argument("points", IntegerArgumentType.integer(0)).executes(CommandErrors.titled("Unable to set power switch cost", PowerCommands::cost))));
     }
 
     private static int cost(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

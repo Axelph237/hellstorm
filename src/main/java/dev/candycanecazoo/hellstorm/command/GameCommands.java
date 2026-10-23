@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.List;
 import java.util.Optional;
 
 /** `/hs game join|leave|start|stop|status`: one game per level, played on that level's map. */
@@ -24,11 +25,11 @@ final class GameCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> game() {
         return Commands.literal("game")
-                .then(Commands.literal("join").executes(GameCommands::join))
-                .then(Commands.literal("leave").executes(GameCommands::leave))
-                .then(Commands.literal("start").requires(GameCommands::opOrPlayerInGame).executes(GameCommands::start))
-                .then(Commands.literal("stop").requires(HellstormCommand::op).executes(GameCommands::stop))
-                .then(Commands.literal("status").executes(GameCommands::status));
+                .then(Commands.literal("join").executes(CommandErrors.titled("Unable to join game", GameCommands::join)))
+                .then(Commands.literal("leave").executes(CommandErrors.titled("Unable to leave game", GameCommands::leave)))
+                .then(Commands.literal("start").requires(GameCommands::opOrPlayerInGame).executes(CommandErrors.titled("Unable to start game", GameCommands::start)))
+                .then(Commands.literal("stop").requires(HellstormCommand::op).executes(CommandErrors.titled("Unable to stop game", GameCommands::stop)))
+                .then(Commands.literal("status").executes(CommandErrors.titled("Unable to show game status", GameCommands::status)));
     }
 
     private static boolean opOrPlayerInGame(CommandSourceStack source) {
@@ -39,8 +40,7 @@ final class GameCommands {
     private static int join(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         if (GameManager.forPlayer(player.getUUID()).isPresent()) {
-            ctx.getSource().sendFailure(Component.literal("You're already in a game. /hs game leave first"));
-            return 0;
+            throw CommandErrors.fail("You're already in a game. Run {} first", "/hs game leave");
         }
         ServerLevel level = player.serverLevel();
         Optional<GameManager.Active> existing = GameManager.get(level);
@@ -50,28 +50,21 @@ final class GameCommands {
         } else {
             GameManager.CreateResult result = GameManager.create(level);
             if (result instanceof GameManager.CreateResult.Invalid invalid) {
-                ctx.getSource().sendFailure(Component.literal("This map isn't playable yet:"));
-                invalid.report().problems().stream().filter(p -> p.severity() == Problem.Severity.ERROR)
-                        .forEach(p -> ctx.getSource().sendFailure(Component.literal(" - " + p.message())));
-                return 0;
+                throw CommandErrors.failAll(MapCommands.messages(invalid.report(), Problem.Severity.ERROR), List.of());
             }
             if (result instanceof GameManager.CreateResult.EditMode) {
-                ctx.getSource().sendFailure(Component.literal("This map is in edit mode. An op can open it for games with /hs map mode play"));
-                return 0;
+                throw CommandErrors.fail("This map is in edit mode. An op can open it for games with {}", "/hs map mode play");
             }
             if (result instanceof GameManager.CreateResult.NoStartCells) {
-                ctx.getSource().sendFailure(Component.literal("No start room has a spot to stand on (solid floor and two blocks of headroom)"));
-                return 0;
+                throw CommandErrors.fail("No start room has a spot to stand on (solid floor and two blocks of headroom)");
             }
             active = ((GameManager.CreateResult.Created) result).active();
         }
         if (active.game().full()) {
-            ctx.getSource().sendFailure(Component.literal("This game is full (" + active.game().settings().players().maxPlayers() + " players)"));
-            return 0;
+            throw CommandErrors.fail("This game is full ({} players)", active.game().settings().players().maxPlayers());
         }
         if (!active.game().join(player.getUUID())) {
-            ctx.getSource().sendFailure(Component.literal("This game is ending. Try again in a moment"));
-            return 0;
+            throw CommandErrors.fail("This game is ending. Try again in a moment");
         }
         // Before the start nothing happens to them: the end of the countdown takes their state and moves everyone in.
         boolean waiting = active.game().player(player.getUUID()).map(PlayerState::waiting).orElse(false);
@@ -89,8 +82,7 @@ final class GameCommands {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         Optional<GameManager.Active> active = GameManager.forPlayer(player.getUUID());
         if (active.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("You're not in a game"));
-            return 0;
+            throw CommandErrors.fail("You're not in a game");
         }
         boolean waiting = active.get().game().player(player.getUUID()).map(PlayerState::waiting).orElse(false);
         if (!waiting) {
@@ -105,25 +97,22 @@ final class GameCommands {
         return 1;
     }
 
-    private static int start(CommandContext<CommandSourceStack> ctx) {
+    private static int start(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         Optional<GameManager.Active> active = GameManager.get(ctx.getSource().getLevel());
         if (active.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("No game here. /hs game join first"));
-            return 0;
+            throw CommandErrors.fail("No game here. Run {} first", "/hs game join");
         }
         if (!active.get().game().start()) {
-            ctx.getSource().sendFailure(Component.literal("The game has already started"));
-            return 0;
+            throw CommandErrors.fail("The game has already started");
         }
         ctx.getSource().sendSuccess(() -> Component.literal("Starting"), true);
         return 1;
     }
 
-    private static int stop(CommandContext<CommandSourceStack> ctx) {
+    private static int stop(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         Optional<GameManager.Active> active = GameManager.get(ctx.getSource().getLevel());
         if (active.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("No game is running here"));
-            return 0;
+            throw CommandErrors.fail("No game is running here");
         }
         GameManager.end(active.get());
         ctx.getSource().sendSuccess(() -> Component.literal("Game stopped. Everyone's inventory is back"), true);

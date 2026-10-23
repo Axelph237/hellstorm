@@ -3,7 +3,6 @@ package dev.candycanecazoo.hellstorm.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import dev.candycanecazoo.hellstorm.tools.MapHistory;
 import net.minecraft.commands.CommandSourceStack;
@@ -21,8 +20,6 @@ import java.util.Optional;
 
 public final class HellstormCommand {
     private static final int RESERVE_MAGAZINES = 8;
-    private static final DynamicCommandExceptionType UNKNOWN_GUN =
-            new DynamicCommandExceptionType(id -> Component.literal("Unknown TacZ gun: " + id));
 
     private HellstormCommand() {}
 
@@ -34,8 +31,8 @@ public final class HellstormCommand {
     static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         var root = Commands.literal("hs")
                 .then(ZonesCommands.zones().requires(HellstormCommand::op))
-                .then(Commands.literal("undo").requires(HellstormCommand::op).executes(ctx -> step(ctx, true)))
-                .then(Commands.literal("redo").requires(HellstormCommand::op).executes(ctx -> step(ctx, false)))
+                .then(Commands.literal("undo").requires(HellstormCommand::op).executes(CommandErrors.titled("Unable to undo", ctx -> step(ctx, true))))
+                .then(Commands.literal("redo").requires(HellstormCommand::op).executes(CommandErrors.titled("Unable to redo", ctx -> step(ctx, false))))
                 .then(MapCommands.map().requires(HellstormCommand::op))
                 .then(ScriptCommands.script().requires(HellstormCommand::op))
                 .then(PowerCommands.power().requires(HellstormCommand::op))
@@ -48,7 +45,7 @@ public final class HellstormCommand {
                 .then(Commands.literal("give").requires(HellstormCommand::op)
                         .then(Commands.argument("gun", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(TaczBridge.allGuns(), builder))
-                                .executes(HellstormCommand::give)))
+                                .executes(CommandErrors.titled("Unable to give gun", HellstormCommand::give))))
                 .then(GameCommands.game());
         dispatcher.register(root);
     }
@@ -58,12 +55,11 @@ public final class HellstormCommand {
     }
 
     /** Undoes or redoes the level's last map edit. */
-    private static int step(CommandContext<CommandSourceStack> ctx, boolean undo) {
+    private static int step(CommandContext<CommandSourceStack> ctx, boolean undo) throws CommandSyntaxException {
         ServerLevel level = ctx.getSource().getLevel();
         Optional<String> what = undo ? MapHistory.undo(level) : MapHistory.redo(level);
         if (what.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal(undo ? "Nothing to undo" : "Nothing to redo"));
-            return 0;
+            throw CommandErrors.fail(undo ? "Nothing to undo" : "Nothing to redo");
         }
         ctx.getSource().sendSuccess(() -> Component.literal((undo ? "Undid " : "Redid ") + what.get()), false);
         return 1;
@@ -72,7 +68,7 @@ public final class HellstormCommand {
     private static int give(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ResourceLocation gunId = ResourceLocationArgument.getId(ctx, "gun");
-        ItemStack gun = TaczBridge.createGun(gunId, RESERVE_MAGAZINES).orElseThrow(() -> UNKNOWN_GUN.create(gunId));
+        ItemStack gun = TaczBridge.createGun(gunId, RESERVE_MAGAZINES).orElseThrow(() -> CommandErrors.fail("Unknown TacZ gun: {}", gunId));
         if (!player.getInventory().add(gun)) {
             player.drop(gun, false);
         }

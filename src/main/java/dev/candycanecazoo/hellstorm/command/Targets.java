@@ -1,11 +1,8 @@
 package dev.candycanecazoo.hellstorm.command;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -14,25 +11,19 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.List;
 import java.util.Optional;
 
 /** The machine a command applies to: the one the player is looking at, whichever of its blocks. */
 public final class Targets {
     private static final double REACH = 8;
-    private static final DynamicCommandExceptionType NOT_LOOKING =
-            new DynamicCommandExceptionType(what -> Component.literal("Look at a " + what + " (within " + (int) REACH + " blocks)"));
 
     private Targets() {}
 
     /** Fails the command with the machine's reason when its new settings were refused. */
-    /** A command error carrying {@code message}, to throw. */
-    static CommandSyntaxException fail(String message) {
-        return new SimpleCommandExceptionType(Component.literal(message)).create();
-    }
-
     static void require(Optional<String> problem) throws CommandSyntaxException {
         if (problem.isPresent()) {
-            throw new SimpleCommandExceptionType(Component.literal(problem.get())).create();
+            throw CommandErrors.failAll(List.of(problem.get()), List.of());
         }
     }
 
@@ -50,6 +41,6 @@ public final class Targets {
                 return type.cast(player.level().getBlockEntity(pos));
             }
         }
-        throw NOT_LOOKING.create(what);
+        throw CommandErrors.fail("Look at a {} (within {} blocks)", what, (int) REACH);
     }
 }

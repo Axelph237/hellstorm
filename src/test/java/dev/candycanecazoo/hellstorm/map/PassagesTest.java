@@ -107,7 +107,7 @@ class PassagesTest {
         CellProbe world = openings(map, Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(3, 1, 1), CellProbe.Cell.OPEN));
         assertEquals(Set.of(), find(map, world, 2).open(), "a closed door is no passage, whatever it's made of");
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), Passages.find(map, ZoneIndex.of(map), world, 2, Set.of("oak")).open());
-        assertFalse(MapValidator.validate(map, world, 2).has(MapValidator.DOOR_NOT_NEEDED), "the door is the only way through");
+        assertFalse(MapValidator.validate(map, world, 2).has(MapValidator.LOOPHOLE), "the door is the only way through");
     }
 
     /**

@@ -39,7 +39,7 @@ final class MobTestCommand {
     static LiteralArgumentBuilder<CommandSourceStack> mobtest() {
         return Commands.literal("mobtest").then(Commands.argument("profile", ResourceLocationArgument.id())
                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(MobProfiles.all().keySet(), builder))
-                .executes(MobTestCommand::run));
+                .executes(CommandErrors.titled("Unable to spawn test mob", MobTestCommand::run)));
     }
 
     private static int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -48,13 +48,11 @@ final class MobTestCommand {
         ResourceLocation id = ResourceLocationArgument.getId(ctx, "profile");
         MobProfile profile = MobProfiles.all().get(id);
         if (profile == null) {
-            ctx.getSource().sendFailure(Component.literal("No mob profile " + id + ". Profiles live in data/<ns>/hellstorm/mob_profiles/"));
-            return 0;
+            throw CommandErrors.fail("No mob profile {}. Profiles live in {}", id, "data/<ns>/hellstorm/mob_profiles/");
         }
         Optional<Mob> created = MobFactory.create(level, profile, id);
         if (created.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("Couldn't create " + profile.entity() + " (see the log)"));
-            return 0;
+            throw CommandErrors.fail("Couldn't create {} (see the log)", profile.entity());
         }
         Mob mob = created.get();
         HitResult hit = player.pick(8, 1.0f, false);

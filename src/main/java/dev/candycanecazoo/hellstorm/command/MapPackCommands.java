@@ -18,6 +18,7 @@ import dev.candycanecazoo.hellstorm.map.validate.ValidationReport;
 import dev.candycanecazoo.hellstorm.tools.MapModes;
 import dev.candycanecazoo.hellstorm.tools.MapPack;
 import dev.candycanecazoo.hellstorm.tools.ToolState;
+import dev.candycanecazoo.hellstorm.util.Highlight;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -32,6 +33,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,37 +49,37 @@ final class MapPackCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> export() {
         return Commands.literal("export").then(Commands.argument("name", StringArgumentType.word())
-                .executes(ctx -> export(ctx, false))
-                .then(Commands.literal("force").executes(ctx -> export(ctx, true))));
+                .executes(CommandErrors.titled("Unable to export map", ctx -> export(ctx, false)))
+                .then(Commands.literal("force").executes(CommandErrors.titled("Unable to export map", ctx -> export(ctx, true)))));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> importPack() {
         return Commands.literal("import").then(Commands.argument("name", StringArgumentType.word()).suggests(PACKS)
-                .executes(ctx -> importPack(ctx, Optional.empty(), false))
-                .then(Commands.literal("replace").executes(ctx -> importPack(ctx, Optional.empty(), true)))
+                .executes(CommandErrors.titled("Unable to import map pack", ctx -> importPack(ctx, Optional.empty(), false)))
+                .then(Commands.literal("replace").executes(CommandErrors.titled("Unable to import map pack", ctx -> importPack(ctx, Optional.empty(), true))))
                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
-                        .executes(ctx -> importPack(ctx, Optional.of(BlockPosArgument.getBlockPos(ctx, "pos")), false))
-                        .then(Commands.literal("replace").executes(ctx -> importPack(ctx, Optional.of(BlockPosArgument.getBlockPos(ctx, "pos")), true)))));
+                        .executes(CommandErrors.titled("Unable to import map pack", ctx -> importPack(ctx, Optional.of(BlockPosArgument.getBlockPos(ctx, "pos")), false)))
+                        .then(Commands.literal("replace").executes(CommandErrors.titled("Unable to import map pack", ctx -> importPack(ctx, Optional.of(BlockPosArgument.getBlockPos(ctx, "pos")), true))))));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> packs() {
-        return Commands.literal("packs").executes(ctx -> {
+        return Commands.literal("packs").executes(CommandErrors.titled("Unable to list map packs", ctx -> {
             List<String> names = available();
             ctx.getSource().sendSuccess(() -> Component.literal(names.isEmpty() ? "No map packs in " + folder()
                     : "Map packs in " + folder() + ": " + String.join(", ", names)), false);
             return names.size();
-        });
+        }));
     }
 
     /** {@code /hs map mode} shows it; {@code /hs map mode edit|play} switches it. */
     static LiteralArgumentBuilder<CommandSourceStack> mode() {
-        LiteralArgumentBuilder<CommandSourceStack> mode = Commands.literal("mode").executes(ctx -> {
+        LiteralArgumentBuilder<CommandSourceStack> mode = Commands.literal("mode").executes(CommandErrors.titled("Unable to show map mode", ctx -> {
             MapMode current = MapSavedData.get(ctx.getSource().getLevel()).mode();
             ctx.getSource().sendSuccess(() -> Component.literal("The map is in " + current.getSerializedName() + " mode"), false);
             return 1;
-        });
+        }));
         for (MapMode target : MapMode.values()) {
-            mode.then(Commands.literal(target.getSerializedName()).executes(ctx -> {
+            mode.then(Commands.literal(target.getSerializedName()).executes(CommandErrors.titled("Unable to switch map mode", ctx -> {
                 ServerLevel level = ctx.getSource().getLevel();
                 notWhilePlaying(level);
                 MapModes.set(level, target);
@@ -85,7 +87,7 @@ final class MapPackCommands {
                         ? "Edit mode: games can't start" : "Play mode: games can start, and hide the spawn markers while they run")
                         .withStyle(ChatFormatting.GREEN), true);
                 return 1;
-            }));
+            })));
         }
         return mode;
     }
@@ -105,14 +107,14 @@ final class MapPackCommands {
     private static String name(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
         if (!MapPack.NAME.matcher(name).matches()) {
-            throw Targets.fail("A map pack name is 1 to 32 lowercase letters, digits, _ or -");
+            throw CommandErrors.fail("A map pack name is {}", "1 to 32 lowercase letters, digits, _ or -");
         }
         return name;
     }
 
     private static void notWhilePlaying(ServerLevel level) throws CommandSyntaxException {
         if (GameManager.get(level).isPresent()) {
-            throw Targets.fail("A game is running here. /hs game stop first");
+            throw CommandErrors.fail("A game is running here. {} first", "/hs game stop");
         }
     }
 
@@ -123,21 +125,21 @@ final class MapPackCommands {
         ZombiesMap map = MapSavedData.get(level).map();
         ValidationReport report = MapValidator.validate(map, GameManager.validationContext(level));
         if (!report.playable() && !force) {
-            report.problems().stream().filter(p -> p.severity() == Problem.Severity.ERROR)
-                    .forEach(p -> ctx.getSource().sendFailure(Component.literal(" - " + p.message())));
-            throw Targets.fail("The map has errors (above). Fix them, or export anyway with /hs map export " + name + " force");
+            List<String> errors = new ArrayList<>(MapCommands.messages(report, Problem.Severity.ERROR));
+            errors.add(Highlight.of("The map has errors (above). Fix them, or export anyway with {}", "/hs map export " + name + " force"));
+            throw CommandErrors.failAll(errors, MapCommands.messages(report, Problem.Severity.WARNING));
         }
         Optional<BlockBox> selected = ctx.getSource().getEntity() instanceof ServerPlayer player ? ToolState.selection(player).bounds() : Optional.empty();
         Optional<BlockBox> area = selected.or(() -> MapGeometry.bounds(map).map(b -> b.grown(ServerConfig.EXPORT_MARGIN.get())));
         if (area.isEmpty()) {
-            throw Targets.fail("There's nothing to export: the map is empty and nothing is selected with the Zone Wand");
+            throw CommandErrors.fail("There's nothing to export: the map is empty and nothing is selected with the Zone Wand");
         }
         Path datapack = level.getServer().getWorldPath(LevelResource.DATAPACK_DIR).resolve(name);
         Path file = folder().resolve(name + ".zip");
         try {
             MapPack.export(level, name, area.get(), map, Optional.of(datapack), file);
         } catch (IOException e) {
-            throw Targets.fail("Couldn't write " + file + ": " + e.getMessage());
+            throw CommandErrors.fail("Couldn't write {}: {}", file, e.getMessage());
         }
         BlockBox box = area.get();
         ctx.getSource().sendSuccess(() -> Component.literal("Exported " + box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ() + " blocks from "
@@ -151,23 +153,23 @@ final class MapPackCommands {
         ServerLevel level = ctx.getSource().getLevel();
         notWhilePlaying(level);
         if (!MapSavedData.get(level).map().equals(ZombiesMap.EMPTY) && !replace) {
-            throw Targets.fail("This world already has a map. Add replace to put the pack's map in its place: /hs map import " + name + " ... replace");
+            throw CommandErrors.fail("This world already has a map. Add {} to put the pack's map in its place: {}", "replace", "/hs map import " + name + " ... replace");
         }
         Path file = folder().resolve(name + ".zip");
         MapPack.Contents contents;
         try {
             contents = MapPack.read(file);
         } catch (IOException e) {
-            throw Targets.fail("Couldn't read " + file + ": " + e.getMessage());
+            throw CommandErrors.fail("Couldn't read {}: {}", file, e.getMessage());
         } catch (MapPack.BadPack e) {
-            throw Targets.fail(name + ".zip isn't a usable map pack: " + e.getMessage());
+            throw CommandErrors.fail("{} isn't a usable map pack: {}", name + ".zip", e.getMessage());
         }
         BlockPos corner = at.orElse(contents.manifest().origin());
         if (!contents.datapack().isEmpty()) {
             try {
                 MapPack.installDatapack(level.getServer().getWorldPath(LevelResource.DATAPACK_DIR), name, contents.datapack());
             } catch (IOException e) {
-                throw Targets.fail("Couldn't install the pack's datapack: " + e.getMessage());
+                throw CommandErrors.fail("Couldn't install the pack's datapack: {}", e.getMessage());
             }
         }
         MapPack.place(level, contents, corner);

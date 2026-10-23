@@ -25,12 +25,12 @@ final class BoxCommands {
                 .then(Commands.literal("pool").then(Commands.argument("pool", ResourceLocationArgument.id())
                         .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(
                                 Stream.concat(Stream.of(BoxPool.DEFAULT_ID), BoxPools.all().keySet().stream()).distinct(), builder))
-                        .executes(BoxCommands::pool)))
+                        .executes(CommandErrors.titled("Unable to set mystery box pool", BoxCommands::pool))))
                 .then(Commands.literal("cost")
-                        .then(Commands.literal("default").executes(ctx -> cost(ctx, Optional.empty())))
+                        .then(Commands.literal("default").executes(CommandErrors.titled("Unable to set mystery box cost", ctx -> cost(ctx, Optional.empty()))))
                         .then(Commands.argument("points", IntegerArgumentType.integer(0))
-                                .executes(ctx -> cost(ctx, Optional.of(IntegerArgumentType.getInteger(ctx, "points"))))))
-                .then(Commands.literal("describe").executes(ctx -> done(ctx, target(ctx))));
+                                .executes(CommandErrors.titled("Unable to set mystery box cost", ctx -> cost(ctx, Optional.of(IntegerArgumentType.getInteger(ctx, "points")))))))
+                .then(Commands.literal("describe").executes(CommandErrors.titled("Unable to describe mystery box", ctx -> done(ctx, target(ctx)))));
     }
 
     private static MysteryBoxBlock.Entity target(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

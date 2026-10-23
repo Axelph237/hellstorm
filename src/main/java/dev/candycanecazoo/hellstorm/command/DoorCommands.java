@@ -7,8 +7,6 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
@@ -38,13 +36,10 @@ import java.util.function.UnaryOperator;
  * and add it, then add or cut more boxes until it's right.
  */
 final class DoorCommands {
-    private static final DynamicCommandExceptionType UNKNOWN = new DynamicCommandExceptionType(id -> Component.literal("No door named '" + id + "'"));
-    private static final DynamicCommandExceptionType BAD_ID =
-            new DynamicCommandExceptionType(id -> Component.literal("Invalid door name '" + id + "': use 1-32 of a-z, 0-9, _"));
-    private static final DynamicCommandExceptionType NOT_IN_DOOR =
-            new DynamicCommandExceptionType(id -> Component.literal("The selection holds no blocks of door '" + id + "'"));
-    private static final SimpleCommandExceptionType NOTHING_ADDED = new SimpleCommandExceptionType(Component.literal(
-            "The selection has no blocks to add: it's empty, they're already in this door, or they belong to other doors"));
+    private static CommandErrors.Failure unknown(String id) {
+        return CommandErrors.fail("No door named {}", id);
+    }
+
     static final SuggestionProvider<CommandSourceStack> DOORS = (ctx, builder) ->
             SharedSuggestionProvider.suggest(MapSavedData.get(ctx.getSource().getLevel()).map().doors().keySet(), builder);
 
@@ -52,28 +47,28 @@ final class DoorCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> add() {
         return Commands.literal("door").then(name()
-                .executes(ctx -> add(ctx, OptionalInt.empty()))
+                .executes(CommandErrors.titled("Unable to add door", ctx -> add(ctx, OptionalInt.empty())))
                 .then(Commands.argument("cost", IntegerArgumentType.integer(0))
-                        .executes(ctx -> add(ctx, OptionalInt.of(IntegerArgumentType.getInteger(ctx, "cost"))))));
+                        .executes(CommandErrors.titled("Unable to add door", ctx -> add(ctx, OptionalInt.of(IntegerArgumentType.getInteger(ctx, "cost")))))));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> cut() {
-        return Commands.literal("door").then(name().executes(DoorCommands::cut));
+        return Commands.literal("door").then(name().executes(CommandErrors.titled("Unable to cut door", DoorCommands::cut)));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> remove() {
-        return Commands.literal("door").then(name().executes(DoorCommands::remove));
+        return Commands.literal("door").then(name().executes(CommandErrors.titled("Unable to remove door", DoorCommands::remove)));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> set() {
         return Commands.literal("door").then(name()
                 .then(Commands.literal("cost").then(Commands.argument("points", IntegerArgumentType.integer(0))
-                        .executes(ctx -> set(ctx, "cost", d -> d.withCost(IntegerArgumentType.getInteger(ctx, "points"))))))
+                        .executes(CommandErrors.titled("Unable to set door cost", ctx -> set(ctx, "cost", d -> d.withCost(IntegerArgumentType.getInteger(ctx, "points")))))))
                 .then(Commands.literal("power").then(Commands.argument("required", BoolArgumentType.bool())
-                        .executes(ctx -> set(ctx, "power", d -> d.withPower(BoolArgumentType.getBool(ctx, "required"))))))
+                        .executes(CommandErrors.titled("Unable to set door power", ctx -> set(ctx, "power", d -> d.withPower(BoolArgumentType.getBool(ctx, "required")))))))
                 .then(Commands.literal("style").then(Commands.argument("style", StringArgumentType.word())
                         .suggests((c, b) -> SharedSuggestionProvider.suggest(Arrays.stream(DoorDef.Style.values()).map(DoorDef.Style::getSerializedName), b))
-                        .executes(DoorCommands::style))));
+                        .executes(CommandErrors.titled("Unable to set door style", DoorCommands::style)))));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> name() {
@@ -84,7 +79,7 @@ final class DoorCommands {
         String id = StringArgumentType.getString(ctx, "door");
         DoorDef door = MapSavedData.get(ctx.getSource().getLevel()).map().doors().get(id);
         if (door == null) {
-            throw UNKNOWN.create(id);
+            throw unknown(id);
         }
         return door;
     }
@@ -99,7 +94,7 @@ final class DoorCommands {
         DoorDef door = map.doors().get(id);
         if (door == null) {
             if (!ZoneId.isValid(id)) {
-                throw BAD_ID.create(id);
+                throw CommandErrors.fail("Invalid door name {}: use {}", id, "1-32 of a-z, 0-9, _");
             }
             door = DoorDef.empty(id, cost.orElse(GameManager.settings().doors().defaultCost()));
         }
@@ -113,7 +108,7 @@ final class DoorCommands {
         }
         DoorBlocks.Result result = new DoorBlocks.Result(door, changed, skipped);
         if (result.changed() == 0) {
-            throw NOTHING_ADDED.create();
+            throw CommandErrors.fail("The selection has no blocks to add: it's empty, they're already in this door, or they belong to other doors");
         }
         MapHistory.edit(level, "add door '" + id + "'", m -> m.withDoor(result.door()));
         ZonesCommands.used(player);
@@ -130,7 +125,7 @@ final class DoorCommands {
         DoorDef door = existing(ctx);
         List<BlockBox> boxes = ZonesCommands.selection(player);
         if (door.members().stream().noneMatch(p -> ZonesCommands.holds(boxes, p))) {
-            throw NOT_IN_DOOR.create(door.id());
+            throw CommandErrors.fail("The selection holds no blocks of door {}", door.id());
         }
         MapHistory.edit(player.serverLevel(), "cut door '" + door.id() + "'", map -> cut(map, door.id(), boxes));
         ZonesCommands.used(player);
@@ -163,7 +158,7 @@ final class DoorCommands {
     private static int style(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         String raw = StringArgumentType.getString(ctx, "style");
         DoorDef.Style style = Arrays.stream(DoorDef.Style.values()).filter(s -> s.getSerializedName().equals(raw)).findFirst()
-                .orElseThrow(() -> new SimpleCommandExceptionType(Component.literal("Style is door or debris")).create());
+                .orElseThrow(() -> CommandErrors.fail("Style is {} or {}", "door", "debris"));
         return set(ctx, "style", d -> d.withStyle(style));
     }
 

@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.map;
 import dev.candycanecazoo.hellstorm.map.validate.MapValidator;
 import dev.candycanecazoo.hellstorm.map.validate.Problem;
 import dev.candycanecazoo.hellstorm.map.validate.ValidationReport;
+import dev.candycanecazoo.hellstorm.util.Highlight;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import org.junit.jupiter.api.Test;
@@ -103,9 +104,9 @@ class MapValidatorTest {
                 List.of(new dev.candycanecazoo.hellstorm.map.validate.ValidationContext.MobSize("test:giant", 3.6f, 12f))));
         assertTrue(report.has(MapValidator.WINDOW_TOO_LARGE), "8 wide is over 5");
         assertEquals(List.of("orphan"), report.problems().stream().filter(p -> p.code().equals(MapValidator.WINDOW_UNKNOWN_ZONE))
-                .map(p -> p.message().split("'")[1]).toList(), "only a window with no zone right behind it opens into no zone");
-        assertTrue(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'huge'")));
-        assertFalse(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains("'lost'")),
+                .map(p -> Highlight.plain(p.message()).split(" ")[1]).toList(), "only a window with no zone right behind it opens into no zone");
+        assertTrue(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains(Highlight.key("huge"))));
+        assertFalse(report.problems().stream().anyMatch(p -> p.code().equals(MapValidator.WINDOW_WITHOUT_SPAWN) && p.message().contains(Highlight.key("lost"))),
                 "the marker in front of 'lost' links to it and feeds the zone behind it, whatever zone the window was made in");
         assertTrue(report.has(MapValidator.MOB_TOO_BIG_FOR_WINDOW));
     }
@@ -167,7 +168,12 @@ class MapValidatorTest {
         assertTrue(MapValidator.validate(oneSided).has(MapValidator.DOOR_NOT_BETWEEN_ZONES), "borders only the start zone, from above");
         ZombiesMap pointless = twoTouchingZonesWithSpawns().withDoor(DoorDef.empty("arch", 750).withMember(new BlockPos(9, 4, 2)).withMember(new BlockPos(10, 4, 2)));
         ValidationReport report = MapValidator.validate(pointless);
-        assertTrue(report.has(MapValidator.DOOR_NOT_NEEDED), "touching zones are connected anyway: " + report.problems());
-        assertTrue(report.playable(), "only a warning");
+        assertTrue(report.has(MapValidator.LOOPHOLE), "touching zones are connected anyway: " + report.problems());
+        assertFalse(report.playable(), "a loophole stops a game from starting");
+        Problem loophole = report.problems().stream().filter(p -> p.code().equals(MapValidator.LOOPHOLE)).findFirst().orElseThrow();
+        BlockPos at = loophole.pos().orElseThrow();
+        assertTrue(Highlight.plain(loophole.message()).matches("Loophole found between \\w+ and \\w+ at \\(-?\\d+, -?\\d+, -?\\d+\\)"), loophole.message());
+        assertTrue(Highlight.plain(loophole.message()).endsWith("(" + at.getX() + ", " + at.getY() + ", " + at.getZ() + ")"), "names where the problem marker is");
+        assertTrue(ZoneIndex.of(pointless).zoneAt(at).isPresent(), "the opening is where the rooms meet, inside one of them: " + at);
     }
 }

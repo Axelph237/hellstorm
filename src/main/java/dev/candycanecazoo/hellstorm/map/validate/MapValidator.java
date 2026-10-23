@@ -13,6 +13,7 @@ import dev.candycanecazoo.hellstorm.map.ZoneGraph;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZoneIndex;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
+import dev.candycanecazoo.hellstorm.util.Highlight;
 import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;
@@ -42,7 +43,8 @@ public final class MapValidator {
     public static final String SPLIT_START_ZONE = "split_start_zone";
     public static final String EMPTY_DOOR = "empty_door";
     public static final String DOOR_NOT_BETWEEN_ZONES = "door_not_between_zones";
-    public static final String DOOR_NOT_NEEDED = "door_not_needed";
+    /** A door's rooms are joined anyway, through an opening that isn't a door, so the door unlocks nothing. */
+    public static final String LOOPHOLE = "loophole";
 
     /** Passages are searched this many cells out from each zone unless the caller says otherwise. */
     public static final int DEFAULT_MAX_GAP = 2;
@@ -83,21 +85,21 @@ public final class MapValidator {
         for (WindowDef window : map.windows().values()) {
             BlockPos at = window.bottomCenter();
             if (window.width() > context.windows().maxWidth() || window.height() > context.windows().maxHeight()) {
-                problems.add(Problem.error(WINDOW_TOO_LARGE, "Window '" + window.id() + "' is " + window.width() + "x" + window.height()
-                        + ", over the " + context.windows().maxWidth() + "x" + context.windows().maxHeight() + " limit", at));
+                problems.add(Problem.error(WINDOW_TOO_LARGE, Highlight.of("Window {} is {}, over the {} limit", window.id(), window.width() + "x" + window.height(),
+                        context.windows().maxWidth() + "x" + context.windows().maxHeight()), at));
             }
             if (window.zoneBehind(index).isEmpty()) {
-                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, "Window '" + window.id() + "' doesn't open into a room. The block just inside it, at "
-                        + window.insideSpot().toShortString() + ", is in no room. Redraw the room behind it or remove the window", at));
+                problems.add(Problem.error(WINDOW_UNKNOWN_ZONE, Highlight.of("Window {} doesn't open into a room. The block just inside it, at {}, is in no room. Redraw the room behind it or remove the window",
+                        window.id(), window.insideSpot()), at));
             }
             if (links.values().stream().noneMatch(l -> l.window().equals(Optional.of(window.id())))) {
-                problems.add(Problem.warning(WINDOW_WITHOUT_SPAWN, "No spawn marker outside window '" + window.id()
-                        + "' (place one within " + context.windows().linkRange() + " blocks of its outer side)", at));
+                problems.add(Problem.warning(WINDOW_WITHOUT_SPAWN, Highlight.of("No spawn marker outside window {} (place one within {} blocks of its outer side)",
+                        window.id(), context.windows().linkRange()), at));
             }
             for (ValidationContext.MobSize mob : context.mobs()) {
                 if (Math.ceil(mob.width()) > window.width() || Math.ceil(mob.height()) > window.height()) {
-                    problems.add(Problem.warning(MOB_TOO_BIG_FOR_WINDOW, "Mob profile " + mob.profile() + " (" + mob.width() + "x" + mob.height()
-                            + ") can't fit through window '" + window.id() + "' (" + window.width() + "x" + window.height() + ")", at));
+                    problems.add(Problem.warning(MOB_TOO_BIG_FOR_WINDOW, Highlight.of("Mob profile {} ({}) can't fit through window {} ({})", mob.profile(), mob.width() + "x" + mob.height(),
+                            window.id(), window.width() + "x" + window.height()), at));
                 }
             }
         }
@@ -107,11 +109,11 @@ public final class MapValidator {
         List<Zone> zones = List.copyOf(map.zones().values());
         for (Zone zone : zones) {
             if (zone.boxes().isEmpty()) {
-                problems.add(Problem.error(EMPTY_ZONE, "Room '" + zone.id() + "' has no boxes", null));
+                problems.add(Problem.error(EMPTY_ZONE, Highlight.of("Room {} has no boxes", zone.id()), null));
             }
         }
         if (map.startZones().isEmpty()) {
-            problems.add(Problem.error(NO_START_ZONE, "No room is marked as a start room (/hs zones set room <room> start true)", null));
+            problems.add(Problem.error(NO_START_ZONE, Highlight.of("No room is marked as a start room ({})", "/hs zones set room <room> start true"), null));
         }
         for (int i = 0; i < zones.size(); i++) {
             for (int j = i + 1; j < zones.size(); j++) {
@@ -120,7 +122,7 @@ public final class MapValidator {
                         if (a.intersects(b)) {
                             BlockPos at = new BlockPos(Math.max(a.minX(), b.minX()), Math.max(a.minY(), b.minY()), Math.max(a.minZ(), b.minZ()));
                             problems.add(Problem.error(ZONE_OVERLAP,
-                                    "Rooms '" + zones.get(i).id() + "' and '" + zones.get(j).id() + "' overlap", at));
+                                    Highlight.of("Rooms {} and {} overlap", zones.get(i).id(), zones.get(j).id()), at));
                         }
                     }
                 }
@@ -133,8 +135,8 @@ public final class MapValidator {
         for (Zone zone : map.startZones()) {
             List<List<BlockPos>> pieces = StandingArea.pieces(zone, context.standable());
             for (List<BlockPos> piece : pieces.subList(Math.min(1, pieces.size()), pieces.size())) {
-                problems.add(Problem.warning(SPLIT_START_ZONE, "Start room '" + zone.id() + "' has " + piece.size()
-                        + " standing spots players can't walk to from the rest of it. Players won't spawn there; remove the box if it's a mistake",
+                problems.add(Problem.warning(SPLIT_START_ZONE, Highlight.of("Start room {} has {} standing spots players can't walk to from the rest of it. Players won't spawn there; remove the box if it's a mistake",
+                        zone.id(), piece.size()),
                         piece.get(0)));
             }
         }
@@ -145,17 +147,20 @@ public final class MapValidator {
         ZoneGraph open = ZoneGraph.of(map, passages.open());
         for (DoorDef door : map.doors().values()) {
             if (door.members().isEmpty()) {
-                problems.add(Problem.error(EMPTY_DOOR, "Door '" + door.id() + "' has no blocks. Select some with the Zone Wand, then /hs zones add door " + door.id(), null));
+                problems.add(Problem.error(EMPTY_DOOR, Highlight.of("Door {} has no blocks. Select some with the Zone Wand, then {}", door.id(), "/hs zones add door " + door.id()), null));
                 continue;
             }
             BlockPos at = door.members().iterator().next();
             Set<ZoneId> zones = door.zones(index);
             if (zones.size() < 2) {
-                problems.add(Problem.error(DOOR_NOT_BETWEEN_ZONES, "Door '" + door.id() + "' must stand between two rooms, but it borders "
-                        + (zones.isEmpty() ? "none" : "only " + zones), at));
+                problems.add(Problem.error(DOOR_NOT_BETWEEN_ZONES, zones.isEmpty() ? Highlight.of("Door {} must stand between two rooms, but it borders none", door.id())
+                        : Highlight.of("Door {} must stand between two rooms, but it borders only {}", door.id(), String.join(", ", zones.stream().map(ZoneId::value).sorted().toList())), at));
             } else if (door.links(index).stream().allMatch(link -> open.neighbors(link.a()).contains(link.b()))) {
-                problems.add(Problem.warning(DOOR_NOT_NEEDED, "Door '" + door.id() + "' joins " + zones
-                        + ", but they're already connected without it, so buying it unlocks nothing", at));
+                // Buying the door would unlock nothing: an opening that isn't a door already joins its rooms.
+                for (Passages.Link link : door.links(index)) {
+                    BlockPos opening = passages.openings().getOrDefault(link, at);
+                    problems.add(Problem.error(LOOPHOLE, Highlight.of("Loophole found between {} and {} at {}", link.a(), link.b(), opening), opening));
+                }
             }
         }
     }
@@ -172,14 +177,14 @@ public final class MapValidator {
         Set<ZoneId> reachable = ZoneGraph.of(map, withDoors).reachableFrom(starts);
         passages.closedDoors().forEach((link, door) -> {
             if (!graph.neighbors(link.a()).contains(link.b())) {
-                problems.add(Problem.warning(CLOSED_DOOR_GAP, "Rooms '" + link.a() + "' and '" + link.b()
-                        + "' are only joined through a closed door. Zombies can't open it: open it, remove it, or make it a door players buy (/hs zones add door)", door));
+                problems.add(Problem.warning(CLOSED_DOOR_GAP, Highlight.of("Rooms {} and {} are only joined through a closed door. Zombies can't open it: open it, remove it, or make it a door players buy ({})",
+                        link.a(), link.b(), "/hs zones add door"), door));
             }
         });
         for (Zone zone : map.zones().values()) {
             if (!reachable.contains(zone.id()) && !zone.boxes().isEmpty()) {
                 problems.add(Problem.error(UNREACHABLE_ZONE,
-                        "Room '" + zone.id() + "' can't be reached from a start room", null));
+                        Highlight.of("Room {} can't be reached from a start room", zone.id()), null));
             }
         }
     }
@@ -198,7 +203,7 @@ public final class MapValidator {
         for (Zone zone : map.zones().values()) {
             if (!zonesWithSpawns.contains(zone.id()) && !zone.boxes().isEmpty()) {
                 problems.add(Problem.warning(ZONE_WITHOUT_SPAWN,
-                        "Room '" + zone.id() + "' has no spawn markers", null));
+                        Highlight.of("Room {} has no spawn markers", zone.id()), null));
             }
         }
     }

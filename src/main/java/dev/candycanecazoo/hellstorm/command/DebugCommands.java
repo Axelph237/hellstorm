@@ -19,33 +19,33 @@ final class DebugCommands {
     private DebugCommands() {}
 
     static LiteralArgumentBuilder<CommandSourceStack> debug() {
-        var debug = Commands.literal("debug").executes(ctx -> {
+        var debug = Commands.literal("debug").executes(CommandErrors.titled("Unable to list debug rules", ctx -> {
             DebugRules rules = DebugRules.get(ctx.getSource().getServer());
             for (DebugRules.Rule rule : DebugRules.Rule.values()) {
                 ctx.getSource().sendSuccess(() -> Component.literal(rule.id() + " = " + rules.get(rule)), false);
             }
             return 1;
-        });
+        }));
         for (DebugRules.Rule rule : DebugRules.Rule.values()) {
             debug.then(Commands.literal(rule.id())
-                    .executes(ctx -> {
+                    .executes(CommandErrors.titled("Unable to show debug rule", ctx -> {
                         boolean value = DebugRules.get(ctx.getSource().getServer()).get(rule);
                         ctx.getSource().sendSuccess(() -> Component.literal(rule.id() + " = " + value), false);
                         return value ? 1 : 0;
-                    })
-                    .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+                    }))
+                    .then(Commands.argument("value", BoolArgumentType.bool()).executes(CommandErrors.titled("Unable to set debug rule", ctx -> {
                         boolean value = BoolArgumentType.getBool(ctx, "value");
                         DebugRules.get(ctx.getSource().getServer()).set(rule, value);
                         ctx.getSource().sendSuccess(() -> Component.literal(rule.id() + " is now " + value), true);
                         return 1;
-                    })));
+                    }))));
         }
         for (Cheats.Cheat cheat : Cheats.Cheat.values()) {
             debug.then(Commands.literal(cheat.id())
                     .then(Commands.argument("on", BoolArgumentType.bool())
-                            .executes(ctx -> cheat(ctx, cheat, List.of(ctx.getSource().getPlayerOrException())))
+                            .executes(CommandErrors.titled("Unable to set cheat", ctx -> cheat(ctx, cheat, List.of(ctx.getSource().getPlayerOrException()))))
                             .then(Commands.argument("players", EntityArgument.players())
-                                    .executes(ctx -> cheat(ctx, cheat, EntityArgument.getPlayers(ctx, "players"))))));
+                                    .executes(CommandErrors.titled("Unable to set cheat", ctx -> cheat(ctx, cheat, EntityArgument.getPlayers(ctx, "players")))))));
         }
         return debug;
     }

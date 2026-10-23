@@ -18,9 +18,9 @@ final class PapMachineCommands {
     static LiteralArgumentBuilder<CommandSourceStack> upgrader() {
         return Commands.literal("upgrader")
                 .then(Commands.literal("cost")
-                        .then(Commands.literal("default").executes(ctx -> cost(ctx, Optional.empty())))
+                        .then(Commands.literal("default").executes(CommandErrors.titled("Unable to set upgrader cost", ctx -> cost(ctx, Optional.empty()))))
                         .then(Commands.argument("points", IntegerArgumentType.integer(0))
-                                .executes(ctx -> cost(ctx, Optional.of(IntegerArgumentType.getInteger(ctx, "points"))))));
+                                .executes(CommandErrors.titled("Unable to set upgrader cost", ctx -> cost(ctx, Optional.of(IntegerArgumentType.getInteger(ctx, "points")))))));
     }
 
     private static int cost(CommandContext<CommandSourceStack> ctx, Optional<Integer> cost) throws CommandSyntaxException {

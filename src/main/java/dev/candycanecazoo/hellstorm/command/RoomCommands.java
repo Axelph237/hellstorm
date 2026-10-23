@@ -6,8 +6,6 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
@@ -33,16 +31,17 @@ import java.util.Optional;
 
 /** The room branches of {@code /hs zones}. A room is made of boxes from the Zone Wand selection or from room detection. */
 final class RoomCommands {
-    private static final SimpleCommandExceptionType NO_DETECTION =
-            new SimpleCommandExceptionType(Component.literal("No pending detection. Run /hs zones detect <room> first"));
-    private static final DynamicCommandExceptionType BAD_ID =
-            new DynamicCommandExceptionType(id -> Component.literal("Invalid room name '" + id + "': use 1-32 of a-z, 0-9, _"));
-    private static final DynamicCommandExceptionType UNKNOWN =
-            new DynamicCommandExceptionType(id -> Component.literal("No room named '" + id + "'"));
-    private static final DynamicCommandExceptionType NOT_IN_ROOM =
-            new DynamicCommandExceptionType(id -> Component.literal("The selection doesn't touch room '" + id + "'"));
-    private static final DynamicCommandExceptionType OVERLAP =
-            new DynamicCommandExceptionType(id -> Component.literal("That box overlaps room '" + id + "'"));
+    private static CommandErrors.Failure noDetection() {
+        return CommandErrors.fail("No pending detection. Run {} first", "/hs zones detect <room>");
+    }
+
+    private static CommandErrors.Failure unknown(ZoneId id) {
+        return CommandErrors.fail("No room named {}", id);
+    }
+
+    private static CommandErrors.Failure overlap(ZoneId id) {
+        return CommandErrors.fail("That box overlaps room {}", id);
+    }
 
     static final SuggestionProvider<CommandSourceStack> ROOMS = (ctx, builder) -> SharedSuggestionProvider.suggest(
             MapSavedData.get(ctx.getSource().getLevel()).map().zones().keySet().stream().map(ZoneId::value), builder);
@@ -51,26 +50,26 @@ final class RoomCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> add() {
         return Commands.literal("room").then(name()
-                .executes(ctx -> add(ctx, Optional.empty()))
+                .executes(CommandErrors.titled("Unable to add room", ctx -> add(ctx, Optional.empty())))
                 .then(Commands.argument("start", BoolArgumentType.bool())
-                        .executes(ctx -> add(ctx, Optional.of(BoolArgumentType.getBool(ctx, "start"))))));
+                        .executes(CommandErrors.titled("Unable to add room", ctx -> add(ctx, Optional.of(BoolArgumentType.getBool(ctx, "start")))))));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> cut() {
-        return Commands.literal("room").then(name().executes(RoomCommands::cut));
+        return Commands.literal("room").then(name().executes(CommandErrors.titled("Unable to cut room", RoomCommands::cut)));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> remove() {
-        return Commands.literal("room").then(name().executes(RoomCommands::remove));
+        return Commands.literal("room").then(name().executes(CommandErrors.titled("Unable to remove room", RoomCommands::remove)));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> set() {
         return Commands.literal("room").then(name()
-                .then(Commands.literal("start").then(Commands.argument("start", BoolArgumentType.bool()).executes(RoomCommands::setStart))));
+                .then(Commands.literal("start").then(Commands.argument("start", BoolArgumentType.bool()).executes(CommandErrors.titled("Unable to set room start", RoomCommands::setStart)))));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> detect() {
-        return Commands.literal("detect").then(name().executes(RoomCommands::detect));
+        return Commands.literal("detect").then(name().executes(CommandErrors.titled("Unable to detect room", RoomCommands::detect)));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> name() {
@@ -83,13 +82,13 @@ final class RoomCommands {
 
     static ZoneId parse(String raw) throws CommandSyntaxException {
         if (!ZoneId.isValid(raw)) {
-            throw BAD_ID.create(raw);
+            throw CommandErrors.fail("Invalid room name {}: use {}", raw, "1-32 of a-z, 0-9, _");
         }
         return new ZoneId(raw);
     }
 
     private static Zone existing(ServerLevel level, ZoneId id) throws CommandSyntaxException {
-        return MapSavedData.get(level).map().zone(id).orElseThrow(() -> UNKNOWN.create(id));
+        return MapSavedData.get(level).map().zone(id).orElseThrow(() -> unknown(id));
     }
 
     /** Adds the selection to the room. A new room starts with {@code start}; an existing one keeps its own. */
@@ -101,7 +100,7 @@ final class RoomCommands {
         for (BlockBox box : boxes) {
             Optional<ZoneId> overlap = MapSavedData.get(level).map().zoneOverlapping(box, id);
             if (overlap.isPresent()) {
-                throw OVERLAP.create(overlap.get());
+                throw overlap(overlap.get());
             }
         }
         MapHistory.edit(level, "add room '" + id + "'",
@@ -117,7 +116,7 @@ final class RoomCommands {
         List<BlockBox> boxes = ZonesCommands.selection(player);
         ServerLevel level = player.serverLevel();
         if (existing(level, id).boxes().stream().noneMatch(b -> ZonesCommands.touches(boxes, b))) {
-            throw NOT_IN_ROOM.create(id);
+            throw CommandErrors.fail("The selection doesn't touch room {}", id);
         }
         MapHistory.edit(level, "cut room '" + id + "'", map -> cut(map, id, boxes));
         ZonesCommands.used(player);
@@ -173,9 +172,8 @@ final class RoomCommands {
         ZoneIndex index = MapSavedData.get(level).index();
         Optional<ZoneId> standingIn = index.zoneAt(player.blockPosition());
         if (standingIn.isPresent()) {
-            ctx.getSource().sendFailure(Component.literal("You're standing in room '" + standingIn.get()
-                    + "', which is already mapped. Detect fills unmapped space: stand in the room you want to add to '" + id + "'"));
-            return 0;
+            throw CommandErrors.fail("You're standing in room {}, which is already mapped. Detect fills unmapped space: stand in the room you want to add to {}",
+                    standingIn.get(), id);
         }
         RoomDetector.Result result = RoomDetector.detect(player.blockPosition(), RoomDetection.openCells(level, index), limit);
         if (result instanceof RoomDetector.Found found) {
@@ -186,26 +184,24 @@ final class RoomCommands {
             return boxes.size();
         }
         if (result instanceof RoomDetector.TooLarge tooLarge) {
-            ctx.getSource().sendFailure(Component.literal("No closed room found within " + tooLarge.limit()
-                    + " blocks. Stand inside a room with a floor, walls, and a ceiling (doors and gaps let the fill escape), or raise tools.detect_max_volume"));
-        } else {
-            ctx.getSource().sendFailure(Component.literal("Your feet are inside a solid block. Step into open space and try again"));
+            throw CommandErrors.fail("No closed room found within {} blocks. Stand inside a room with a floor, walls, and a ceiling (doors and gaps let the fill escape), or raise {}",
+                    tooLarge.limit(), "tools.detect_max_volume");
         }
-        return 0;
+        throw CommandErrors.fail("Your feet are inside a solid block. Step into open space and try again");
     }
 
     static int confirm(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        ToolState.PendingDetection pending = ToolState.detection(player).orElseThrow(NO_DETECTION::create);
+        ToolState.PendingDetection pending = ToolState.detection(player).orElseThrow(RoomCommands::noDetection);
         ServerLevel level = player.server.getLevel(pending.level());
         if (level == null || level != player.serverLevel()) {
             ToolState.clearDetection(player);
-            throw NO_DETECTION.create();
+            throw noDetection();
         }
         for (BlockBox box : pending.boxes()) {
             Optional<ZoneId> overlap = MapSavedData.get(level).map().zoneOverlapping(box, pending.zone());
             if (overlap.isPresent()) {
-                throw OVERLAP.create(overlap.get());
+                throw overlap(overlap.get());
             }
         }
         MapHistory.edit(level, "add detected room '" + pending.zone() + "'",

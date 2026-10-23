@@ -232,7 +232,7 @@ public final class MapToolGameTests {
             helper.assertTrue(map(level).zone(side).isEmpty() && map(level).zone(hall).orElseThrow().volume() == hallBox.volume() + sideBox.volume(),
                     "a selection merge should fold the smaller room into the bigger one");
             commands.performPrefixedCommand(source, "hs redo");
-            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().equals("Nothing to redo")), "a new edit should clear what there was to redo");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().equals("Unable to redo\nERROR: Nothing to redo")), "a new edit should clear what there was to redo");
 
             BlockBox slice = new BlockBox(hallBox.minX(), hallBox.minY(), hallBox.minZ(), sideBox.maxX(), hallBox.maxY(), hallBox.minZ());
             select(player, slice);

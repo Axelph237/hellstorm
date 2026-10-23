@@ -25,17 +25,17 @@ final class TrapCommands {
     static LiteralArgumentBuilder<CommandSourceStack> trap() {
         return Commands.literal("trap")
                 .then(Commands.literal("name")
-                        .then(Commands.literal("default").executes(ctx -> apply(ctx, c -> c.withName(Optional.empty()))))
+                        .then(Commands.literal("default").executes(CommandErrors.titled("Unable to set trap name", ctx -> apply(ctx, c -> c.withName(Optional.empty())))))
                         .then(Commands.argument("name", StringArgumentType.greedyString())
-                                .executes(ctx -> apply(ctx, c -> c.withName(Optional.of(StringArgumentType.getString(ctx, "name").trim()))))))
+                                .executes(CommandErrors.titled("Unable to set trap name", ctx -> apply(ctx, c -> c.withName(Optional.of(StringArgumentType.getString(ctx, "name").trim())))))))
                 .then(optional("cost", 0, TrapControllerBlock.Config::withCost))
                 .then(optional("active", 1, TrapControllerBlock.Config::withActiveTicks))
                 .then(optional("cooldown", 0, TrapControllerBlock.Config::withCooldownTicks))
                 .then(Commands.literal("power").then(Commands.argument("required", BoolArgumentType.bool())
-                        .executes(ctx -> apply(ctx, c -> c.withPower(BoolArgumentType.getBool(ctx, "required"))))))
+                        .executes(CommandErrors.titled("Unable to set trap power requirement", ctx -> apply(ctx, c -> c.withPower(BoolArgumentType.getBool(ctx, "required")))))))
                 .then(Commands.literal("signal").then(Commands.argument("strength", IntegerArgumentType.integer(1, 15))
-                        .executes(ctx -> apply(ctx, c -> c.withSignal(IntegerArgumentType.getInteger(ctx, "strength"))))))
-                .then(Commands.literal("describe").executes(ctx -> done(ctx, target(ctx))));
+                        .executes(CommandErrors.titled("Unable to set trap signal", ctx -> apply(ctx, c -> c.withSignal(IntegerArgumentType.getInteger(ctx, "strength")))))))
+                .then(Commands.literal("describe").executes(CommandErrors.titled("Unable to describe trap", ctx -> done(ctx, target(ctx)))));
     }
 
     /** {@code <name> default} clears the setting back to the game's default; {@code <name> <n>} sets it. */
@@ -43,9 +43,9 @@ final class TrapCommands {
                                                                         java.util.function.BiFunction<TrapControllerBlock.Config, Optional<Integer>, TrapControllerBlock.Config> with) {
         Function<Optional<Integer>, UnaryOperator<TrapControllerBlock.Config>> set = value -> c -> with.apply(c, value);
         return Commands.literal(name)
-                .then(Commands.literal("default").executes(ctx -> apply(ctx, set.apply(Optional.empty()))))
+                .then(Commands.literal("default").executes(CommandErrors.titled("Unable to set trap " + (name.equals("active") ? "active time" : name), ctx -> apply(ctx, set.apply(Optional.empty())))))
                 .then(Commands.argument("value", IntegerArgumentType.integer(min))
-                        .executes(ctx -> apply(ctx, set.apply(Optional.of(IntegerArgumentType.getInteger(ctx, "value"))))));
+                        .executes(CommandErrors.titled("Unable to set trap " + (name.equals("active") ? "active time" : name), ctx -> apply(ctx, set.apply(Optional.of(IntegerArgumentType.getInteger(ctx, "value")))))));
     }
 
     private static TrapControllerBlock.Entity target(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

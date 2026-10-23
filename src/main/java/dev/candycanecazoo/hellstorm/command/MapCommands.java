@@ -2,6 +2,7 @@ package dev.candycanecazoo.hellstorm.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
@@ -16,11 +17,11 @@ import dev.candycanecazoo.hellstorm.net.PapNetwork;
 import dev.candycanecazoo.hellstorm.net.ProblemsPacket;
 import dev.candycanecazoo.hellstorm.tools.LevelCellProbe;
 import dev.candycanecazoo.hellstorm.tools.PathDebug;
+import dev.candycanecazoo.hellstorm.util.Highlight;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -33,8 +34,8 @@ final class MapCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> map() {
         return Commands.literal("map")
-                .then(Commands.literal("validate").executes(MapCommands::validate))
-                .then(Commands.literal("paths").executes(MapCommands::paths))
+                .then(Commands.literal("validate").executes(CommandErrors.titled("Unable to validate map", MapCommands::validate)))
+                .then(Commands.literal("paths").executes(CommandErrors.titled("Unable to list paths", MapCommands::paths)))
                 .then(MapPackCommands.export())
                 .then(MapPackCommands.importPack())
                 .then(MapPackCommands.packs())
@@ -63,25 +64,28 @@ final class MapCommands {
         return portals.size();
     }
 
-    private static int validate(CommandContext<CommandSourceStack> ctx) {
+    private static int validate(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerLevel level = ctx.getSource().getLevel();
         ValidationReport report = MapValidator.validate(MapSavedData.get(level).map(), GameManager.validationContext(level));
         if (ctx.getSource().getEntity() instanceof ServerPlayer player) {
             PapNetwork.send(player, new ProblemsPacket(report.problems()));
         }
-        if (report.problems().isEmpty()) {
-            ctx.getSource().sendSuccess(() -> Component.literal("Map is valid").withStyle(ChatFormatting.GREEN), false);
-            return 1;
+        List<String> errors = messages(report, Problem.Severity.ERROR);
+        List<String> warnings = messages(report, Problem.Severity.WARNING);
+        if (!errors.isEmpty()) {
+            throw CommandErrors.failAll(errors, warnings);
         }
-        for (Problem problem : report.problems()) {
-            MutableComponent line = Component.literal(problem.severity() == Problem.Severity.ERROR ? "ERROR " : "WARNING ")
-                    .withStyle(problem.severity() == Problem.Severity.ERROR ? ChatFormatting.RED : ChatFormatting.GOLD)
-                    .append(Component.literal(problem.message()).withStyle(ChatFormatting.WHITE));
-            problem.pos().ifPresent(pos -> line.append(Component.literal(" at " + pos.toShortString()).withStyle(ChatFormatting.GRAY)));
-            ctx.getSource().sendSuccess(() -> line, false);
-        }
-        ctx.getSource().sendSuccess(() -> Component.literal(report.playable() ? "Playable, with warnings" : "Not playable")
-                .withStyle(report.playable() ? ChatFormatting.GOLD : ChatFormatting.RED), false);
-        return report.playable() ? 1 : 0;
+        ctx.getSource().sendSuccess(() -> Component.literal(warnings.isEmpty() ? "Map is valid" : "Map is valid, with warnings")
+                .withStyle(ChatFormatting.GREEN), false);
+        warnings.forEach(warning -> ctx.getSource().sendSuccess(() -> CommandErrors.warning(warning), false));
+        return 1;
     }
+
+    /** Each problem of {@code severity}, with where it is unless its message already says. */
+    static List<String> messages(ValidationReport report, Problem.Severity severity) {
+        return report.problems().stream().filter(p -> p.severity() == severity)
+                .map(p -> p.pos().filter(pos -> !p.message().contains(Highlight.key(pos))).map(pos -> p.message() + Highlight.of(" at {}", pos)).orElse(p.message()))
+                .toList();
+    }
+
 }

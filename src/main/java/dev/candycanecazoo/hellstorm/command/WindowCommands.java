@@ -6,7 +6,6 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
@@ -39,10 +38,6 @@ import java.util.regex.Pattern;
 /** The window branches of {@code /hs zones}. A window is made from the Zone Wand selection: select the hole in the wall, then add it. */
 final class WindowCommands {
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,32}");
-    private static final SimpleCommandExceptionType NO_SELECTION = new SimpleCommandExceptionType(
-            Component.literal("Select the window's opening with the Zone Wand: fill the hole with any blocks, then click its corners"));
-    private static final SimpleCommandExceptionType NOT_ONE_BOX = new SimpleCommandExceptionType(Component.literal(
-            "A window's opening is one box, and the selection is several. Sneak-click (or /hs zones cancel) and select just the opening"));
     private static final SuggestionProvider<CommandSourceStack> WINDOWS = (ctx, builder) -> SharedSuggestionProvider.suggest(
             MapSavedData.get(ctx.getSource().getLevel()).map().windows().keySet(), builder);
 
@@ -50,13 +45,13 @@ final class WindowCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> add() {
         return Commands.literal("window").then(name()
-                .executes(ctx -> add(ctx, OptionalInt.empty()))
+                .executes(CommandErrors.titled("Unable to add window", ctx -> add(ctx, OptionalInt.empty())))
                 .then(Commands.argument("boards", IntegerArgumentType.integer(0, WindowDef.MAX_BOARDS))
-                        .executes(ctx -> add(ctx, OptionalInt.of(IntegerArgumentType.getInteger(ctx, "boards"))))));
+                        .executes(CommandErrors.titled("Unable to add window", ctx -> add(ctx, OptionalInt.of(IntegerArgumentType.getInteger(ctx, "boards")))))));
     }
 
     static LiteralArgumentBuilder<CommandSourceStack> remove() {
-        return Commands.literal("window").then(name().executes(WindowCommands::remove));
+        return Commands.literal("window").then(name().executes(CommandErrors.titled("Unable to remove window", WindowCommands::remove)));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> name() {
@@ -88,35 +83,32 @@ final class WindowCommands {
         ServerLevel level = player.serverLevel();
         String id = StringArgumentType.getString(ctx, "window");
         if (!ID.matcher(id).matches()) {
-            ctx.getSource().sendFailure(Component.literal("Window names use 1-32 of a-z, 0-9, _"));
-            return 0;
+            throw CommandErrors.fail("Window names use {}", "1-32 of a-z, 0-9, _");
         }
         Selection selection = ToolState.selection(player);
         if (selection.isEmpty()) {
-            throw NO_SELECTION.create();
+            throw CommandErrors.fail("Select the window's opening with the Zone Wand: fill the hole with any blocks, then click its corners");
         }
-        BlockBox opening = selection.single().orElseThrow(NOT_ONE_BOX::create);
+        BlockBox opening = selection.single().orElseThrow(() -> CommandErrors.fail(
+                "A window's opening is one box, and the selection is several. Sneak-click (or {}) and select just the opening", "/hs zones cancel"));
         ZombiesMap map = MapSavedData.get(level).map();
         Optional<Direction> outward = outward(opening, ZoneIndex.of(map));
         if (outward.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("Couldn't tell inside from outside. The selection must be one block thick, "
-                    + "with a room on exactly one side and no room on the other"));
-            return 0;
+            throw CommandErrors.fail("Couldn't tell inside from outside. The selection must be one block thick, "
+                    + "with a room on exactly one side and no room on the other");
         }
         Optional<WindowDef> old = Optional.ofNullable(map.windows().get(id));
         WindowDef window = new WindowDef(id, opening, outward.get(), old.map(WindowDef::maxBoards).orElse(boards.orElse(WindowDef.MAX_BOARDS)),
                 ZoneIndex.of(map).zoneAt(opening.min().relative(outward.get().getOpposite())).orElseThrow());
         GameSettings.Windows rules = ServerConfig.GAME.get().windows();
         if (window.width() > rules.maxWidth() || window.height() > rules.maxHeight()) {
-            ctx.getSource().sendFailure(Component.literal("That opening is " + window.width() + "x" + window.height()
-                    + ". The limit is " + rules.maxWidth() + "x" + rules.maxHeight() + " (windows.max_width / max_height)"));
-            return 0;
+            throw CommandErrors.fail("That opening is {}. The limit is {} ({})",
+                    window.width() + "x" + window.height(), rules.maxWidth() + "x" + rules.maxHeight(), "windows.max_width / max_height");
         }
         Optional<WindowDef> overlap = map.windows().values().stream()
                 .filter(w -> !w.id().equals(id) && w.opening().intersects(opening)).findFirst();
         if (overlap.isPresent()) {
-            ctx.getSource().sendFailure(Component.literal("That overlaps window '" + overlap.get().id() + "'"));
-            return 0;
+            throw CommandErrors.fail("That overlaps window {}", overlap.get().id());
         }
         List<BlockPos> blocks = new ArrayList<>();
         old.ifPresent(w -> blocks.addAll(cells(w.opening())));
@@ -142,13 +134,12 @@ final class WindowCommands {
         }
     }
 
-    private static int remove(CommandContext<CommandSourceStack> ctx) {
+    private static int remove(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerLevel level = ctx.getSource().getLevel();
         String id = StringArgumentType.getString(ctx, "window");
         Optional<WindowDef> window = Optional.ofNullable(MapSavedData.get(level).map().windows().get(id));
         if (window.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("No window named '" + id + "'"));
-            return 0;
+            throw CommandErrors.fail("No window named {}", id);
         }
         MapHistory.record(level, "remove window '" + id + "'", cells(window.get().opening()), () -> {
             clear(level, window.get());
