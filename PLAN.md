@@ -303,6 +303,7 @@ The design as researched:
 - More perks and more power-ups.
 - Wonder weapons.
 - Buildables, map objectives, and Easter eggs, together with better map-making features.
+- Damageable areas: zones drawn with the Zone Wand where TacZ's normal block damage applies (glass shattering, incendiary fire, explosive rounds where the gun allows it), restored when the game ends, even after a crash. First version: breakable areas must stay off zombie routes; updating zombie paths when blocks break comes after.
 - Stronger zombie AI.
 - Procedural generation (above).
 
