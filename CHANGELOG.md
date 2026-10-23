@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- With `dismemberment` off, Hellstorm no longer registers a zombie renderer, so another mod's zombie renderer is kept instead of being replaced by Minecraft's.
+
 ## v0.0.1-prerelease
 
 The first prerelease, for playtesting. Everything below is built and covered by automated tests, but parts are still being checked in game (`TO_TEST.md`), and game balance, art, and sound are not final. Worlds and map packs made with it may need rework before v0.1.0.

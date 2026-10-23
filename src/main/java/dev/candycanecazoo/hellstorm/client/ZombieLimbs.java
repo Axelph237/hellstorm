@@ -1,5 +1,6 @@
 package dev.candycanecazoo.hellstorm.client;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.candycanecazoo.hellstorm.Hellstorm;
@@ -12,7 +13,6 @@ import net.minecraft.client.model.ZombieModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.AbstractZombieRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.ZombieRenderer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -22,6 +22,10 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLPaths;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Draws zombies without the limbs they've lost, and crawlers lying prone, pulling themselves along by their arms. It
@@ -102,16 +106,34 @@ public final class ZombieLimbs {
         private Registration() {}
 
         /**
-         * With dismemberment off in the common config, zombies get Minecraft's own renderer. The choice is made when the
-         * renderers are built, as resources load: they're registered before the common config is read.
+         * With dismemberment off in the common config, Hellstorm registers no zombie renderer at all, so Minecraft's, or
+         * another mod's, is left alone. Forge registers renderers before it loads the common config, so the file is read
+         * here directly; a missing or unreadable one counts as on, its default.
          */
         @SubscribeEvent
         public static void registerZombieRenderer(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(EntityType.ZOMBIE, context -> {
-                boolean dismemberment = CommonConfig.SPEC.isLoaded() ? CommonConfig.DISMEMBERMENT.get() : CommonConfig.DISMEMBERMENT.getDefault();
-                Hellstorm.LOG.info("Zombies drawn by {}", dismemberment ? "Hellstorm's renderer, for dismemberment" : "Minecraft's renderer (dismemberment is off)");
-                return dismemberment ? new Renderer(context) : new ZombieRenderer(context);
-            });
+            boolean dismemberment = dismembermentAtStartup();
+            Hellstorm.LOG.info("Zombies drawn by {}", dismemberment ? "Hellstorm's renderer, for dismemberment" : "whatever else draws them (dismemberment is off)");
+            if (dismemberment) {
+                event.registerEntityRenderer(EntityType.ZOMBIE, Renderer::new);
+            }
+        }
+
+        private static boolean dismembermentAtStartup() {
+            if (CommonConfig.SPEC.isLoaded()) {
+                return CommonConfig.DISMEMBERMENT.get();
+            }
+            Path file = FMLPaths.CONFIGDIR.get().resolve(Hellstorm.MOD_ID + "-common.toml");
+            if (!Files.exists(file)) {
+                return CommonConfig.DISMEMBERMENT.getDefault();
+            }
+            try (CommentedFileConfig config = CommentedFileConfig.of(file)) {
+                config.load();
+                return config.<Boolean>getOptional(CommonConfig.DISMEMBERMENT.getPath()).orElse(CommonConfig.DISMEMBERMENT.getDefault());
+            } catch (RuntimeException e) {
+                Hellstorm.LOG.warn("Couldn't read {}, so dismemberment is on", file, e);
+                return CommonConfig.DISMEMBERMENT.getDefault();
+            }
         }
     }
 }

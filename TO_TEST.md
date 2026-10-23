@@ -6,8 +6,6 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 - [ ] **Dismemberment.** Shoot zombies' arms and legs in a game. An arm comes off (about three pistol shots early on, with a spray of red) and the zombie keeps coming; a leg comes off and it drops to a crawl: lying face down, pulling itself along with its arms, at about half speed, and small enough to shoot low. Check both sides come off the side you shot, the crawl looks right from the front, side, and behind, and the head looks forward. To see one up close, `/summon minecraft:zombie ~ ~ ~ {ForgeData:{hellstorm_crawler:{speed_multiplier:0.5f}}}` makes a crawler (and `{ForgeData:{hellstorm_limbs:5b}}` one missing its left arm and left leg).
 
-- [ ] **Dismemberment off.** Set `dismemberment = false` in `config/hellstorm-common.toml` and restart: shots take nothing off, and zombies look like plain Minecraft zombies.
-
 ## Downs
 
 - [ ] **Hellhounds.** In round 5 a hound has 2 HP and dies to about one pistol shot.
