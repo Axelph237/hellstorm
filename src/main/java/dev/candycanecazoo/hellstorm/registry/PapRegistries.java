@@ -121,9 +121,9 @@ public final class PapRegistries {
             MysteryBoxBlock.MODEL, MysteryBoxBlock.MODEL_OFFSET));
     public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> VIGORAID_CAN = ITEMS.register("vigoraid", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
-            "vigoraid", PerkEffects.VIGORADE));
+            PerkEffects.VIGORADE));
     public static final RegistryObject<Item> LOAD_UP_CAN = ITEMS.register("load_up", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
-            "load_up", PerkEffects.RELOAD));
+            PerkEffects.RELOAD));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()

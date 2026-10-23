@@ -1,8 +1,8 @@
 package dev.candycanecazoo.hellstorm.client;
 
-import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.perk.PerkCanItem;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import net.minecraftforge.registries.ForgeRegistries;
 import software.bernie.geckolib.model.DefaultedItemGeoModel;
 import software.bernie.geckolib.renderer.GeoItemRenderer;
 
@@ -14,7 +14,8 @@ import software.bernie.geckolib.renderer.GeoItemRenderer;
 public final class PerkCanRenderer {
     private PerkCanRenderer() {}
 
-    public static IClientItemExtensions extensions(String model) {
-        return BlockAlignedItemRenderer.lazy(() -> new GeoItemRenderer<PerkCanItem>(new DefaultedItemGeoModel<>(Hellstorm.id(model))));
+    /** The model is looked up when the can is first drawn: the item isn't registered yet when it asks for this. */
+    public static IClientItemExtensions extensions(PerkCanItem can) {
+        return BlockAlignedItemRenderer.lazy(() -> new GeoItemRenderer<PerkCanItem>(new DefaultedItemGeoModel<>(ForgeRegistries.ITEMS.getKey(can))));
     }
 }

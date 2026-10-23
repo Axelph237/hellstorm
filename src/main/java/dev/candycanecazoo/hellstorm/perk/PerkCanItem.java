@@ -31,19 +31,17 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A can of one perk, drunk like a potion for the perk with no time limit, and drawn with its own GeckoLib model
- * ({@code geo/item/<id>.geo.json}, see {@link PerkCanRenderer}). Nothing is left once it's drunk. Its item color is the perk's, or the stack's
+ * A can of one perk, drunk like a potion for the perk with no time limit, and drawn with the GeckoLib model named after its
+ * item id ({@code geo/item/<id>.geo.json}, see {@link PerkCanRenderer}). Nothing is left once it's drunk. Its item color is the perk's, or the stack's
  * {@code CustomPotionColor} if it has one, so a vending machine selling it takes that color.
  */
 public final class PerkCanItem extends Item implements GeoItem {
     private static final int DRINK_TICKS = 32;
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
-    private final String model;
     private final Supplier<MobEffect> perk;
 
-    public PerkCanItem(Properties properties, String model, Supplier<MobEffect> perk) {
+    public PerkCanItem(Properties properties, Supplier<MobEffect> perk) {
         super(properties);
-        this.model = model;
         this.perk = perk;
     }
 
@@ -98,9 +96,10 @@ public final class PerkCanItem extends Item implements GeoItem {
         PotionUtils.addPotionTooltip(List.of(effect()), tooltip, 1.0f);
     }
 
+    /** Called from {@link Item}'s constructor, before this class's fields are set, so the renderer must not take them now. */
     @Override
     public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(PerkCanRenderer.extensions(model));
+        consumer.accept(PerkCanRenderer.extensions(this));
     }
 
     @Override
