@@ -59,15 +59,15 @@ public final class VendingMachineSkins {
     private static Skin paint(int color) {
         try {
             NativeImage unlit = read(GREEN.unlit());
-            Optional<MachineShades.Basis> basis = MachineShades.basis(pixels(unlit));
-            if (basis.isEmpty()) {
+            Optional<MachineShades.Hsv> median = MachineShades.median(pixels(unlit));
+            if (median.isEmpty()) {
                 unlit.close();
                 return GREEN;
             }
             NativeImage lit = read(GREEN.lit());
             MachineShades.Hsv target = MachineShades.Hsv.of(color);
-            repaint(unlit, basis.get(), target);
-            repaint(lit, basis.get(), target);
+            repaint(unlit, median.get(), target);
+            repaint(lit, median.get(), target);
             String hex = String.format("%06x", color);
             Skin skin = new Skin(Hellstorm.id("dynamic/" + VendingMachineBlock.MODEL + "_" + hex), Hellstorm.id("dynamic/" + VendingMachineBlock.MODEL + "_on_" + hex));
             Minecraft.getInstance().getTextureManager().register(skin.unlit(), new DynamicTexture(unlit));
@@ -100,7 +100,7 @@ public final class VendingMachineSkins {
     }
 
     /** The strip has only a few colors, so each is worked out once. Its frames are square, one under another. */
-    private static void repaint(NativeImage image, MachineShades.Basis basis, MachineShades.Hsv target) {
+    private static void repaint(NativeImage image, MachineShades.Hsv median, MachineShades.Hsv target) {
         Map<Integer, Integer> painted = new HashMap<>();
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
@@ -112,7 +112,7 @@ public final class VendingMachineSkins {
                 if (MachineShades.keypadLight(x, y % image.getWidth(), rgb)) {
                     continue;
                 }
-                int next = painted.computeIfAbsent(rgb, c -> MachineShades.recolor(c, basis, target));
+                int next = painted.computeIfAbsent(rgb, c -> MachineShades.recolor(c, median, target));
                 if (next != rgb) {
                     image.setPixelRGBA(x, y, swap(abgr & 0xff000000 | next));
                 }

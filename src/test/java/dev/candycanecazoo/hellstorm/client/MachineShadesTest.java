@@ -17,7 +17,6 @@ class MachineShadesTest {
     /** The median of the machine's green, its most-used shade. */
     private static final int MEDIAN_GREEN = 0x5ab552;
     private static final int HEALING_RED = 0xf82423;
-    private static final int LOAD_UP_GREEN = 0x3fae4a;
 
     private static int[] texture() throws IOException {
         try (InputStream in = MachineShadesTest.class.getResourceAsStream("/assets/hellstorm/textures/block/vending_machine.png")) {
@@ -40,72 +39,70 @@ class MachineShadesTest {
 
     @Test
     void theMachinesMedianGreenIsItsMostUsedShade() throws IOException {
-        MachineShades.Basis basis = MachineShades.basis(texture()).orElseThrow();
-        assertClose(MEDIAN_GREEN, basis.green().rgb());
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
+        assertClose(MEDIAN_GREEN, median.rgb());
         assertEquals(6, greens().length, "the machine is painted in six greens");
     }
 
     @Test
     void theMedianGreenBecomesTheItemsColorExactly() throws IOException {
-        MachineShades.Basis basis = MachineShades.basis(texture()).orElseThrow();
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         for (int color : new int[] {HEALING_RED, 0x385dc6, 0x7f7f7f, 0xffffff, 0x202020}) {
-            assertClose(color, MachineShades.recolor(MEDIAN_GREEN, basis, MachineShades.Hsv.of(color)));
+            assertClose(color, MachineShades.recolor(MEDIAN_GREEN, median, MachineShades.Hsv.of(color)));
         }
     }
 
     @Test
     void everyShadeStaysDistinctAndKeepsItsPlaceLighterOrDarker() throws IOException {
-        MachineShades.Basis basis = MachineShades.basis(texture()).orElseThrow();
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         MachineShades.Hsv red = MachineShades.Hsv.of(HEALING_RED);
         List<Integer> byBrightness = Arrays.stream(greens()).boxed()
                 .sorted(Comparator.comparingDouble(c -> MachineShades.Hsv.of(c).v())).toList();
-        List<Float> painted = byBrightness.stream().map(c -> MachineShades.Hsv.of(MachineShades.recolor(c, basis, red)).v()).toList();
+        List<Float> painted = byBrightness.stream().map(c -> MachineShades.Hsv.of(MachineShades.recolor(c, median, red)).v()).toList();
         for (int i = 1; i < painted.size(); i++) {
             assertTrue(painted.get(i) >= painted.get(i - 1), "brightness order changed: " + painted);
         }
-        assertEquals(6, byBrightness.stream().map(c -> MachineShades.recolor(c, basis, red)).distinct().count(), "two shades merged");
+        assertEquals(6, byBrightness.stream().map(c -> MachineShades.recolor(c, median, red)).distinct().count(), "two shades merged");
         for (int c : byBrightness) {
-            assertFalse(MachineShades.isGreen(MachineShades.recolor(c, basis, red)), String.format("#%06x is still green", c));
+            assertFalse(MachineShades.isGreen(MachineShades.recolor(c, median, red)), String.format("#%06x is still green", c));
         }
     }
 
     @Test
     void onRedTheHighlightsLeanTowardYellowAndTheShadowsTowardBlueAsTheyDoOnGreen() throws IOException {
-        MachineShades.Basis basis = MachineShades.basis(texture()).orElseThrow();
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         MachineShades.Hsv red = MachineShades.Hsv.of(HEALING_RED);
-        float highlight = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0xb0e499, basis, red)).h());
-        float shadow = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0x207841, basis, red)).h());
+        float highlight = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0xb0e499, median, red)).h());
+        float shadow = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0x207841, median, red)).h());
         assertTrue(highlight > 0.02 && highlight < 0.1, "the lightest green should turn red toward orange, turned " + highlight);
         assertTrue(shadow < -0.02 && shadow > -0.1, "the darkest green should turn red toward crimson, turned " + shadow);
     }
 
     @Test
-    void theGreysKeepTheirPurpleNearGreenAndElsewhereTakeTheColorsHueKeepingTheirSaturation() throws IOException {
-        MachineShades.Basis basis = MachineShades.basis(texture()).orElseThrow();
+    void theGreysKeepTheirHueGapFromTheGreenOnItsCoolSideAndTheirSaturation() throws IOException {
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         MachineShades.Hsv red = MachineShades.Hsv.of(HEALING_RED);
         int[] greys = Arrays.stream(texture()).filter(c -> MachineShades.role(c) == MachineShades.Role.GREY).distinct().toArray();
         assertTrue(greys.length >= 8, "the machine has its lavenders and navies");
         for (int c : greys) {
-            assertClose(c, MachineShades.recolor(c, basis, basis.green()));
-            assertClose(c, MachineShades.recolor(c, basis, MachineShades.Hsv.of(LOAD_UP_GREEN)));
+            assertClose(c, MachineShades.recolor(c, median, median));
             MachineShades.Hsv before = MachineShades.Hsv.of(c);
-            MachineShades.Hsv after = MachineShades.Hsv.of(MachineShades.recolor(c, basis, red));
+            MachineShades.Hsv after = MachineShades.Hsv.of(MachineShades.recolor(c, median, red));
+            float gap = MachineShades.turn(median.h(), before.h());
+            assertTrue(gap > 90 / 360f, String.format("#%06x is purple or navy, well over toward blue from the green", c));
+            // From green blue is reached turning up, from red turning down, so the gap turns down from red: blue-grey, not teal.
+            assertEquals(-gap, MachineShades.turn(red.h(), after.h()), 0.02, String.format("#%06x's gap from red", c));
             assertEquals(before.s(), after.s(), 0.02, String.format("#%06x's saturation on red", c));
             assertEquals(before.v(), after.v(), 0.01, String.format("#%06x's brightness on red", c));
-            assertTrue(Math.abs(MachineShades.turn(red.h(), after.h())) < 45 / 360f,
-                    String.format("#%06x should be a grey of red, its hue is %.0f", c, after.h() * 360));
         }
-        float navy = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0x3e3f66, basis, red)).h());
-        float lavender = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0xb59dbf, basis, red)).h());
-        assertTrue(navy < 0 && lavender > navy, "the navy should stay cooler than the lavender, toward crimson: " + navy + ", " + lavender);
     }
 
     @Test
     void theWhitesAndTheCyanLightsKeepTheirColors() throws IOException {
-        MachineShades.Basis basis = MachineShades.basis(texture()).orElseThrow();
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         for (int c : new int[] {0xf3f1f3, 0xd7cad6, 0xffffff, 0x5bbcf4, 0x36c5f4, 0x6dead6, 0x7ad4ff, 0xb4effd}) {
             for (int color : new int[] {HEALING_RED, 0x385dc6, 0xf2d64b, 0x202020}) {
-                assertEquals(c, MachineShades.recolor(c, basis, MachineShades.Hsv.of(color)), String.format("#%06x on #%06x", c, color));
+                assertEquals(c, MachineShades.recolor(c, median, MachineShades.Hsv.of(color)), String.format("#%06x on #%06x", c, color));
             }
         }
     }
