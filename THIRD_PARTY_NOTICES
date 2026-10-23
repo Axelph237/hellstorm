@@ -56,17 +56,6 @@ copy, Forge loads only one.
   assets/hellstorm/sounds/vending_machine/button.ogg
   assets/hellstorm/sounds/vending_machine/idle.ogg
   assets/hellstorm/sounds/vending_machine/shake.ogg
-
-    Cut, made mono, and re-encoded from free recordings on Pixabay. They are
-    excluded from Hellstorm's license (see LICENSE) and are used under the
-    Pixabay Content License (https://pixabay.com/service/license-summary/).
-    That license allows using and modifying them without credit, but not
-    selling or distributing them on their own.
-
-
-4. Supplied sounds, source not yet recorded
--------------------------------------------
-
   assets/hellstorm/sounds/mystery_box/laugh.ogg
   assets/hellstorm/sounds/power/door.ogg
   assets/hellstorm/sounds/power/generator.ogg
@@ -83,12 +72,15 @@ copy, Forge loads only one.
   assets/hellstorm/sounds/ambient/keeper_of_secrets.ogg
   assets/hellstorm/sounds/ambient/luminous_life.ogg
 
-    Cut, faded, mixed down to mono where they play in the world, and
-    re-encoded from recordings supplied for Hellstorm. Their source and license
-    aren't recorded yet, so they are excluded from Hellstorm's license (see
-    LICENSE). Other stand-in sounds the game plays (the wither's death, soul
-    speed, the elder guardian's curse, the ender dragon, the ravager, the
-    guardian, the anvil)
+    Cut, faded, made mono where they play in the world, and re-encoded from
+    free recordings in Pixabay's sound library. They are
+    excluded from Hellstorm's license (see LICENSE) and are used under the
+    Pixabay Content License (https://pixabay.com/service/license-summary/).
+    That license allows using and modifying them without credit, but not
+    selling or distributing them on their own.
+
+    The other sounds the game plays (the wither's death, soul speed, the elder
+    guardian's curse, the ender dragon, the ravager, the guardian, the anvil)
     are Minecraft's own, named by sounds.json and loaded from the game's files;
     none of them is included.
 

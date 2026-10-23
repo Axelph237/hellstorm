@@ -24,11 +24,6 @@ distributing them on their own:
   src/main/resources/assets/hellstorm/sounds/vending_machine/button.ogg
   src/main/resources/assets/hellstorm/sounds/vending_machine/idle.ogg
   src/main/resources/assets/hellstorm/sounds/vending_machine/shake.ogg
-
-These sounds were supplied for Hellstorm and are cut, mixed down, and
-re-encoded from recordings whose source isn't recorded here yet. Until it is,
-they are excluded from the license below as whole files:
-
   src/main/resources/assets/hellstorm/sounds/mystery_box/laugh.ogg
   src/main/resources/assets/hellstorm/sounds/power/door.ogg
   src/main/resources/assets/hellstorm/sounds/power/generator.ogg

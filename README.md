@@ -44,9 +44,9 @@ Hellstorm's own code and assets are under the [BSD Zero Clause License](LICENSE)
 - `assets/hellstorm/textures/block/hellfire_upgrader.png` contains copies of Minecraft's stone and enchanting table textures.
 - `assets/hellstorm/textures/block/mystery_crate.png` is Minecraft's oak planks, darkened, with embers added.
 
-The four sounds (`assets/hellstorm/sounds/cha_ching.ogg` and the three in `sounds/vending_machine/`) are cut from free recordings on Pixabay. They are excluded too, and are used under the [Pixabay Content License](https://pixabay.com/service/license-summary/), which doesn't allow distributing them on their own.
+The sounds in `assets/hellstorm/sounds/` (the cha-ching, the vending machine's, and the stand-ins in `mystery_box/`, `power/`, `debris/`, `music/`, `upgrader/`, `player/` and `ambient/`) are cut from free recordings in Pixabay's sound library. They are excluded too, and are used under the [Pixabay Content License](https://pixabay.com/service/license-summary/), which doesn't allow distributing them on their own.
 
-The fifteen stand-in sounds in `sounds/mystery_box/`, `power/`, `debris/`, `music/`, `upgrader/`, `player/` and `ambient/` were supplied for Hellstorm, and their source isn't recorded yet; they're excluded until it is. The Minecraft sounds the game also plays are named, not included.
+The Minecraft sounds the game also plays are named, not included.
 
 The bundled libraries are MIT licensed. Their notices are in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES), and the jar has a copy at `META-INF/THIRD_PARTY_NOTICES`. TacZ is a separate mod under its own licenses (GPL-3.0 for code, CC BY-NC-ND 4.0 for assets), and Hellstorm doesn't include any of it.
 
