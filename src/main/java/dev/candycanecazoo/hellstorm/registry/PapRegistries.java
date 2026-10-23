@@ -97,7 +97,7 @@ public final class PapRegistries {
     public static final RegistryObject<SoundEvent> POWER_DOOR = sound("power.door");
     public static final RegistryObject<SoundEvent> POWER_GENERATOR = sound("power.generator");
     public static final RegistryObject<SoundEvent> POWER_UP_SPAWN = sound("powerup.spawn");
-    public static final RegistryObject<SoundEvent> POWER_UP_HORN = sound("powerup.horn");
+    public static final RegistryObject<SoundEvent> POWER_UP_DRAGON = sound("powerup.dragon");
     public static final RegistryObject<SoundEvent> POWER_UP_CELEBRATE = sound("powerup.celebrate");
     public static final RegistryObject<SoundEvent> PURCHASE_DENIED = sound("purchase.denied");
     public static final RegistryObject<SoundEvent> DEBRIS_IMPACT = sound("debris.impact");

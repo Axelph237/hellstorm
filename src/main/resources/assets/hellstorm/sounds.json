@@ -108,24 +108,11 @@
       }
     ]
   },
-  "powerup.horn": {
-    "subtitle": "subtitles.hellstorm.powerup.horn",
+  "powerup.dragon": {
+    "subtitle": "subtitles.hellstorm.powerup.dragon",
     "sounds": [
       {
-        "name": "minecraft:event/raid/raidhorn_01",
-        "stream": true
-      },
-      {
-        "name": "minecraft:event/raid/raidhorn_02",
-        "stream": true
-      },
-      {
-        "name": "minecraft:event/raid/raidhorn_03",
-        "stream": true
-      },
-      {
-        "name": "minecraft:event/raid/raidhorn_04",
-        "stream": true
+        "name": "minecraft:mob/enderdragon/growl4"
       }
     ]
   },

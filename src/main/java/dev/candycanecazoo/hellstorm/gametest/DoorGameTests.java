@@ -297,10 +297,10 @@ public final class DoorGameTests {
 
     /**
      * Buying a door clears the doorway at once and sends up a copy of each of its blocks, and the copies are all gone
-     * once the longest flight could be over.
+     * once the flight is over.
      */
     @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight")
-    public static void aBoughtDoorsBlocksFloatAwayAsCopiesThatAreAllGoneAfterward(GameTestHelper helper) {
+    public static void aBoughtDoorsBlocksBurstAsCopiesThatAreAllGoneAfterward(GameTestHelper helper) {
         Rooms rooms = Rooms.build(helper, "flight", (z, dy) -> z == 4 && dy < 2);
         rooms.check(() -> {
             Doors.use(rooms.player(), rooms.door().get(0));
@@ -317,37 +317,13 @@ public final class DoorGameTests {
         });
     }
 
-    /**
-     * A door the width of the wall goes as a wave: partway through, the first blocks are gone and the last still rising,
-     * and the whole door is gone within the longest flight any door can have.
-     */
-    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight_wave")
-    public static void aWideDoorGoesInAWaveThatEndsInBoundedTime(GameTestHelper helper) {
-        Rooms rooms = Rooms.build(helper, "wave", (z, dy) -> dy < 3);
-        int blocks = rooms.door().size();
-        rooms.check(() -> {
-            Doors.use(rooms.player(), rooms.door().get(0));
-            helper.assertTrue(copies(helper).size() == blocks, "expected " + blocks + " copies, got " + copies(helper).size());
-        });
-        // The first block is removed at LAUNCH + RISE + LINGER (21 ticks), and this door's last about 12 ticks later.
-        rooms.later(helper, 27, () -> {
-            int left = copies(helper).size();
-            helper.assertTrue(left > 0 && left < blocks, "the door should be partway gone, " + left + " of " + blocks + " copies left");
-        });
-        rooms.later(helper, DoorFlights.MAX_TICKS + 1, () -> {
-            helper.assertTrue(copies(helper).isEmpty(), "copies left after the longest flight: " + copies(helper).size());
-            GameManager.end(rooms.active());
-            helper.succeed();
-        });
-    }
-
     private static float scale(Display.BlockDisplay copy) {
         return copy.saveWithoutId(new CompoundTag()).getCompound("transformation").getList("scale", net.minecraft.nbt.Tag.TAG_FLOAT).getFloat(0);
     }
 
     /**
-     * Debris rises shrunk a little, swells past full size on the impact sound's peak, shrinks to nothing, and is gone
-     * once the longest flight could be over.
+     * Debris, like a door, rises shrunk a little, swells past full size on the impact sound's peak, shrinks to nothing,
+     * and is gone once the flight is over.
      */
     @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight_debris")
     public static void debrisRisesThenBurstsOnTheImpactsPeak(GameTestHelper helper) {
@@ -356,11 +332,11 @@ public final class DoorGameTests {
             Doors.use(rooms.player(), rooms.door().get(0));
             helper.assertTrue(rooms.open() && copies(helper).size() == 2, "the debris should be cleared, leaving 2 copies");
         });
-        rooms.later(helper, GameSounds.DEBRIS_PEAK_TICKS - 2, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> Math.abs(scale(c) - 0.85f) < 1e-4),
+        rooms.later(helper, GameSounds.IMPACT_PEAK_TICKS - 2, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> Math.abs(scale(c) - 0.85f) < 1e-4),
                 "before the peak the copies should have risen at 0.85 size: " + copies(helper).stream().map(DoorGameTests::scale).toList()));
-        rooms.later(helper, GameSounds.DEBRIS_PEAK_TICKS + 1, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> Math.abs(scale(c) - 1.25f) < 1e-4),
+        rooms.later(helper, GameSounds.IMPACT_PEAK_TICKS + 1, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> Math.abs(scale(c) - 1.25f) < 1e-4),
                 "on the peak the copies should swell to 1.25: " + copies(helper).stream().map(DoorGameTests::scale).toList()));
-        rooms.later(helper, GameSounds.DEBRIS_PEAK_TICKS + 4, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> scale(c) == 0),
+        rooms.later(helper, GameSounds.IMPACT_PEAK_TICKS + 4, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> scale(c) == 0),
                 "then they should shrink to nothing: " + copies(helper).stream().map(DoorGameTests::scale).toList()));
         rooms.later(helper, DoorFlights.MAX_TICKS + 1, () -> {
             helper.assertTrue(copies(helper).isEmpty(), "copies left after the burst: " + copies(helper).size());

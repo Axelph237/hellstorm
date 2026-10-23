@@ -14,7 +14,7 @@ class RoundsTest {
 
     @Test
     void theBreakBetweenRoundsIsMillisecondsRoundedUpToTicks() {
-        assertEquals(3000, GameSettings.DEFAULT.rounds().intermissionMs(), "three seconds by default");
+        assertEquals(5000, GameSettings.DEFAULT.rounds().intermissionMs(), "five seconds by default");
         assertEquals(60, ticks(3000));
         assertEquals(0, ticks(0));
         assertEquals(1, ticks(1), "a short break still lasts a tick");

@@ -39,3 +39,4 @@ A map can have a power switch. Turning it on enables perks, the upgrader, traps,
 ## Phase
 
 5.
+- **Sound** (2026-10-23). Throwing the switch plays the metal door and the generator at the switch (`GameSounds.POWER_ON`), heard by players near it, not by every player wherever they are.

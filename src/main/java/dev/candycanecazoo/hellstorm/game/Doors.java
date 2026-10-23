@@ -16,8 +16,6 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LevelEvent;
@@ -76,7 +74,7 @@ public final class Doors {
     }
 
     /**
-     * Removes the door's blocks and sends copies of them floating away ({@link DoorFlights}), then finds passages in the
+     * Removes the door's blocks and sends copies of them up to burst ({@link DoorFlights}), then finds passages in the
      * world again: the opening is now a doorway, so the zones beyond unlock, their spawners join in, and zombie pathing
      * rebuilds over them. The doorway is open at once, while the copies are still rising.
      */
@@ -91,14 +89,8 @@ public final class Doors {
             }
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), QUIET);
         }
-        BlockPos center = door.members().iterator().next();
-        if (door.style() == DoorDef.Style.DEBRIS) {
-            DoorFlights.burst(level, blocks);
-            GameSounds.at(level, center, GameSounds.DEBRIS_CLEARED);
-        } else {
-            DoorFlights.start(level, blocks);
-            level.playSound(null, center, SoundEvents.WOODEN_DOOR_OPEN, SoundSource.BLOCKS, 1.0f, 0.8f);
-        }
+        DoorFlights.start(level, blocks);
+        GameSounds.at(level, door.members().iterator().next(), GameSounds.DOOR_OPENED);
         ZombiesMap map = active.game().map().map();
         Set<String> open = map.doors().keySet().stream().filter(id -> id.equals(door.id()) || active.game().doorOpen(id)).collect(Collectors.toSet());
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get(), open);

@@ -193,8 +193,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
                     job = Optional.of(new Job(p.getUUID(), input, result.get(), false, now, now + settings.pap().processTicks(),
                             settings.pap().collectTicks()));
                     changed();
-                    g.level().playSound(null, worldPosition, SoundEvents.SMITHING_TABLE_USE, SoundSource.BLOCKS, 1.0f, 0.8f);
-                    GameSounds.at(g.level(), worldPosition, GameSounds.UPGRADER_FIRE);
+                    GameSounds.at(g.level(), worldPosition, GameSounds.UPGRADER_START);
                     g.game().events().emit(new GameEvent.PapUsed(p.getUUID(), describe(input)));
                     return Optional.empty();
                 }

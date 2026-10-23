@@ -30,7 +30,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 - **Tick.** `Game.tick()` switches on the phase and returns the next phase. Transitions:
   - `Lobby → Countdown` on `/hs game start`. The first `/hs game join` in a level runs `MapValidator` and refuses to open a lobby on any ERROR.
   - `Countdown → RoundActive(1)` when the timer ends. Every player is moved to a standable cell in a start room (`StartCells`) in adventure mode. Joining before that doesn't move anyone: they wait (`LifeState.Waiting`, unable to buy or be targeted, with their own inventory), and the end of the countdown saves their state, gives the starting loadout, and puts them in play (see `sessions-and-multiplayer.md`, "As built (waiting for the start)"). Only the largest walkable piece of each start room is used (`StandingArea`), so a box drawn past a wall never gets players.
-  - `Intermission(r) → RoundActive(r)` after `rounds.intermission_ms` (milliseconds, default 3000, rounded up to whole ticks).
+  - `Intermission(r) → RoundActive(r)` after `rounds.intermission_ms` (milliseconds, default 5000, rounded up to whole ticks).
   - `RoundActive(r) → Intermission(r+1)` when `toSpawn == 0 && alive == 0`.
   - any phase `→ GameOver` when no player is `Alive`.
   - `GameOver → Lobby` after the timer. `MapReset` runs.

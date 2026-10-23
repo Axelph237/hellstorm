@@ -36,9 +36,9 @@ public final class GameSoundsGameTests {
             heard(helper, player, new GameEvent.RoundStart(1), active, List.of());
             heard(helper, player, new GameEvent.RoundStart(2), active, List.of(PapRegistries.ROUND_START.get()));
             heard(helper, player, new GameEvent.RoundEnd(2), active, List.of(PapRegistries.ROUND_END.get()));
-            heard(helper, player, new GameEvent.PowerOn(Optional.empty()), active, List.of(PapRegistries.POWER_DOOR.get(), PapRegistries.POWER_GENERATOR.get()));
+            heard(helper, player, new GameEvent.PowerOn(Optional.empty()), active, List.of());
             heard(helper, player, new GameEvent.PowerUpCollected(Hellstorm.id("nuke"), player.getUUID()), active,
-                    List.of(PapRegistries.POWER_UP_HORN.get(), PapRegistries.POWER_UP_CELEBRATE.get()));
+                    List.of(PapRegistries.POWER_UP_DRAGON.get(), PapRegistries.POWER_UP_CELEBRATE.get()));
             heard(helper, player, new GameEvent.PlayerRevived(player.getUUID(), Optional.empty()), active, List.of(PapRegistries.REVIVED.get()));
             heard(helper, player, new GameEvent.PlayerBledOut(player.getUUID()), active, List.of(PapRegistries.BLED_OUT.get()));
             helper.assertTrue(outsider.heard.isEmpty(), "a player outside the game heard " + outsider.heard);

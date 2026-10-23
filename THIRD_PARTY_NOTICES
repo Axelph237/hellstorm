@@ -83,7 +83,8 @@ copy, Forge loads only one.
     re-encoded from recordings supplied for Hellstorm. Their source and license
     aren't recorded yet, so they are excluded from Hellstorm's license (see
     LICENSE). Other stand-in sounds the game plays (the wither's death, soul
-    speed, the elder guardian's curse, the raid horn, the ravager, the guardian)
+    speed, the elder guardian's curse, the ender dragon, the ravager, the
+    guardian, the anvil)
     are Minecraft's own, named by sounds.json and loaded from the game's files;
     none of them is included.
 

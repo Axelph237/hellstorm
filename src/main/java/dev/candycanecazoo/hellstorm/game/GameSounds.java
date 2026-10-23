@@ -20,9 +20,10 @@ import java.util.function.Supplier;
 
 /**
  * The game's sounds for its events, each a cue of notes. A cue plays at a place (heard by those nearby), to one player, or to
- * every player in the game. Played to a player, a stereo sound is heard as is, wherever they turn. The upgrader's fire, the
- * debris burst, and the bleeding heartbeat are played where those happen ({@code PapMachineBlock}, {@link Doors},
- * {@code client/BleedingSound}).
+ * every player in the game. Played to a player, a stereo sound is heard as is, wherever they turn. A sound for using a block
+ * plays at the block, where those happen: the power switch, the upgrader, and bought doors ({@code PowerSwitchBlock},
+ * {@code PapMachineBlock}, {@link Doors}). The bleeding heartbeat plays on the downed player's client
+ * ({@code client/BleedingSound}).
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class GameSounds {
@@ -40,28 +41,33 @@ public final class GameSounds {
             new Note(PapRegistries.MYSTERY_BOX_SOULS, 26, 0.8f, 1.15f),
             new Note(PapRegistries.MYSTERY_BOX_SOULS, 34, 0.8f, 0.9f),
             new Note(PapRegistries.MYSTERY_BOX_SOULS, 42, 0.8f, 0.7f));
-    /** The door at three quarters, with the generator (its file fades out from 10 s to silence at 15 s). */
-    static final List<Note> POWER_ON = List.of(
+    /** At the switch: the door at three quarters, with the generator (its file fades out from 10 s to silence at 15 s). */
+    public static final List<Note> POWER_ON = List.of(
             new Note(PapRegistries.POWER_DOOR, 0, 0.75f, 1.0f),
             new Note(PapRegistries.POWER_GENERATOR, 0, 1.0f, 1.0f));
     /** Stands in for 1.20.5's bad omen, which 1.20.1 lacks: the elder guardian's curse, sped up. */
     static final List<Note> POWER_UP_SPAWN = List.of(new Note(PapRegistries.POWER_UP_SPAWN, 0, 1.0f, 1.2f));
-    /** Stands in for 1.20.5's raid omen with the raid horn, pitched down, and the ravager's first celebrate. */
+    /** The ender dragon's fourth growl and the ravager's first celebrate, both pitched down. */
     static final List<Note> POWER_UP_GRAB = List.of(
-            new Note(PapRegistries.POWER_UP_HORN, 0, 0.6f, 0.9f),
+            new Note(PapRegistries.POWER_UP_DRAGON, 0, 1.0f, 0.9f),
             new Note(PapRegistries.POWER_UP_CELEBRATE, 0, 1.0f, 0.9f));
     static final List<Note> PURCHASE_DENIED = List.of(new Note(PapRegistries.PURCHASE_DENIED, 0, 0.5f, 0.85f));
-    /** The cha-ching and the impact. The impact peaks {@link #DEBRIS_PEAK_TICKS} in, when the blocks burst. */
-    static final List<Note> DEBRIS_CLEARED = List.of(
+    /** A door or debris bought: the cha-ching and the impact. The impact peaks {@link #IMPACT_PEAK_TICKS} in, when the blocks burst. */
+    static final List<Note> DOOR_OPENED = List.of(
             new Note(PapRegistries.CHA_CHING, 0, 1.0f, 1.0f),
             new Note(PapRegistries.DEBRIS_IMPACT, 0, 1.0f, 1.0f));
     /** {@code debris/impact} peaks 0.95 s in. */
-    public static final int DEBRIS_PEAK_TICKS = 19;
+    public static final int IMPACT_PEAK_TICKS = 19;
     static final List<Note> GAME_START = List.of(new Note(PapRegistries.GAME_START, 0, 1.0f, 0.9f));
     static final List<Note> ROUND_START = List.of(new Note(PapRegistries.ROUND_START, 0, 1.0f, 1.0f));
     static final List<Note> ROUND_END = List.of(new Note(PapRegistries.ROUND_END, 0, 1.0f, 1.0f));
-    /** Its file is stretched so that at this pitch the whoosh lasts the 3 s the item burns (pap.process_ticks, 60). */
-    public static final List<Note> UPGRADER_FIRE = List.of(new Note(PapRegistries.UPGRADER_FIRE, 0, 1.0f, 0.9f));
+    /**
+     * An item going into the upgrader: the anvil, pitched down and so slowed, and the fire, whose file is stretched so that at
+     * this pitch the whoosh lasts the 3 s the item burns (pap.process_ticks, 60).
+     */
+    public static final List<Note> UPGRADER_START = List.of(
+            new Note(() -> SoundEvents.ANVIL_USE, 0, 1.0f, 0.6f),
+            new Note(PapRegistries.UPGRADER_FIRE, 0, 1.0f, 0.9f));
     static final List<Note> REVIVED = List.of(new Note(PapRegistries.REVIVED, 0, 1.0f, 1.0f));
     static final List<Note> BLED_OUT = List.of(new Note(PapRegistries.BLED_OUT, 0, 0.6f, 0.85f));
 
@@ -83,8 +89,6 @@ public final class GameSounds {
             everyone(active, ROUND_START);
         } else if (event instanceof GameEvent.RoundEnd) {
             everyone(active, ROUND_END);
-        } else if (event instanceof GameEvent.PowerOn) {
-            everyone(active, POWER_ON);
         } else if (event instanceof GameEvent.MysteryBoxMoved moved) {
             at(active.level(), moved.from(), BOX_MOVE);
         } else if (event instanceof GameEvent.PowerUpSpawned spawned) {

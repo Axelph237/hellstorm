@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.feature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.game.GameSounds;
 import dev.candycanecazoo.hellstorm.game.Refusal;
 import dev.candycanecazoo.hellstorm.game.Shop;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
@@ -90,6 +91,7 @@ public final class PowerSwitchBlock extends LeverBlock implements EntityBlock, F
             @Override
             public Optional<Refusal> deliver(GameManager.Active g, ServerPlayer p) {
                 g.game().turnPowerOn(Optional.of(p.getUUID()));
+                GameSounds.at(g.level(), pos, GameSounds.POWER_ON);
                 setAll(g.level(), g.game().map().map().features(FeatureKind.POWER_SWITCH), true);
                 g.world().announce("The power is on");
                 return Optional.empty();

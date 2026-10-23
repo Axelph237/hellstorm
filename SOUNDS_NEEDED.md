@@ -25,11 +25,11 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 | `perk/<perk_id>_jingle` | 15 to 30 s each | A lit vending machine now and then plays its perk's jingle (vigorade, reload, hellfire, saints_brew, jockey_energy, off_hand) | Nearby, from the machine | None |
 | `mystery_box/spin` | 4 to 6 s | `MysteryBoxOpened`: while the weapons cycle | Nearby, from the box | Chest open and close |
 | `mystery_box/move` | 3 to 5 s | `MysteryBoxMoved`: the box leaves (CoD's teddy-bear laugh) | Nearby, from the old place | Wither death, the scary laugh, and soul speed cries rising and falling in pitch, at the old place |
-| `pap/upgrade` | 3 to 5 s | `PapUsed`: the upgrader takes and returns a weapon | Nearby, from the machine | Fire whoosh, stretched to the 3 s the item burns, pitch 0.9 (`upgrader/fire`) |
-| `power/on` | 2 to 4 s | `PowerOn`: the power switch is thrown, a heavy clunk and rising hum | Everyone in the game | Large metal door close at 3/4 volume, with the generator fading out from 10 s to silence at 15 s, to everyone in the game |
+| `pap/upgrade` | 3 to 5 s | `PapUsed`: the upgrader takes and returns a weapon | Nearby, from the machine | Fire whoosh, stretched to the 3 s the item burns and raised to just under full scale, pitch 0.9 (`upgrader/fire`), with the anvil at pitch 0.6 |
+| `power/on` | 2 to 4 s | `PowerOn`: the power switch is thrown, a heavy clunk and rising hum | Nearby, from the switch | Large metal door close at 3/4 volume, with the generator fading out from 10 s to silence at 15 s, at the switch |
 | `trap/activate` | 1 to 2 s | `TrapActivated` | Nearby, from the controller | None |
 | `purchase/denied` | under 1 s | Any purchase refused for too few points | The buyer | The guardian's second hit, volume 0.5, pitch 0.85, for any refusal |
-| `door/debris_clear` | 1 to 2 s | `DoorOpened`, for debris | Nearby, from the debris | Cha-ching and dark magic impact; the blocks burst on its peak |
+| `door/debris_clear` | 1 to 2 s | `DoorOpened`, for debris | Nearby, from the debris | Cha-ching and dark magic impact, for doors and debris alike; the blocks burst on its peak |
 
 ## Power-ups
 
@@ -37,7 +37,7 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 |---|---|---|---|---|
 | `powerup/spawn` | under 1 s | `PowerUpSpawned`: a power-up appears | Nearby, from the drop | The elder guardian's curse at pitch 1.2 (bad omen is 1.20.5's; 1.20.1 has none) |
 | `powerup/loop` | 2 to 4 s, loops | While a power-up floats on the ground | Nearby, from the drop | None |
-| `powerup/grab` | under 1 s | `PowerUpCollected`: the pickup sting | Everyone in the game | The raid horn at pitch 0.9, volume 0.6 (raid omen is 1.20.5's), with the ravager's first celebrate at pitch 0.9, to everyone in the game |
+| `powerup/grab` | under 1 s | `PowerUpCollected`: the pickup sting | Everyone in the game | The ender dragon's fourth growl and the ravager's first celebrate, both at pitch 0.9, to everyone in the game |
 | `announcer/<powerup_id>` | 1 to 2 s each | `PowerUpCollected`: the announcer names it (max_ammo, insta_kill, double_points, nuke, carpenter, fire_sale) | Everyone in the game | None |
 | `powerup/timer_end` | under 1 s | Insta-Kill, Double Points, or Fire Sale running out | Everyone in the game | None |
 
@@ -61,11 +61,12 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 
 ## Stand-ins in place (2026-10-23)
 
-The rows above whose stand-in names a recording play it now. `game/GameSounds` holds each as a cue: its sounds with their delays, volumes, and pitches. It plays a cue for a game event at a place (`at`, heard by those nearby), to one player (`to`, as is, wherever they turn), or to every player in the game. A few play where they happen instead: the upgrader's fire in `PapMachineBlock`, the debris in `Doors` (with `DoorFlights.burst`), the denied sound in `Shop.refuse`, and the bleeding heartbeat on the downed player's own client (`client/BleedingSound`, which stops itself once they're up or out).
+The rows above whose stand-in names a recording play it now. `game/GameSounds` holds each as a cue: its sounds with their delays, volumes, and pitches. It plays a cue for a game event at a place (`at`, heard by those nearby), to one player (`to`, as is, wherever they turn), or to every player in the game. A sound for using a block plays at the block, heard by those near it, not at the player: the power switch's in `PowerSwitchBlock`, the upgrader's in `PapMachineBlock`, a bought door's in `Doors` (with `DoorFlights`). The denied sound plays to the refused player in `Shop.refuse`, and the bleeding heartbeat on the downed player's own client (`client/BleedingSound`, which stops itself once they're up or out).
 
-- **Files.** Your recordings are in `sounds/mystery_box/`, `power/`, `debris/`, `music/`, `upgrader/` and `player/` as Ogg Vorbis, cut by a script from the MP3s you supplied: mono where they're placed in the world (the laugh, the impact, the upgrader's fire), stereo where they're played to players. Pitch and volume are set in the cues, not baked in; cuts, fades, and the upgrader's stretch (a phase vocoder, so its pitch holds) are baked in.
-- **Minecraft's own sounds** are named in `sounds.json` (soul speed, the curse, the raid horn, the ravager's `celebrate1`, the guardian's `guardian_hit2`) or used as they are (the wither's death), never copied.
-- **Debris burst.** Debris now rises together 1 block, shrinking to 0.85, swells to 1.25 over 2 ticks at the impact's peak (0.95 s in, `GameSounds.DEBRIS_PEAK_TICKS`, 19 ticks), and shrinks to nothing over 3. Bought doors keep their wave.
-- **Replaced.** The power-up pickup's beacon, the upgrader's fire charge, and debris's gravel break.
-- **Tests.** GameTest `GameSoundsGameTests`: each game event plays its cue to the players in the game, round 1 plays none, and a player outside hears nothing. `DoorGameTests.debrisRisesThenBurstsOnTheImpactsPeak`: the copies are at 0.85 before the peak, 1.25 on it, 0 after, and gone in time. `PurchaseGameTests` checks a refused purchase plays the denied sound once.
+- **Files.** Your recordings are in `sounds/mystery_box/`, `power/`, `debris/`, `music/`, `upgrader/` and `player/` as Ogg Vorbis, cut by a script from the MP3s you supplied: mono where they're placed in the world (the laugh, the impact, the upgrader's fire, the power door and generator), stereo where they're played to players. Pitch and volume are set in the cues, not baked in; cuts, fades, and the upgrader's stretch (a phase vocoder, so its pitch holds) are baked in.
+- **Minecraft's own sounds** are named in `sounds.json` (soul speed, the curse, the ender dragon's `growl4`, the ravager's `celebrate1`, the guardian's `guardian_hit2`) or used as they are (the wither's death, the anvil), never copied.
+- **The burst.** A bought door or debris rises together 1 block, shrinking to 0.85, swells to 1.25 over 2 ticks at the impact's peak (0.95 s in, `GameSounds.IMPACT_PEAK_TICKS`, 19 ticks), and shrinks to nothing over 3. (Until the second pass doors kept their old wave and played a wooden door opening.)
+- **Replaced.** The power-up pickup's beacon, the upgrader's fire charge and smithing table, a door's wooden door opening, and debris's gravel break.
+- **Second pass** (same day): power-on moved from every player to the switch, and its files made mono; doors got the burst and sounds; the upgrader got the anvil (pitch 0.6) and a louder fire; the pickup's raid horn became the ender dragon's growl.
+- **Tests.** GameTest `GameSoundsGameTests`: each game event plays its cue to the players in the game, round 1 plays none, and a player outside hears nothing. `DoorGameTests.debrisRisesThenBurstsOnTheImpactsPeak`: the copies are at 0.85 before the peak, 1.25 on it, 0 after, and gone in time. Sounds played at a place aren't caught by the tests (a fake player has no connection), so the switch's, the upgrader's, and a door's are checked in game. `PurchaseGameTests` checks a refused purchase plays the denied sound once.
 - **Not yet played:** the ambient music, Fire Sale's loop, the perk jingles, the box spin, the trap, the power-up's floating loop and timer end, the downed sting, zombie and hound voices, and the window rebuild.
