@@ -69,5 +69,6 @@ public final class Shop {
                 ? Component.translatable(t.key(), t.nameKeys().stream().map(Component::translatable).toArray())
                 : Component.literal(refusal.message());
         Notices.show(player, text.copy().withStyle(ChatFormatting.RED));
+        GameSounds.to(player, GameSounds.PURCHASE_DENIED);
     }
 }

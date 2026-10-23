@@ -146,6 +146,7 @@ public final class GameManager {
                 profiles, game::targetable, settings, pathing);
         Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)), pathing);
         GAMES.put(level.dimension(), active);
+        GameSounds.attach(active);
         dev.candycanecazoo.hellstorm.feature.MysteryBoxes.start(active);
         return active;
     }

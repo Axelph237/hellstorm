@@ -91,10 +91,14 @@ public final class Doors {
             }
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), QUIET);
         }
-        DoorFlights.start(level, blocks);
         BlockPos center = door.members().iterator().next();
-        level.playSound(null, center, door.style() == DoorDef.Style.DOOR ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.GRAVEL_BREAK,
-                SoundSource.BLOCKS, 1.0f, door.style() == DoorDef.Style.DOOR ? 0.8f : 1.0f);
+        if (door.style() == DoorDef.Style.DEBRIS) {
+            DoorFlights.burst(level, blocks);
+            GameSounds.at(level, center, GameSounds.DEBRIS_CLEARED);
+        } else {
+            DoorFlights.start(level, blocks);
+            level.playSound(null, center, SoundEvents.WOODEN_DOOR_OPEN, SoundSource.BLOCKS, 1.0f, 0.8f);
+        }
         ZombiesMap map = active.game().map().map();
         Set<String> open = map.doors().keySet().stream().filter(id -> id.equals(door.id()) || active.game().doorOpen(id)).collect(Collectors.toSet());
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get(), open);

@@ -30,5 +30,188 @@
         "name": "hellstorm:cha_ching"
       }
     ]
+  },
+  "mystery_box.laugh": {
+    "subtitle": "subtitles.hellstorm.mystery_box.laugh",
+    "sounds": [
+      {
+        "name": "hellstorm:mystery_box/laugh"
+      }
+    ]
+  },
+  "mystery_box.souls": {
+    "subtitle": "subtitles.hellstorm.mystery_box.souls",
+    "sounds": [
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed1"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed2"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed3"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed4"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed5"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed6"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed7"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed8"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed9"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed10"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed11"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed12"
+      },
+      {
+        "name": "minecraft:enchant/soulspeed/soulspeed13"
+      }
+    ]
+  },
+  "power.door": {
+    "subtitle": "subtitles.hellstorm.power.door",
+    "sounds": [
+      {
+        "name": "hellstorm:power/door"
+      }
+    ]
+  },
+  "power.generator": {
+    "subtitle": "subtitles.hellstorm.power.generator",
+    "sounds": [
+      {
+        "name": "hellstorm:power/generator",
+        "stream": true
+      }
+    ]
+  },
+  "powerup.spawn": {
+    "subtitle": "subtitles.hellstorm.powerup.spawn",
+    "sounds": [
+      {
+        "name": "minecraft:mob/guardian/curse"
+      }
+    ]
+  },
+  "powerup.horn": {
+    "subtitle": "subtitles.hellstorm.powerup.horn",
+    "sounds": [
+      {
+        "name": "minecraft:event/raid/raidhorn_01",
+        "stream": true
+      },
+      {
+        "name": "minecraft:event/raid/raidhorn_02",
+        "stream": true
+      },
+      {
+        "name": "minecraft:event/raid/raidhorn_03",
+        "stream": true
+      },
+      {
+        "name": "minecraft:event/raid/raidhorn_04",
+        "stream": true
+      }
+    ]
+  },
+  "powerup.celebrate": {
+    "subtitle": "subtitles.hellstorm.powerup.celebrate",
+    "sounds": [
+      {
+        "name": "minecraft:mob/ravager/celebrate1"
+      }
+    ]
+  },
+  "purchase.denied": {
+    "subtitle": "subtitles.hellstorm.purchase.denied",
+    "sounds": [
+      {
+        "name": "minecraft:mob/guardian/guardian_hit2"
+      }
+    ]
+  },
+  "debris.impact": {
+    "subtitle": "subtitles.hellstorm.debris.impact",
+    "sounds": [
+      {
+        "name": "hellstorm:debris/impact"
+      }
+    ]
+  },
+  "music.game_start": {
+    "subtitle": "subtitles.hellstorm.music.game_start",
+    "sounds": [
+      {
+        "name": "hellstorm:music/game_start",
+        "stream": true
+      }
+    ]
+  },
+  "music.round_start": {
+    "subtitle": "subtitles.hellstorm.music.round_start",
+    "sounds": [
+      {
+        "name": "hellstorm:music/round_start",
+        "stream": true
+      }
+    ]
+  },
+  "music.round_end": {
+    "subtitle": "subtitles.hellstorm.music.round_end",
+    "sounds": [
+      {
+        "name": "hellstorm:music/round_end",
+        "stream": true
+      }
+    ]
+  },
+  "upgrader.fire": {
+    "subtitle": "subtitles.hellstorm.upgrader.fire",
+    "sounds": [
+      {
+        "name": "hellstorm:upgrader/fire"
+      }
+    ]
+  },
+  "player.bleeding": {
+    "subtitle": "subtitles.hellstorm.player.bleeding",
+    "sounds": [
+      {
+        "name": "hellstorm:player/bleeding",
+        "stream": true
+      }
+    ]
+  },
+  "player.revived": {
+    "subtitle": "subtitles.hellstorm.player.revived",
+    "sounds": [
+      {
+        "name": "hellstorm:player/revived"
+      }
+    ]
+  },
+  "player.bled_out": {
+    "subtitle": "subtitles.hellstorm.player.bled_out",
+    "sounds": [
+      {
+        "name": "hellstorm:player/bled_out",
+        "stream": true
+      }
+    ]
   }
 }

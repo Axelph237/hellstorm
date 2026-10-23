@@ -61,3 +61,4 @@ Every machine and door is bought the same way, so each feature only writes what 
 ## Phase
 
 5.
+- **Denied** (2026-10-23). Every refusal (`Shop.refuse`) plays the guardian's second hit, quieter and pitched down, to the player refused.

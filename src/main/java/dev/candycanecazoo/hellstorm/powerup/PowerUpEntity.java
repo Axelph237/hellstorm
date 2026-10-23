@@ -93,7 +93,7 @@ public final class PowerUpEntity extends Entity {
         AABB reach = getBoundingBox().inflate(REACH);
         for (UUID id : game.get().game().players().stream().map(PlayerState::id).toList()) {
             Optional<ServerPlayer> player = game.get().world().entity(id).filter(p -> p.level() == level && !p.isSpectator());
-            if (player.isPresent() && player.get().getBoundingBox().intersects(reach) && PowerUps.collect(game.get(), player.get(), powerUp, position())) {
+            if (player.isPresent() && player.get().getBoundingBox().intersects(reach) && PowerUps.collect(game.get(), player.get(), powerUp)) {
                 discard();
                 return;
             }

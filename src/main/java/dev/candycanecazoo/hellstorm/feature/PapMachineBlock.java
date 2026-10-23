@@ -6,6 +6,7 @@ import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.game.GameSounds;
 import dev.candycanecazoo.hellstorm.game.Refusal;
 import dev.candycanecazoo.hellstorm.game.Shop;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
@@ -193,7 +194,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
                             settings.pap().collectTicks()));
                     changed();
                     g.level().playSound(null, worldPosition, SoundEvents.SMITHING_TABLE_USE, SoundSource.BLOCKS, 1.0f, 0.8f);
-                    g.level().playSound(null, worldPosition, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.0f, 0.9f);
+                    GameSounds.at(g.level(), worldPosition, GameSounds.UPGRADER_FIRE);
                     g.game().events().emit(new GameEvent.PapUsed(p.getUUID(), describe(input)));
                     return Optional.empty();
                 }

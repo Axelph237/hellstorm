@@ -64,6 +64,30 @@ copy, Forge loads only one.
     selling or distributing them on their own.
 
 
+4. Supplied sounds, source not yet recorded
+-------------------------------------------
+
+  assets/hellstorm/sounds/mystery_box/laugh.ogg
+  assets/hellstorm/sounds/power/door.ogg
+  assets/hellstorm/sounds/power/generator.ogg
+  assets/hellstorm/sounds/debris/impact.ogg
+  assets/hellstorm/sounds/music/game_start.ogg
+  assets/hellstorm/sounds/music/round_start.ogg
+  assets/hellstorm/sounds/music/round_end.ogg
+  assets/hellstorm/sounds/upgrader/fire.ogg
+  assets/hellstorm/sounds/player/bleeding.ogg
+  assets/hellstorm/sounds/player/revived.ogg
+  assets/hellstorm/sounds/player/bled_out.ogg
+
+    Cut, faded, mixed down to mono where they play in the world, and
+    re-encoded from recordings supplied for Hellstorm. Their source and license
+    aren't recorded yet, so they are excluded from Hellstorm's license (see
+    LICENSE). Other stand-in sounds the game plays (the wither's death, soul
+    speed, the elder guardian's curse, the raid horn, the ravager, the guardian)
+    are Minecraft's own, named by sounds.json and loaded from the game's files;
+    none of them is included.
+
+
 4. Code adapted from others
 ---------------------------
 

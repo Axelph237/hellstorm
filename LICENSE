@@ -25,6 +25,22 @@ distributing them on their own:
   src/main/resources/assets/hellstorm/sounds/vending_machine/idle.ogg
   src/main/resources/assets/hellstorm/sounds/vending_machine/shake.ogg
 
+These sounds were supplied for Hellstorm and are cut, mixed down, and
+re-encoded from recordings whose source isn't recorded here yet. Until it is,
+they are excluded from the license below as whole files:
+
+  src/main/resources/assets/hellstorm/sounds/mystery_box/laugh.ogg
+  src/main/resources/assets/hellstorm/sounds/power/door.ogg
+  src/main/resources/assets/hellstorm/sounds/power/generator.ogg
+  src/main/resources/assets/hellstorm/sounds/debris/impact.ogg
+  src/main/resources/assets/hellstorm/sounds/music/game_start.ogg
+  src/main/resources/assets/hellstorm/sounds/music/round_start.ogg
+  src/main/resources/assets/hellstorm/sounds/music/round_end.ogg
+  src/main/resources/assets/hellstorm/sounds/upgrader/fire.ogg
+  src/main/resources/assets/hellstorm/sounds/player/bleeding.ogg
+  src/main/resources/assets/hellstorm/sounds/player/revived.ogg
+  src/main/resources/assets/hellstorm/sounds/player/bled_out.ogg
+
 NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG
 OR MICROSOFT.
 

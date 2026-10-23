@@ -156,6 +156,9 @@ public final class WindowGameTests {
         active.game().join(player.getUUID());
         active.game().join(teammate.getUUID());
         PurchaseGameTests.play(active);
+        // The game's own start music isn't what this is about.
+        player.heard.clear();
+        teammate.heard.clear();
         int perBoard = active.game().settings().windows().repairTicks();
         int startPoints = PurchaseGameTests.points(active, player);
         BlockPos barricade = w.opening().min();

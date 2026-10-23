@@ -59,7 +59,7 @@ public final class PowerUpGameTests {
     }
 
     private static boolean collect(GameManager.Active active, ServerPlayer player, String powerUp) {
-        return PowerUps.collect(active, player, id(powerUp), player.position());
+        return PowerUps.collect(active, player, id(powerUp));
     }
 
     /** A one-room game with a spawn marker, started, so zombies arrive after the countdown. */

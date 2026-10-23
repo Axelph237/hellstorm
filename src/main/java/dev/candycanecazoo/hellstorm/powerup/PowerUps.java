@@ -17,8 +17,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -64,7 +62,7 @@ public final class PowerUps {
     }
 
     /** {@code player} touched the power-up. Returns true if it was collected, so the pickup should go. */
-    public static boolean collect(GameManager.Active game, ServerPlayer player, ResourceLocation powerUp, Vec3 at) {
+    public static boolean collect(GameManager.Active game, ServerPlayer player, ResourceLocation powerUp) {
         Optional<PowerUpDef> def = PowerUpDefs.get(powerUp);
         if (def.isEmpty() || !game.game().collectPowerUp(powerUp, player.getUUID())) {
             return false;
@@ -72,7 +70,6 @@ public final class PowerUps {
         apply(game, def.get());
         Component name = Component.translatable(def.get().name()).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
         players(game).forEach(p -> Notices.show(p, name));
-        game.level().playSound(null, at.x, at.y, at.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.4f);
         return true;
     }
 

@@ -72,5 +72,21 @@
   "subtitles.hellstorm.vending_machine.idle": "Vending machine hums",
   "subtitles.hellstorm.vending_machine.shake": "Vending machine rattles",
   "subtitles.hellstorm.vending_machine.button": "Vending machine button clicks",
-  "subtitles.hellstorm.cha_ching": "Cha-ching"
+  "subtitles.hellstorm.cha_ching": "Cha-ching",
+  "subtitles.hellstorm.mystery_box.laugh": "Mystery Crate laughs",
+  "subtitles.hellstorm.mystery_box.souls": "Souls wail",
+  "subtitles.hellstorm.power.door": "Metal door slams",
+  "subtitles.hellstorm.power.generator": "Generator starts",
+  "subtitles.hellstorm.powerup.spawn": "Power-up appears",
+  "subtitles.hellstorm.powerup.horn": "Horn sounds",
+  "subtitles.hellstorm.powerup.celebrate": "Ravager roars",
+  "subtitles.hellstorm.purchase.denied": "Purchase denied",
+  "subtitles.hellstorm.debris.impact": "Debris bursts",
+  "subtitles.hellstorm.music.game_start": "Funeral chant",
+  "subtitles.hellstorm.music.round_start": "Round begins",
+  "subtitles.hellstorm.music.round_end": "Round ends",
+  "subtitles.hellstorm.upgrader.fire": "Fire whooshes",
+  "subtitles.hellstorm.player.bleeding": "Heart pounds",
+  "subtitles.hellstorm.player.revived": "Heart beats",
+  "subtitles.hellstorm.player.bled_out": "Bell tolls"
 }

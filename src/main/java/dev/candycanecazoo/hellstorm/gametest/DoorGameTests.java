@@ -2,6 +2,7 @@ package dev.candycanecazoo.hellstorm.gametest;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.game.DoorFlights;
+import dev.candycanecazoo.hellstorm.game.GameSounds;
 import dev.candycanecazoo.hellstorm.game.Doors;
 import dev.candycanecazoo.hellstorm.game.ForgeGameWorld;
 import dev.candycanecazoo.hellstorm.game.GameManager;
@@ -225,6 +226,10 @@ public final class DoorGameTests {
      */
     private record Rooms(GameManager.Active active, ServerPlayer player, List<BlockPos> door) {
         static Rooms build(GameTestHelper helper, String name, BiPredicate<Integer, Integer> isDoor) {
+            return build(helper, name, isDoor, DoorDef.Style.DOOR);
+        }
+
+        static Rooms build(GameTestHelper helper, String name, BiPredicate<Integer, Integer> isDoor, DoorDef.Style style) {
             List<BlockPos> members = new ArrayList<>();
             for (int z = 0; z <= 8; z++) {
                 for (int dy = 0; dy <= 3; dy++) {
@@ -235,7 +240,7 @@ public final class DoorGameTests {
                     }
                 }
             }
-            DoorDef door = DoorDef.empty(name, 300);
+            DoorDef door = DoorDef.empty(name, 300).withStyle(style);
             for (BlockPos pos : members) {
                 door = door.withMember(pos);
             }
@@ -331,6 +336,34 @@ public final class DoorGameTests {
         });
         rooms.later(helper, DoorFlights.MAX_TICKS + 1, () -> {
             helper.assertTrue(copies(helper).isEmpty(), "copies left after the longest flight: " + copies(helper).size());
+            GameManager.end(rooms.active());
+            helper.succeed();
+        });
+    }
+
+    private static float scale(Display.BlockDisplay copy) {
+        return copy.saveWithoutId(new CompoundTag()).getCompound("transformation").getList("scale", net.minecraft.nbt.Tag.TAG_FLOAT).getFloat(0);
+    }
+
+    /**
+     * Debris rises shrunk a little, swells past full size on the impact sound's peak, shrinks to nothing, and is gone
+     * once the longest flight could be over.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "door_flight_debris")
+    public static void debrisRisesThenBurstsOnTheImpactsPeak(GameTestHelper helper) {
+        Rooms rooms = Rooms.build(helper, "debris", (z, dy) -> z == 4 && dy < 2, DoorDef.Style.DEBRIS);
+        rooms.check(() -> {
+            Doors.use(rooms.player(), rooms.door().get(0));
+            helper.assertTrue(rooms.open() && copies(helper).size() == 2, "the debris should be cleared, leaving 2 copies");
+        });
+        rooms.later(helper, GameSounds.DEBRIS_PEAK_TICKS - 2, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> Math.abs(scale(c) - 0.85f) < 1e-4),
+                "before the peak the copies should have risen at 0.85 size: " + copies(helper).stream().map(DoorGameTests::scale).toList()));
+        rooms.later(helper, GameSounds.DEBRIS_PEAK_TICKS + 1, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> Math.abs(scale(c) - 1.25f) < 1e-4),
+                "on the peak the copies should swell to 1.25: " + copies(helper).stream().map(DoorGameTests::scale).toList()));
+        rooms.later(helper, GameSounds.DEBRIS_PEAK_TICKS + 4, () -> helper.assertTrue(copies(helper).stream().allMatch(c -> scale(c) == 0),
+                "then they should shrink to nothing: " + copies(helper).stream().map(DoorGameTests::scale).toList()));
+        rooms.later(helper, DoorFlights.MAX_TICKS + 1, () -> {
+            helper.assertTrue(copies(helper).isEmpty(), "copies left after the burst: " + copies(helper).size());
             GameManager.end(rooms.active());
             helper.succeed();
         });

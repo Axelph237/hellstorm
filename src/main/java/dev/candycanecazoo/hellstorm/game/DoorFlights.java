@@ -22,12 +22,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * A bought door's blocks float up out of the doorway and shrink away, the top first and each layer from the middle out.
- * The real blocks are gone the moment the door is bought, so the doorway is open while the copies rise. Each copy is a
- * vanilla block display: it's sent once at rest and once with where to go, and the client moves it smoothly from there,
- * so a door costs two small packets per block and nothing per frame.
+ * Debris instead rises all at once, shrinking a little, then bursts: it swells past full size on the impact sound's peak
+ * ({@link GameSounds#DEBRIS_PEAK_TICKS}) and shrinks fast to nothing. The real blocks are gone the moment either is bought,
+ * so the doorway is open while the copies move. Each copy is a vanilla block display: it's sent at rest and then once per
+ * stage with where to go, and the client moves it smoothly from there, so a block costs a few small packets and nothing
+ * per frame.
  *
  * <p>The copies are never kept. A map reset discards them, and one saved with its chunk (the chunk unloaded mid-flight,
  * or the server died) is refused when the chunk loads again.
@@ -47,34 +51,56 @@ public final class DoorFlights {
     public static final int MAX_STAGGER_TICKS = 24;
     /** A block is removed this long after its client should have shrunk it to nothing, so a client running behind still sees it finish. */
     private static final int LINGER_TICKS = 3;
-    /** The longest any door's flight lasts, from purchase to its last copy being removed. */
-    public static final int MAX_TICKS = LAUNCH_TICKS + MAX_STAGGER_TICKS + RISE_TICKS + LINGER_TICKS;
+    /** Debris rises this far, to this size, then swells to {@link #BURST_SCALE} over {@link #SWELL_TICKS} and shrinks away over {@link #VANISH_TICKS}. */
+    private static final float DEBRIS_RISE_BLOCKS = 1.0f;
+    private static final float RISEN_SCALE = 0.85f;
+    private static final float BURST_SCALE = 1.25f;
+    private static final int SWELL_TICKS = 2;
+    private static final int VANISH_TICKS = 3;
+    private static final int BURST_TICKS = GameSounds.DEBRIS_PEAK_TICKS + SWELL_TICKS + VANISH_TICKS + LINGER_TICKS;
+    /** The longest any flight lasts, from purchase to its last copy being removed. */
+    public static final int MAX_TICKS = Math.max(LAUNCH_TICKS + MAX_STAGGER_TICKS + RISE_TICKS + LINGER_TICKS, BURST_TICKS);
 
     private static final List<Flight> FLIGHTS = new ArrayList<>();
 
     private record Lift(Display.BlockDisplay display, int delay) {}
 
+    /** At {@code tick} of the flight, every copy starts moving to {@code pose} over {@code ticks}, after its own delay. */
+    private record Stage(int tick, Transformation pose, int ticks) {}
+
     private static final class Flight {
         final ServerLevel level;
         final Vec3 center;
         final List<Lift> lifts;
+        final List<Stage> stages;
+        /** Ticks after its last stage starts (plus its delay) that a copy is removed. */
+        final int done;
+        final boolean whoosh;
         int age;
 
-        Flight(ServerLevel level, Vec3 center, List<Lift> lifts) {
+        Flight(ServerLevel level, Vec3 center, List<Lift> lifts, List<Stage> stages, int done, boolean whoosh) {
             this.level = level;
             this.center = center;
             this.lifts = lifts;
+            this.stages = stages;
+            this.done = done;
+            this.whoosh = whoosh;
         }
 
         /** Returns whether the flight is over. */
         boolean tick() {
             age++;
-            if (age == LAUNCH_TICKS) {
-                lifts.forEach(DoorFlights::launch);
+            for (Stage stage : stages) {
+                if (age == stage.tick()) {
+                    lifts.forEach(lift -> move(lift, stage));
+                }
+            }
+            if (whoosh && age == LAUNCH_TICKS) {
                 level.playSound(null, center.x, center.y, center.z, SoundEvents.ENDER_EYE_LAUNCH, SoundSource.BLOCKS, 0.8f, 0.9f);
             }
+            int last = stages.get(stages.size() - 1).tick();
             lifts.removeIf(lift -> {
-                if (age < LAUNCH_TICKS + lift.delay() + RISE_TICKS + LINGER_TICKS) {
+                if (age < last + lift.delay() + done) {
                     return false;
                 }
                 lift.display().discard();
@@ -86,14 +112,29 @@ public final class DoorFlights {
 
     private DoorFlights() {}
 
-    /** Sends a copy of each block up out of the doorway. The blocks themselves have already been removed. */
+    /** Sends a copy of each block up out of the doorway, in a wave. The blocks themselves have already been removed. */
     static void start(ServerLevel level, Map<BlockPos, BlockState> blocks) {
+        fly(level, blocks, DoorFlights::stagger, List.of(new Stage(LAUNCH_TICKS, pose(1), RISE_TICKS)), RISE_TICKS + LINGER_TICKS, true);
+    }
+
+    /** Debris: every copy rises together, then bursts on the impact's peak. The blocks themselves have already been removed. */
+    static void burst(ServerLevel level, Map<BlockPos, BlockState> blocks) {
+        List<Stage> stages = List.of(
+                new Stage(LAUNCH_TICKS, pose(DEBRIS_RISE_BLOCKS, RISEN_SCALE), GameSounds.DEBRIS_PEAK_TICKS - LAUNCH_TICKS - 3),
+                new Stage(GameSounds.DEBRIS_PEAK_TICKS, pose(DEBRIS_RISE_BLOCKS, BURST_SCALE), SWELL_TICKS),
+                new Stage(GameSounds.DEBRIS_PEAK_TICKS + SWELL_TICKS, pose(DEBRIS_RISE_BLOCKS, 0), VANISH_TICKS));
+        fly(level, blocks, positions -> positions.stream().collect(Collectors.toMap(p -> p, p -> 0)), stages,
+                VANISH_TICKS + LINGER_TICKS, false);
+    }
+
+    private static void fly(ServerLevel level, Map<BlockPos, BlockState> blocks, Function<Collection<BlockPos>, Map<BlockPos, Integer>> delaysOf,
+                            List<Stage> stages, int done, boolean whoosh) {
         Map<BlockPos, BlockState> solid = new HashMap<>(blocks);
         solid.values().removeIf(BlockState::isAir);
         if (solid.isEmpty()) {
             return;
         }
-        Map<BlockPos, Integer> delays = stagger(solid.keySet());
+        Map<BlockPos, Integer> delays = delaysOf.apply(solid.keySet());
         List<Lift> lifts = new ArrayList<>();
         Vec3 sum = Vec3.ZERO;
         for (Map.Entry<BlockPos, BlockState> block : solid.entrySet()) {
@@ -113,18 +154,18 @@ public final class DoorFlights {
             lifts.add(new Lift(display, delays.get(pos)));
             sum = sum.add(pos.getCenter());
         }
-        FLIGHTS.add(new Flight(level, sum.scale(1.0 / solid.size()), lifts));
+        FLIGHTS.add(new Flight(level, sum.scale(1.0 / solid.size()), lifts, stages, done, whoosh));
     }
 
-    /** The client moves the copy from where it sits now to the end over {@link #RISE_TICKS}, once its delay has passed. */
-    private static void launch(Lift lift) {
+    /** The client moves the copy from where it sits now to the stage's pose over its ticks, once the copy's delay has passed. */
+    private static void move(Lift lift, Stage stage) {
         Display.BlockDisplay display = lift.display();
         if (display.isRemoved()) {
             return;
         }
         display.setInterpolationDelay(lift.delay());
-        display.setInterpolationDuration(RISE_TICKS);
-        display.setTransformation(pose(1));
+        display.setInterpolationDuration(stage.ticks());
+        display.setTransformation(stage.pose());
     }
 
     /**
@@ -132,9 +173,13 @@ public final class DoorFlights {
      * centre, so blocks side by side never touch.
      */
     private static Transformation pose(float progress) {
-        float scale = 1 - progress;
+        return pose(RISE_BLOCKS * progress, 1 - progress);
+    }
+
+    /** The block lifted {@code rise} blocks and drawn at {@code scale}, about its own centre. */
+    private static Transformation pose(float rise, float scale) {
         float half = scale / 2;
-        return new Transformation(new Vector3f(-half, 0.5f + RISE_BLOCKS * progress - half, -half), null, new Vector3f(scale), null);
+        return new Transformation(new Vector3f(-half, 0.5f + rise - half, -half), null, new Vector3f(scale), null);
     }
 
     /**

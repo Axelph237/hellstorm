@@ -87,4 +87,4 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
   - downed players earn kill points
 
   GameTest `DownsGameTests`: real lethal damage downs a FakePlayer who bought and drank a Vigoraid (crawl pose, slowed, pistol held, Vigoraid's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `PerkGameTests` checks which effects going down and dying take. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
-
+- **Sounds** (2026-10-23). While down you hear a looping heartbeat (`client/BleedingSound`); a revive plays the loud heartbeat's two beats to the revived player, and bleeding out plays the dark bell to everyone in the game. See `SOUNDS_NEEDED.md`.

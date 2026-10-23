@@ -50,6 +50,7 @@ public final class DownedView {
                 player.setPose(Pose.STANDING);
             }
         }
+        BleedingSound.update();
         PostChain current = mc.gameRenderer.currentEffect();
         boolean showing = current != null && current.getName().equals(SHADER.toString());
         if (HudState.selfDowned() && !showing) {

@@ -91,6 +91,23 @@ public final class PapRegistries {
     public static final RegistryObject<SoundEvent> VENDING_MACHINE_BUTTON = sound("vending_machine.button");
     /** Played to a player alone when they earn points rebuilding a board (see {@code Shop.chaChing}). */
     public static final RegistryObject<SoundEvent> CHA_CHING = sound("cha_ching");
+    // The game's stand-in sounds; game/GameSounds says when each plays.
+    public static final RegistryObject<SoundEvent> MYSTERY_BOX_LAUGH = sound("mystery_box.laugh");
+    public static final RegistryObject<SoundEvent> MYSTERY_BOX_SOULS = sound("mystery_box.souls");
+    public static final RegistryObject<SoundEvent> POWER_DOOR = sound("power.door");
+    public static final RegistryObject<SoundEvent> POWER_GENERATOR = sound("power.generator");
+    public static final RegistryObject<SoundEvent> POWER_UP_SPAWN = sound("powerup.spawn");
+    public static final RegistryObject<SoundEvent> POWER_UP_HORN = sound("powerup.horn");
+    public static final RegistryObject<SoundEvent> POWER_UP_CELEBRATE = sound("powerup.celebrate");
+    public static final RegistryObject<SoundEvent> PURCHASE_DENIED = sound("purchase.denied");
+    public static final RegistryObject<SoundEvent> DEBRIS_IMPACT = sound("debris.impact");
+    public static final RegistryObject<SoundEvent> GAME_START = sound("music.game_start");
+    public static final RegistryObject<SoundEvent> ROUND_START = sound("music.round_start");
+    public static final RegistryObject<SoundEvent> ROUND_END = sound("music.round_end");
+    public static final RegistryObject<SoundEvent> UPGRADER_FIRE = sound("upgrader.fire");
+    public static final RegistryObject<SoundEvent> BLEEDING = sound("player.bleeding");
+    public static final RegistryObject<SoundEvent> REVIVED = sound("player.revived");
+    public static final RegistryObject<SoundEvent> BLED_OUT = sound("player.bled_out");
     public static final RegistryObject<Block> WALL_BUY = BLOCKS.register("wall_buy", () -> new WallBuyBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0f, 3_600_000f).noOcclusion().noLootTable().sound(SoundType.WOOD)));
     public static final RegistryObject<BlockEntityType<WallBuyBlock.Entity>> WALL_BUY_ENTITY = BLOCK_ENTITIES.register("wall_buy",

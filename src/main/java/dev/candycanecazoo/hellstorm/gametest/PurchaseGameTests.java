@@ -137,13 +137,17 @@ public final class PurchaseGameTests {
 
     /** Spending points plays the cha-ching to the buyer alone; a purchase refused, or one that cost nothing, doesn't. */
     @GameTest(template = "floor", batch = "shop_cha_ching")
-    public static void spendingPointsPlaysNoChaChing(GameTestHelper helper) {
+    public static void aRefusedPurchasePlaysTheDeniedSoundAndSpendingPointsPlaysNoChaChing(GameTestHelper helper) {
         ListeningPlayer buyer = new ListeningPlayer(helper.getLevel(), "pap_cha_ching_buyer");
         ListeningPlayer teammate = new ListeningPlayer(helper.getLevel(), "pap_cha_ching_mate");
         GameManager.Active active = game(helper, List.<ServerPlayer>of(buyer, teammate));
+        // The game's own start music isn't what this is about.
+        buyer.heard.clear();
+        teammate.heard.clear();
         try {
             helper.assertFalse(Shop.buy(buyer, active, sale(points(active, buyer) + 1)), "bought without enough points");
-            helper.assertTrue(buyer.heard.isEmpty(), "a purchase short of points played " + buyer.heard);
+            helper.assertTrue(buyer.heard.equals(List.of(PapRegistries.PURCHASE_DENIED.get())), "a purchase short of points should play the denied sound once, played " + buyer.heard);
+            buyer.heard.clear();
             helper.assertTrue(Shop.buy(buyer, active, sale(0)), "a free purchase was refused");
             helper.assertTrue(buyer.heard.isEmpty(), "taking something free played " + buyer.heard);
             helper.assertTrue(Shop.buy(buyer, active, sale(100)), "the purchase was refused");
