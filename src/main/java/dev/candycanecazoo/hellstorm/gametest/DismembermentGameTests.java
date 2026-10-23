@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.gametest;
 import com.tacz.guns.api.entity.IGunOperator;
 import com.tacz.guns.api.entity.ShootResult;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.config.CommonConfig;
 import dev.candycanecazoo.hellstorm.game.ForgeGameWorld;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameMap;
@@ -92,6 +93,22 @@ public final class DismembermentGameTests {
             helper.assertTrue(zombie.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ForgeData").getByte(Limbs.REMOVED)
                     == (BodyPart.RIGHT_ARM.bit() | BodyPart.LEFT_LEG.bit()), "the lost limbs are saved with the zombie");
         } finally {
+            GameManager.end(range.active());
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "dismember_off")
+    public static void withDismembermentOffNothingComesOff(GameTestHelper helper) {
+        Range range = range(helper, "dismember_off", List.of());
+        CommonConfig.DISMEMBERMENT.set(false);
+        try {
+            Zombie zombie = spawn(helper, range, "zombie");
+            float health = zombie.getMaxHealth();
+            helper.assertTrue(Dismemberment.shot(zombie, on(zombie, -0.1, 0.3), false, health).isEmpty(), "a leg came off with dismemberment off");
+            helper.assertTrue(Limbs.removed(zombie) == 0 && !Limbs.crawls(zombie), "the zombie should keep its limbs and stand");
+        } finally {
+            CommonConfig.DISMEMBERMENT.set(true);
             GameManager.end(range.active());
         }
         helper.succeed();

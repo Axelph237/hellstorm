@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.config.CommonConfig;
 import dev.candycanecazoo.hellstorm.mob.BodyPart;
 import dev.candycanecazoo.hellstorm.mob.Limbs;
 import dev.candycanecazoo.hellstorm.net.LimbsPacket;
@@ -11,6 +12,7 @@ import net.minecraft.client.model.ZombieModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.AbstractZombieRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.ZombieRenderer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +25,7 @@ import net.minecraftforge.fml.common.Mod;
 
 /**
  * Draws zombies without the limbs they've lost, and crawlers lying prone, pulling themselves along by their arms. It
- * replaces vanilla's zombie renderer, which it otherwise matches.
+ * replaces vanilla's zombie renderer, which it otherwise matches, unless dismemberment is off in the common config.
  */
 public final class ZombieLimbs {
     private ZombieLimbs() {}
@@ -99,9 +101,17 @@ public final class ZombieLimbs {
     public static final class Registration {
         private Registration() {}
 
+        /**
+         * With dismemberment off in the common config, zombies get Minecraft's own renderer. The choice is made when the
+         * renderers are built, as resources load: they're registered before the common config is read.
+         */
         @SubscribeEvent
         public static void registerZombieRenderer(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(EntityType.ZOMBIE, Renderer::new);
+            event.registerEntityRenderer(EntityType.ZOMBIE, context -> {
+                boolean dismemberment = CommonConfig.SPEC.isLoaded() ? CommonConfig.DISMEMBERMENT.get() : CommonConfig.DISMEMBERMENT.getDefault();
+                Hellstorm.LOG.info("Zombies drawn by {}", dismemberment ? "Hellstorm's renderer, for dismemberment" : "Minecraft's renderer (dismemberment is off)");
+                return dismemberment ? new Renderer(context) : new ZombieRenderer(context);
+            });
         }
     }
 }
