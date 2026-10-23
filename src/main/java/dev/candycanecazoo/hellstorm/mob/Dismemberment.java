@@ -16,11 +16,11 @@ import java.util.Optional;
 
 /**
  * Shooting a zombie's arm or leg takes it off, once that limb has taken {@link #LIMB_SHARE} of the zombie's health in
- * shots: one pistol shot early on, several in later rounds. Losing a leg, or both, makes it a crawler at
+ * shots: two pistol shots early on, more in later rounds. Losing a leg, or both, makes it a crawler at
  * {@link #CRAWL_SPEED} of its speed. Only standing {@code minecraft:zombie}s lose limbs; a crawler keeps what it has left.
  */
 public final class Dismemberment {
-    public static final float LIMB_SHARE = 0.2f;
+    public static final float LIMB_SHARE = 0.4f;
     public static final float CRAWL_SPEED = 0.5f;
     private static final String DAMAGE = Limbs.REMOVED + "_damage";
 
