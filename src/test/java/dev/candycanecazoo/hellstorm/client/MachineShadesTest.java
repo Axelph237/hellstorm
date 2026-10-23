@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -68,24 +69,54 @@ class MachineShadesTest {
     }
 
     @Test
-    void everyOtherColorTurnsWithTheBasisAndGreysStayGrey() throws IOException {
+    void onRedTheHighlightsLeanTowardYellowAndTheShadowsTowardBlueAsTheyDoOnGreen() throws IOException {
         MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
         MachineShades.Hsv red = MachineShades.Hsv.of(HEALING_RED);
-        int[] others = Arrays.stream(texture()).filter(c -> !MachineShades.isGreen(c)).distinct().toArray();
-        assertTrue(others.length > 10, "the machine has purples, greys, and white besides its green");
-        for (int c : others) {
+        float highlight = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0xb0e499, median, red)).h());
+        float shadow = MachineShades.turn(red.h(), MachineShades.Hsv.of(MachineShades.recolor(0x207841, median, red)).h());
+        assertTrue(highlight > 0.02 && highlight < 0.1, "the lightest green should turn red toward orange, turned " + highlight);
+        assertTrue(shadow < -0.02 && shadow > -0.1, "the darkest green should turn red toward crimson, turned " + shadow);
+    }
+
+    @Test
+    void theGreysAreUnchangedOnGreenAndKeepTwoFifthsOfTheirTintOnRed() throws IOException {
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
+        MachineShades.Hsv red = MachineShades.Hsv.of(HEALING_RED);
+        int[] greys = Arrays.stream(texture()).filter(c -> MachineShades.role(c) == MachineShades.Role.GREY).distinct().toArray();
+        assertTrue(greys.length >= 8, "the machine has its lavenders and navies");
+        for (int c : greys) {
+            assertClose(c, MachineShades.recolor(c, median, median));
             MachineShades.Hsv before = MachineShades.Hsv.of(c);
-            int painted = MachineShades.recolor(c, median, red);
-            MachineShades.Hsv after = MachineShades.Hsv.of(painted);
-            if (before.s() == 0) {
-                assertTrue((painted >> 16 & 0xff) == (painted >> 8 & 0xff) && (painted >> 8 & 0xff) == (painted & 0xff),
-                        String.format("grey #%06x became #%06x", c, painted));
-            } else if (before.s() > 0.2 && before.v() > 0.2) {
-                double turn = ((after.h() - red.h()) - (before.h() - median.h()) + 2.5) % 1 - 0.5;
-                assertEquals(0, turn, 0.02, String.format("#%06x kept its hue offset from the basis (became #%06x)", c, painted));
+            MachineShades.Hsv after = MachineShades.Hsv.of(MachineShades.recolor(c, median, red));
+            assertEquals(before.s() * 0.4, after.s(), 0.02, String.format("#%06x's saturation on red", c));
+            assertEquals(before.v(), after.v(), 0.01, String.format("#%06x's brightness on red", c));
+            assertEquals(0, MachineShades.turn(before.h(), after.h()), 0.02, String.format("#%06x's hue on red", c));
+        }
+    }
+
+    @Test
+    void theWhitesAndTheCyanLightsKeepTheirColors() throws IOException {
+        MachineShades.Hsv median = MachineShades.median(texture()).orElseThrow();
+        for (int c : new int[] {0xf3f1f3, 0xd7cad6, 0xffffff, 0x5bbcf4, 0x36c5f4, 0x6dead6, 0x7ad4ff, 0xb4effd}) {
+            for (int color : new int[] {HEALING_RED, 0x385dc6, 0xf2d64b, 0x202020}) {
+                assertEquals(c, MachineShades.recolor(c, median, MachineShades.Hsv.of(color)), String.format("#%06x on #%06x", c, color));
             }
         }
-        assertNotEquals(0xa289b3, MachineShades.recolor(0xa289b3, median, red), "the purple trim moves too");
+    }
+
+    @Test
+    void eachColorOfTheTexturesHasTheRoleItWasPaintedFor() {
+        Map<MachineShades.Role, int[]> painted = Map.of(
+                MachineShades.Role.BRAND, new int[] {0xb0e499, 0x90d67d, 0x5ab552, 0x2f9840, 0x207841},
+                MachineShades.Role.GREY, new int[] {0xb59dbf, 0xa289b3, 0x9d92ab, 0x8c78a5, 0x8c75a5, 0x786899, 0xb0a7b8, 0x5e5b8c,
+                        0x3e3f66, 0x3d3b66, 0x50567c},
+                MachineShades.Role.WHITE, new int[] {0xffffff, 0xf3f1f3, 0xeae2eb, 0xe6e3e7, 0xd7cad6, 0xc8b2ca, 0xc5bdc9},
+                MachineShades.Role.LIGHT, new int[] {0x5bbcf4, 0x7bd4ff, 0x36c5f4, 0x6dead6, 0x7ad4ff, 0xb4effd});
+        painted.forEach((role, colors) -> {
+            for (int c : colors) {
+                assertEquals(role, MachineShades.role(c), String.format("#%06x", c));
+            }
+        });
     }
 
     @Test
