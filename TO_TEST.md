@@ -15,7 +15,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Machines
 
-- [ ] **Load-Up can.** `/give @s hellstorm:load_up`. Check the model and its display in hand (both views), in the inventory, on the ground, and on a vending machine's shelves (it uses the `fixed` transform there; the `on_shelf` one is for 1.21.9's shelf block and isn't read in 1.20.1). Drinking it plays the drinking pose and sound and gives Load-Up with no time limit. A machine set to sell it (hold the can, `/hs wallbuy set 2500 held`) turns the Load-Up green and shows cans on its shelves.
+- [ ] **Load-Up and Vigoraid cans.** `/give @s hellstorm:load_up` and `/give @s hellstorm:vigoraid`, each in turn. Check the model and its display in hand (both views), in the inventory, on the ground, and on a vending machine's shelves (it uses the `fixed` transform there; the `on_shelf` one is for 1.21.9's shelf block and isn't read in 1.20.1). Drinking it plays the drinking pose and sound and gives its perk with no time limit. A machine set to sell one (hold the can, `/hs wallbuy set 2500 held`) takes the perk's color (Load-Up green, Vigoraid red) and shows cans on its shelves.
 - [ ] **Vending machine hum.** A lit machine's idle hum is about a quarter as loud as before, and still fades with the light.
 
 ## Guns

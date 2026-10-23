@@ -342,7 +342,7 @@ public final class PerkGameTests {
     }
 
     @GameTest(template = "floor", batch = "perk_can")
-    public static void aLoadUpCanIsSoldAndDrunkLikeAPotionForLoadUpWithNoTimeLimit(GameTestHelper helper) {
+    public static void perkCansAreSoldAndDrunkLikePotionsForTheirPerkWithNoTimeLimit(GameTestHelper helper) {
         BlockPos at = vendingMachine(helper);
         WallBuyBlock.entity(helper.getLevel(), at).orElseThrow().setConfig(new WallBuy.Config(
                 new dev.candycanecazoo.hellstorm.data.ItemSpec.Plain(Hellstorm.id("load_up"), 1, Optional.empty()),
@@ -364,6 +364,10 @@ public final class PerkGameTests {
             WallBuyBlock.Entity entity = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
             WallBuy.Action action = WallBuyBlock.action(entity.config(), entity.display(), player, Optional.empty());
             helper.assertTrue(action.equals(new WallBuy.Action.Deny("You already have Load-Up")), "a second can should be refused, action " + action);
+
+            helper.assertTrue(drink(player, new ItemStack(PapRegistries.VIGORAID_CAN.get())), "drinking a Vigoraid can shouldn't be refused");
+            MobEffectInstance vigoraid = player.getEffect(PerkEffects.VIGORADE.get());
+            helper.assertTrue(vigoraid != null && vigoraid.isInfiniteDuration(), "the Vigoraid can should give Vigoraid with no time limit, got " + vigoraid);
         } finally {
             GameManager.end(active);
         }
