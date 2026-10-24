@@ -19,6 +19,8 @@ import dev.candycanecazoo.hellstorm.tools.MapEdits;
 import dev.candycanecazoo.hellstorm.tools.MapHistory;
 import dev.candycanecazoo.hellstorm.tools.Selection;
 import dev.candycanecazoo.hellstorm.tools.ToolState;
+import dev.candycanecazoo.hellstorm.util.Highlight;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -52,6 +54,12 @@ final class WindowCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> remove() {
         return Commands.literal("window").then(name().executes(CommandErrors.titled("Unable to remove window", WindowCommands::remove)));
+    }
+
+    static LiteralArgumentBuilder<CommandSourceStack> set() {
+        return Commands.literal("window").then(name().then(Commands.literal("boards")
+                .then(Commands.argument("boards", IntegerArgumentType.integer(0, WindowDef.MAX_BOARDS))
+                        .executes(CommandErrors.titled("Unable to set window boards", WindowCommands::setBoards)))));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> name() {
@@ -98,8 +106,7 @@ final class WindowCommands {
                     + "with a room on exactly one side and no room on the other");
         }
         Optional<WindowDef> old = Optional.ofNullable(map.windows().get(id));
-        WindowDef window = new WindowDef(id, opening, outward.get(), old.map(WindowDef::maxBoards).orElse(boards.orElse(WindowDef.MAX_BOARDS)),
-                ZoneIndex.of(map).zoneAt(opening.min().relative(outward.get().getOpposite())).orElseThrow());
+        WindowDef window = new WindowDef(id, opening, outward.get(), old.map(WindowDef::maxBoards).orElse(boards.orElse(WindowDef.MAX_BOARDS)));
         GameSettings.Windows rules = ServerConfig.GAME.get().windows();
         if (window.width() > rules.maxWidth() || window.height() > rules.maxHeight()) {
             throw CommandErrors.fail("That opening is {}. The limit is {} ({})",
@@ -119,6 +126,28 @@ final class WindowCommands {
             WindowOps.setBoards(level, window, window.maxBoards());
         });
         ZonesCommands.used(player);
+        if (old.isPresent() && boards.isPresent() && boards.getAsInt() != window.maxBoards()) {
+            ctx.getSource().sendSuccess(() -> Highlight.component(Highlight.of("Window {} keeps its {} boards. To change them: {}", id, window.maxBoards(),
+                    "/hs zones set window " + id + " boards " + boards.getAsInt()), ChatFormatting.WHITE), false);
+        }
+        return 1;
+    }
+
+    /** Changes how many boards a window holds when whole, and boards it up to that many now. */
+    private static int setBoards(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerLevel level = ctx.getSource().getLevel();
+        String id = StringArgumentType.getString(ctx, "window");
+        int boards = IntegerArgumentType.getInteger(ctx, "boards");
+        WindowDef old = MapSavedData.get(level).map().windows().get(id);
+        if (old == null) {
+            throw CommandErrors.fail("No window named {}", id);
+        }
+        WindowDef window = new WindowDef(id, old.opening(), old.outward(), boards);
+        MapHistory.record(level, "set window '" + id + "' boards " + boards, cells(window.opening()), () -> {
+            MapEdits.apply(level, m -> m.withWindow(window));
+            WindowOps.setBoards(level, window, boards);
+        });
+        ctx.getSource().sendSuccess(() -> Component.literal("Window '" + id + "' holds " + boards + (boards == 1 ? " board" : " boards")), false);
         return 1;
     }
 
@@ -151,8 +180,10 @@ final class WindowCommands {
 
     static void list(CommandContext<CommandSourceStack> ctx, ZombiesMap map) {
         ServerLevel level = ctx.getSource().getLevel();
+        ZoneIndex index = ZoneIndex.of(map);
         for (WindowDef w : map.windows().values()) {
-            ctx.getSource().sendSuccess(() -> Component.literal("Window " + w.id() + ": " + w.width() + "x" + w.height() + " into '" + w.zone() + "', "
+            String into = w.zoneBehind(index).map(zone -> "into '" + zone + "'").orElse("into no room");
+            ctx.getSource().sendSuccess(() -> Component.literal("Window " + w.id() + ": " + w.width() + "x" + w.height() + " " + into + ", "
                     + WindowOps.boards(level, w) + "/" + w.maxBoards() + " boards"), false);
         }
     }

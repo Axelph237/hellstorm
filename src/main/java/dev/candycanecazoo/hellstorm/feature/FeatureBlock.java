@@ -1,6 +1,8 @@
 package dev.candycanecazoo.hellstorm.feature;
 
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.game.Refusal;
+import dev.candycanecazoo.hellstorm.game.Shop;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.tools.MapEdits;
 import net.minecraft.core.BlockPos;
@@ -49,7 +51,14 @@ public interface FeatureBlock {
             return;
         }
         GameManager.forPlayer(player.getUUID()).filter(a -> a.level() == level).ifPresentOrElse(
-                game -> block.buy(player, game, pos, state),
+                game -> {
+                    // A machine left behind by another map, or placed since the game began, isn't the game's to sell.
+                    if (game.game().map().map().hasFeature(pos, block.featureKind())) {
+                        block.buy(player, game, pos, state);
+                    } else {
+                        Shop.refuse(player, new Refusal.Translated("message.hellstorm.machine.not_in_map", List.of()));
+                    }
+                },
                 () -> {
                     if (!MachineSettings.open(player, pos)) {
                         player.sendSystemMessage(block.describe(level, pos));

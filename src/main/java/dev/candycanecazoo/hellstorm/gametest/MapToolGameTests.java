@@ -7,6 +7,7 @@ import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.DoorDef;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.map.WindowDef;
+import dev.candycanecazoo.hellstorm.map.Zone;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
@@ -297,6 +298,94 @@ public final class MapToolGameTests {
             }
             MapEdits.apply(level, m -> before);
         }
+    }
+
+    /**
+     * A window whose opening's corner column has no room behind it is added (it used to fail with an unexpected error), and
+     * {@code /hs zones list} names the room behind it now, even after that room is redrawn under another name.
+     */
+    @GameTest(template = "floor", batch = "map_tools_window_corner")
+    public static void aWindowWithNoRoomBehindItsCornerIsAddedAndListsTheRoomBehindItNow(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ZombiesMap before = map(level);
+        Reader player = new Reader(level);
+        var commands = level.getServer().getCommands();
+        var source = player.createCommandSourceStack().withPermission(2);
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(3, ROOM_Y, 5)), helper.absolutePos(new BlockPos(6, ROOM_Y + 2, 7)));
+        BlockBox opening = BlockBox.of(helper.absolutePos(new BlockPos(2, ROOM_Y, 4)), helper.absolutePos(new BlockPos(4, ROOM_Y + 1, 4)));
+        try {
+            MapEdits.apply(level, m -> m.withZone(new Zone(new ZoneId("gametest_corner_room"), List.of(room), false)));
+            BlockPos.betweenClosed(opening.min(), opening.max()).forEach(p -> level.setBlockAndUpdate(p, Blocks.STONE.defaultBlockState()));
+            select(player, opening);
+            commands.performPrefixedCommand(source, "hs zones add window gametest_corner_window");
+            helper.assertTrue(map(level).windows().containsKey("gametest_corner_window"), "the window should be added, but the command said " + player.said);
+
+            commands.performPrefixedCommand(source, "hs zones list");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().contains("gametest_corner_window") && c.getString().contains("into 'gametest_corner_room'")),
+                    "the list should name the room behind the window, but said " + player.said);
+            MapEdits.apply(level, m -> m.withoutZone(new ZoneId("gametest_corner_room")).withZone(new Zone(new ZoneId("gametest_corner_redrawn"), List.of(room), false)));
+            player.said.clear();
+            commands.performPrefixedCommand(source, "hs zones list");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().contains("into 'gametest_corner_redrawn'")),
+                    "the list should name the redrawn room, but said " + player.said);
+            helper.succeed();
+        } finally {
+            ToolState.forget(player.getUUID());
+            BlockPos.betweenClosed(opening.min(), opening.max()).forEach(p -> level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState()));
+            MapEdits.apply(level, m -> before);
+        }
+    }
+
+    /**
+     * {@code /hs zones set window} changes a window's boards and boards it up to them, and undo takes that back; adding the
+     * window again keeps its boards and says how to change them.
+     */
+    @GameTest(template = "floor", batch = "map_tools_window_boards")
+    public static void settingAWindowsBoardsReboardsItAndUndoes(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ZombiesMap before = map(level);
+        Reader player = new Reader(level);
+        var commands = level.getServer().getCommands();
+        var source = player.createCommandSourceStack().withPermission(2);
+        BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 5)), helper.absolutePos(new BlockPos(7, ROOM_Y + 2, 7)));
+        BlockPos hole = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
+        BlockBox opening = BlockBox.of(hole, hole.above());
+        try {
+            MapEdits.apply(level, m -> m.withZone(new Zone(new ZoneId("gametest_boards_room"), List.of(room), false)));
+            BlockPos.betweenClosed(opening.min(), opening.max()).forEach(p -> level.setBlockAndUpdate(p, Blocks.STONE.defaultBlockState()));
+            select(player, opening);
+            commands.performPrefixedCommand(source, "hs zones add window gametest_boards_window");
+            helper.assertTrue(boards(level, hole) == WindowDef.MAX_BOARDS, "a new window should hold the most boards");
+
+            commands.performPrefixedCommand(source, "hs zones set window gametest_boards_window boards 2");
+            helper.assertTrue(map(level).windows().get("gametest_boards_window").maxBoards() == 2, "the window should hold 2 boards now");
+            helper.assertTrue(boards(level, hole) == 2 && boards(level, hole.above()) == 2, "the opening should show 2 boards");
+
+            select(player, opening);
+            player.said.clear();
+            commands.performPrefixedCommand(source, "hs zones add window gametest_boards_window 5");
+            helper.assertTrue(map(level).windows().get("gametest_boards_window").maxBoards() == 2, "adding the window again should keep its boards");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().contains("/hs zones set window gametest_boards_window boards 5")),
+                    "adding it again with other boards should say how to change them, but said " + player.said);
+
+            commands.performPrefixedCommand(source, "hs undo");
+            helper.assertTrue(map(level).windows().get("gametest_boards_window").maxBoards() == WindowDef.MAX_BOARDS && boards(level, hole) == WindowDef.MAX_BOARDS,
+                    "undo should put back the boards the window had");
+
+            player.said.clear();
+            commands.performPrefixedCommand(source, "hs zones set window gametest_no_window boards 3");
+            helper.assertTrue(player.said.stream().anyMatch(c -> c.getString().contains("No window named")), "an unknown window should be refused, but said " + player.said);
+            helper.succeed();
+        } finally {
+            ToolState.forget(player.getUUID());
+            BlockPos.betweenClosed(opening.min(), opening.max()).forEach(p -> level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState()));
+            MapEdits.apply(level, m -> before);
+        }
+    }
+
+    private static int boards(ServerLevel level, BlockPos pos) {
+        var state = level.getBlockState(pos);
+        return state.is(PapRegistries.BARRICADE.get()) ? state.getValue(BarricadeBlock.BOARDS) : -1;
     }
 
     private static ZombiesMap map(ServerLevel level) {

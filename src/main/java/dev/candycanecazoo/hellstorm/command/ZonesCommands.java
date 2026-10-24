@@ -46,7 +46,7 @@ final class ZonesCommands {
                         .then(Commands.argument("from", StringArgumentType.word()).suggests(ROOMS_AND_DOORS)
                                 .then(Commands.argument("into", StringArgumentType.word()).suggests(ROOMS_AND_DOORS).executes(CommandErrors.titled("Unable to merge zones", ZonesCommands::mergeNamed)))))
                 .then(Commands.literal("remove").then(RoomCommands.remove()).then(DoorCommands.remove()).then(WindowCommands.remove()))
-                .then(Commands.literal("set").then(RoomCommands.set()).then(DoorCommands.set()))
+                .then(Commands.literal("set").then(RoomCommands.set()).then(DoorCommands.set()).then(WindowCommands.set()))
                 .then(Commands.literal("list").executes(CommandErrors.titled("Unable to list zones", ZonesCommands::list)))
                 .then(RoomCommands.detect())
                 .then(Commands.literal("confirm").executes(CommandErrors.titled("Unable to confirm room", RoomCommands::confirm)))

@@ -131,7 +131,7 @@ public final class ForgeGameWorld implements GameWorld {
         }
         if (profile.breaksBarricades() && mob instanceof PathfinderMob walker) {
             map.windowFor(marker).ifPresent(window -> walker.goalSelector.addGoal(0,
-                    new BreakBarricadeGoal(walker, windowAdapter(window), tearTicks, pos -> map.index().zoneAt(pos).isPresent())));
+                    new BreakBarricadeGoal(walker, windowAdapter(window), tearTicks, pos -> map.index().zoneOfBody(pos).isPresent())));
         }
         return level.addFreshEntity(mob) ? Optional.of(mob.getUUID()) : Optional.empty();
     }

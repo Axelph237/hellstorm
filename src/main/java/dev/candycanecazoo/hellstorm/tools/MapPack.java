@@ -6,9 +6,13 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
+import dev.candycanecazoo.hellstorm.feature.SpawnMarkerBlock;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.MapGeometry;
+import dev.candycanecazoo.hellstorm.map.WindowDef;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
+import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
@@ -17,6 +21,8 @@ import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
@@ -205,6 +211,39 @@ public final class MapPack {
         });
         ZombiesMap map = MapGeometry.moved(contents.manifest().map(), at.getX(), at.getY(), at.getZ());
         MapEdits.apply(level, old -> map);
+    }
+
+    /** How many machines and spawn markers, and how many windows' barricades, {@link #clear} took out. */
+    public record Cleared(int machines, int windows) {}
+
+    /**
+     * Takes {@code map}'s own blocks out of the world, dropping nothing: the machine or spawn marker at each of its feature
+     * positions, whole, and the barricades in each window. Terrain stays, and so do door blocks, which are terrain until
+     * a game opens them.
+     */
+    public static Cleared clear(ServerLevel level, ZombiesMap map) {
+        BlockState air = Blocks.AIR.defaultBlockState();
+        int flags = Block.UPDATE_ALL | Block.UPDATE_SUPPRESS_DROPS;
+        int machines = 0;
+        for (BlockPos pos : map.features().keySet()) {
+            BlockState state = level.getBlockState(pos);
+            List<BlockPos> blocks = state.getBlock() instanceof FeatureBlock machine ? machine.blocks(state, pos)
+                    : state.getBlock() instanceof SpawnMarkerBlock ? List.of(pos) : List.of();
+            blocks.forEach(p -> level.setBlock(p, air, flags));
+            machines += blocks.isEmpty() ? 0 : 1;
+        }
+        int windows = 0;
+        for (WindowDef window : map.windows().values()) {
+            boolean boarded = false;
+            for (BlockPos pos : BlockPos.betweenClosed(window.opening().min(), window.opening().max())) {
+                if (level.getBlockState(pos).is(PapRegistries.BARRICADE.get())) {
+                    level.setBlock(pos, air, flags);
+                    boarded = true;
+                }
+            }
+            windows += boarded ? 1 : 0;
+        }
+        return new Cleared(machines, windows);
     }
 
     /** Writes the pack's datapack as {@code datapacks/<name>}, replacing any folder there, and never outside it. */

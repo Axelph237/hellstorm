@@ -169,13 +169,14 @@ final class RoomCommands {
         ServerLevel level = player.serverLevel();
         ZoneId id = roomId(ctx);
         int limit = ServerConfig.DETECT_MAX_VOLUME.get();
-        ZoneIndex index = MapSavedData.get(level).index();
-        Optional<ZoneId> standingIn = index.zoneAt(player.blockPosition());
+        ZombiesMap map = MapSavedData.get(level).map();
+        Optional<ZoneId> standingIn = MapSavedData.get(level).index().zoneOfBody(player.blockPosition());
         if (standingIn.isPresent()) {
             throw CommandErrors.fail("You're standing in room {}, which is already mapped. Detect fills unmapped space: stand in the room you want to add to {}",
                     standingIn.get(), id);
         }
-        RoomDetector.Result result = RoomDetector.detect(player.blockPosition(), RoomDetection.openCells(level, index), limit);
+        RoomDetector.Result result = RoomDetector.detect(player.blockPosition(), RoomDetection.openCells(level, map),
+                RoomDetection.floorCells(level, map), limit);
         if (result instanceof RoomDetector.Found found) {
             List<BlockBox> boxes = BoxMerger.merge(found.cells());
             ToolState.setDetection(player, new ToolState.PendingDetection(level.dimension(), id, boxes));

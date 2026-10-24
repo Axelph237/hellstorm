@@ -37,6 +37,17 @@ class ZombiesMapCodecTest {
         assertTrue(ZoneId.parse("UPPER").error().isPresent());
     }
 
+    /** Saves and map packs from before windows stopped storing their room still load, and the stale room is dropped. */
+    @Test
+    void aWindowSavedWithItsOldZoneKeyStillLoads() {
+        String json = "{\"windows\": [{\"id\": \"w\", \"opening\": {\"min\": [3, 0, -1], \"max\": [5, 1, -1]}, \"outward\": \"north\","
+                + " \"max_boards\": 4, \"zone\": \"gone\"}]}";
+        ZombiesMap map = ZombiesMap.CODEC.parse(JsonOps.INSTANCE, com.google.gson.JsonParser.parseString(json)).getOrThrow(false, AssertionError::new);
+        assertEquals(new WindowDef("w", new BlockBox(3, 0, -1, 5, 1, -1), net.minecraft.core.Direction.NORTH, 4), map.windows().get("w"));
+        JsonElement saved = WindowDef.CODEC.encodeStart(JsonOps.INSTANCE, map.windows().get("w")).getOrThrow(false, AssertionError::new);
+        assertFalse(saved.getAsJsonObject().has("zone"), "a window shouldn't save a room: " + saved);
+    }
+
     @Test
     void doorsDefaultWhatTheyLeaveOutAndRejectBadStyles() {
         DoorDef door = DoorDef.CODEC.parse(JsonOps.INSTANCE, com.google.gson.JsonParser.parseString("{\"id\": \"gate\"}"))

@@ -46,7 +46,7 @@ public final class WindowGameTests {
 
     private static WindowDef window(GameTestHelper helper, String id, int x0, int x1, int height) {
         return new WindowDef(id, BlockBox.of(helper.absolutePos(new BlockPos(x0, ROOM_Y, 4)), helper.absolutePos(new BlockPos(x1, ROOM_Y + height - 1, 4))),
-                Direction.NORTH, 6, new ZoneId("gametest_window_room"));
+                Direction.NORTH, 6);
     }
 
     /** All members show the same count after each change, for a 1x1, a 3x2, and a 5x4 (default max) window. */
@@ -107,10 +107,10 @@ public final class WindowGameTests {
             }
         }
         WindowDef w = new WindowDef("breakin", BlockBox.of(helper.absolutePos(new BlockPos(4, ROOM_Y, 4)), helper.absolutePos(new BlockPos(4, ROOM_Y + 1, 4))),
-                Direction.NORTH, 6, new ZoneId("gametest_breakin_room"));
+                Direction.NORTH, 6);
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
         BlockPos marker = helper.absolutePos(new BlockPos(4, ROOM_Y, 1));
-        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_window_room"), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
         WindowOps.setBoards(helper.getLevel(), w, 6);
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_breakin_test"));
         BlockPos stand = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
@@ -144,7 +144,7 @@ public final class WindowGameTests {
         }
         WindowDef w = window(helper, "repair_bar", 4, 4, 2);
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
-        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w);
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_window_room"), List.of(room), true)).withWindow(w);
         WindowOps.setBoards(helper.getLevel(), w, 0);
         ListeningPlayer player = new ListeningPlayer(helper.getLevel(), "pap_repair_bar_test");
         ListeningPlayer teammate = new ListeningPlayer(helper.getLevel(), "pap_repair_bar_mate");
@@ -209,7 +209,7 @@ public final class WindowGameTests {
         }
         WindowDef w = window(helper, "repair_key", 4, 4, 2);
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
-        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w);
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_window_room"), List.of(room), true)).withWindow(w);
         WindowOps.setBoards(helper.getLevel(), w, 0);
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_repair_key_test"));
         BlockPos stand = helper.absolutePos(new BlockPos(4, ROOM_Y, 6));
@@ -271,10 +271,10 @@ public final class WindowGameTests {
         }
         helper.setBlock(new BlockPos(4, ROOM_Y, 4), sill);
         WindowDef w = new WindowDef("sill", BlockBox.of(helper.absolutePos(new BlockPos(4, ROOM_Y + 1, 4)), helper.absolutePos(new BlockPos(4, ROOM_Y + 2, 4))),
-                Direction.NORTH, 6, new ZoneId("gametest_sill_room"));
+                Direction.NORTH, 6);
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
         BlockPos marker = helper.absolutePos(new BlockPos(4, ROOM_Y, 1));
-        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_window_room"), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
         WindowOps.setBoards(helper.getLevel(), w, 1);
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_sill_test"));
         BlockPos stand = helper.absolutePos(new BlockPos(7, ROOM_Y, 7));
@@ -458,7 +458,7 @@ public final class WindowGameTests {
         WindowDef w = window(helper, "fit", 4, 4, 2);
         BlockPos marker = w.attackSpot().relative(w.outward(), 2);
         BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 5)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
-        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(w.zone(), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
+        ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_window_room"), List.of(room), true)).withWindow(w).withFeature(marker, FeatureKind.SPAWN);
         GameMap gameMap = GameMap.of(map, Set.of(), 6.0);
         net.minecraft.resources.ResourceLocation golem = net.minecraft.resources.ResourceLocation.tryBuild("test", "golem");
         net.minecraft.resources.ResourceLocation zombie = net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie");

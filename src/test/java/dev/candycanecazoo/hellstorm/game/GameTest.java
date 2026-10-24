@@ -322,6 +322,15 @@ class GameTest {
         assertEquals(Set.of(marker(0), marker(2)), spawnMarkers(game, 60));
     }
 
+    /** Standing on a carpet or slab puts the feet in that block, just under a zone drawn over the floor. */
+    @Test
+    void aPlayerStandingOnALowFloorUnderAZoneDiscoversIt() {
+        Game game = startedGame();
+        world.positions.put(alice, new BlockPos(25, -1, 2));
+        tick(game, world, 1);
+        assertEquals(Set.of(ZONES.get(0), ZONES.get(2)), game.discovered());
+    }
+
     @Test
     void aSpectatorDiscoversNothing() {
         Game game = startedGame();

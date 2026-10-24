@@ -90,7 +90,7 @@ class SpawnDirectorTest {
     @Test
     void unlinkedMarkersAreNotCandidatesButWindowMarkersFeedTheWindowsZone() {
         ZombiesMap map = chain()
-                .withWindow(new WindowDef("w", new BlockBox(5, 0, -1, 5, 1, -1), Direction.NORTH, 6, A))
+                .withWindow(new WindowDef("w", new BlockBox(5, 0, -1, 5, 1, -1), Direction.NORTH, 6))
                 .withFeature(new BlockPos(5, 0, -3), FeatureKind.SPAWN)
                 .withFeature(new BlockPos(500, 0, 500), FeatureKind.SPAWN);
         List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(markerZones(map), Set.of(A), List.of(new BlockPos(1, 0, 8)), S);
