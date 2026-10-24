@@ -71,7 +71,7 @@ public final class MapToolGameTests {
             player.moveTo(target.getX() + 0.5, target.getY() - 1.0, target.getZ() + 3.5, 180, 0);
             player.setYHeadRot(180);
             Optional<BlockPos> picked = ZoneWandItem.targetCell(player, 5);
-            helper.assertTrue(picked.equals(Optional.of(target.above())), "the wand should pick the cell above the stone looked at, not " + picked);
+            helper.assertTrue(picked.equals(Optional.of(target.south())), "the wand should pick the cell in front of the stone's face looked at (its south side), not " + picked);
             player.setShiftKeyDown(true);
             Optional<BlockPos> sneaking = ZoneWandItem.targetCell(player, 5);
             player.setShiftKeyDown(false);
@@ -405,7 +405,7 @@ public final class MapToolGameTests {
     }
 
     /**
-     * A wand click on a lever selects a corner (above the lever standing, the lever itself sneaking) and never flips it;
+     * A wand click on a lever selects a corner (in front of the face clicked standing, the lever itself sneaking) and never flips it;
      * {@code /hsz desel}, the short form of {@code /hs zones desel}, clears the selection.
      */
     @GameTest(template = "floor", batch = "map_tools_wand_click")
@@ -434,6 +434,11 @@ public final class MapToolGameTests {
             helper.assertFalse(level.getBlockState(lever).getValue(net.minecraft.world.level.block.LeverBlock.POWERED), "nor sneaking");
             helper.assertTrue(ToolState.selection(player).boxes().equals(List.of(BlockBox.of(lever.above(), lever))),
                     "sneaking, the second corner is the lever itself: " + ToolState.selection(player));
+            // Looking at a side of the block, the corner is beside it, not above it.
+            ToolState.setSelection(player, Selection.NONE);
+            player.gameMode.useItemOn(player, level, wand, net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new net.minecraft.world.phys.BlockHitResult(lever.getCenter(), net.minecraft.core.Direction.EAST, lever, false));
+            helper.assertTrue(ToolState.selection(player).corner().equals(Optional.of(lever.east())), "on its east face, the corner is east of it: " + ToolState.selection(player));
             level.getServer().getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(2), "hsz desel");
             helper.assertTrue(ToolState.selection(player).isEmpty(), "/hsz desel should clear the selection");
         } finally {

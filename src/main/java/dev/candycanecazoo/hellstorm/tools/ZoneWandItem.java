@@ -6,6 +6,7 @@ import dev.candycanecazoo.hellstorm.client.BoneTextures;
 import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,7 +35,8 @@ import java.util.function.Consumer;
 
 /**
  * Right-click sets selection corners, and every two add a box to the selection (see {@link Selection}). A corner is the
- * cell above the block you're looking at, or, sneaking, that block itself. A click never uses the block (no door opens, no
+ * cell in front of the face you're looking at (the air over a floor, beside a wall, under a ceiling), or, sneaking, the
+ * block itself. A click never uses the block (no door opens, no
  * lever flips). {@code /hs zones desel} clears the selection. Finishing a box when the selection touches no room hints at
  * the add command.
  */
@@ -67,21 +69,21 @@ public final class ZoneWandItem extends Item implements MapTool, GeoItem {
     public static Optional<BlockPos> targetCell(Player player, double reach) {
         HitResult hit = player.pick(reach, 1.0f, false);
         if (hit instanceof BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK) {
-            return Optional.of(cellFor(player, blockHit.getBlockPos()));
+            return Optional.of(cellFor(player, blockHit.getBlockPos(), blockHit.getDirection()));
         }
         return Optional.empty();
     }
 
-    /** Above the block looked at, so a room's corner lands in the air over its floor; sneaking, the block itself. */
-    public static BlockPos cellFor(Player player, BlockPos lookedAt) {
-        return player.isShiftKeyDown() ? lookedAt : lookedAt.above();
+    /** The cell in front of the face looked at, so a room's corner lands in the air beside its floor or walls; sneaking, the block itself. */
+    public static BlockPos cellFor(Player player, BlockPos lookedAt, Direction face) {
+        return player.isShiftKeyDown() ? lookedAt : lookedAt.relative(face);
     }
 
     /** A click on a block within reach: selects, and never uses the block, sneaking or not. Runs before the block would. */
     @Override
     public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
         if (context.getPlayer() instanceof ServerPlayer player) {
-            select(player, cellFor(player, context.getClickedPos()));
+            select(player, cellFor(player, context.getClickedPos(), context.getClickedFace()));
         }
         return InteractionResult.sidedSuccess(context.getLevel().isClientSide());
     }

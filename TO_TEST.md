@@ -12,7 +12,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Zone Wand (2026-10-24)
 
-- [ ] **Corners above, sneak for the block.** With the Zone Wand, look at the floor: the preview box starts in the air above it. Sneak: it moves onto the floor block. Click a door, a lever and a chest: none opens or flips, standing or sneaking, and the corner is set. `/hsz desel` clears the selection, and `/hsz add room <name>` works like `/hs zones add room`.
+- [ ] **Corners in front of the face, sneak for the block.** With the Zone Wand, look at the floor: the preview box starts in the air above it. Look at a wall: it's in the air in front of the wall, and under a ceiling it's the air below. Sneak: it moves onto the block itself. Click a door, a lever and a chest: none opens or flips, standing or sneaking, and the corner is set. `/hsz desel` clears the selection, and `/hsz add room <name>` works like `/hs zones add room`.
 
 ## Fixes from the known-issues pass (2026-10-24)
 
