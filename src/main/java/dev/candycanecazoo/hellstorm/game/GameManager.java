@@ -50,6 +50,8 @@ public final class GameManager {
     }
 
     private static final Map<ResourceKey<Level>, Active> GAMES = new LinkedHashMap<>();
+    /** Games {@link #create} opened from the level's saved map, which {@link #reopen} can rebuild. GameTests register their own maps. */
+    private static final java.util.Set<Active> FROM_SAVED_MAP = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 
     private GameManager() {}
 
@@ -132,7 +134,9 @@ public final class GameManager {
         if (startCells.isEmpty()) {
             return new CreateResult.NoStartCells();
         }
-        return new CreateResult.Created(register(level, gameMap, startCells, level.getServer().getPlayerList()::getPlayer));
+        Active active = register(level, gameMap, startCells, level.getServer().getPlayerList()::getPlayer);
+        FROM_SAVED_MAP.add(active);
+        return new CreateResult.Created(active);
     }
 
     /**
@@ -141,6 +145,10 @@ public final class GameManager {
      * since the lobby opened is refused, and the lobby stays as it was. Lobby players are only waiting (nothing of theirs
      * has been taken yet), so the old game is dropped without ending it, which would announce a game over.
      */
+    public static boolean fromSavedMap(Active game) {
+        return FROM_SAVED_MAP.contains(game);
+    }
+
     public static CreateResult reopen(Active lobby) {
         ServerLevel level = lobby.level();
         if (MapSavedData.get(level).mode() == dev.candycanecazoo.hellstorm.map.MapMode.EDIT) {
@@ -153,6 +161,7 @@ public final class GameManager {
         List<UUID> waiting = lobby.game().players().stream().map(PlayerState::id).toList();
         lobby.pathing().close();
         GAMES.remove(level.dimension());
+        FROM_SAVED_MAP.remove(lobby);
         CreateResult result = create(level);
         if (result instanceof CreateResult.Created created) {
             waiting.forEach(created.active().game()::join);
@@ -226,6 +235,7 @@ public final class GameManager {
                 dev.candycanecazoo.hellstorm.net.PapNetwork.send(online, dev.candycanecazoo.hellstorm.net.HudSyncPacket.NONE);
             }
         }
+        FROM_SAVED_MAP.remove(active);
         GAMES.remove(active.level().dimension());
     }
 

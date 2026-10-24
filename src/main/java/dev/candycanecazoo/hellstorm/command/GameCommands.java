@@ -110,7 +110,7 @@ final class GameCommands {
             throw CommandErrors.fail("No game here. Run {} first", "/hs game join");
         }
         GameManager.Active game = active.get();
-        if (game.game().phase() instanceof GamePhase.Lobby) {
+        if (game.game().phase() instanceof GamePhase.Lobby && GameManager.fromSavedMap(game)) {
             game = opened(GameManager.reopen(game));
         }
         if (!game.game().start()) {
