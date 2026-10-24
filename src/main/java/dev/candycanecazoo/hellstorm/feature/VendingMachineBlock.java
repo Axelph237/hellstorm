@@ -77,8 +77,6 @@ public final class VendingMachineBlock extends TwoBlockMachine {
     /** When each of the use animation's three keys hits bottom, and its click's pitch. */
     private static final int[] PRESS_TICKS = {3, 6, 9};
     private static final float[] PRESS_PITCHES = {1.0f, 1.12f, 0.94f};
-    /** The use animation shakes the machine from one second in. */
-    private static final int SHAKE_TICK = 20;
     /** How long the machine takes to light up or go dark. */
     public static final int FADE_TICKS = 20;
     /** Each block's shape, by the side of it away from the other half: the model is 4 pixels short of the blocks' ends. */
@@ -224,7 +222,7 @@ public final class VendingMachineBlock extends TwoBlockMachine {
             }
         }
 
-        /** The clicks of the keys and the rattle of the shake, in time with the use animation, and the hum while lit. */
+        /** The clicks of the keys, in time with the use animation, and the hum while lit. */
         void clientTick() {
             long tick = vendTick(level.getGameTime());
             if (tick > vendHeard) {
@@ -233,9 +231,6 @@ public final class VendingMachineBlock extends TwoBlockMachine {
                     if (vendHeard < PRESS_TICKS[i] && tick >= PRESS_TICKS[i]) {
                         level.playLocalSound(keys.x, keys.y, keys.z, PapRegistries.VENDING_MACHINE_BUTTON.get(), SoundSource.BLOCKS, 0.8f, PRESS_PITCHES[i], false);
                     }
-                }
-                if (vendHeard < SHAKE_TICK && tick >= SHAKE_TICK) {
-                    level.playLocalSound(keys.x, keys.y, keys.z, PapRegistries.VENDING_MACHINE_SHAKE.get(), SoundSource.BLOCKS, 1.0f, 1.0f, false);
                 }
             }
             vendHeard = tick;

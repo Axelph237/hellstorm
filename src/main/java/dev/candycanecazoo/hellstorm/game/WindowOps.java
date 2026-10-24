@@ -37,11 +37,13 @@ public final class WindowOps {
         map.windows().values().forEach(w -> setBoards(level, w, w.maxBoards()));
     }
 
+    /** A zombie tears a board off: the bang on the wood from the foot of the opening, and the board splintering from its middle. */
     public static void tearBoard(ServerLevel level, WindowDef window) {
         int boards = boards(level, window);
         if (boards > 0) {
             setBoards(level, window, boards - 1);
             level.playSound(null, window.bottomCenter(), SoundEvents.ZOMBIE_BREAK_WOODEN_DOOR, SoundSource.HOSTILE, 0.6f, 1.2f);
+            level.playSound(null, window.opening().center(), SoundEvents.ARMOR_STAND_BREAK, SoundSource.BLOCKS, 1.0f, 1.0f);
         }
     }
 

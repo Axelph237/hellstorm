@@ -13,6 +13,7 @@ import java.util.UUID;
 /** A fake player that keeps the sounds played to it alone, which a fake player's connection would drop. */
 final class ListeningPlayer extends FakePlayer {
     final List<SoundEvent> heard = new ArrayList<>();
+    SoundSource lastSource;
 
     ListeningPlayer(ServerLevel level, String name) {
         super(level, new GameProfile(UUID.randomUUID(), name));
@@ -21,5 +22,6 @@ final class ListeningPlayer extends FakePlayer {
     @Override
     public void playNotifySound(SoundEvent sound, SoundSource source, float volume, float pitch) {
         heard.add(sound);
+        lastSource = source;
     }
 }

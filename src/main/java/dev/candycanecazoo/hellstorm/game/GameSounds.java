@@ -59,7 +59,8 @@ public final class GameSounds {
             new Note(PapRegistries.DEBRIS_IMPACT, 0, 1.0f, 1.0f));
     /** {@code debris/impact} peaks 0.95 s in. */
     public static final int IMPACT_PEAK_TICKS = 19;
-    static final List<Note> GAME_START = List.of(new Note(PapRegistries.GAME_START, 0, 1.0f, 0.9f));
+    /** At 0.35, 9 dB down, which the ear hears as about half as loud. */
+    static final List<Note> GAME_START = List.of(new Note(PapRegistries.GAME_START, 0, 0.35f, 0.9f));
     static final List<Note> ROUND_START = List.of(new Note(PapRegistries.ROUND_START, 0, 0.75f, 1.0f));
     static final List<Note> ROUND_END = List.of(new Note(PapRegistries.ROUND_END, 0, 1.0f, 1.0f));
     /**
@@ -75,7 +76,10 @@ public final class GameSounds {
     /** A long track played quietly now and then through a game, {@code ticks} long, at a volume that evens out their loudness. */
     public record Track(Supplier<SoundEvent> sound, int ticks, float volume) {}
 
-    /** Their volumes put each at the loudness of the quietest, Alone in the Dark, at half volume. */
+    /**
+     * Their volumes put each at the loudness of the quietest, Alone in the Dark, at half volume. They play on the music
+     * channel, and hold off vanilla's music while they do ({@code client/AmbientMusic}).
+     */
     public static final List<Track> AMBIENT = List.of(
             new Track(PapRegistries.AMBIENT_ALONE_IN_THE_DARK, 127 * 20, 0.5f),
             new Track(PapRegistries.AMBIENT_EYES_IN_THE_SKY, 185 * 20, 0.26f),
@@ -136,13 +140,13 @@ public final class GameSounds {
         List<Track> others = AMBIENT.stream().filter(track -> track != last).toList();
         Track track = others.get(level.random.nextInt(others.size()));
         active.game().players().forEach(state -> active.world().entity(state.id()).ifPresent(player ->
-                player.playNotifySound(track.sound().get(), SoundSource.AMBIENT, track.volume(), 1.0f)));
+                player.playNotifySound(track.sound().get(), SoundSource.MUSIC, track.volume(), 1.0f)));
         PENDING.add(new Pending(level, level.getGameTime() + track.ticks(), () -> nextAmbient(active, track)));
     }
 
     /** Stops any ambient track {@code player} is hearing, when the game ends or they leave it. */
     public static void stopAmbient(ServerPlayer player) {
-        AMBIENT.forEach(track -> player.connection.send(new ClientboundStopSoundPacket(track.sound().get().getLocation(), SoundSource.AMBIENT)));
+        AMBIENT.forEach(track -> player.connection.send(new ClientboundStopSoundPacket(track.sound().get().getLocation(), SoundSource.MUSIC)));
     }
 
     /** Heard by those near {@code pos}. */

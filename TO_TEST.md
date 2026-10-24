@@ -26,5 +26,9 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 ## Sounds
 
 - [ ] **Ambient music.** A minute or two into a game a track plays quietly, then another a while after it ends. It should sit under the game, not over it; tell me if any one is too loud or soft against the others. Leaving the game or its end stops it.
+- [ ] **Ambient on the music slider.** In a game, wait for an ambient track (a minute or two in). Turning Music down in Options, Music & Sounds turns it down; Ambient/Environment no longer does. If a Minecraft song was playing, it stops when the track starts, and no Minecraft song starts over the track.
+- [ ] **Quieter game start.** Start a game: its chant is about half as loud as before. Say if it's now too quiet against the round start or guns.
+- [ ] **Board torn off.** Let a zombie tear boards off a window: each board makes the armor stand's wooden clatter, from the window, with the old bang. Walk 16 or more blocks away and it fades out.
+- [ ] **Vending machine.** Buy from a vending machine: the keys click and the machine shakes with no rattle. Stand by a lit machine for half a minute: its hum loops with no click and no seam.
 - [ ] **Round break.** The wait between rounds is 5 seconds (your Test world's config was updated from 3000 to 5000).
 - [ ] **Stand-in sounds.** Play a game and listen to each (`SOUNDS_NEEDED.md` lists them): game start, round start (round 2 on) and end, power on (from the switch: walk away and it fades), a power-up appearing and being picked up, a refused purchase, a door and debris bought (the blocks should burst right on the impact), the upgrader (the slowed anvil, and the louder whoosh lasting as long as the flames), the crate moving, and going down, being revived, and bleeding out. Check volumes against guns, and that the heartbeat stops as soon as you're up.

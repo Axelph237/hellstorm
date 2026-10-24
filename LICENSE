@@ -23,7 +23,6 @@ distributing them on their own:
   src/main/resources/assets/hellstorm/sounds/cha_ching.ogg
   src/main/resources/assets/hellstorm/sounds/vending_machine/button.ogg
   src/main/resources/assets/hellstorm/sounds/vending_machine/idle.ogg
-  src/main/resources/assets/hellstorm/sounds/vending_machine/shake.ogg
   src/main/resources/assets/hellstorm/sounds/mystery_box/laugh.ogg
   src/main/resources/assets/hellstorm/sounds/power/door.ogg
   src/main/resources/assets/hellstorm/sounds/power/generator.ogg

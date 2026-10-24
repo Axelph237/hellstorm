@@ -87,7 +87,6 @@ public final class PapRegistries {
     public static final RegistryObject<BlockEntityType<VendingMachineBlock.Entity>> VENDING_MACHINE_ENTITY = BLOCK_ENTITIES.register("perk_machine",
             () -> BlockEntityType.Builder.of(VendingMachineBlock.Entity::new, VENDING_MACHINE.get()).build(null));
     public static final RegistryObject<SoundEvent> VENDING_MACHINE_IDLE = sound("vending_machine.idle");
-    public static final RegistryObject<SoundEvent> VENDING_MACHINE_SHAKE = sound("vending_machine.shake");
     public static final RegistryObject<SoundEvent> VENDING_MACHINE_BUTTON = sound("vending_machine.button");
     /** Played to a player alone when they earn points rebuilding a board (see {@code Shop.chaChing}). */
     public static final RegistryObject<SoundEvent> CHA_CHING = sound("cha_ching");

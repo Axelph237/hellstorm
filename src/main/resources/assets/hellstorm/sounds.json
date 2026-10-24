@@ -7,14 +7,6 @@
       }
     ]
   },
-  "vending_machine.shake": {
-    "subtitle": "subtitles.hellstorm.vending_machine.shake",
-    "sounds": [
-      {
-        "name": "hellstorm:vending_machine/shake"
-      }
-    ]
-  },
   "vending_machine.button": {
     "subtitle": "subtitles.hellstorm.vending_machine.button",
     "sounds": [

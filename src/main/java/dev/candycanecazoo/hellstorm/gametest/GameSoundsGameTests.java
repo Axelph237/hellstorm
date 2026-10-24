@@ -9,6 +9,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -51,7 +52,7 @@ public final class GameSoundsGameTests {
         helper.succeed();
     }
 
-    /** An ambient track, when its time comes, plays once to each player in the game. */
+    /** An ambient track, when its time comes, plays once to each player in the game, on the music channel. */
     @GameTest(template = "floor", batch = "game_sounds_ambient")
     public static void anAmbientTrackPlaysOnceToEachPlayerInTheGame(GameTestHelper helper) {
         ListeningPlayer player = new ListeningPlayer(helper.getLevel(), "pap_sounds_ambient");
@@ -61,6 +62,7 @@ public final class GameSoundsGameTests {
             player.heard.clear();
             GameSounds.playAmbient(active, null);
             helper.assertTrue(player.heard.size() == 1 && tracks.contains(player.heard.get(0)), "one ambient track should play, heard " + player.heard);
+            helper.assertTrue(player.lastSource == SoundSource.MUSIC, "an ambient track should play on the music channel, played on " + player.lastSource);
         } finally {
             GameManager.end(active);
         }
