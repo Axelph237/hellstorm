@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GameTest {
     private static final GameSettings SETTINGS = new GameSettings(
             new GameSettings.Rounds(12, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2, 0.0),
-            new GameSettings.Spawning(1, 24.0, 0.0),
+            new GameSettings.Spawning(24.0, 0.0),
             GameSettings.DEFAULT.economy(),
             GameSettings.DEFAULT.players(),
             GameSettings.DEFAULT.windows(),
@@ -293,16 +293,44 @@ class GameTest {
         assertTrue(game.finished());
     }
 
-    @Test
-    void zombiesSpawnNearThePlayersZone() {
-        Game game = startedGame();
-        world.positions.put(alice, new BlockPos(32, 0, 5));
-        killAll(game, Optional.of(alice));
+    /** Clears the zombies and ticks through rounds until {@code count} more have spawned, returning their markers. */
+    private Set<BlockPos> spawnMarkers(Game game, int count) {
         world.spawnedAt.clear();
-        tick(game, world, 60);
-        assertFalse(world.spawnedAt.isEmpty());
-        Set<BlockPos> allowed = Set.of(marker(1), marker(2), marker(3));
-        assertTrue(allowed.containsAll(world.spawnedAt), "player in C: only B, C, D markers, got " + world.spawnedAt);
+        for (int i = 0; i < 2000 && world.spawnedAt.size() < count; i++) {
+            killAll(game, Optional.of(alice));
+            game.tick(world);
+        }
+        assertTrue(world.spawnedAt.size() >= count, "only " + world.spawnedAt.size() + " spawns");
+        return Set.copyOf(world.spawnedAt);
+    }
+
+    @Test
+    void onlyTheStartZoneIsDiscoveredAtFirstSoOnlyItsMarkerSpawns() {
+        Game game = startedGame();
+        assertEquals(Set.of(ZONES.get(0)), game.discovered());
+        assertEquals(Set.of(marker(0)), spawnMarkers(game, 30), "b, c and d touch a but nobody has been in them");
+    }
+
+    @Test
+    void aZoneAPlayerStandsInStaysDiscoveredAfterTheyLeave() {
+        Game game = startedGame();
+        world.positions.put(alice, new BlockPos(25, 0, 2));
+        tick(game, world, 1);
+        world.positions.put(alice, new BlockPos(2, 0, 2));
+        tick(game, world, 1);
+        assertEquals(Set.of(ZONES.get(0), ZONES.get(2)), game.discovered(), "alice went from a straight to c, so b and d are still undiscovered");
+        assertEquals(Set.of(marker(0), marker(2)), spawnMarkers(game, 60));
+    }
+
+    @Test
+    void aSpectatorDiscoversNothing() {
+        Game game = startedGame();
+        UUID bob = UUID.randomUUID();
+        world.positions.put(bob, new BlockPos(35, 0, 5));
+        assertTrue(game.join(bob));
+        assertInstanceOf(LifeState.Spectating.class, game.player(bob).orElseThrow().life());
+        tick(game, world, 5);
+        assertEquals(Set.of(ZONES.get(0)), game.discovered());
     }
 
     @Test
@@ -436,6 +464,7 @@ class GameTest {
         Set<ZoneId> added = game.openDoor("gate", Optional.of(alice), dev.candycanecazoo.hellstorm.map.ZoneGraph.of(map, opened));
         assertEquals(Set.of(ZONES.get(1), ZONES.get(2)), added, "c touches b, so it opens up too");
         assertEquals(Set.of(ZONES.get(0), ZONES.get(1), ZONES.get(2)), game.unlocked());
+        assertEquals(Set.of(ZONES.get(0)), game.discovered(), "opening a door discovers nothing: a player has to walk in");
         assertTrue(game.doorOpen("gate"));
         assertEquals(Set.of(), game.openDoor("gate", Optional.empty(), dev.candycanecazoo.hellstorm.map.ZoneGraph.of(map, Set.of())));
         assertEquals(List.of(new GameEvent.DoorOpened("gate", Optional.of(alice), List.of(ZONES.get(1), ZONES.get(2)))),

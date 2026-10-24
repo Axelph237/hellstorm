@@ -3,7 +3,6 @@ package dev.candycanecazoo.hellstorm.game;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.Zone;
-import dev.candycanecazoo.hellstorm.map.ZoneGraph;
 import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.SpawnLinks;
@@ -25,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SpawnDirectorTest {
     private static final ZoneId A = new ZoneId("a"), B = new ZoneId("b"), C = new ZoneId("c"), D = new ZoneId("d");
     private static final List<ZoneId> ZONES = List.of(A, B, C, D);
-    private static final GameSettings.Spawning S = new GameSettings.Spawning(1, 24.0, 6.0);
+    private static final GameSettings.Spawning S = new GameSettings.Spawning(24.0, 6.0);
 
     private static ZombiesMap chain() {
         ZombiesMap map = ZombiesMap.EMPTY;
@@ -41,38 +40,51 @@ class SpawnDirectorTest {
 
     private static final List<BlockPos> MARKERS = List.of(marker(0), marker(1), marker(2), marker(3));
 
-    @Test
-    void activeZonesAreThePlayersZoneAndItsNeighbours() {
-        ZoneGraph graph = ZoneGraph.of(chain(), GameTest.offlinePassages(chain()));
-        assertEquals(Set.of(A, B, C), SpawnDirector.activeZones(List.of(B), graph, Set.copyOf(ZONES), 1));
-        assertEquals(Set.of(B), SpawnDirector.activeZones(List.of(B), graph, Set.copyOf(ZONES), 0));
-        assertEquals(Set.copyOf(ZONES), SpawnDirector.activeZones(List.of(B), graph, Set.copyOf(ZONES), 2));
-    }
-
-    @Test
-    void lockedZonesAreNeverActiveAndBlockTheWayThrough() {
-        ZoneGraph graph = ZoneGraph.of(chain(), GameTest.offlinePassages(chain()));
-        assertEquals(Set.of(A), SpawnDirector.activeZones(List.of(A), graph, Set.of(A, C, D), 3), "B is locked, so C and D are cut off");
-        assertEquals(Set.of(), SpawnDirector.activeZones(List.of(B), graph, Set.of(A), 1), "a player in a locked zone activates nothing");
-    }
-
     private static Map<BlockPos, ZoneId> markerZones(ZombiesMap map) {
         Map<BlockPos, ZoneId> zones = new HashMap<>();
         SpawnLinks.resolve(map, 6.0).forEach((marker, link) -> zones.put(marker, link.zone()));
         return zones;
     }
 
-    @Test
-    void candidatesComeOnlyFromActiveZonesOutsideTheMinimumDistance() {
+    private static ZombiesMap chainWithMarkers() {
         ZombiesMap map = chain();
         for (BlockPos marker : MARKERS) {
             map = map.withFeature(marker, FeatureKind.SPAWN);
         }
+        return map;
+    }
+
+    private static List<BlockPos> markersOf(List<SpawnDirector.Candidate> candidates) {
+        return candidates.stream().map(SpawnDirector.Candidate::marker).toList();
+    }
+
+    @Test
+    void candidatesComeOnlyFromDiscoveredZonesOutsideTheMinimumDistance() {
         BlockPos player = new BlockPos(13, 0, 5);
-        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(markerZones(map), Set.of(A, B, C), List.of(player), S);
-        assertEquals(List.of(marker(0), marker(2)), candidates.stream().map(SpawnDirector.Candidate::marker).toList(),
-                "B's marker is 2 blocks from the player (under 6), D is not active");
+        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(markerZones(chainWithMarkers()), Set.of(A, B, D), List.of(player), S);
+        assertEquals(List.of(marker(0), marker(3)), markersOf(candidates),
+                "B's marker is 2 blocks from the player (under 6), and nobody has discovered C");
         assertTrue(candidates.get(0).weight() > candidates.get(1).weight(), "closer marker weighs more");
+    }
+
+    @Test
+    void aDiscoveredZoneFarFromThePlayersStillSpawns() {
+        BlockPos player = new BlockPos(5, 0, 2);
+        assertEquals(List.of(marker(3)), markersOf(SpawnDirector.candidates(markerZones(chainWithMarkers()), Set.of(D), List.of(player), S)),
+                "D is three zones away and not next to the player, but discovered");
+    }
+
+    @Test
+    void whenEveryDiscoveredMarkerIsTooCloseTheyAllStayCandidates() {
+        BlockPos player = new BlockPos(13, 0, 5);
+        assertEquals(List.of(marker(1)), markersOf(SpawnDirector.candidates(markerZones(chainWithMarkers()), Set.of(B), List.of(player), S)),
+                "the round would stall otherwise");
+    }
+
+    @Test
+    void withNoPlayerPositionEveryDiscoveredMarkerWeighsTheSame() {
+        List<SpawnDirector.Candidate> candidates = SpawnDirector.candidates(markerZones(chainWithMarkers()), Set.of(A, C), List.of(), S);
+        assertEquals(List.of(new SpawnDirector.Candidate(marker(0), 1.0), new SpawnDirector.Candidate(marker(2), 1.0)), candidates);
     }
 
     @Test

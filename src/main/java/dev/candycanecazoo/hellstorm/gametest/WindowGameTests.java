@@ -288,7 +288,8 @@ public final class WindowGameTests {
     /**
      * Two walled rooms, x 0..3 and x 5..8, joined through the wall at x = 4 by a 1x2 doorway, which {@code doorway} fills
      * (or leaves empty). {@code floor} covers the room floors (or leaves bare stone). The zombie spawns in the west room
-     * and the player waits in the east room, so the zombie must come through the doorway.
+     * and the player waits in the east room, so the zombie must come through the doorway. Both are start rooms, so the
+     * west room's marker spawns without the player going in.
      */
     private static void chaseThroughDoorway(GameTestHelper helper, java.util.function.Consumer<BlockPos> doorway, net.minecraft.world.level.block.Block floor,
                                             int doorwayHeight) {
@@ -320,7 +321,7 @@ public final class WindowGameTests {
         BlockBox east = BlockBox.of(helper.absolutePos(new BlockPos(5, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 2, 8)));
         BlockPos marker = helper.absolutePos(markerAt);
         ZombiesMap map = ZombiesMap.EMPTY
-                .withZone(new Zone(new ZoneId("gametest_west"), List.of(west), false))
+                .withZone(new Zone(new ZoneId("gametest_west"), List.of(west), true))
                 .withZone(new Zone(new ZoneId("gametest_east"), List.of(east), true))
                 .withFeature(marker, FeatureKind.SPAWN);
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_chase_test"));

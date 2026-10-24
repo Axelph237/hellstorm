@@ -48,9 +48,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
         }
     }
 
-    public record Spawning(int adjacentHops, double falloffBlocks, double minDistance) {
+    public record Spawning(double falloffBlocks, double minDistance) {
         public static final Codec<Spawning> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.INT.fieldOf("adjacent_hops").forGetter(Spawning::adjacentHops),
                 Codec.DOUBLE.fieldOf("falloff_blocks").forGetter(Spawning::falloffBlocks),
                 Codec.DOUBLE.fieldOf("min_distance").forGetter(Spawning::minDistance)
         ).apply(i, Spawning::new));
@@ -213,7 +212,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
 
     public static final GameSettings DEFAULT = new GameSettings(
             new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 5000, 100, 200, 0.1),
-            new Spawning(1, 24.0, 6.0),
+            new Spawning(24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
             new Players(List.of(ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "m1911"))), List.of(new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "iron_sword"), 1, java.util.Optional.empty())), 4, true, 2, 4, 4, 1200, 0.85),
             new Windows(5, 4, 30, 15, 6.0),

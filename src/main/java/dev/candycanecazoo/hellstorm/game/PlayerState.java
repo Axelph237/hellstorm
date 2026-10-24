@@ -1,8 +1,5 @@
 package dev.candycanecazoo.hellstorm.game;
 
-import dev.candycanecazoo.hellstorm.map.ZoneId;
-
-import java.util.Optional;
 import java.util.UUID;
 
 public final class PlayerState {
@@ -11,7 +8,6 @@ public final class PlayerState {
     private int points;
     private int kills;
     private int headshots;
-    private Optional<ZoneId> lastZone = Optional.empty();
     private int repairPointsThisRound;
     private int selfRevivesUsed;
     /** The game tick they disconnected at, or -1 while connected. */
@@ -90,10 +86,6 @@ public final class PlayerState {
         return headshots;
     }
 
-    public Optional<ZoneId> lastZone() {
-        return lastZone;
-    }
-
     void setLife(LifeState life) {
         this.life = life;
     }
@@ -124,9 +116,5 @@ public final class PlayerState {
 
     void resetRoundCounters() {
         repairPointsThisRound = 0;
-    }
-
-    void setLastZone(ZoneId zone) {
-        lastZone = Optional.of(zone);
     }
 }

@@ -172,9 +172,9 @@ The plan picks axis-aligned moves with Manhattan. Phase 4 includes a spike compa
 
 ## Gameplay systems
 
-- **Rounds and spawning.** Zombie count, health, speed, max alive (default 24), and spawn delay come from `GameSettings` formulas that default to CoD-like curves. Health uses a `health_scale` setting because TacZ damage is measured in Minecraft HP. Proximity spawning activates spawn points in each player's current zone and in zones within N open-door hops, weighted by distance. "Room detection" at runtime means `ZoneIndex` resolving each player's zone every few ticks.
+- **Rounds and spawning.** Zombie count, health, speed, max alive (default 24), and spawn delay come from `GameSettings` formulas that default to CoD-like curves. Health uses a `health_scale` setting because TacZ damage is measured in Minecraft HP. Spawn points are active in every zone a player has walked into this game (and the start zones), weighted by distance to the players. "Room detection" at runtime means `ZoneIndex` resolving each player's zone every few ticks.
 - **Economy.** Points come from hits, kills, headshot and melee kills, and window repairs, all driven by `GunHit` and `GunKill` from `TaczBridge` and configurable per value. Double Points multiplies them.
-- **Doors and debris.** A door is any group of blocks selected with the Zone Wand. Clicking any member buys it, and opening sets the members to air. Each has a cost and an optional power requirement. Opening one adds its zones to the unlocked set, which grows the spawner and navigation graph.
+- **Doors and debris.** A door is any group of blocks selected with the Zone Wand. Clicking any member buys it, and opening sets the members to air. Each has a cost and an optional power requirement. Opening one adds its zones to the unlocked set, which grows the navigation graph.
 - **Wall-buys.** A wall-buy sells an `ItemSpec`, so it can sell any item. An `ItemSpec` is an item id, a count, and optional NBT, and it has the shorthand `{"tacz_gun": "tacz:ak47"}`, which builds the stack through `TaczBridge`. Buying an item you already hold follows a `repurchase` policy:
   - `refill_ammo` is the default for TacZ guns. It refills ammo at the ammo cost, and a configurable price applies to upgraded guns.
   - `top_up` is the default for stackables. It fills the stack back up to the spec's count.

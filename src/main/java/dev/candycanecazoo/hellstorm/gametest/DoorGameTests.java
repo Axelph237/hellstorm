@@ -143,10 +143,12 @@ public final class DoorGameTests {
 
     /**
      * The rooms of the first test with a wooden door as the door players buy. Zombies walk through wooden doors, so the
-     * world reads its cells as open, but until it's bought the east room is locked and its marker never spawns a zombie.
+     * world reads the rooms as joined, but the east room's marker spawns nothing until a player has stood in the room:
+     * not while the door is shut, and not once it's bought. After the player has been in, it spawns even with them back
+     * in the west room.
      */
     @GameTest(template = "floor", timeoutTicks = 200, batch = "door_wooden")
-    public static void aWoodenDoorKeepsTheRoomBeyondLockedAndItsMarkerQuietUntilBought(GameTestHelper helper) {
+    public static void aRoomNobodyHasEnteredSpawnsNothingEvenWithItsDoorBoughtUntilAPlayerWalksIn(GameTestHelper helper) {
         for (int z = 0; z <= 8; z++) {
             for (int dy = 0; dy <= 3; dy++) {
                 helper.setBlock(new BlockPos(4, ROOM_Y + dy, z), Blocks.STONE);
@@ -176,24 +178,48 @@ public final class DoorGameTests {
         PurchaseGameTests.play(active);
         AABB rooms = new AABB(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(9, ROOM_Y + 3, 9)));
         try {
-            List<Zombie> spawned = List.of();
-            for (int tick = 0; tick < 2400 && spawned.size() < 6; tick++) {
-                active.game().tick(active.world());
-                spawned = helper.getLevel().getEntitiesOfClass(Zombie.class, rooms, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG));
-            }
-            helper.assertTrue(spawned.size() >= 6, "only " + spawned.size() + " zombies spawned");
-            for (Zombie zombie : spawned) {
-                helper.assertTrue(zombie.blockPosition().distManhattan(westMarker) <= 2,
-                        "a zombie spawned at " + zombie.blockPosition() + ", in the locked room (east marker " + eastMarker + ")");
-            }
-            helper.assertTrue(active.game().unlocked().equals(Set.of(west)), "the east room starts locked, got " + active.game().unlocked());
+            List<BlockPos> shut = spawnSites(helper, active, rooms, 6);
+            helper.assertTrue(shut.stream().allMatch(at -> at.distManhattan(westMarker) <= 2),
+                    "with the door shut, zombies spawned at " + shut + " (east marker " + eastMarker + ")");
+
             Doors.use(player, low);
             helper.assertTrue(helper.getLevel().getBlockState(low).isAir(), "the wooden door wasn't bought");
             helper.assertTrue(active.game().unlocked().equals(Set.of(west, east)), "the east room didn't unlock: " + active.game().unlocked());
+            List<BlockPos> bought = spawnSites(helper, active, rooms, 10);
+            helper.assertTrue(bought.stream().allMatch(at -> at.distManhattan(westMarker) <= 2),
+                    "with the door bought but nobody in the east room, zombies spawned at " + bought + " (east marker " + eastMarker + ")");
+            helper.assertTrue(active.game().discovered().equals(Set.of(west)), "only the start room is discovered, got " + active.game().discovered());
+
+            player.moveTo(helper.absolutePos(new BlockPos(6, ROOM_Y, 1)).getCenter());
+            active.game().tick(active.world());
+            player.moveTo(stand.getCenter());
+            helper.assertTrue(active.game().discovered().equals(Set.of(west, east)), "walking in didn't discover the east room: " + active.game().discovered());
+            List<BlockPos> entered = spawnSites(helper, active, rooms, 20);
+            helper.assertTrue(entered.stream().anyMatch(at -> at.distManhattan(eastMarker) <= 2),
+                    "once the player had been in the east room, none of its zombies spawned there: " + entered);
         } finally {
             GameManager.end(active);
         }
         helper.succeed();
+    }
+
+    /**
+     * Runs the game until {@code count} zombies have spawned and returns where. Each is taken away as soon as it's seen,
+     * and the game spawns another in its place, so the round never runs out. A discarded entity is no longer alive when
+     * it leaves the level, so the game is told the zombie is lost first.
+     */
+    private static List<BlockPos> spawnSites(GameTestHelper helper, GameManager.Active active, AABB rooms, int count) {
+        List<BlockPos> sites = new ArrayList<>();
+        for (int tick = 0; tick < 4000 && sites.size() < count; tick++) {
+            active.game().tick(active.world());
+            for (Zombie zombie : helper.getLevel().getEntitiesOfClass(Zombie.class, rooms, z -> z.getTags().contains(ForgeGameWorld.MOB_TAG))) {
+                sites.add(zombie.blockPosition());
+                active.game().onMobLost(zombie.getUUID());
+                zombie.discard();
+            }
+        }
+        helper.assertTrue(sites.size() >= count, "only " + sites.size() + " zombies spawned");
+        return sites;
     }
 
     @GameTest(template = "floor", batch = "door_poor")

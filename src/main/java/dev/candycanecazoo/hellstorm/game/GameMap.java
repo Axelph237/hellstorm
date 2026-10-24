@@ -32,11 +32,6 @@ public record GameMap(ZombiesMap map, ZoneIndex index, ZoneGraph graph, List<Zon
                 Map.copyOf(SpawnLinks.resolve(map, windowLinkRange)));
     }
 
-    public List<BlockPos> startZoneMarkers() {
-        return spawnLinks.entrySet().stream().filter(e -> startZones.contains(e.getValue().zone()))
-                .map(Map.Entry::getKey).sorted(java.util.Comparator.comparingLong(BlockPos::asLong)).toList();
-    }
-
     public Optional<WindowDef> windowFor(BlockPos marker) {
         return Optional.ofNullable(spawnLinks.get(marker)).flatMap(SpawnLinks.Link::window).map(map.windows()::get);
     }

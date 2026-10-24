@@ -6,6 +6,10 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 - [ ] **Walls between rooms.** Draw two rooms that touch and reach well above a wall two blocks high between them, with a Hellstorm door in the wall. `/hs map validate` reports no loophole, and `/hs map paths` lists no connection between them. Lower one stretch of the wall to one block: now it reports a loophole there. A fence instead of the low stretch keeps them apart. Try your real walls too (slabs, stairs, glass panes, leaves) and tell me any that come out wrong.
 
+## Spawning
+
+- [ ] **Zombies spawn only in rooms you've been in.** On a map with a door out of the start room, play a few rounds without buying it: zombies come only from the start room's markers and windows. Buy the door but stay out of the room behind it: still none from that room. Walk in, then back to the start room: that room's markers and windows start spawning, and keep spawning for the rest of the game.
+
 ## Items with NBT
 
 - [ ] **Starting kit with NBT.** With `examples/datapacks/zombies_more_test` and its README's `[players]` settings, start a game: you get the Glock and the LesRaisins dagger, the dagger works as a melee weapon, and after bleeding out and respawning you get both back.

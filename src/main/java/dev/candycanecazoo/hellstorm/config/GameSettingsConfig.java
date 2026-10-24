@@ -27,7 +27,6 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue countdownTicks;
     private final ForgeConfigSpec.IntValue gameOverTicks;
     private final ForgeConfigSpec.DoubleValue runnerChance;
-    private final ForgeConfigSpec.IntValue adjacentHops;
     private final ForgeConfigSpec.DoubleValue falloffBlocks;
     private final ForgeConfigSpec.DoubleValue minDistance;
     private final ForgeConfigSpec.IntValue startingPoints;
@@ -111,8 +110,6 @@ public final class GameSettingsConfig {
                 .defineInRange("runner_chance", d.rounds().runnerChance(), 0.0, 1.0);
         b.pop();
         b.push("spawning");
-        adjacentHops = b.comment("Spawn markers are active in each player's room and rooms this many connections away.")
-                .defineInRange("adjacent_hops", d.spawning().adjacentHops(), 0, 10);
         falloffBlocks = b.comment("Markers this far from the nearest player are half as likely to be picked.")
                 .defineInRange("falloff_blocks", d.spawning().falloffBlocks(), 1.0, 512.0);
         minDistance = b.comment("Markers closer than this to any player are skipped.").defineInRange("min_distance", d.spawning().minDistance(), 0.0, 64.0);
@@ -252,7 +249,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Rounds(r.read(baseCount), r.read(aiPerPlayer), r.read(healthScale), r.read(healthGrowth), r.read(runFromRound), r.read(sprintFromRound),
                         r.read(walkSpeed), r.read(runSpeed), r.read(sprintSpeed), r.read(maxAlive), r.read(spawnDelayTicks), r.read(spawnDelayFactor), r.read(intermissionMs),
                         r.read(countdownTicks), r.read(gameOverTicks), r.read(runnerChance)),
-                new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
+                new GameSettings.Spawning(r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
                         r.read(repair), r.read(repairCapPerRound)),
                 new GameSettings.Players(guns(r.read(startingGuns)), items(r.read(startingItems)), r.read(reserveMagazines),

@@ -17,7 +17,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -46,8 +45,8 @@ public final class Game {
     private boolean warnedNoSpawns;
     private boolean finished;
     private boolean powerOn;
-    private dev.candycanecazoo.hellstorm.map.ZoneGraph graph;
     private Set<ZoneId> unlocked;
+    private final Set<ZoneId> discovered = new LinkedHashSet<>();
     private final Set<String> openDoors = new LinkedHashSet<>();
     private final Map<ResourceLocation, GameWorld.Timer> timed = new LinkedHashMap<>();
     /** Downed player to the teammate holding use on them and the last tick they did. */
@@ -94,8 +93,8 @@ public final class Game {
         this.waves = new WaveSchedule(content.waveEvents(), settings.waveEvents(), random);
         // A map without a power switch is powered from the start.
         this.powerOn = map.map().features(dev.candycanecazoo.hellstorm.map.FeatureKind.POWER_SWITCH).isEmpty();
-        this.graph = map.graph();
         this.unlocked = Set.copyOf(map.unlocked());
+        this.discovered.addAll(map.startZones());
         this.dropIncrement = settings.powerUps().dropIncrement();
         this.nextDropAt = Math.round(dropIncrement);
     }
@@ -103,6 +102,11 @@ public final class Game {
     /** Zones players can get to right now: reachable from a start zone without going through a closed door. */
     public Set<ZoneId> unlocked() {
         return unlocked;
+    }
+
+    /** The start zones and every zone an alive player has stood in this game. Only their markers spawn zombies. */
+    public Set<ZoneId> discovered() {
+        return java.util.Collections.unmodifiableSet(discovered);
     }
 
     public boolean doorOpen(String door) {
@@ -117,7 +121,6 @@ public final class Game {
         if (!openDoors.add(door)) {
             return Set.of();
         }
-        this.graph = graph;
         Set<ZoneId> next = new LinkedHashSet<>(unlocked);
         next.addAll(graph.reachableFrom(map.startZones()));
         Set<ZoneId> added = new LinkedHashSet<>(next);
@@ -316,6 +319,7 @@ public final class Game {
         ticks++;
         dropExpiredDisconnects();
         if (!(phase instanceof GamePhase.Lobby)) {
+            discoverZones(world);
             phase = advance(world);
         }
         if (phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) {
@@ -389,7 +393,6 @@ public final class Game {
     }
 
     private GamePhase tickRound(GameWorld world, GamePhase.RoundActive round) {
-        updatePlayerZones(world);
         if (round.toSpawn() == 0 && mobs.isEmpty()) {
             endWave(world);
             events.emit(new GameEvent.RoundEnd(round.round()));
@@ -457,39 +460,28 @@ public final class Game {
         return state != null && state.alive();
     }
 
-    private void updatePlayerZones(GameWorld world) {
+    private void discoverZones(GameWorld world) {
         for (PlayerState player : players.values()) {
             if (player.alive()) {
-                world.playerPosition(player.id()).flatMap(map.index()::zoneAt).ifPresent(player::setLastZone);
+                world.playerPosition(player.id()).flatMap(map.index()::zoneAt).ifPresent(discovered::add);
             }
         }
     }
 
     private Optional<BlockPos> pickMarker(GameWorld world) {
-        List<ZoneId> playerZones = new ArrayList<>();
         List<BlockPos> positions = new ArrayList<>();
         for (PlayerState player : players.values()) {
             if (player.alive()) {
-                playerZones.add(player.lastZone().orElse(map.startZones().isEmpty() ? null : map.startZones().get(0)));
                 world.playerPosition(player.id()).ifPresent(positions::add);
             }
         }
-        playerZones.removeIf(Objects::isNull);
-        Set<ZoneId> active = SpawnDirector.activeZones(playerZones, graph, unlocked, settings.spawning().adjacentHops());
         Optional<BlockPos> picked = SpawnDirector.pick(
-                SpawnDirector.candidates(markerZones(), active, positions, settings.spawning()), random);
-        if (picked.isPresent()) {
-            return picked;
+                SpawnDirector.candidates(markerZones(), discovered, positions, settings.spawning()), random);
+        if (picked.isEmpty() && !warnedNoSpawns) {
+            warnedNoSpawns = true;
+            Hellstorm.LOG.warn("No spawn marker feeds a room the players have discovered; zombies can't spawn");
         }
-        List<BlockPos> fallback = map.startZoneMarkers();
-        if (fallback.isEmpty()) {
-            if (!warnedNoSpawns) {
-                warnedNoSpawns = true;
-                Hellstorm.LOG.warn("No usable spawn markers near the players or in a start room; zombies can't spawn");
-            }
-            return Optional.empty();
-        }
-        return Optional.of(fallback.get(random.nextInt(fallback.size())));
+        return picked;
     }
 
     private Map<BlockPos, ZoneId> markerZones() {
