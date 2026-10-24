@@ -57,4 +57,13 @@ class LuaEventsTest {
         assertEquals("hellstorm:vigorade", bought.get("item").tojstring());
         assertEquals(2500, bought.get("cost").toint());
     }
+
+    @Test
+    void gameStartIsAboutRoundOne() {
+        GameEvent start = new GameEvent.GameStart(List.of(ALICE));
+        assertEquals(1, LuaEvents.round(start).getAsInt());
+        LuaTable table = LuaEvents.table(start);
+        assertEquals(1, table.get("round").toint());
+        assertEquals(ALICE.toString(), table.get("players").get(1).tojstring());
+    }
 }
