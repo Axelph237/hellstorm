@@ -207,6 +207,41 @@ public final class TrapGameTests {
         helper.succeed();
     }
 
+    @GameTest(template = "floor", batch = "trap_max_ticks")
+    public static void aTrapRefusesTimesOverAnHourAndKeepsItsSettingsThroughASave(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
+        TrapControllerBlock.Entity trap = trap(helper, at, config(100, false, 5, 10, 15).withName(Optional.of("Flogger")));
+        int over = TrapControllerBlock.Config.MAX_TICKS + 1;
+        helper.assertTrue(trap.trySet(trap.config().withActiveTicks(Optional.of(over))).isPresent(), "an active time over an hour should be refused");
+        helper.assertTrue(trap.trySet(trap.config().withCooldownTicks(Optional.of(over))).isPresent(), "a cooldown over an hour should be refused");
+        helper.assertTrue(trap.trySet(trap.config().withActiveTicks(Optional.of(TrapControllerBlock.Config.MAX_TICKS))).isEmpty(), "an hour exactly is allowed");
+        boolean threw = false;
+        try {
+            trap.setConfig(trap.config().withCooldownTicks(Optional.of(over)));
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        helper.assertTrue(threw, "setting a config that can't be saved should throw");
+        TrapControllerBlock.Entity loaded = (TrapControllerBlock.Entity) net.minecraft.world.level.block.entity.BlockEntity.loadStatic(at, trap.getBlockState(),
+                trap.saveWithFullMetadata());
+        helper.assertTrue(loaded != null && loaded.config().equals(trap.config()) && loaded.config().label().equals("Flogger"),
+                "the trap's settings should survive a save, got " + (loaded == null ? null : loaded.config()));
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "trap_max_ticks_command")
+    public static void trapTimeCommandsRefuseMoreThanAnHour(GameTestHelper helper) {
+        var server = helper.getLevel().getServer();
+        var dispatcher = server.getCommands().getDispatcher();
+        for (String setting : new String[] {"active", "cooldown"}) {
+            var over = dispatcher.parse("hs trap " + setting + " " + (TrapControllerBlock.Config.MAX_TICKS + 1), server.createCommandSourceStack());
+            helper.assertTrue(over.getContext().getCommand() == null && !over.getExceptions().isEmpty(), "/hs trap " + setting + " over an hour should not parse");
+            var hour = dispatcher.parse("hs trap " + setting + " " + TrapControllerBlock.Config.MAX_TICKS, server.createCommandSourceStack());
+            helper.assertTrue(hour.getContext().getCommand() != null && hour.getExceptions().isEmpty(), "/hs trap " + setting + " of an hour should parse");
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "floor", batch = "trap_power")
     public static void aTrapThatNeedsPowerWaitsForThePower(GameTestHelper helper) {
         BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Trap active times and cooldowns are limited to 72000 ticks (an hour). `/hs trap active` and `/hs trap cooldown` refuse more. Until now they took any number, and a trap with more lost all its settings (name, cost, power, signal) the next time the world saved, without a word. The server config's `traps.default_active_ticks` goes up to 72000 too, from 12000.
 - A zombie no longer spawns in a chunk that isn't ticking entities, where it would stand frozen (or stay hidden) and hold the round open; the game tries again on its next spawn.
 - A gun with unlimited ammo, such as the starting pistol, shows ∞ for its reserve on the ammo HUD, as in creative, instead of a number.
 - Players in a game can't hurt each other, by gun, melee, or blast. Turn friendly fire on with `players.friendly_fire` in the server config. A player's own blast still hurts them.

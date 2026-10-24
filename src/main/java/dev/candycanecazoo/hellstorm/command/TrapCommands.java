@@ -28,9 +28,9 @@ final class TrapCommands {
                         .then(Commands.literal("default").executes(CommandErrors.titled("Unable to set trap name", ctx -> apply(ctx, c -> c.withName(Optional.empty())))))
                         .then(Commands.argument("name", StringArgumentType.greedyString())
                                 .executes(CommandErrors.titled("Unable to set trap name", ctx -> apply(ctx, c -> c.withName(Optional.of(StringArgumentType.getString(ctx, "name").trim())))))))
-                .then(optional("cost", 0, TrapControllerBlock.Config::withCost))
-                .then(optional("active", 1, TrapControllerBlock.Config::withActiveTicks))
-                .then(optional("cooldown", 0, TrapControllerBlock.Config::withCooldownTicks))
+                .then(optional("cost", 0, Integer.MAX_VALUE, TrapControllerBlock.Config::withCost))
+                .then(optional("active", 1, TrapControllerBlock.Config.MAX_TICKS, TrapControllerBlock.Config::withActiveTicks))
+                .then(optional("cooldown", 0, TrapControllerBlock.Config.MAX_TICKS, TrapControllerBlock.Config::withCooldownTicks))
                 .then(Commands.literal("power").then(Commands.argument("required", BoolArgumentType.bool())
                         .executes(CommandErrors.titled("Unable to set trap power requirement", ctx -> apply(ctx, c -> c.withPower(BoolArgumentType.getBool(ctx, "required")))))))
                 .then(Commands.literal("signal").then(Commands.argument("strength", IntegerArgumentType.integer(1, 15))
@@ -39,12 +39,12 @@ final class TrapCommands {
     }
 
     /** {@code <name> default} clears the setting back to the game's default; {@code <name> <n>} sets it. */
-    private static LiteralArgumentBuilder<CommandSourceStack> optional(String name, int min,
+    private static LiteralArgumentBuilder<CommandSourceStack> optional(String name, int min, int max,
                                                                         java.util.function.BiFunction<TrapControllerBlock.Config, Optional<Integer>, TrapControllerBlock.Config> with) {
         Function<Optional<Integer>, UnaryOperator<TrapControllerBlock.Config>> set = value -> c -> with.apply(c, value);
         return Commands.literal(name)
                 .then(Commands.literal("default").executes(CommandErrors.titled("Unable to set trap " + (name.equals("active") ? "active time" : name), ctx -> apply(ctx, set.apply(Optional.empty())))))
-                .then(Commands.argument("value", IntegerArgumentType.integer(min))
+                .then(Commands.argument("value", IntegerArgumentType.integer(min, max))
                         .executes(CommandErrors.titled("Unable to set trap " + (name.equals("active") ? "active time" : name), ctx -> apply(ctx, set.apply(Optional.of(IntegerArgumentType.getInteger(ctx, "value")))))));
     }
 
