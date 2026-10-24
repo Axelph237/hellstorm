@@ -92,14 +92,22 @@ public final class GameManager {
     public static ValidationContext validationContext(ServerLevel level) {
         List<ValidationContext.MobSize> mobs = new ArrayList<>();
         MobProfiles.all().forEach((id, profile) -> {
-            EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
+            // A missing id gives the registry's default (the pig), not null.
+            EntityType<?> type = ForgeRegistries.ENTITY_TYPES.containsKey(profile.entity()) ? ForgeRegistries.ENTITY_TYPES.getValue(profile.entity()) : null;
             if (type != null) {
                 EntityDimensions hitbox = profile.hitbox(type);
                 mobs.add(new ValidationContext.MobSize(id.toString(), hitbox.width, hitbox.height));
             }
         });
         return new ValidationContext(LevelCellProbe.of(level), pos -> StartCells.standable(level, pos), ServerConfig.MAX_PASSAGE_GAP.get(),
-                settings().windows(), mobs, dev.candycanecazoo.hellstorm.pap.PunchAudit.problems(level));
+                settings().windows(), mobs, contentProblems(level));
+    }
+
+    /** Problems with what the map depends on but doesn't hold: upgrade items and files, mob profiles, crates, machines' settings. */
+    private static List<dev.candycanecazoo.hellstorm.map.validate.Problem> contentProblems(ServerLevel level) {
+        List<dev.candycanecazoo.hellstorm.map.validate.Problem> problems = new ArrayList<>(dev.candycanecazoo.hellstorm.pap.PunchAudit.problems(level));
+        problems.addAll(ContentAudit.problems(level, MapSavedData.get(level).map()));
+        return problems;
     }
 
     public static dev.candycanecazoo.hellstorm.config.GameSettings settings() {

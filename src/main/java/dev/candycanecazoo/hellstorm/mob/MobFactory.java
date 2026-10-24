@@ -18,19 +18,36 @@ public final class MobFactory {
     private MobFactory() {}
 
     public static Optional<Mob> create(ServerLevel level, MobProfile profile, ResourceLocation profileId) {
-        EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
-        if (type == null || !ForgeRegistries.ENTITY_TYPES.containsKey(profile.entity())) {
-            Hellstorm.LOG.error("Mob profile {} names unknown entity {}", profileId, profile.entity());
-            return Optional.empty();
+        Built built = build(level, profile);
+        built.error().ifPresent(error -> Hellstorm.LOG.error("Mob profile {} {}", profileId, error));
+        return built.mob();
+    }
+
+    /** Why {@code profile} can't make a mob, or empty if it can. The mob it makes to find out is thrown away. */
+    public static Optional<String> problem(ServerLevel level, MobProfile profile) {
+        Built built = build(level, profile);
+        built.mob().ifPresent(Entity::discard);
+        return built.error();
+    }
+
+    private record Built(Optional<Mob> mob, Optional<String> error) {
+        static Built failed(String error) {
+            return new Built(Optional.empty(), Optional.of(error));
         }
+    }
+
+    private static Built build(ServerLevel level, MobProfile profile) {
+        if (!ForgeRegistries.ENTITY_TYPES.containsKey(profile.entity())) {
+            return Built.failed("names unknown entity " + profile.entity());
+        }
+        EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
         Entity entity;
         if (profile.nbt().isPresent()) {
             CompoundTag tag;
             try {
                 tag = TagParser.parseTag(profile.nbt().get());
             } catch (CommandSyntaxException e) {
-                Hellstorm.LOG.error("Mob profile {} has bad nbt: {}", profileId, e.getMessage());
-                return Optional.empty();
+                return Built.failed("has bad nbt: " + e.getMessage());
             }
             tag.putString("id", profile.entity().toString());
             entity = EntityType.loadEntityRecursive(tag, level, e -> e);
@@ -38,12 +55,14 @@ public final class MobFactory {
             entity = type.create(level);
         }
         if (!(entity instanceof Mob mob)) {
-            Hellstorm.LOG.error("Mob profile {} names {}, which is not a mob", profileId, profile.entity());
-            return Optional.empty();
+            if (entity != null) {
+                entity.discard();
+            }
+            return Built.failed("names " + profile.entity() + ", which is not a mob");
         }
         if (profile.scale() != 1.0) {
             MobScale.set(mob, (float) profile.scale());
         }
-        return Optional.of(mob);
+        return new Built(Optional.of(mob), Optional.empty());
     }
 }

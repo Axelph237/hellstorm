@@ -18,6 +18,24 @@ public record MobRoster(List<Entry> entries) {
         entries = List.copyOf(entries);
     }
 
+    /**
+     * The first round, from 1, in which no profile with weight above 0 is allowed, or empty if every round has one. Weight
+     * 0 is a profile only a wave event's override spawns.
+     */
+    public Optional<Integer> firstEmptyRound() {
+        int round = 1;
+        for (Entry e : entries.stream().filter(e -> e.weight() > 0).sorted(java.util.Comparator.comparingInt(Entry::minRound)).toList()) {
+            if (e.minRound() > round) {
+                return Optional.of(round);
+            }
+            if (e.maxRound().isEmpty()) {
+                return Optional.empty();
+            }
+            round = Math.max(round, e.maxRound().get() + 1);
+        }
+        return Optional.of(round);
+    }
+
     /** A weighted pick among profiles allowed this round. Empty if none is. */
     public Optional<ResourceLocation> pick(int round, RandomSource random) {
         return pick(round, random, profile -> true);

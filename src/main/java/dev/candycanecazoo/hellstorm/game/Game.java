@@ -43,6 +43,8 @@ public final class Game {
     private GamePhase phase = new GamePhase.Lobby();
     private long ticks;
     private boolean warnedNoSpawns;
+    /** The last round that had no mob profile it could spawn, said once. */
+    private int warnedNoProfile;
     private boolean finished;
     private boolean powerOn;
     private Set<ZoneId> unlocked;
@@ -410,7 +412,12 @@ public final class Game {
             return round;
         }
         Optional<BlockPos> marker = pickMarker(world);
-        Optional<UUID> spawned = marker.flatMap(m -> zombieSpec(round.round(), m, world).flatMap(spec -> world.spawnZombie(m, spec)));
+        Optional<GameWorld.ZombieSpec> spec = marker.flatMap(m -> zombieSpec(round.round(), m, world));
+        if (marker.isPresent() && spec.isEmpty() && warnedNoProfile != round.round()) {
+            warnedNoProfile = round.round();
+            Hellstorm.LOG.warn("Round {}: no mob profile can spawn (all weight 0, outside min_round/max_round, or broken); /hs map validate says which", round.round());
+        }
+        Optional<UUID> spawned = marker.flatMap(m -> spec.flatMap(s -> world.spawnZombie(m, s)));
         spawned.ifPresent(mob -> {
             mobs.add(mob);
             if (settings.rounds().runnerChance() > 0 && random.nextDouble() < settings.rounds().runnerChance()) {

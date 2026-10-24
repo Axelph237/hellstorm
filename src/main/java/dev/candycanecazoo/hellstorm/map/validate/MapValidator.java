@@ -45,6 +45,8 @@ public final class MapValidator {
     public static final String DOOR_NOT_BETWEEN_ZONES = "door_not_between_zones";
     /** A door's rooms are joined anyway, through an opening that isn't a door, so the door unlocks nothing. A warning: the game still starts. */
     public static final String LOOPHOLE = "loophole";
+    public static final String POWER_SWITCH_LOCKED = "power_switch_locked";
+    public static final String FEATURE_OUTSIDE_ROOM = "feature_outside_room";
 
     /** Passages are searched this many cells out from each zone unless the caller says otherwise. */
     public static final int DEFAULT_MAX_GAP = 2;
@@ -73,6 +75,7 @@ public final class MapValidator {
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), probe, maxGap);
         checkDoors(map, passages, problems);
         checkReachability(map, passages, problems);
+        checkKeyFeatures(map, passages, problems);
         Map<BlockPos, SpawnLinks.Link> links = SpawnLinks.resolve(map, context.windows().linkRange());
         checkSpawns(map, links, problems);
         checkWindows(map, links, context, problems);
@@ -187,6 +190,44 @@ public final class MapValidator {
                         Highlight.of("Room {} can't be reached from a start room", zone.id()), null));
             }
         }
+    }
+
+    /**
+     * The power switch must be reachable from a start room without a door that needs power: otherwise the power never
+     * comes on, and everything behind it stays locked. The switch and the upgrader must be in a room or beside one (a lever
+     * hangs in the room's air, a machine stands against its wall), or no player can use them.
+     */
+    private static void checkKeyFeatures(ZombiesMap map, Passages.Result passages, List<Problem> problems) {
+        ZoneIndex index = ZoneIndex.of(map);
+        List<ZoneId> starts = map.startZones().stream().map(Zone::id).toList();
+        Set<Passages.Link> unpowered = new HashSet<>(passages.open());
+        map.doors().values().stream().filter(door -> !door.requiresPower()).forEach(door -> unpowered.addAll(door.links(index)));
+        Set<ZoneId> beforePower = ZoneGraph.of(map, unpowered).reachableFrom(starts);
+        List<BlockPos> switches = map.features(FeatureKind.POWER_SWITCH);
+        if (!starts.isEmpty() && !switches.isEmpty()
+                && switches.stream().noneMatch(pos -> roomsBeside(index, pos).stream().anyMatch(beforePower::contains))) {
+            problems.add(Problem.error(POWER_SWITCH_LOCKED, Highlight.of(
+                    "No power switch can be reached without the power: every one is behind a door that needs power, so the power never comes on"),
+                    switches.get(0)));
+        }
+        for (FeatureKind kind : List.of(FeatureKind.POWER_SWITCH, FeatureKind.PAP_MACHINE)) {
+            for (BlockPos pos : map.features(kind)) {
+                if (roomsBeside(index, pos).isEmpty()) {
+                    problems.add(Problem.warning(FEATURE_OUTSIDE_ROOM, Highlight.of("The {} at {} isn't in or beside a room, so no player can reach it",
+                            kind == FeatureKind.POWER_SWITCH ? "power switch" : "upgrader", pos.toShortString()), pos));
+                }
+            }
+        }
+    }
+
+    /** The rooms at {@code pos} or next to it. */
+    private static Set<ZoneId> roomsBeside(ZoneIndex index, BlockPos pos) {
+        Set<ZoneId> rooms = new HashSet<>();
+        index.zoneAt(pos).ifPresent(rooms::add);
+        for (net.minecraft.core.Direction direction : net.minecraft.core.Direction.values()) {
+            index.zoneAt(pos.relative(direction)).ifPresent(rooms::add);
+        }
+        return rooms;
     }
 
     private static void checkSpawns(ZombiesMap map, Map<BlockPos, SpawnLinks.Link> links, List<Problem> problems) {

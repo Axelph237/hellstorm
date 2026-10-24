@@ -54,6 +54,8 @@ public final class ForgeGameWorld implements GameWorld {
     private final Supplier<Collection<UUID>> players;
     private final Function<UUID, ServerPlayer> lookup;
     private final Map<ResourceLocation, MobProfile> profiles;
+    /** Profiles whose mob couldn't be made (MobFactory logs why). That fails the same way every time, so they're skipped. */
+    private final java.util.Set<ResourceLocation> broken = new java.util.HashSet<>();
     private final Predicate<UUID> targetable;
     private final Set<ResourceLocation> tierWarned = new HashSet<>();
     private final GamePathing pathing;
@@ -89,15 +91,16 @@ public final class ForgeGameWorld implements GameWorld {
 
     @Override
     public boolean canSpawn(ResourceLocation profileId, BlockPos marker) {
-        Optional<WindowDef> window = map.windowFor(marker);
         MobProfile profile = profiles.get(profileId);
-        if (window.isEmpty() || profile == null) {
+        // A missing profile, or one that failed to make its mob, never spawns: picking it would only retry forever.
+        if (profile == null || broken.contains(profileId) || !ForgeRegistries.ENTITY_TYPES.containsKey(profile.entity())) {
+            return false;
+        }
+        Optional<WindowDef> window = map.windowFor(marker);
+        if (window.isEmpty()) {
             return true;
         }
         EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
-        if (type == null) {
-            return true;
-        }
         EntityDimensions hitbox = profile.hitbox(type);
         MovementClass size = MovementClass.ofHitbox(hitbox.width, hitbox.height);
         return size.width() <= window.get().width() && size.height() <= window.get().height();
@@ -113,6 +116,7 @@ public final class ForgeGameWorld implements GameWorld {
         }
         Optional<Mob> created = MobFactory.create(level, profile, spec.profile());
         if (created.isEmpty()) {
+            broken.add(spec.profile());
             return Optional.empty();
         }
         Mob mob = created.get();

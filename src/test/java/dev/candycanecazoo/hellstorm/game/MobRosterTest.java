@@ -46,4 +46,18 @@ class MobRosterTest {
     void nothingAllowedMeansNoPick() {
         assertTrue(new MobRoster(List.of(new MobRoster.Entry(HOUND, 1, 5, Optional.empty()))).pick(1, RandomSource.create(1)).isEmpty());
     }
+
+    private static MobRoster.Entry entry(String id, int weight, int min, Integer max) {
+        return new MobRoster.Entry(ResourceLocation.tryBuild("test", id), weight, min, Optional.ofNullable(max));
+    }
+
+    @Test
+    void firstEmptyRoundFindsRoundsNothingCanSpawnIn() {
+        assertEquals(Optional.of(1), new MobRoster(List.of(entry("a", 0, 1, null))).firstEmptyRound(), "all weight 0");
+        assertEquals(Optional.of(4), new MobRoster(List.of(entry("a", 1, 1, 3), entry("b", 1, 5, null))).firstEmptyRound(), "a gap at round 4");
+        assertEquals(Optional.empty(), new MobRoster(List.of(entry("a", 1, 1, null))).firstEmptyRound());
+        assertEquals(Optional.of(4), new MobRoster(List.of(entry("a", 1, 1, 3), entry("b", 0, 1, null), entry("c", 1, 5, null))).firstEmptyRound(),
+                "a weight 0 profile doesn't fill the gap");
+        assertEquals(Optional.of(2), new MobRoster(List.of(entry("a", 1, 1, 1))).firstEmptyRound(), "nothing after round 1");
+    }
 }

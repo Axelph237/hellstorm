@@ -161,6 +161,27 @@ class MapValidatorTest {
     }
 
     @Test
+    void aPowerSwitchOnlyBehindADoorThatNeedsPowerIsAnError() {
+        DoorDef door = DoorDef.empty("gate", 750).withMember(new BlockPos(10, 0, 2)).withMember(new BlockPos(10, 1, 2));
+        ZombiesMap map = separatedZones().withFeature(new BlockPos(15, 0, 5), FeatureKind.POWER_SWITCH);
+        assertTrue(MapValidator.validate(map.withDoor(door.withPower(true))).has(MapValidator.POWER_SWITCH_LOCKED),
+                "the only switch is behind a door that needs the power it turns on");
+        assertFalse(MapValidator.validate(map.withDoor(door)).has(MapValidator.POWER_SWITCH_LOCKED), "a door without power is fine");
+        assertFalse(MapValidator.validate(map.withDoor(door.withPower(true)).withFeature(new BlockPos(3, 0, 3), FeatureKind.POWER_SWITCH))
+                .has(MapValidator.POWER_SWITCH_LOCKED), "a second switch in the start room is enough");
+    }
+
+    @Test
+    void anUpgraderAwayFromEveryRoomIsAWarning() {
+        ZombiesMap map = twoTouchingZonesWithSpawns().withFeature(new BlockPos(60, 0, 60), FeatureKind.PAP_MACHINE);
+        ValidationReport report = MapValidator.validate(map);
+        assertTrue(report.has(MapValidator.FEATURE_OUTSIDE_ROOM));
+        assertTrue(report.playable(), "only a warning");
+        assertFalse(MapValidator.validate(twoTouchingZonesWithSpawns().withFeature(new BlockPos(2, 0, 3), FeatureKind.PAP_MACHINE))
+                .has(MapValidator.FEATURE_OUTSIDE_ROOM), "one in a room is fine");
+    }
+
+    @Test
     void badDoorsAreReported() {
         ZombiesMap empty = separatedZones().withDoor(DoorDef.empty("nothing", 750));
         assertTrue(MapValidator.validate(empty).has(MapValidator.EMPTY_DOOR));

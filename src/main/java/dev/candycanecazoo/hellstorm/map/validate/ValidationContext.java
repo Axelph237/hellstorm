@@ -9,8 +9,8 @@ import net.minecraft.core.BlockPos;
 
 /**
  * Everything validation needs besides the map: how to read the world, where a player can stand, the window rules, the
- * size of every mob that might have to climb through a window, and problems with the items the mod hands out (found by
- * {@code PunchAudit}, which needs loaded items and datapacks).
+ * size of every mob that might have to climb through a window, and problems with what the map depends on but doesn't
+ * hold (found by {@code PunchAudit} and {@code ContentAudit}, which need the loaded datapacks and the world).
  */
 public record ValidationContext(CellProbe probe, Predicate<BlockPos> standable, int maxPassageGap, GameSettings.Windows windows,
                                 List<MobSize> mobs, List<Problem> itemProblems) {
