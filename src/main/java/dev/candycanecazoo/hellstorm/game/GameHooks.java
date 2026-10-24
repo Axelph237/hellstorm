@@ -8,8 +8,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.TickEvent;
@@ -25,6 +29,7 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -37,6 +42,9 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class GameHooks {
     private static final Set<MobSpawnType> NATURAL = Set.of(MobSpawnType.NATURAL, MobSpawnType.CHUNK_GENERATION, MobSpawnType.PATROL, MobSpawnType.EVENT);
+
+    /** Marks the mobs {@link #onSpawnedByDyingMob} took into a game. The game doesn't track them, so they go when it's over. */
+    private static final String SPAWNED_BY_GAME_MOB = Hellstorm.MOD_ID + "_spawned_by_game_mob";
 
     private GameHooks() {}
 
@@ -188,25 +196,59 @@ public final class GameHooks {
         }
     }
 
-    @SubscribeEvent
+    /**
+     * A game mob drops nothing: no loot, equipment or XP. Cancelled first, so another mod's listener never adds to the
+     * drops, and {@link #onSpawnedByDyingMob} catches what a mob spawns itself.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onDrops(LivingDropsEvent event) {
         if (isGameMob(event.getEntity())) {
             event.setCanceled(true);
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onExperience(LivingExperienceDropEvent event) {
         if (isGameMob(event.getEntity())) {
             event.setCanceled(true);
         }
     }
 
-    /** Game zombies never burn, so sunlight and fire don't thin out a round. */
+    /**
+     * What a dying game mob spawns belongs to the game: an item or XP orb it drops outside the drop events never appears,
+     * and a mob it leaves behind (a slime's young, a mod's head or ghost) becomes a game mob, so it drops nothing in turn
+     * and goes when the game ends. A player's thrown item and Hellstorm's power-ups are left alone.
+     */
+    @SubscribeEvent
+    public static void onSpawnedByDyingMob(EntityJoinLevelEvent event) {
+        Entity entity = event.getEntity();
+        boolean drop = entity instanceof ExperienceOrb || entity instanceof ItemEntity item && !(item.getOwner() instanceof Player);
+        if (event.loadedFromDisk() || !(drop || entity instanceof Mob) || !(event.getLevel() instanceof ServerLevel level)
+                || GameManager.get(level).isEmpty() || isGameMob(entity)
+                || level.getEntitiesOfClass(Mob.class, entity.getBoundingBox().inflate(1), m -> isGameMob(m) && m.isDeadOrDying()).isEmpty()) {
+            return;
+        }
+        if (drop) {
+            event.setCanceled(true);
+        } else {
+            entity.addTag(ForgeGameWorld.MOB_TAG);
+            entity.addTag(SPAWNED_BY_GAME_MOB);
+        }
+    }
+
+    /** Game zombies never burn, so sunlight and fire don't thin out a round. What a game mob left behind goes once its game is over. */
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
-        if (isGameMob(event.getEntity()) && event.getEntity().isOnFire()) {
-            event.getEntity().clearFire();
+        LivingEntity entity = event.getEntity();
+        if (!isGameMob(entity)) {
+            return;
+        }
+        if (entity.isOnFire()) {
+            entity.clearFire();
+        }
+        if (entity.getTags().contains(SPAWNED_BY_GAME_MOB) && entity.level() instanceof ServerLevel level
+                && GameManager.get(level).map(a -> a.game().phase() instanceof GamePhase.GameOver).orElse(true)) {
+            entity.discard();
         }
     }
 
