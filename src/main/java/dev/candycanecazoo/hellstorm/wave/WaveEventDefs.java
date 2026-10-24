@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.wave;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.util.DataFiles;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -13,7 +13,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.Map;
-import java.util.TreeMap;
 
 /** Wave events from every datapack, refreshed on /reload. A game takes them when it starts. */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
@@ -31,10 +30,7 @@ public final class WaveEventDefs {
         event.addListener(new SimpleJsonResourceReloadListener(new Gson(), Hellstorm.MOD_ID + "/wave_events") {
             @Override
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-                Map<ResourceLocation, WaveEventDef> loaded = new TreeMap<>();
-                files.forEach((id, json) -> WaveEventDef.CODEC.parse(JsonOps.INSTANCE, json)
-                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad wave event {}: {}", id, error))
-                        .ifPresent(def -> loaded.put(id, def)));
+                Map<ResourceLocation, WaveEventDef> loaded = DataFiles.parse("wave event", WaveEventDef.CODEC, files);
                 events = Map.copyOf(loaded);
                 Hellstorm.LOG.info("Loaded {} Hellstorm wave events", loaded.size());
             }

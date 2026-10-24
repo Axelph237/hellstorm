@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.data;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.util.DataFiles;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -14,7 +14,6 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 
 /** Mystery Crate pools from every datapack, refreshed on /reload. */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
@@ -41,10 +40,7 @@ public final class BoxPools {
         event.addListener(new SimpleJsonResourceReloadListener(new Gson(), Hellstorm.MOD_ID + "/box_pools") {
             @Override
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-                Map<ResourceLocation, BoxPool> loaded = new TreeMap<>();
-                files.forEach((id, json) -> BoxPool.CODEC.parse(JsonOps.INSTANCE, json)
-                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad box pool {}: {}", id, error))
-                        .ifPresent(pool -> loaded.put(id, pool)));
+                Map<ResourceLocation, BoxPool> loaded = DataFiles.parse("crate pool", BoxPool.CODEC, files);
                 pools = Map.copyOf(loaded);
                 Hellstorm.LOG.info("Loaded {} Hellstorm box pools", loaded.size());
             }

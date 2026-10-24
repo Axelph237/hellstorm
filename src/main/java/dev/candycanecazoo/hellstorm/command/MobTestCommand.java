@@ -7,6 +7,7 @@ import dev.candycanecazoo.hellstorm.game.ForgeGameWorld;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.map.WindowDef;
 import dev.candycanecazoo.hellstorm.mob.AiInjector;
+import dev.candycanecazoo.hellstorm.mob.GroundSpeed;
 import dev.candycanecazoo.hellstorm.mob.MobFactory;
 import dev.candycanecazoo.hellstorm.mob.MobProfile;
 import dev.candycanecazoo.hellstorm.mob.MobProfiles;
@@ -62,7 +63,7 @@ final class MobTestCommand {
         mob.addTag(ForgeGameWorld.MOB_TAG);
         SupportTier tier = SupportTier.of(mob);
         MobProfile.Ai used = AiInjector.inject(mob, profile, new AiInjector.Stats(20 * profile.healthMultiplier(),
-                0.23 * profile.speedMultiplier(), (float) profile.damage()), () -> List.of(player));
+                0.23 * GroundSpeed.attributeFactor(profile.speedMultiplier()), (float) profile.damage()), () -> List.of(player));
         level.addFreshEntity(mob);
         MovementClass mc = MovementClass.ofHitbox(mob.getBbWidth(), mob.getBbHeight());
         List<String> tooSmall = MapSavedData.get(level).map().windows().values().stream()

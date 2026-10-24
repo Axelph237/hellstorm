@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.powerup;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.util.DataFiles;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -15,7 +15,6 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 
 /** Power-ups from every datapack, refreshed on /reload. A game takes its drop table when it starts. */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
@@ -42,22 +41,14 @@ public final class PowerUpDefs {
         event.addListener(new SimpleJsonResourceReloadListener(new Gson(), Hellstorm.MOD_ID + "/powerups") {
             @Override
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-                Map<ResourceLocation, PowerUpDef> loaded = new TreeMap<>();
-                files.forEach((id, json) -> PowerUpDef.CODEC.parse(JsonOps.INSTANCE, json)
-                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad power-up {}: {}", id, error))
-                        .filter(def -> knownItem(id, def))
-                        .ifPresent(def -> loaded.put(id, def)));
+                Map<ResourceLocation, PowerUpDef> loaded = DataFiles.parse("power-up", PowerUpDef.CODEC, files, PowerUpDefs::unknownItem);
                 powerUps = Map.copyOf(loaded);
                 Hellstorm.LOG.info("Loaded {} Hellstorm power-ups", loaded.size());
             }
         });
     }
 
-    private static boolean knownItem(ResourceLocation id, PowerUpDef def) {
-        if (!ForgeRegistries.ITEMS.containsKey(def.item().item())) {
-            Hellstorm.LOG.error("Bad power-up {}: unknown item {}", id, def.item().item());
-            return false;
-        }
-        return true;
+    private static Optional<String> unknownItem(PowerUpDef def) {
+        return ForgeRegistries.ITEMS.containsKey(def.item().item()) ? Optional.empty() : Optional.of("unknown item " + def.item().item());
     }
 }

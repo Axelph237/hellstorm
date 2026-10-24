@@ -27,19 +27,31 @@ class CodecLintTest {
         assertTrue(Sample.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"count\": \"seven\"}")).error().isPresent());
     }
 
-    @Test
-    void lenientOptionalFieldsAreNotUsed() throws IOException {
+    /** Source files outside {@code allowed} that contain {@code text}. */
+    private static List<Path> using(String text, List<Path> allowed) throws IOException {
         try (Stream<Path> files = Files.walk(Path.of("src/main/java"))) {
-            List<Path> offenders = files.filter(p -> p.toString().endsWith(".java") && !p.endsWith(Path.of("util", "Codecs.java")))
+            return files.filter(p -> p.toString().endsWith(".java") && allowed.stream().noneMatch(p::endsWith))
                     .filter(p -> {
                         try {
-                            return Files.readString(p).contains(".optionalFieldOf(");
+                            return Files.readString(p).contains(text);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     })
                     .toList();
-            assertEquals(List.of(), offenders, "use Codecs.strictOptional: optionalFieldOf silently ignores invalid values in 1.20.1");
         }
+    }
+
+    @Test
+    void lenientOptionalFieldsAreNotUsed() throws IOException {
+        assertEquals(List.of(), using(".optionalFieldOf(", List.of(Path.of("util", "Codecs.java"))),
+                "use Codecs.strictOptional: optionalFieldOf silently ignores invalid values in 1.20.1");
+    }
+
+    /** World saves load what they can; datapack files go through DataFiles, which skips a file with any error. */
+    @Test
+    void partialResultsAreOnlyKeptFromWorldSaves() throws IOException {
+        assertEquals(List.of(), using(".resultOrPartial(", List.of(Path.of("map", "MapSavedData.java"), Path.of("feature", "ConfigBlockEntity.java"))),
+                "use DataFiles.parse: resultOrPartial keeps an out-of-range value with only a log line");
     }
 }

@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.mob;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.util.DataFiles;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -13,7 +13,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.Map;
-import java.util.TreeMap;
 
 /** Mob profiles from every datapack, refreshed on /reload. Games copy the set when they open. */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
@@ -32,10 +31,7 @@ public final class MobProfiles {
         event.addListener(new SimpleJsonResourceReloadListener(new Gson(), Hellstorm.MOD_ID + "/mob_profiles") {
             @Override
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-                Map<ResourceLocation, MobProfile> loaded = new TreeMap<>();
-                files.forEach((id, json) -> MobProfile.CODEC.parse(JsonOps.INSTANCE, json)
-                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad mob profile {}: {}", id, error))
-                        .ifPresent(profile -> loaded.put(id, profile)));
+                Map<ResourceLocation, MobProfile> loaded = DataFiles.parse("mob profile", MobProfile.CODEC, files);
                 profiles = Map.copyOf(loaded);
                 Hellstorm.LOG.info("Loaded {} Hellstorm mob profiles", loaded.size());
             }

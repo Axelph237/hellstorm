@@ -13,7 +13,7 @@ import java.util.UUID;
 
 /**
  * A runner moves at least as fast as a walking player: its speed is raised to {@link #SPEED}, unless its round and
- * profile already make it faster. A crawler's slowdown applies on top, so a crawler that runs moves at 0.8 of that.
+ * profile already make it faster. A crawler's slowdown applies on top, so a crawler that runs moves 0.8 times as fast as that.
  * Marked by {@value #RUNNER} in its NBT ({@code ForgeData}), so a profile's {@code nbt} can make one.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
@@ -21,9 +21,8 @@ public final class Runners {
     public static final String RUNNER = Hellstorm.MOD_ID + "_runner";
     /**
      * The speed attribute at which a mob walks 4.32 blocks a second on flat ground, as a walking player does. A mob's
-     * ground speed goes with the square of its attribute (vanilla feeds the speed in both as its input and as its
-     * acceleration), so this is about the square root of 0.1, a player's own 0.1 walking speed. Measured by the GameTest
-     * {@code aRunnerWalksAsFastAsAWalkingPlayer}.
+     * ground speed goes with the square of its attribute ({@link GroundSpeed}), so this is about the square root of 0.1, a
+     * player's own 0.1 walking speed. Measured by the GameTest {@code aRunnerWalksAsFastAsAWalkingPlayer}.
      */
     public static final double SPEED = 0.316;
     private static final UUID RUN_SPEED = UUID.fromString("c2a7e0b4-5d1f-4e8b-a6c3-9f4d2b7e1a58");

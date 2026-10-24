@@ -48,4 +48,20 @@ class MobProfileTest {
         assertTrue(MobProfile.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"entity\": \"minecraft:zombie\", \"ai\": \"chaos\"}")).error().isPresent());
         assertTrue(MobProfile.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"weight\": 3}")).error().isPresent());
     }
+
+    private static boolean refusesNbt(String snbt) {
+        String json = "{\"entity\": \"minecraft:zombie\", \"nbt\": " + new com.google.gson.JsonPrimitive(snbt) + "}";
+        return MobProfile.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(json)).error().isPresent();
+    }
+
+    @Test
+    void nbtThatDoesntParseOrStopsACrawlerIsRefused() {
+        assertTrue(refusesNbt("{ForgeData:{"), "SNBT that doesn't parse");
+        assertTrue(refusesNbt("{ForgeData:{hellstorm_crawler:{speed_multiplier:0f}}}"), "a crawler that never moves");
+        assertTrue(refusesNbt("{ForgeData:{hellstorm_crawler:{speed_multiplier:-0.5f}}}"), "a negative crawl speed");
+        assertTrue(refusesNbt("{ForgeData:{hellstorm_crawler:{speed_multiplier:'fast'}}}"), "a crawl speed that isn't a number");
+        assertFalse(refusesNbt("{ForgeData:{hellstorm_crawler:{speed_multiplier:0.8f}}}"), "the shipped crawler");
+        assertFalse(refusesNbt("{ForgeData:{hellstorm_crawler:{}}}"), "a crawler without a speed uses the usual one");
+        assertFalse(refusesNbt("{CustomName:'\"Ghoul\"'}"), "other NBT");
+    }
 }

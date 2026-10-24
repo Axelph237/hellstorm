@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.data;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.util.DataFiles;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -12,7 +12,6 @@ import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -35,10 +34,7 @@ public final class GunBalances {
         event.addListener(new SimpleJsonResourceReloadListener(new Gson(), Hellstorm.MOD_ID + "/gun_balance") {
             @Override
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-                Map<ResourceLocation, GunBalance> loaded = new HashMap<>();
-                files.forEach((id, json) -> GunBalance.CODEC.parse(JsonOps.INSTANCE, json)
-                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad gun balance {}: {}", id, error))
-                        .ifPresent(balance -> loaded.put(id, balance)));
+                Map<ResourceLocation, GunBalance> loaded = DataFiles.parse("gun balance", GunBalance.CODEC, files);
                 balances = Map.copyOf(loaded);
                 Hellstorm.LOG.info("Loaded balance for {} guns", loaded.size());
             }
