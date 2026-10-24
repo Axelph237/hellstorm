@@ -169,7 +169,8 @@ class MapValidatorTest {
         ZombiesMap pointless = twoTouchingZonesWithSpawns().withDoor(DoorDef.empty("arch", 750).withMember(new BlockPos(9, 4, 2)).withMember(new BlockPos(10, 4, 2)));
         ValidationReport report = MapValidator.validate(pointless);
         assertTrue(report.has(MapValidator.LOOPHOLE), "touching zones are connected anyway: " + report.problems());
-        assertFalse(report.playable(), "a loophole stops a game from starting");
+        assertTrue(report.playable(), "a loophole is only a warning: " + report.problems());
+        assertTrue(report.problems().stream().filter(p -> p.code().equals(MapValidator.LOOPHOLE)).allMatch(p -> p.severity() == Problem.Severity.WARNING), "reported as a warning");
         Problem loophole = report.problems().stream().filter(p -> p.code().equals(MapValidator.LOOPHOLE)).findFirst().orElseThrow();
         BlockPos at = loophole.pos().orElseThrow();
         assertTrue(Highlight.plain(loophole.message()).matches("Loophole found between \\w+ and \\w+ at \\(-?\\d+, -?\\d+, -?\\d+\\)"), loophole.message());

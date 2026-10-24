@@ -43,7 +43,7 @@ public final class MapValidator {
     public static final String SPLIT_START_ZONE = "split_start_zone";
     public static final String EMPTY_DOOR = "empty_door";
     public static final String DOOR_NOT_BETWEEN_ZONES = "door_not_between_zones";
-    /** A door's rooms are joined anyway, through an opening that isn't a door, so the door unlocks nothing. */
+    /** A door's rooms are joined anyway, through an opening that isn't a door, so the door unlocks nothing. A warning: the game still starts. */
     public static final String LOOPHOLE = "loophole";
 
     /** Passages are searched this many cells out from each zone unless the caller says otherwise. */
@@ -159,7 +159,7 @@ public final class MapValidator {
                 // Buying the door would unlock nothing: an opening that isn't a door already joins its rooms.
                 for (Passages.Link link : door.links(index)) {
                     BlockPos opening = passages.openings().getOrDefault(link, at);
-                    problems.add(Problem.error(LOOPHOLE, Highlight.of("Loophole found between {} and {} at {}", link.a(), link.b(), opening), opening));
+                    problems.add(Problem.warning(LOOPHOLE, Highlight.of("Loophole found between {} and {} at {}", link.a(), link.b(), opening), opening));
                 }
             }
         }

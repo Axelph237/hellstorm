@@ -8,6 +8,7 @@
 - Map validation follows the ways a player or zombie can really walk between rooms: steps, one-block jumps, and drops. Rooms drawn taller than a wall two blocks high, or a fence, between them are no longer joined over its top, so a door in that wall isn't a loophole. A hole one block high no longer joins rooms either.
 - A zombie left behind by a game that has ended no longer crashes the server when it moves.
 - Every setting that names an item takes NBT the way `/give` does, such as `lrtactical:melee{MeleeWeaponId:"lrtactical:dagger"}`: `players.starting_items`, `players.starting_guns` (merged onto the gun), and in datapacks, a power-up's `item` and any item spec (wall-buys, crate pools, upgrades), where the string works in place of the object. A `tacz_gun` spec takes `nbt` too, so a gun upgrade can carry its own `punch_id`.
+- A loophole (a door whose rooms are joined anyway) is a warning again, so it no longer stops a game from starting.
 - Crawlers move at 0.8 of a zombie's speed, up from half.
 - With `dismemberment` off, Hellstorm no longer registers a zombie renderer, so another mod's zombie renderer is kept instead of being replaced by Minecraft's.
 
