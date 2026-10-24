@@ -40,7 +40,7 @@ public final class DataFiles {
             DataResult<A> parsed = codec.parse(JsonOps.INSTANCE, json);
             Optional<String> error = parsed.error().map(DataResult.PartialResult::message).or(() -> problem.apply(parsed.result().orElseThrow()));
             if (error.isPresent()) {
-                Hellstorm.LOG.error("Skipped {} {}: {}", kind, id, error.get());
+                Hellstorm.LOG.error("Bad {} {}: {}", kind, id, error.get());
                 errors.add(id + ": " + error.get());
             } else {
                 loaded.put(id, parsed.result().orElseThrow());
