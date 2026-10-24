@@ -15,18 +15,24 @@ Item NBT:
 - `punchable` (bool) marks the item as accepted by the machine.
 - `punch_id` (optional) names a `PunchDef`.
 
-`data/<ns>/hellstorm/punch/<id>.json`:
+`data/<ns>/hellstorm/punch/<any name>.json` (shape since 2026-10-23, see "Upgrade files" under As built):
 
 ```json
 {
-  "result": { "tacz_gun": "tacz:m4a1", "nbt": { "pap": { "punchable": true, "punch_id": "mymap:m4_tier2" } } },
-  "name": "item.mymap.m4_upgraded",
-  "cost": 5000,
-  "carry_over": { "ammo": false, "attachments": true }
+  "m4_tier2": {
+    "item-id": "tacz:m4a1",
+    "nbt": { "pap": { "punch_id": "mymap:m4_tier3" } },
+    "name": "item.mymap.m4_upgraded",
+    "cost": 5000,
+    "carry-over": { "ammo": false, "attachments": true }
+  },
+  "defaults": {
+    "pistol": { "nbt": { "pap": { "damage_multiplier": 3.0 } }, "method": "merge" }
+  }
 }
 ```
 
-The mod ships defaults under the `hellstorm` namespace. A datapack overrides one by using the same id. A result can carry its own `pap` tag, which allows multi-tier upgrades.
+The mod ships defaults under the `hellstorm` namespace. A datapack overrides one by using the same pap id. A result can carry its own `pap` tag, which allows multi-tier upgrades.
 
 ```java
 sealed interface PunchOutcome permits Replace, UpgradeTacz, Rejected {}
@@ -67,7 +73,8 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 
 - `pap.default_cost` (5000), `pap.process_ticks` (60), `pap.collect_ticks` (240), `pap.max_tier` (1).
 - TacZ multipliers in `tacz-bridge.md`.
-- Per `PunchDef`: result, name, cost, carry-over.
+- Per `PunchDef`: `item-id`, `nbt`, `name`, `cost`, `carry-over`.
+- Per TacZ gun class: a default (`nbt` and `method`) applied after the built-in upgrade.
 
 ## Assets
 
@@ -118,6 +125,19 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
   - Ops get a chat summary on joining when anything is flagged: the count, the first five findings with positions, and a pointer to `/hs map validate` (`PunchAudit.opNotice`).
 - **Shipped default.** `hellstorm:iron_sword`: a diamond sword with Sharpness III, named "Upgraded Sword", for 2500. Try it with `/give @s iron_sword{pap:{punchable:1b,punch_id:"hellstorm:iron_sword"}}`.
 - **Multi-tier defs through `tacz_gun`** (2026-10-23; unsupported until then). `ItemSpec.Gun` takes an `nbt` merged onto the built gun, so a gun result can carry its own `pap.punch_id`.
+- **Upgrade files** (2026-10-23, replacing one file per def with `result`). A file in `data/<ns>/hellstorm/punch/` is an object of entries; its name no longer matters. `PunchDefs` reads them all into one `Loaded(defs, defaults, errors)`.
+  - **Pap ids.** A key with a colon is the pap id as written (`"hellstorm:iron_sword"`); a key without one is in the file's namespace (`"iron_sword"` in `data/hellstorm/...` is `hellstorm:iron_sword`). So an item's `punch_id` names an entry the same way it named a file before, and the shipped `iron_sword.json` keeps its id.
+  - **Entry.** `item-id` (required) and `nbt` (a JSON object or an SNBT string, `util/Codecs.COMPOUND`). Kept from the old shape, as optional extra keys: `name` (a lang key; the shipped sword uses it, and player-facing names come from lang keys), `cost` (the sword costs 2500), and `carry-over` (`ammo`, `attachments`), which multi-tier gun upgrades need to keep a player's attachments. Hyphenated to match `item-id`. Dropped: `count` (always 1) and `unlimited_ammo`.
+  - **Gun results.** `PunchDef.result()` asks `TaczBridge.gunExists(item-id)` when the result is built, not when the file loads (TacZ's gun packs may load after us). A gun id builds an `ItemSpec.Gun`: full magazine and reserve, `nbt` merged on, and punchable unless `nbt` sets `pap.punchable` false. Anything else is the item with exactly `nbt`.
+  - **`defaults`** is reserved: `"defaults": { "<gun class>": { "nbt": ..., "method": "merge" | "modify" | "remove" } }`. A pap id named `defaults` must be written with its namespace. The class is the TacZ gun index's `type` (`TaczBridge.GunInfo.type`): TacZ ships `pistol`, `smg`, `rifle`, `shotgun`, `sniper`, `mg` and `rpg`, and a gun pack can add more. `PapGunStats.upgrade` runs the built-in upgrade (tier, multipliers, reserve, refill, name), then applies the class's `GunDefault` to the gun's whole NBT. `method` defaults to `modify`; `nbt` defaults to empty.
+    - `merge`: `CompoundTag.merge`, adding and overwriting keys, into compounds on both sides.
+    - `modify`: overwrites only keys the gun already has, into compounds on both sides; adds nothing. A list is replaced whole.
+    - `remove`: removes the given keys; a non-empty compound removes keys inside it, any other value (`{}` included) removes the key. Values are ignored.
+    - These three readings are an interpretation of the request, not yet confirmed by the user.
+  - **Overrides.** Files load lowest-priority datapack first (by `Resource.sourcePackId` against `listPacks()`), then by file id. A later file's pap id or gun class replaces an earlier one's, so a world datapack overrides the mod's. Replacing a file by its path still replaces the whole file.
+  - **Bad entries** are skipped one by one; the rest of the file loads. Each is kept in `Loaded.errors` with its file and key, and not logged at load: `PunchAudit` reports it.
+  - **Audit.** `PunchAudit.Finding` is now `(kind, message, pos)`, its `Kind` holding the problem code. Besides the two item findings it reports, through `checkFiles`: `pap_bad_entry` (a skipped entry: bad JSON, a bad pap id, a bad method, bad NBT, a missing `item-id`), `pap_missing_result` (an `item-id` that is neither an installed item nor a TacZ gun), and `pap_unknown_gun_class` (a `defaults` class no installed gun has; the message lists the real ones). All are warnings. The op notice reads "found N problems with upgrades". The audit also reads a gun result's `nbt`, so a gun upgrade whose `punch_id` names nothing is flagged.
+  - **Tests.** JUnit: `PunchDefTest` (each field, NBT as object and SNBT, namespacing, the reserved key, overrides, bad entries), `GunDefaultTest` (each method on a sample gun's NBT, the codec's defaults and errors), `PunchAuditTest` (`checkFiles`). GameTest: `PapGameTests.aGunClassDefaultChangesTheUpgradedGunAndAGunResultIsAFullGun` runs each method on a real upgraded AK through `PapGunStats.upgrade`, checks a pistol default leaves it alone and that TacZ's classes are the ones above, and builds a gun result. The machine passing the loaded defaults is left to the in-game check, since a GameTest can't load a datapack without changing every other test's upgrades.
 - **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `TEXTURES_NEEDED.md`.
 
 ## The upgrader model and the fire (phase 7)

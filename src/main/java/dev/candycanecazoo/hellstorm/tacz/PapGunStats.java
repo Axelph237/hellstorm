@@ -11,6 +11,7 @@ import com.tacz.guns.util.AttachmentDataUtils;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
+import dev.candycanecazoo.hellstorm.pap.GunDefault;
 import dev.candycanecazoo.hellstorm.pap.PunchResolver;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -19,6 +20,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.Map;
 
 /**
  * The upgrader's default TacZ upgrade. The stat multipliers live on the stack ({@code pap.damage_multiplier} and so on, one
@@ -33,8 +36,11 @@ public final class PapGunStats {
 
     private PapGunStats() {}
 
-    /** A copy one tier up: stats multiplied once more, a bigger reserve, full ammo, and "Upgraded" in its name. */
-    public static ItemStack upgrade(ItemStack gun, GameSettings.Pap settings) {
+    /**
+     * A copy one tier up: stats multiplied once more, a bigger reserve, full ammo, and "Upgraded" in its name. Then the
+     * default for its gun class, if {@code defaults} has one, changes its NBT.
+     */
+    public static ItemStack upgrade(ItemStack gun, GameSettings.Pap settings, Map<String, GunDefault> defaults) {
         ItemStack stack = gun.copy();
         IGun iGun = IGun.getIGunOrNull(stack);
         CompoundTag pap = stack.getOrCreateTagElement(ItemSpec.PAP);
@@ -51,6 +57,7 @@ public final class PapGunStats {
         }
         TaczBridge.refillAmmo(stack);
         stack.setHoverName(Component.translatable("item.hellstorm.upgraded", baseName(stack)));
+        TaczBridge.inspect(stack).map(info -> defaults.get(info.type())).ifPresent(gunDefault -> gunDefault.applyTo(stack.getOrCreateTag()));
         return stack;
     }
 

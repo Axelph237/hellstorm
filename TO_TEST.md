@@ -15,6 +15,10 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 - [ ] **Smooth spin in multiplayer.** On a dedicated server (or LAN, hosted from a second machine), with two clients A and B in a game standing at the crate. Make the server run behind: summon a few hundred mobs away from the arena until `/forge tps` shows well under 20. A rolls the crate several times: on both screens the guns rise and flick forward only, one gun after the next, slowing to a stop, and the dings keep pace with them, never repeating a gun or stuttering back. On a busy server the last gun may hang at the top for a moment before the result swaps in. Then B walks away out of render distance, A rolls, and B comes back mid-roll: B's guns join partway up and run on smoothly. B rolls while A watches. Repeat once with the server not busy.
 
+## Upgrade files
+
+- [ ] **Upgrades and gun class defaults.** Put `examples/datapacks/hellstorm_example` in the world and `/reload`; the log has no `Upgrader:` errors. In a game with power on: the shipped iron sword (`/give @s iron_sword{pap:{punchable:1b,punch_id:"hellstorm:iron_sword"}}`) still becomes the Upgraded Sword for 2500; `/give @s stick{pap:{punchable:1b,punch_id:"hellstorm_example:stick"}}` becomes a Fire Aspect II blaze rod with "Still warm" lore for 500. Upgrade a pistol from a wall-buy: it's "Upgraded ..." with "Hellfire-forged" lore. Upgrade a rifle: it fires about 1.5 times as fast as stock. Upgrade an SMG: it keeps its plain name. Then change a `method` to `"replace"` in the pack, `/reload`, and rejoin as op: the chat notice and `/hs map validate` name the bad entry.
+
 ## Zombies
 
 - [ ] **No block use in a game.** In a game, right-click a wooden door, a trapdoor, a lever and a chest: none opens or flips, and none flickers. Wall-buys, machines, the power switch, and buying a door still work, and a gun still aims.

@@ -14,7 +14,10 @@ import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.pap.PunchAudit;
-import dev.candycanecazoo.hellstorm.pap.PunchOutcome;
+import dev.candycanecazoo.hellstorm.config.ServerConfig;
+import dev.candycanecazoo.hellstorm.pap.GunDefault;
+import dev.candycanecazoo.hellstorm.pap.PunchDef;
+import dev.candycanecazoo.hellstorm.tacz.PapGunStats;
 import dev.candycanecazoo.hellstorm.pap.PunchResolver;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
@@ -41,6 +44,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
@@ -276,8 +280,62 @@ public final class PapGameTests {
         ItemSpec stick = new ItemSpec.Plain(ForgeRegistries.ITEMS.getKey(Items.STICK), 1, Optional.of(punchable(new ItemStack(Items.STICK), null).getTag()));
         List<PunchAudit.Finding> findings = PunchAudit.check(List.of(
                 new PunchAudit.Entry("gun", Optional.empty(), gunAsItem), new PunchAudit.Entry("stick", Optional.empty(), stick)));
-        helper.assertTrue(findings.size() == 1 && findings.get(0).entry().source().equals("stick")
-                && findings.get(0).reason() == PunchOutcome.RejectReason.NO_UPGRADE_PATH, "findings " + findings);
+        helper.assertTrue(findings.size() == 1 && findings.get(0).message().startsWith("stick:")
+                && findings.get(0).kind() == PunchAudit.Kind.NO_UPGRADE_PATH, "findings " + findings);
+        helper.succeed();
+    }
+
+    private static CompoundTag snbt(String text) {
+        try {
+            return net.minecraft.nbt.TagParser.parseTag(text);
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+            throw new IllegalArgumentException(text, e);
+        }
+    }
+
+    private static double damage(ItemStack gun) {
+        return gun.getTagElement(ItemSpec.PAP).getDouble(PapGunStats.DAMAGE);
+    }
+
+    /**
+     * After the built-in upgrade, the default for the gun's class (the AK is a rifle) changes its NBT by its method, and a
+     * default for another class does nothing. An upgrade whose item-id is a gun builds a full, punchable gun.
+     */
+    @GameTest(template = "floor")
+    public static void aGunClassDefaultChangesTheUpgradedGunAndAGunResultIsAFullGun(GameTestHelper helper) {
+        GameSettings.Pap settings = ServerConfig.GAME.get().pap();
+        helper.assertTrue(TaczBridge.inspect(ak()).orElseThrow().type().equals("rifle"), "the AK's class is " + TaczBridge.inspect(ak()).orElseThrow().type());
+        helper.assertTrue(TaczBridge.gunClasses().containsAll(List.of("pistol", "smg", "rifle", "shotgun", "sniper", "mg", "rpg")),
+                "gun classes " + TaczBridge.gunClasses());
+
+        CompoundTag hotter = snbt("{pap:{damage_multiplier:9.0d,glow:1b},display:{Lore:['\"Hellfire\"']}}");
+        ItemStack merged = PapGunStats.upgrade(ak(), settings, Map.of("rifle", new GunDefault(hotter, GunDefault.Method.MERGE)));
+        helper.assertTrue(merged.getTagElement(ItemSpec.PAP).getInt(PunchResolver.TIER) == 1 && damage(merged) == 9.0
+                && merged.getTagElement(ItemSpec.PAP).getBoolean("glow"), "merge: " + merged.getTag());
+        CompoundTag display = merged.getTagElement("display");
+        helper.assertTrue(display.getList("Lore", net.minecraft.nbt.Tag.TAG_STRING).getString(0).equals("\"Hellfire\"")
+                && merged.getHoverName().getContents() instanceof TranslatableContents name && name.getKey().equals("item.hellstorm.upgraded"),
+                "merge should add the lore and keep the upgraded name: " + display);
+
+        ItemStack modified = PapGunStats.upgrade(ak(), settings, Map.of("rifle", new GunDefault(hotter, GunDefault.Method.MODIFY)));
+        helper.assertTrue(damage(modified) == 9.0 && !modified.getTagElement(ItemSpec.PAP).contains("glow")
+                && !modified.getTagElement("display").contains("Lore"), "modify should change only keys the gun has: " + modified.getTag());
+
+        ItemStack removed = PapGunStats.upgrade(ak(), settings, Map.of("rifle", new GunDefault(snbt("{display:{}}"), GunDefault.Method.REMOVE)));
+        helper.assertTrue(!removed.hasCustomHoverName() && removed.getTagElement(ItemSpec.PAP).getInt(PunchResolver.TIER) == 1,
+                "remove should take the name off and leave the rest: " + removed.getTag());
+
+        ItemStack pistolOnly = PapGunStats.upgrade(ak(), settings, Map.of("pistol", new GunDefault(hotter, GunDefault.Method.MERGE)));
+        helper.assertTrue(Math.abs(damage(pistolOnly) - settings.damageMultiplier()) < 1e-9, "a pistol default changed a rifle: " + pistolOnly.getTag());
+
+        PunchDef tier2 = new PunchDef(AK, Optional.of(snbt("{pap:{punch_id:\"mymap:ak_tier3\"}}")), Optional.empty(), Optional.empty(),
+                PunchDef.CarryOver.NONE);
+        ItemStack built = tier2.result().build(4).orElseThrow(() -> new IllegalStateException("the gun result didn't build"));
+        CompoundTag pap = built.getTagElement(ItemSpec.PAP);
+        helper.assertTrue(TaczBridge.inspect(built).map(info -> info.gunId().equals(AK)).orElse(false)
+                && IGun.getIGunOrNull(built).getCurrentAmmoCount(built) == TaczBridge.inspect(built).orElseThrow().magazineSize()
+                && IGun.getIGunOrNull(built).getDummyAmmoAmount(built) > 0, "not a loaded AK: " + built.getTag());
+        helper.assertTrue(pap.getBoolean(ItemSpec.PUNCHABLE) && pap.getString(ItemSpec.PUNCH_ID).equals("mymap:ak_tier3"), "pap " + pap);
         helper.succeed();
     }
 
@@ -291,7 +349,7 @@ public final class PapGameTests {
                 .setConfig(dev.candycanecazoo.hellstorm.feature.WallBuy.Config.forItem(stick, 100, dev.candycanecazoo.hellstorm.feature.WallBuy.Repurchase.DENY));
         List<PunchAudit.Finding> findings = PunchAudit.run(helper.getLevel());
         helper.getLevel().removeBlock(at, false);
-        helper.assertTrue(findings.stream().anyMatch(f -> f.entry().pos().equals(Optional.of(at)) && f.reason() == PunchOutcome.RejectReason.NO_UPGRADE_PATH),
+        helper.assertTrue(findings.stream().anyMatch(f -> f.pos().equals(Optional.of(at)) && f.kind() == PunchAudit.Kind.NO_UPGRADE_PATH),
                 "the wall-buy wasn't flagged: " + findings);
         helper.succeed();
     }

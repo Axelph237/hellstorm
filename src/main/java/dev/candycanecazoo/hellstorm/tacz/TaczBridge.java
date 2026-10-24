@@ -14,6 +14,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /** The only place that touches TacZ. */
 public final class TaczBridge {
@@ -30,6 +33,11 @@ public final class TaczBridge {
 
     public static boolean gunExists(ResourceLocation gunId) {
         return TimelessAPI.getCommonGunIndex(gunId).isPresent();
+    }
+
+    /** Every installed gun's class ({@link GunInfo#type()}): pistol, smg, rifle, shotgun, sniper, mg, rpg, and any a gun pack adds. */
+    public static Set<String> gunClasses() {
+        return TimelessAPI.getAllCommonGunIndex().stream().map(e -> e.getValue().getType()).collect(Collectors.toCollection(TreeSet::new));
     }
 
     /**

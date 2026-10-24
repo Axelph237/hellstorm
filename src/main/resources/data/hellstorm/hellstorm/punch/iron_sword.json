@@ -1,6 +1,6 @@
 {
-  "result": {
-    "item": "minecraft:diamond_sword",
+  "iron_sword": {
+    "item-id": "minecraft:diamond_sword",
     "nbt": {
       "Enchantments": [
         {
@@ -8,8 +8,8 @@
           "lvl": 3
         }
       ]
-    }
-  },
-  "name": "item.hellstorm.punch.iron_sword",
-  "cost": 2500
+    },
+    "name": "item.hellstorm.punch.iron_sword",
+    "cost": 2500
+  }
 }

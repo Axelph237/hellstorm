@@ -12,9 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PunchResolverTest {
     private static final ResourceLocation SWORD_ID = ResourceLocation.tryBuild("mymap", "sword_mk2");
-    private static final PunchDef SWORD = new PunchDef(new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "diamond_sword"), 1, Optional.empty()),
+    private static final PunchDef SWORD = new PunchDef(ResourceLocation.tryBuild("minecraft", "diamond_sword"), Optional.empty(),
             Optional.empty(), Optional.empty(), PunchDef.CarryOver.NONE);
-    private static final PunchDef PRICED = new PunchDef(SWORD.result(), Optional.empty(), Optional.of(1234), PunchDef.CarryOver.NONE);
+    private static final PunchDef PRICED = new PunchDef(SWORD.itemId(), Optional.empty(), Optional.empty(), Optional.of(1234), PunchDef.CarryOver.NONE);
     private static final Map<ResourceLocation, PunchDef> DEFS = Map.of(SWORD_ID, SWORD, ResourceLocation.tryBuild("mymap", "priced"), PRICED);
 
     static CompoundTag pap(boolean punchable, String punchId, int tier) {

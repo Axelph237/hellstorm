@@ -18,35 +18,52 @@ import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 /**
- * Finds punchable items the machine would refuse (a {@code punch_id} with no {@link PunchDef}, or a non-gun with no
- * {@code punch_id}) before anyone plays. Runs on server start and after /reload (ERROR log lines), in map validation,
- * and when an op joins (a chat summary).
+ * Finds mistakes in upgrades before anyone plays: punchable items the machine would refuse (a {@code punch_id} with no
+ * {@link PunchDef}, or a non-gun with no {@code punch_id}), and upgrade files with bad entries, results that aren't
+ * installed, or gun classes no installed gun has. Runs on server start and after /reload (ERROR log lines), in map
+ * validation, and when an op joins (a chat summary).
  * Items from elsewhere (chests, other mods) can't be scanned; the machine still hands them back unchanged.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class PunchAudit {
-    public static final String UNKNOWN_PUNCH_ID = "pap_unknown_punch_id";
-    public static final String NO_UPGRADE_PATH = "pap_no_upgrade_path";
     private static final int NOTICE_LINES = 5;
 
     /** One item the mod hands out. {@code pos} is the block it comes from, for items sold by a machine. */
     public record Entry(String source, Optional<BlockPos> pos, ItemSpec spec) {}
 
-    public record Finding(Entry entry, PunchOutcome.RejectReason reason) {
-        public String message() {
-            String why = reason == PunchOutcome.RejectReason.UNKNOWN_PUNCH_ID
-                    ? "its punch_id names no upgrade definition"
-                    : "it is not a TacZ gun and has no punch_id";
-            return entry.source() + ": " + entry.spec().describe() + " is punchable, but " + why;
+    /** {@code code} is the problem code in map validation. */
+    public enum Kind {
+        UNKNOWN_PUNCH_ID("pap_unknown_punch_id"),
+        NO_UPGRADE_PATH("pap_no_upgrade_path"),
+        BAD_ENTRY("pap_bad_entry"),
+        MISSING_RESULT("pap_missing_result"),
+        UNKNOWN_GUN_CLASS("pap_unknown_gun_class");
+
+        public final String code;
+
+        Kind(String code) {
+            this.code = code;
+        }
+    }
+
+    public record Finding(Kind kind, String message, Optional<BlockPos> pos) {
+        static Finding of(Entry entry, PunchOutcome.RejectReason reason) {
+            boolean unknown = reason == PunchOutcome.RejectReason.UNKNOWN_PUNCH_ID;
+            return new Finding(unknown ? Kind.UNKNOWN_PUNCH_ID : Kind.NO_UPGRADE_PATH, entry.source() + ": " + entry.spec().describe()
+                    + " is punchable, but " + (unknown ? "its punch_id names no upgrade definition" : "it is not a TacZ gun and has no punch_id"),
+                    entry.pos());
         }
     }
 
@@ -87,19 +104,40 @@ public final class PunchAudit {
             PunchOutcome outcome = PunchResolver.resolve(tag(entry.spec()), isTaczGun.test(entry.spec()), defs, 0, Integer.MAX_VALUE);
             if (outcome instanceof PunchOutcome.Rejected rejected && (rejected.reason() == PunchOutcome.RejectReason.UNKNOWN_PUNCH_ID
                     || rejected.reason() == PunchOutcome.RejectReason.NO_UPGRADE_PATH)) {
-                findings.add(new Finding(entry, rejected.reason()));
+                findings.add(Finding.of(entry, rejected.reason()));
             }
         }
+        return findings;
+    }
+
+    /**
+     * Entries the upgrade files skipped, results that are neither an installed item nor a TacZ gun, and defaults for a gun
+     * class that no installed gun has.
+     */
+    public static List<Finding> checkFiles(PunchDefs.Loaded loaded, Predicate<ResourceLocation> installed, Set<String> gunClasses) {
+        List<Finding> findings = new ArrayList<>();
+        loaded.errors().forEach(error -> findings.add(new Finding(Kind.BAD_ENTRY, "upgrade file " + error, Optional.empty())));
+        loaded.defs().forEach((id, def) -> {
+            if (!installed.test(def.itemId())) {
+                findings.add(new Finding(Kind.MISSING_RESULT, "upgrade definition " + id + ": its item-id " + def.itemId()
+                        + " is not an installed item or TacZ gun", Optional.empty()));
+            }
+        });
+        loaded.defaults().keySet().stream().filter(gunClass -> !gunClasses.contains(gunClass)).forEach(gunClass -> findings.add(new Finding(
+                Kind.UNKNOWN_GUN_CLASS, "upgrade defaults: \"" + gunClass + "\" is not the class of any installed TacZ gun (they are "
+                + String.join(", ", new TreeSet<>(gunClasses)) + ")", Optional.empty())));
         return findings;
     }
 
     /** The NBT the spec's item would carry, as far as the upgrader cares. */
     static @Nullable CompoundTag tag(ItemSpec spec) {
         if (spec instanceof ItemSpec.Gun gun) {
-            CompoundTag pap = new CompoundTag();
-            pap.putBoolean(ItemSpec.PUNCHABLE, gun.punchable());
-            CompoundTag tag = new CompoundTag();
-            tag.put(ItemSpec.PAP, pap);
+            CompoundTag tag = gun.nbt().map(CompoundTag::copy).orElseGet(CompoundTag::new);
+            if (gun.punchable()) {
+                CompoundTag pap = tag.getCompound(ItemSpec.PAP);
+                pap.putBoolean(ItemSpec.PUNCHABLE, true);
+                tag.put(ItemSpec.PAP, pap);
+            }
             return tag;
         }
         return ((ItemSpec.Plain) spec).nbt().orElse(null);
@@ -113,15 +151,15 @@ public final class PunchAudit {
     public static List<Finding> run(ServerLevel level) {
         List<Entry> entries = new ArrayList<>();
         SOURCES.forEach(source -> entries.addAll(source.entries(level)));
-        return check(entries);
+        List<Finding> findings = new ArrayList<>(checkFiles(PunchDefs.loaded(),
+                id -> ForgeRegistries.ITEMS.containsKey(id) || TaczBridge.gunExists(id), TaczBridge.gunClasses()));
+        findings.addAll(check(entries));
+        return findings;
     }
 
     /** Warnings, not errors: the machine refuses these items safely, so they shouldn't stop a game. */
     public static List<Problem> problems(ServerLevel level) {
-        return run(level).stream()
-                .map(f -> Problem.warning(f.reason() == PunchOutcome.RejectReason.UNKNOWN_PUNCH_ID ? UNKNOWN_PUNCH_ID : NO_UPGRADE_PATH,
-                        f.message(), f.entry().pos().orElse(null)))
-                .toList();
+        return run(level).stream().map(f -> Problem.warning(f.kind().code, f.message(), f.pos().orElse(null))).toList();
     }
 
     /** What an op sees in chat on joining: a count, the first few findings, and where to see the rest. Empty when all is well. */
@@ -130,10 +168,10 @@ public final class PunchAudit {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal("The upgrade check found " + findings.size() + (findings.size() == 1 ? " item" : " items")
-                + " the upgrader would refuse:").withStyle(ChatFormatting.RED));
+        lines.add(Component.literal("The upgrade check found " + findings.size() + (findings.size() == 1 ? " problem" : " problems")
+                + " with upgrades:").withStyle(ChatFormatting.RED));
         findings.stream().limit(NOTICE_LINES).forEach(f -> lines.add(Component.literal(" - " + f.message()
-                + f.entry().pos().map(p -> " at " + p.toShortString()).orElse("")).withStyle(ChatFormatting.GRAY)));
+                + f.pos().map(p -> " at " + p.toShortString()).orElse("")).withStyle(ChatFormatting.GRAY)));
         int rest = findings.size() - NOTICE_LINES;
         lines.add(Component.literal((rest > 0 ? "...and " + rest + " more. " : "") + "See /hs map validate").withStyle(ChatFormatting.GRAY));
         return lines;
@@ -160,7 +198,7 @@ public final class PunchAudit {
 
     private static void log(ServerLevel level) {
         for (Finding finding : run(level)) {
-            Hellstorm.LOG.error("Upgrader: {}{}", finding.message(), finding.entry().pos().map(p -> " at " + p.toShortString()).orElse(""));
+            Hellstorm.LOG.error("Upgrader: {}{}", finding.message(), finding.pos().map(p -> " at " + p.toShortString()).orElse(""));
         }
     }
 

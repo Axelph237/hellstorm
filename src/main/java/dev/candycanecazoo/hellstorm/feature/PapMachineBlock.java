@@ -230,7 +230,7 @@ public final class PapMachineBlock extends TwoBlockMachine {
         /** The finished item, or empty when it can't be made (a result item or gun that isn't installed). */
         private static Optional<ItemStack> upgraded(ItemStack input, PunchOutcome outcome, GameSettings settings) {
             if (outcome instanceof PunchOutcome.UpgradeTacz) {
-                return Optional.of(PapGunStats.upgrade(input, settings.pap()));
+                return Optional.of(PapGunStats.upgrade(input, settings.pap(), PunchDefs.defaults()));
             }
             if (outcome instanceof PunchOutcome.Replace replace) {
                 return replace.def().result().build(settings.players().reserveMagazines()).map(stack -> {

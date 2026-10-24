@@ -1,0 +1,30 @@
+{
+  "stick": {
+    "item-id": "minecraft:blaze_rod",
+    "nbt": "{Enchantments:[{id:\"minecraft:fire_aspect\",lvl:2s}],display:{Lore:['{\"text\":\"Still warm\"}']}}",
+    "cost": 500
+  },
+  "ak_gold": {
+    "item-id": "tacz:ak47",
+    "nbt": {
+      "pap": { "damage_multiplier": 2.0 },
+      "display": { "Lore": ["{\"text\":\"Gilded in hellfire\"}"] }
+    },
+    "cost": 3000,
+    "carry-over": { "ammo": false, "attachments": true }
+  },
+  "defaults": {
+    "pistol": {
+      "nbt": { "display": { "Lore": ["{\"text\":\"Hellfire-forged\"}"] } },
+      "method": "merge"
+    },
+    "rifle": {
+      "nbt": { "pap": { "rpm_multiplier": 1.5, "not_on_the_gun": 1 } },
+      "method": "modify"
+    },
+    "smg": {
+      "nbt": { "display": {} },
+      "method": "remove"
+    }
+  }
+}
