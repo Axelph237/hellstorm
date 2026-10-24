@@ -3,16 +3,20 @@ package dev.candycanecazoo.hellstorm.script;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 final class RecordingHost implements ScriptHost {
     final List<String> commands = new ArrayList<>();
     final List<String> logs = new ArrayList<>();
     int round = 1;
     CommandResult nextResult = new CommandResult(true, 1);
+    /** Runs inside each command, as a real command can: fire another event, run another mod's Lua, fail. */
+    Consumer<String> onCommand = command -> {};
 
     @Override
     public CommandResult runCommand(String command) {
         commands.add(command);
+        onCommand.accept(command);
         return nextResult;
     }
 

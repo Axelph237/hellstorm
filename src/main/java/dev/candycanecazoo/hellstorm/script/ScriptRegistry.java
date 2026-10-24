@@ -43,6 +43,12 @@ public final class ScriptRegistry {
         return eventDefs;
     }
 
+    /** Puts these in place of the datapacks' scripts and event defs until the next /reload. GameTests load scripts this way. */
+    public static void replace(Map<String, String> newScripts, List<EventDef> newEventDefs) {
+        scripts = Map.copyOf(newScripts);
+        eventDefs = List.copyOf(newEventDefs);
+    }
+
     /** {@code ns:hellstorm/scripts/a/b.lua} becomes the script id {@code ns:a/b}. */
     static Optional<String> scriptId(ResourceLocation file) {
         String path = file.getPath();

@@ -49,9 +49,11 @@ public final class LuaEvents {
 
     /**
      * The round an event is about, for round filters. Round events say which round they mean: {@code round_start} fires just
-     * before the game enters that round, so the game's current round would still be the previous one.
+     * before the game enters that round, so the game's current round would still be the previous one. {@code game_start} is
+     * about round 1, the round it opens, though the game is still at round 0 when it fires.
      */
     public static java.util.OptionalInt round(GameEvent event) {
+        if (event instanceof GameEvent.GameStart) return java.util.OptionalInt.of(1);
         if (event instanceof GameEvent.RoundStart e) return java.util.OptionalInt.of(e.round());
         if (event instanceof GameEvent.RoundEnd e) return java.util.OptionalInt.of(e.round());
         if (event instanceof GameEvent.GameEnd e) return java.util.OptionalInt.of(e.roundReached());
@@ -65,6 +67,7 @@ public final class LuaEvents {
         t.set("event", name(event));
         if (event instanceof GameEvent.GameStart e) {
             t.set("players", uuids(e.players()));
+            t.set("round", 1);
         } else if (event instanceof GameEvent.GameEnd e) {
             t.set("round", e.roundReached());
         } else if (event instanceof GameEvent.RoundStart e) {
