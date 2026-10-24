@@ -10,7 +10,7 @@ import java.util.Optional;
 /**
  * A Zone Wand selection: the boxes picked so far, and the first corner of the next one. Every two clicks add a box, and
  * a box that makes one box with another (beside it and the same size across, inside it, or around it) is merged into it.
- * Only clearing it (sneak-click, {@code /hs zones cancel}) takes boxes away.
+ * Only clearing it ({@code /hs zones desel} or {@code /hs zones cancel}) takes boxes away.
  */
 public record Selection(List<BlockBox> boxes, Optional<BlockPos> corner) {
     public static final Selection NONE = new Selection(List.of(), Optional.empty());

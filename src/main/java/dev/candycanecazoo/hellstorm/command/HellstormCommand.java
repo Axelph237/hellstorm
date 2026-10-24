@@ -47,7 +47,9 @@ public final class HellstormCommand {
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(TaczBridge.allGuns(), builder))
                                 .executes(CommandErrors.titled("Unable to give gun", HellstormCommand::give))))
                 .then(GameCommands.game());
-        dispatcher.register(root);
+        var hs = dispatcher.register(root);
+        // /hsz is /hs zones.
+        dispatcher.register(Commands.literal("hsz").requires(HellstormCommand::op).redirect(hs.getChild("zones")));
     }
 
     static boolean op(CommandSourceStack source) {

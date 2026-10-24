@@ -50,6 +50,7 @@ final class ZonesCommands {
                 .then(Commands.literal("list").executes(CommandErrors.titled("Unable to list zones", ZonesCommands::list)))
                 .then(RoomCommands.detect())
                 .then(Commands.literal("confirm").executes(CommandErrors.titled("Unable to confirm room", RoomCommands::confirm)))
+                .then(Commands.literal("desel").executes(CommandErrors.titled("Unable to clear the selection", ZonesCommands::desel)))
                 .then(Commands.literal("cancel").executes(CommandErrors.titled("Unable to cancel", ZonesCommands::cancel)));
     }
 
@@ -163,6 +164,15 @@ final class ZonesCommands {
     }
 
     /** Clears the Zone Wand selection and any pending room detection. */
+    /** Clears the Zone Wand selection, leaving a pending detection alone ({@code cancel} drops both). */
+    private static int desel(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        boolean had = !ToolState.selection(player).isEmpty();
+        ToolState.setSelection(player, Selection.NONE);
+        ctx.getSource().sendSuccess(() -> Component.literal(had ? "Selection cleared" : "Nothing was selected"), false);
+        return 1;
+    }
+
     private static int cancel(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         boolean detecting = ToolState.detection(player).isPresent();

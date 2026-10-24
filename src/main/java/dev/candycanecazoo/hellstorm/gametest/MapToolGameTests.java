@@ -71,7 +71,11 @@ public final class MapToolGameTests {
             player.moveTo(target.getX() + 0.5, target.getY() - 1.0, target.getZ() + 3.5, 180, 0);
             player.setYHeadRot(180);
             Optional<BlockPos> picked = ZoneWandItem.targetCell(player, 5);
-            helper.assertTrue(picked.equals(Optional.of(target)), "the wand should pick the stone looked at, not " + picked);
+            helper.assertTrue(picked.equals(Optional.of(target.above())), "the wand should pick the cell above the stone looked at, not " + picked);
+            player.setShiftKeyDown(true);
+            Optional<BlockPos> sneaking = ZoneWandItem.targetCell(player, 5);
+            player.setShiftKeyDown(false);
+            helper.assertTrue(sneaking.equals(Optional.of(target)), "sneaking, the wand should pick the stone itself, not " + sneaking);
 
             BlockBox room = BlockBox.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1)), helper.absolutePos(new BlockPos(5, ROOM_Y + 2, 5)));
             select(player, room);
@@ -398,6 +402,44 @@ public final class MapToolGameTests {
             throw new IllegalStateException("no door '" + id + "'");
         }
         return door;
+    }
+
+    /**
+     * A wand click on a lever selects a corner (above the lever standing, the lever itself sneaking) and never flips it;
+     * {@code /hsz desel}, the short form of {@code /hs zones desel}, clears the selection.
+     */
+    @GameTest(template = "floor", batch = "map_tools_wand_click")
+    public static void theWandSelectsWithoutUsingTheBlockAndDeselClearsIt(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        // An operator, as map tools need.
+        FakePlayer player = new FakePlayer(level, new GameProfile(UUID.randomUUID(), "pap_wand_click")) {
+            @Override
+            public int getPermissionLevel() {
+                return 2;
+            }
+        };
+        try {
+            BlockPos lever = helper.absolutePos(new BlockPos(4, ROOM_Y, 4));
+            level.setBlockAndUpdate(lever, Blocks.LEVER.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR));
+            net.minecraft.world.item.ItemStack wand = new net.minecraft.world.item.ItemStack(dev.candycanecazoo.hellstorm.registry.PapRegistries.ZONE_WAND.get());
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, wand);
+            net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(lever.getCenter(), net.minecraft.core.Direction.UP, lever, false);
+            player.gameMode.useItemOn(player, level, wand, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+            helper.assertFalse(level.getBlockState(lever).getValue(net.minecraft.world.level.block.LeverBlock.POWERED), "the wand shouldn't flip the lever");
+            helper.assertTrue(ToolState.selection(player).corner().equals(Optional.of(lever.above())), "standing, the corner is above the lever: " + ToolState.selection(player));
+            player.setShiftKeyDown(true);
+            player.gameMode.useItemOn(player, level, wand, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+            player.setShiftKeyDown(false);
+            helper.assertFalse(level.getBlockState(lever).getValue(net.minecraft.world.level.block.LeverBlock.POWERED), "nor sneaking");
+            helper.assertTrue(ToolState.selection(player).boxes().equals(List.of(BlockBox.of(lever.above(), lever))),
+                    "sneaking, the second corner is the lever itself: " + ToolState.selection(player));
+            level.getServer().getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(2), "hsz desel");
+            helper.assertTrue(ToolState.selection(player).isEmpty(), "/hsz desel should clear the selection");
+        } finally {
+            ToolState.forget(player.getUUID());
+        }
+        helper.succeed();
     }
 
     private static void select(Reader player, BlockBox box) {

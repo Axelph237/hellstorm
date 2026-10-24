@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The Zone Wand puts a corner above the block you click, in the air over a floor; sneak-click to take the block itself. A wand click never uses the block (no door opens, no lever flips). `/hs zones desel` clears the selection (sneak-click used to), and `/hsz` is short for `/hs zones`.
 - **Scripts can no longer escape their sandbox.** String methods such as `("x"):rep(n)` use the script's own capped string table, never the one TacZ's gun scripts share, and `getmetatable("")` gives the script's own. `scripting.max_string_length` now caps `..`, `string.format`, `string.gsub` and `table.concat` too, `..` costs budget for what it builds, and a listener that runs the server out of memory is switched off.
 - Script errors name the line that failed, not the function's first line. An event a script's command fires at once no longer refills its instruction budget. `game_start` counts as round 1 for round filters, and its table has `round = 1`.
 - `/hs scripts reload` with `scripting.enabled` off says scripting is off (and stops the game's scripts), instead of "Scripts reloaded"; `/hs scripts check` warns about it.

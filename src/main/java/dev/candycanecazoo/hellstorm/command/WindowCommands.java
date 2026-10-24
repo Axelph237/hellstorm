@@ -98,7 +98,7 @@ final class WindowCommands {
             throw CommandErrors.fail("Select the window's opening with the Zone Wand: fill the hole with any blocks, then click its corners");
         }
         BlockBox opening = selection.single().orElseThrow(() -> CommandErrors.fail(
-                "A window's opening is one box, and the selection is several. Sneak-click (or {}) and select just the opening", "/hs zones cancel"));
+                "A window's opening is one box, and the selection is several. Run {} and select just the opening", "/hs zones desel"));
         ZombiesMap map = MapSavedData.get(level).map();
         Optional<Direction> outward = outward(opening, ZoneIndex.of(map));
         if (outward.isEmpty()) {

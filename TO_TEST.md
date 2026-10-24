@@ -2,6 +2,10 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Zone Wand (2026-10-24)
+
+- [ ] **Corners above, sneak for the block.** With the Zone Wand, look at the floor: the preview box starts in the air above it. Sneak: it moves onto the floor block. Click a door, a lever and a chest: none opens or flips, standing or sneaking, and the corner is set. `/hsz desel` clears the selection, and `/hsz add room <name>` works like `/hs zones add room`.
+
 ## Fixes from the known-issues pass (2026-10-24)
 
 - [ ] **Script sandbox.** With `examples/datapacks/hellstorm_sandbox_check` in a singleplayer world, `/reload` and join a game: the log's sandbox lines all say "blocked", and TacZ's default guns still fire, animate and reload normally.
