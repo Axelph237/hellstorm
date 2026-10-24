@@ -2,6 +2,7 @@ package dev.candycanecazoo.hellstorm.config;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
@@ -82,12 +83,12 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
      * {@code weaponSlots}: TacZ guns a player can carry before buying one replaces the held gun (Off-Hand adds one).
      * {@code knockbackReduction}: how much of the knockback a player in a game takes away, 0 (all of it kept) to 1 (none).
      */
-    public record Players(List<ResourceLocation> startingGuns, List<ResourceLocation> startingItems, int reserveMagazines,
+    public record Players(List<ItemSpec.Gun> startingGuns, List<ItemSpec.Plain> startingItems, int reserveMagazines,
                           boolean startingGunsUnlimitedAmmo, int weaponSlots, int perkLimit, int maxPlayers, int reconnectGraceTicks,
                           double knockbackReduction) {
         public static final Codec<Players> CODEC = RecordCodecBuilder.create(i -> i.group(
-                ResourceLocation.CODEC.listOf().fieldOf("starting_guns").forGetter(Players::startingGuns),
-                ResourceLocation.CODEC.listOf().fieldOf("starting_items").forGetter(Players::startingItems),
+                ItemSpec.Gun.GIVE_CODEC.listOf().fieldOf("starting_guns").forGetter(Players::startingGuns),
+                ItemSpec.Plain.GIVE_CODEC.listOf().fieldOf("starting_items").forGetter(Players::startingItems),
                 Codec.INT.fieldOf("reserve_magazines").forGetter(Players::reserveMagazines),
                 Codec.BOOL.fieldOf("starting_guns_unlimited_ammo").forGetter(Players::startingGunsUnlimitedAmmo),
                 Codec.INT.fieldOf("weapon_slots").forGetter(Players::weaponSlots),
@@ -214,7 +215,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
             new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 5000, 100, 200, 0.1),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
-            new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, true, 2, 4, 4, 1200, 0.85),
+            new Players(List.of(ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "m1911"))), List.of(new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "iron_sword"), 1, java.util.Optional.empty())), 4, true, 2, 4, 4, 1200, 0.85),
             new Windows(5, 4, 30, 15, 6.0),
             new Doors(750),
             new Box(950, 10, 80, 240, 4, 0.15),

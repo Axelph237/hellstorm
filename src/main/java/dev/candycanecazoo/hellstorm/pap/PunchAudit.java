@@ -153,9 +153,8 @@ public final class PunchAudit {
         GameSettings.Players players = ServerConfig.GAME.get().players();
         List<Entry> entries = new ArrayList<>();
         players.startingGuns().forEach(gun -> entries.add(new Entry("players.starting_guns", Optional.empty(),
-                new ItemSpec.Gun(gun, players.startingGunsUnlimitedAmmo(), true))));
-        players.startingItems().forEach(item -> entries.add(new Entry("players.starting_items", Optional.empty(),
-                new ItemSpec.Plain(item, 1, Optional.empty()))));
+                new ItemSpec.Gun(gun.gunId(), players.startingGunsUnlimitedAmmo(), true, gun.nbt()))));
+        players.startingItems().forEach(item -> entries.add(new Entry("players.starting_items", Optional.empty(), item)));
         return entries;
     }
 

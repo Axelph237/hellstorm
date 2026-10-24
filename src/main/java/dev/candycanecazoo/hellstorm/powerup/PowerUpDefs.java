@@ -54,8 +54,8 @@ public final class PowerUpDefs {
     }
 
     private static boolean knownItem(ResourceLocation id, PowerUpDef def) {
-        if (!ForgeRegistries.ITEMS.containsKey(def.item())) {
-            Hellstorm.LOG.error("Bad power-up {}: unknown item {}", id, def.item());
+        if (!ForgeRegistries.ITEMS.containsKey(def.item().item())) {
+            Hellstorm.LOG.error("Bad power-up {}: unknown item {}", id, def.item().item());
             return false;
         }
         return true;

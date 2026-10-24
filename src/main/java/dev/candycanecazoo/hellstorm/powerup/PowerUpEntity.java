@@ -12,10 +12,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -34,7 +34,7 @@ public final class PowerUpEntity extends Entity {
     public static final double ITEM_LIFT = 0.15;
     private static final String POWER_UP = "power_up";
 
-    private ResourceLocation powerUp = PowerUpDef.DEFAULT_ITEM;
+    private ResourceLocation powerUp = PowerUpDef.DEFAULT_ITEM.item();
 
     public PowerUpEntity(EntityType<? extends PowerUpEntity> type, Level level) {
         super(type, level);
@@ -46,7 +46,7 @@ public final class PowerUpEntity extends Entity {
         PowerUpEntity entity = new PowerUpEntity(PowerUpRegistries.POWER_UP.get(), level);
         entity.powerUp = powerUp;
         entity.setPos(pos);
-        entity.entityData.set(ITEM, new ItemStack(ForgeRegistries.ITEMS.getValue(def.item())));
+        entity.entityData.set(ITEM, def.item().build(0).orElseGet(() -> new ItemStack(Items.NETHER_STAR)));
         entity.entityData.set(TICKS_LEFT, lifetimeTicks);
         entity.entityData.set(BLINK_TICKS, blinkTicks);
         return entity;

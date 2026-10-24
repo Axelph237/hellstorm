@@ -48,7 +48,9 @@ class PowerUpDefTest {
         PowerUpDef def = parse("{\"name\": \"powerup.test\", \"effect\": {\"type\": \"double_points\"}}").getOrThrow(false, AssertionError::new);
         assertEquals(10, def.weight());
         assertEquals(600, def.durationTicks());
-        assertEquals(ResourceLocation.tryBuild("minecraft", "nether_star"), def.item());
+        assertEquals(ResourceLocation.tryBuild("minecraft", "nether_star"), def.item().item());
+        PowerUpDef shown = parse("{\"name\": \"x\", \"item\": \"minecraft:paper{CustomModelData:7}\", \"effect\": {\"type\": \"nuke\"}}").getOrThrow(false, AssertionError::new);
+        assertEquals(7, shown.item().nbt().orElseThrow().getInt("CustomModelData"), "the item takes /give NBT");
         assertTrue(parse("{\"name\": \"x\", \"effect\": {\"type\": \"free_pizza\"}}").error().isPresent(), "unknown effect");
         assertTrue(parse("{\"name\": \"x\"}").error().isPresent(), "no effect");
         assertTrue(parse("{\"name\": \"x\", \"weight\": -1, \"effect\": {\"type\": \"nuke\"}}").error().isPresent(), "negative weight");

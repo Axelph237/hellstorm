@@ -11,7 +11,10 @@ A wall-buy sells any item for points. TacZ guns are the main case, with ammo ref
 ```json
 { "item": "minecraft:golden_apple", "count": 2, "nbt": { "pap": { "punchable": true, "punch_id": "mymap:god_apple" } } }
 { "tacz_gun": "tacz:ak47" }
+"lrtactical:melee{MeleeWeaponId:\"lrtactical:dagger\"}"
 ```
+
+A string is an item written the way `/give` takes it, with SNBT after the id. A `tacz_gun` object also takes `nbt`, merged onto the built gun.
 
 The `tacz_gun` shorthand builds the stack through `TaczBridge.createGun`. TacZ guns built this way get `pap.punchable: true` unless the spec sets it to false. A spec can add `"unlimited_ammo": true` for an endless reserve (the magazine still needs reloading); see `tacz-bridge.md`.
 

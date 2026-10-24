@@ -117,7 +117,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
   - `GameManager.validationContext` passes the findings to `MapValidator` through a new `ValidationContext.itemProblems`. They are WARNINGs (`pap_unknown_punch_id`, `pap_no_upgrade_path`), so they show in `/hs map validate` but don't block a game, because the machine refuses those items safely.
   - Ops get a chat summary on joining when anything is flagged: the count, the first five findings with positions, and a pointer to `/hs map validate` (`PunchAudit.opNotice`).
 - **Shipped default.** `hellstorm:iron_sword`: a diamond sword with Sharpness III, named "Upgraded Sword", for 2500. Try it with `/give @s iron_sword{pap:{punchable:1b,punch_id:"hellstorm:iron_sword"}}`.
-- **Not supported: multi-tier defs through `tacz_gun`.** `ItemSpec.Gun` has no `nbt` field, so a gun result can't carry its own `punch_id`. A `Plain` result can. Adding `nbt` to `Gun` would close this.
+- **Multi-tier defs through `tacz_gun`** (2026-10-23; unsupported until then). `ItemSpec.Gun` takes an `nbt` merged onto the built gun, so a gun result can carry its own `pap.punch_id`.
 - **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `TEXTURES_NEEDED.md`.
 
 ## The upgrader model and the fire (phase 7)

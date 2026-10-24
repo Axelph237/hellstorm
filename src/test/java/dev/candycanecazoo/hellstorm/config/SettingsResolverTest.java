@@ -35,7 +35,7 @@ class SettingsResolverTest {
                 Optional.of(JsonParser.parseString("{\"players\": {\"starting_guns\": [\"tacz:glock_17\"]}}")))
                 .getOrThrow(false, AssertionError::new);
         assertEquals(1, resolved.players().startingGuns().size());
-        assertEquals("tacz:glock_17", resolved.players().startingGuns().get(0).toString());
+        assertEquals("tacz:glock_17", resolved.players().startingGuns().get(0).gunId().toString());
     }
 
     @Test

@@ -2,6 +2,7 @@ package dev.candycanecazoo.hellstorm.game;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.perk.Perks;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import net.minecraft.ChatFormatting;
@@ -166,7 +167,7 @@ public final class Downs {
 
     private static void lendPistol(ServerPlayer player, GameSettings.Players settings) {
         Optional<ItemStack> pistol = settings.startingGuns().stream()
-                .map(id -> TaczBridge.createGun(id, settings.reserveMagazines()))
+                .map(gun -> new ItemSpec.Gun(gun.gunId(), false, false, gun.nbt()).build(settings.reserveMagazines()))
                 .flatMap(Optional::stream)
                 .filter(Downs::isPistol)
                 .findFirst()

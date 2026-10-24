@@ -1,5 +1,6 @@
 package dev.candycanecazoo.hellstorm.config;
 
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 
@@ -135,10 +136,10 @@ public final class GameSettingsConfig {
                 .defineInRange("link_range", d.windows().linkRange(), 1.0, 64.0);
         b.pop();
         b.push("players");
-        startingGuns = b.comment("TacZ gun ids every player starts with.").defineListAllowEmpty("starting_guns",
-                d.players().startingGuns().stream().map(ResourceLocation::toString).toList(), GameSettingsConfig::isId);
-        startingItems = b.comment("Item ids every player starts with.").defineListAllowEmpty("starting_items",
-                d.players().startingItems().stream().map(ResourceLocation::toString).toList(), GameSettingsConfig::isId);
+        startingGuns = b.comment("TacZ guns every player starts with: a gun id, with NBT after it to merge onto the gun if needed, written the way /give takes an item, such as tacz:glock_17{GunFireMode:\"SEMI\"}.")
+                .defineListAllowEmpty("starting_guns", d.players().startingGuns().stream().map(ItemSpec.Gun::asGive).toList(), GameSettingsConfig::isGun);
+        startingItems = b.comment("Items every player starts with, written as /give takes them: an item id, with NBT after it if needed, such as lrtactical:melee{MeleeWeaponId:\"lrtactical:dagger\"}.")
+                .defineListAllowEmpty("starting_items", d.players().startingItems().stream().map(ItemSpec.Plain::asGive).toList(), GameSettingsConfig::isItem);
         reserveMagazines = b.comment("Reserve ammo for starting guns, in magazines.").defineInRange("reserve_magazines", d.players().reserveMagazines(), 0, 100);
         startingGunsUnlimitedAmmo = b.comment("Give starting guns an endless reserve. The magazine still needs reloading.")
                 .define("starting_guns_unlimited_ammo", d.players().startingGunsUnlimitedAmmo());
@@ -209,6 +210,22 @@ public final class GameSettingsConfig {
         return o instanceof String s && ResourceLocation.tryParse(s) != null;
     }
 
+    private static boolean isGun(Object o) {
+        return o instanceof String s && ItemSpec.Gun.parse(s).result().isPresent();
+    }
+
+    private static List<ItemSpec.Gun> guns(List<? extends String> raw) {
+        return raw.stream().map(s -> ItemSpec.Gun.parse(s).result().orElseThrow()).toList();
+    }
+
+    private static boolean isItem(Object o) {
+        return o instanceof String s && ItemSpec.Plain.parse(s).result().isPresent();
+    }
+
+    private static List<ItemSpec.Plain> items(List<? extends String> raw) {
+        return raw.stream().map(s -> ItemSpec.Plain.parse(s).result().orElseThrow()).toList();
+    }
+
     private static List<ResourceLocation> ids(List<? extends String> raw) {
         return raw.stream().map(ResourceLocation::tryParse).toList();
     }
@@ -238,7 +255,7 @@ public final class GameSettingsConfig {
                 new GameSettings.Spawning(r.read(adjacentHops), r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
                         r.read(repair), r.read(repairCapPerRound)),
-                new GameSettings.Players(ids(r.read(startingGuns)), ids(r.read(startingItems)), r.read(reserveMagazines),
+                new GameSettings.Players(guns(r.read(startingGuns)), items(r.read(startingItems)), r.read(reserveMagazines),
                         r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks), r.read(knockbackReduction)),
                 new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),
                 new GameSettings.Doors(r.read(doorDefaultCost)),
