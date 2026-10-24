@@ -12,13 +12,20 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.UUID;
 
 /**
- * A runner moves {@link #SPEED} times as fast, on top of everything else: a crawler that runs moves at 0.8 times 1.2 of
- * a walker's speed. Marked by {@value #RUNNER} in its NBT ({@code ForgeData}), so a profile's {@code nbt} can make one.
+ * A runner moves at least as fast as a walking player: its speed is raised to {@link #SPEED}, unless its round and
+ * profile already make it faster. A crawler's slowdown applies on top, so a crawler that runs moves at 0.8 of that.
+ * Marked by {@value #RUNNER} in its NBT ({@code ForgeData}), so a profile's {@code nbt} can make one.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class Runners {
     public static final String RUNNER = Hellstorm.MOD_ID + "_runner";
-    public static final float SPEED = 1.2f;
+    /**
+     * The speed attribute at which a mob walks 4.32 blocks a second on flat ground, as a walking player does. A mob's
+     * ground speed goes with the square of its attribute (vanilla feeds the speed in both as its input and as its
+     * acceleration), so this is about the square root of 0.1, a player's own 0.1 walking speed. Measured by the GameTest
+     * {@code aRunnerWalksAsFastAsAWalkingPlayer}.
+     */
+    public static final double SPEED = 0.316;
     private static final UUID RUN_SPEED = UUID.fromString("c2a7e0b4-5d1f-4e8b-a6c3-9f4d2b7e1a58");
 
     private Runners() {}
@@ -35,8 +42,8 @@ public final class Runners {
 
     private static void applyRun(Mob mob) {
         AttributeInstance speed = mob.getAttribute(Attributes.MOVEMENT_SPEED);
-        if (speed != null && speed.getModifier(RUN_SPEED) == null) {
-            speed.addPermanentModifier(new AttributeModifier(RUN_SPEED, "Hellstorm runner", SPEED - 1, AttributeModifier.Operation.MULTIPLY_TOTAL));
+        if (speed != null && speed.getModifier(RUN_SPEED) == null && speed.getBaseValue() < SPEED) {
+            speed.addPermanentModifier(new AttributeModifier(RUN_SPEED, "Hellstorm runner", SPEED - speed.getBaseValue(), AttributeModifier.Operation.ADDITION));
         }
     }
 

@@ -107,7 +107,7 @@ public final class GameSettingsConfig {
         intermissionMs = b.comment("The break between rounds, in milliseconds.").defineInRange("intermission_ms", d.rounds().intermissionMs(), 0, 600_000);
         countdownTicks = b.defineInRange("countdown_ticks", d.rounds().countdownTicks(), 0, 12000);
         gameOverTicks = b.defineInRange("game_over_ticks", d.rounds().gameOverTicks(), 0, 12000);
-        runnerChance = b.comment("The chance each zombie is a runner, moving 1.2 times as fast as the rest. The last zombie of a round always runs.")
+        runnerChance = b.comment("The chance each zombie is a runner, moving at least as fast as a walking player. The last zombie of a round always runs.")
                 .defineInRange("runner_chance", d.rounds().runnerChance(), 0.0, 1.0);
         b.pop();
         b.push("spawning");

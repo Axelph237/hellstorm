@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Hellhounds are half again the size of a wolf. Mob profiles take a `scale` that sizes the mob's hitbox and how it's drawn (`hellstorm_scale` in its NBT).
-- Some zombies are runners, 1.2 times as fast (`rounds.runner_chance`, 10%), and the last zombie of a round always runs. A crawler can run too.
+- Some zombies are runners (`rounds.runner_chance`, 10%), and the last zombie of a round always runs. A runner walks as fast as a walking player, 4.3 blocks a second, unless its round already makes it faster (zombies sprint about that fast from round 9), so the last zombie no longer outruns a sprinting player. A crawler can run too, at 0.8 of that.
 - Players in a game can't open doors and trapdoors, flip levers, press buttons, or use any other block but Hellstorm's. A map can allow blocks with the `hellstorm:usable_in_game` block tag.
 - Map validation follows the ways a player or zombie can really walk between rooms: steps, one-block jumps, and drops. Rooms drawn taller than a wall two blocks high, or a fence, between them are no longer joined over its top, so a door in that wall isn't a loophole. A hole one block high no longer joins rooms either.
 - A zombie left behind by a game that has ended no longer crashes the server when it moves.

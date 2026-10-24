@@ -53,7 +53,7 @@ public final class FarTargetGameTests {
      * test world is kept between runs and may be natural terrain, where lava flowed in over open-topped walls. Returns what
      * clears it again, mobs and all.
      */
-    private static Runnable build(GameTestHelper helper, int width, int length, BiPredicate<Integer, Integer> wall) {
+    static Runnable build(GameTestHelper helper, int width, int length, BiPredicate<Integer, Integer> wall) {
         AABB arena = new AABB(helper.absolutePos(new BlockPos(0, FLOOR_Y, 0)), helper.absolutePos(new BlockPos(width, ROOM_Y + 4, length)));
         Runnable discardMobs = () -> helper.getLevel().getEntitiesOfClass(Mob.class, arena).forEach(Entity::discard);
         discardMobs.run();
