@@ -105,6 +105,12 @@ public final class VendingMachineBlock extends TwoBlockMachine {
     private record Vend(ServerPlayer buyer, long until, Shop.Sale sale) {}
 
     public static final class Entity extends WallBuyBlock.Entity implements GeoBlockEntity {
+        /** The drink and its price, with the drink's lore on the lines below. */
+        @Override
+        public java.util.Optional<Prompt> prompt() {
+            return super.prompt().map(prompt -> prompt.withDetails(dev.candycanecazoo.hellstorm.util.ItemLore.of(display())));
+        }
+
         private static final RawAnimation USE_ANIMATION = RawAnimation.begin().thenPlay(USE);
         private static final String ON = "on";
         private static final String VEND_UNTIL = "vend_until";

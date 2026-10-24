@@ -485,4 +485,39 @@ public final class PerkGameTests {
         Integer rpm = IGunOperator.fromLivingEntity(player).getCacheProperty().getCache(GunProperties.ROUNDS_PER_MINUTE);
         return rpm == null ? -1 : rpm;
     }
+
+    /**
+     * Each can carries a blurb of what its perk does, with the perk's boost filled in, and a vending machine's prompt shows
+     * the sold drink's lore under its name and price: the can's blurb, or the item's own {@code Lore} tag if it has one.
+     */
+    @GameTest(template = "floor", batch = "perk_can_lore")
+    public static void cansDescribeTheirPerkAndAVendingMachinesPromptShowsTheDrinksLore(GameTestHelper helper) {
+        java.util.function.Function<net.minecraft.world.item.Item, net.minecraft.network.chat.contents.TranslatableContents> lore =
+                item -> (net.minecraft.network.chat.contents.TranslatableContents) ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) item).lore().getContents();
+        helper.assertTrue(lore.apply(PapRegistries.VIGORAID_CAN.get()).getKey().equals("item.hellstorm.vigoraid.lore"), "Vigoraid's blurb key");
+        for (var can : List.of(PapRegistries.LOAD_UP_CAN.get(), PapRegistries.SAINTS_BREW_CAN.get())) {
+            var contents = lore.apply(can);
+            helper.assertTrue(contents.getArgs().length == 1 && "100%".equals(contents.getArgs()[0]),
+                    can + "'s blurb should name its +1 on a base of 1 as 100%, got " + java.util.Arrays.toString(contents.getArgs()));
+        }
+        BlockPos at = vendingMachine(helper);
+        WallBuyBlock.Entity machine = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
+        machine.setConfig(new WallBuy.Config(new dev.candycanecazoo.hellstorm.data.ItemSpec.Plain(Hellstorm.id("load_up"), 1, Optional.empty()),
+                VendingMachineBlock.DEFAULT_COST, WallBuy.Repurchase.DENY, 0, WallBuy.DEFAULT_PAP_AMMO_COST, false));
+        var prompt = machine.prompt().orElseThrow();
+        helper.assertTrue(prompt.details().equals(List.of(((dev.candycanecazoo.hellstorm.perk.PerkCanItem) PapRegistries.LOAD_UP_CAN.get()).lore())),
+                "the prompt should show the can's blurb under its name, got " + prompt.details());
+        net.minecraft.nbt.CompoundTag tagged = new net.minecraft.nbt.CompoundTag();
+        net.minecraft.nbt.ListTag lines = new net.minecraft.nbt.ListTag();
+        lines.add(net.minecraft.nbt.StringTag.valueOf("{\"text\":\"Tastes like iron\"}"));
+        tagged.put("Lore", lines);
+        net.minecraft.nbt.CompoundTag nbt = new net.minecraft.nbt.CompoundTag();
+        nbt.put("display", tagged);
+        machine.setConfig(new WallBuy.Config(new dev.candycanecazoo.hellstorm.data.ItemSpec.Plain(Hellstorm.id("load_up"), 1, Optional.of(nbt)),
+                VendingMachineBlock.DEFAULT_COST, WallBuy.Repurchase.DENY, 0, WallBuy.DEFAULT_PAP_AMMO_COST, false));
+        var tagPrompt = machine.prompt().orElseThrow();
+        helper.assertTrue(tagPrompt.details().size() == 1 && tagPrompt.details().get(0).getString().equals("Tastes like iron"),
+                "a Lore tag should be shown in place of the blurb, got " + tagPrompt.details());
+        helper.succeed();
+    }
 }

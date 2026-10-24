@@ -91,8 +91,29 @@ public final class PerkCanItem extends Item implements GeoItem {
         return stack;
     }
 
+    /**
+     * What the can's perk does, from the lang key {@code item.<ns>.<id>.lore}, in lore style. The text can name the perk's
+     * boost as a share of what the player has without it ({@code %s}): Load-Up's +1 reload speed on a base of 1 is "100%".
+     */
+    public Component lore() {
+        return Component.translatable(getDescriptionId() + ".lore", boost()).withStyle(dev.candycanecazoo.hellstorm.util.ItemLore.STYLE);
+    }
+
+    private String boost() {
+        return perk.get().getAttributeModifiers().entrySet().stream().findFirst().map(e -> {
+            double base = e.getKey().getDefaultValue();
+            double amount = e.getValue().getAmount();
+            double share = e.getValue().getOperation() == net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION && base != 0 ? amount / base : amount;
+            return Math.round(share * 100) + "%";
+        }).orElse("");
+    }
+
+    /** Its own blurb, unless a {@code Lore} tag says something else (vanilla shows that one). */
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        if (dev.candycanecazoo.hellstorm.util.ItemLore.tagged(stack).isEmpty()) {
+            tooltip.add(lore());
+        }
         PotionUtils.addPotionTooltip(List.of(effect()), tooltip, 1.0f);
     }
 

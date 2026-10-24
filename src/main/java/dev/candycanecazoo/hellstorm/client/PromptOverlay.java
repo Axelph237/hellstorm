@@ -59,7 +59,12 @@ public final class PromptOverlay {
         if (!HudState.inGame() || mc.level == null || mc.options.hideGui || ClientConfig.PROMPT_STYLE.get() != ClientConfig.PromptStyle.HUD) {
             return;
         }
-        target(mc).ifPresent(t -> WrappedText.drawCentered(graphics, mc.font, text(t.prompt()), width / 2, height / 2 + 14, width, 0xFFFFFF));
+        target(mc).ifPresent(t -> {
+            int y = height / 2 + 14;
+            for (Component line : lines(t.prompt())) {
+                y += WrappedText.drawCentered(graphics, mc.font, line, width / 2, y, width, 0xFFFFFF);
+            }
+        });
     }
 
     /** A prompt and the point in the world it belongs to: above a machine or a downed teammate, or on a door or window's near face. */
@@ -155,6 +160,13 @@ public final class PromptOverlay {
             return dx < 0 ? Direction.WEST : Direction.EAST;
         }
         return dz < 0 ? Direction.NORTH : Direction.SOUTH;
+    }
+
+    /** The prompt's own line, then its details (a drink's lore). */
+    static java.util.List<Component> lines(Prompted.Prompt prompt) {
+        java.util.List<Component> lines = new java.util.ArrayList<>(java.util.List.of(text(prompt)));
+        lines.addAll(prompt.details());
+        return lines;
     }
 
     static Component text(Prompted.Prompt prompt) {

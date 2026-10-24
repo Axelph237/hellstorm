@@ -4,6 +4,8 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Machines and perks (2026-10-24)
 
+- [ ] **Drink lore.** Hover each can in the inventory: Vigoraid says "Doubles HP", Load-Up "Increases reload speed by 100%", Saint's Brew "Increases revive speed by 100%", in purple italics. In a game, look at a vending machine selling a can: its lore shows on a line under the name and price, in both prompt styles (in the world, and on the HUD with `prompt_style = HUD`). Sell a drink with a `Lore` tag (`/give @s hellstorm:load_up{display:{Lore:['"Tastes like iron"']}}`): the prompt shows that line instead.
+
 - [ ] **Saint's Brew can.** `/give @s hellstorm:saints_brew`: it shows its model in hand (first and third person), on the ground, in a frame and in the inventory, and drinking it gives Saint's Brew. Sell it from a vending machine: the machine takes its color.
 - [ ] **Five perks.** In a game, a sixth perk is refused with "You can only hold 5 perks". Check `perk_limit = 5` in a fresh world's `serverconfig/hellstorm-server.toml`.
 - [ ] **Machines without commands.** `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are unknown commands; each machine's settings screen still sets everything. A non-op using a machine outside a game sees nothing.

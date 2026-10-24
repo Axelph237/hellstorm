@@ -37,10 +37,10 @@ public final class WorldPrompt {
                 || !HudState.inGame() || ClientConfig.PROMPT_STYLE.get() != ClientConfig.PromptStyle.WORLD) {
             return;
         }
-        PromptOverlay.target(mc).ifPresent(target -> draw(mc, event.getPoseStack(), event.getCamera(), PromptOverlay.text(target.prompt()), target.anchor()));
+        PromptOverlay.target(mc).ifPresent(target -> draw(mc, event.getPoseStack(), event.getCamera(), PromptOverlay.lines(target.prompt()), target.anchor()));
     }
 
-    private static void draw(Minecraft mc, PoseStack pose, Camera camera, Component text, Vec3 at) {
+    private static void draw(Minecraft mc, PoseStack pose, Camera camera, java.util.List<Component> lines, Vec3 at) {
         Vec3 offset = at.subtract(camera.getPosition());
         float scale = SCALE * (float) Math.max(1.0, offset.length() / FULL_SIZE_WITHIN);
         pose.pushPose();
@@ -50,7 +50,10 @@ public final class WorldPrompt {
         Matrix4f matrix = pose.last().pose();
         Font font = mc.font;
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        font.drawInBatch(text, -font.width(text) / 2f, 0, 0xFFFFFFFF, false, matrix, buffers, Font.DisplayMode.NORMAL, BACKGROUND, LightTexture.FULL_BRIGHT);
+        for (int i = 0; i < lines.size(); i++) {
+            Component line = lines.get(i);
+            font.drawInBatch(line, -font.width(line) / 2f, i * (font.lineHeight + 1), 0xFFFFFFFF, false, matrix, buffers, Font.DisplayMode.NORMAL, BACKGROUND, LightTexture.FULL_BRIGHT);
+        }
         buffers.endBatch();
         pose.popPose();
     }
