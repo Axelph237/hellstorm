@@ -386,21 +386,6 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
         }
     }
 
-    public static Component describe(Entity trap, GameSettings.Traps defaults) {
-        Config c = trap.config();
-        return Component.literal(c.label() + (c.name().isPresent() ? " (trap)" : "") + ": " + c.cost(defaults) + " points" + (c.cost().isEmpty() ? " (default)" : "")
-                + (c.requiresPower() ? ", needs power" : "") + ", signal " + c.signalStrength() + " for " + c.activeTicks(defaults) + " ticks"
-                + (c.activeTicks().isEmpty() ? " (default)" : "") + ", cooldown " + c.cooldownTicks(defaults) + " ticks"
-                + (c.cooldownTicks().isEmpty() ? " (default)" : "") + ", " + trap.cycle().phase().getSerializedName()
-                + trap.look().map(look -> ", looks like " + look.getBlock().getName().getString()).orElse("")
-                + ". An op in creative changes it by using it");
-    }
-
-    @Override
-    public Component describe(ServerLevel level, BlockPos pos) {
-        return level.getBlockEntity(pos) instanceof Entity trap ? describe(trap, defaults(level)) : Component.literal("Trap");
-    }
-
     @Override
     public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
         super.onPlace(state, level, pos, oldState, movedByPiston);

@@ -14,7 +14,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -541,14 +540,4 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         return level.getBlockEntity(pos) instanceof Entity entity ? Optional.of(entity) : Optional.empty();
     }
 
-    @Override
-    public Component describe(ServerLevel level, BlockPos pos) {
-        return entity(level, pos).map(MysteryBoxBlock::describe).orElse(Component.literal("Mystery Crate"));
-    }
-
-    public static Component describe(Entity entity) {
-        Config c = entity.config();
-        return Component.literal("Mystery Crate location: pool " + c.pool() + ", cost " + c.cost().map(String::valueOf).orElse("default (box.cost)")
-                + ". An op in creative changes it by using it");
-    }
 }

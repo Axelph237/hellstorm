@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Using a machine outside a game as anyone but an op in creative does nothing; it no longer shows the machine's settings in chat.
 - The `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` commands are gone: set every machine on its settings screen (use it as an op in creative, outside a game). To sell a gun, hold it, using `/hs give <gun>` if needed.
 - New: a Saint's Brew can, `hellstorm:saints_brew`, with its own model.
 - A player can hold 5 perks by default (`players.perk_limit`, was 4).

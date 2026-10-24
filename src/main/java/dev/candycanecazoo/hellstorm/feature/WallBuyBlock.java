@@ -15,8 +15,6 @@ import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -323,23 +321,6 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
 
     public static Optional<Entity> entity(Level level, BlockPos pos) {
         return level.getBlockEntity(pos) instanceof Entity entity ? Optional.of(entity) : Optional.empty();
-    }
-
-    @Override
-    public Component describe(ServerLevel level, BlockPos pos) {
-        return entity(level, pos).map(WallBuyBlock::describe).orElse(Component.literal("Wall-buy"));
-    }
-
-    /** "Wall-Buy: ..." or "Vending Machine: ...", from the block's name. */
-    public static Component describe(Entity entity) {
-        WallBuy.Config c = entity.config();
-        String again = c.effectiveRepurchase().getSerializedName();
-        if (c.effectiveRepurchase() == WallBuy.Repurchase.REFILL_AMMO) {
-            again += " (ammo " + c.ammoCost() + ", upgraded ammo " + c.papAmmoCost() + ")";
-        }
-        return entity.getBlockState().getBlock().getName().append(": " + entity.itemName() + " (" + c.item().describe() + ") for "
-                + c.cost() + (c.requiresPower() ? ", needs power" : "") + "; buying again: " + again
-                + ". An op in creative changes it by using it");
     }
 
     @Override

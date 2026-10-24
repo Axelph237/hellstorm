@@ -6,7 +6,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 - [ ] **Saint's Brew can.** `/give @s hellstorm:saints_brew`: it shows its model in hand (first and third person), on the ground, in a frame and in the inventory, and drinking it gives Saint's Brew. Sell it from a vending machine: the machine takes its color.
 - [ ] **Five perks.** In a game, a sixth perk is refused with "You can only hold 5 perks". Check `perk_limit = 5` in a fresh world's `serverconfig/hellstorm-server.toml`.
-- [ ] **Machines without commands.** `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are unknown commands; each machine's settings screen still sets everything. A non-op using a machine outside a game sees its settings in chat.
+- [ ] **Machines without commands.** `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are unknown commands; each machine's settings screen still sets everything. A non-op using a machine outside a game sees nothing.
 
 ## Zone Wand (2026-10-24)
 

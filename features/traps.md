@@ -106,4 +106,4 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
 
 Built-in damage traps (a damage volume with particles) may come back as an optional trap type once the redstone version is in use.
 
-- **No commands** (2026-10-24). `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are gone: each machine is set on its settings screen (an op in creative using it outside a game). Anyone else sees its settings in chat, ending "An op in creative changes it by using it". `CommandTreeGameTests` checks none of them is registered.
+- **No commands** (2026-10-24). `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are gone: each machine is set on its settings screen (an op in creative using it outside a game). Anyone else gets nothing from using it outside a game (until 2026-10-24 they saw its settings in chat). GameTest `WallBuyGameTests.usingAMachineOutsideAGameAsANonOpSaysNothing`. `CommandTreeGameTests` checks none of them is registered.

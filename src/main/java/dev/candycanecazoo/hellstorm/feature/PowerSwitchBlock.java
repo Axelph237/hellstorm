@@ -10,7 +10,6 @@ import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.util.Codecs;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -111,12 +110,6 @@ public final class PowerSwitchBlock extends LeverBlock implements EntityBlock, F
 
     public static Config config(Level level, BlockPos pos) {
         return level.getBlockEntity(pos) instanceof Entity entity ? entity.config() : new Config(0);
-    }
-
-    @Override
-    public Component describe(ServerLevel level, BlockPos pos) {
-        int cost = config(level, pos).cost();
-        return Component.literal("Power switch: " + (cost == 0 ? "free" : cost + " points") + ". An op in creative changes it by using it");
     }
 
     @Override

@@ -263,4 +263,21 @@ public final class WallBuyGameTests {
         }
         helper.succeed();
     }
+
+    /** Outside a game, a player who can't open a machine's settings screen gets nothing from using it: no chat, no screen. */
+    @GameTest(template = "floor", batch = "wallbuy_outside_game")
+    public static void usingAMachineOutsideAGameAsANonOpSaysNothing(GameTestHelper helper) {
+        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 300, WallBuy.Repurchase.REFILL_AMMO, 100, 50, false));
+        List<net.minecraft.network.chat.Component> said = new java.util.ArrayList<>();
+        ServerPlayer player = new net.minecraftforge.common.util.FakePlayer(helper.getLevel(),
+                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "pap_wallbuy_non_op")) {
+            @Override
+            public void sendSystemMessage(net.minecraft.network.chat.Component message) {
+                said.add(message);
+            }
+        };
+        FeatureBlock.use(player, at);
+        helper.assertTrue(said.isEmpty(), "a non-op using a machine outside a game should see nothing, got " + said);
+        helper.succeed();
+    }
 }
