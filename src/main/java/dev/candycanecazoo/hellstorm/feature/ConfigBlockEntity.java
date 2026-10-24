@@ -41,14 +41,28 @@ public abstract class ConfigBlockEntity<C> extends BlockEntity {
         return codec;
     }
 
+    /** Throws if the codec can't save {@code config}: it would be dropped at the next save. Use {@link #trySet} for input. */
     public void setConfig(C config) {
+        unsaveable(config).ifPresent(error -> {
+            throw new IllegalArgumentException("Settings for " + getType() + " at " + worldPosition + " can't be saved: " + error);
+        });
         this.config = config;
         changed();
     }
 
-    /** Sets the settings if they make sense here (the perk is loaded, the gun exists). Returns why not otherwise. */
+    /** Why these settings can't be used here: the codec can't save them, or {@link #problem} refuses them. */
+    public Optional<String> check(C config) {
+        Optional<String> unsaveable = unsaveable(config);
+        return unsaveable.isPresent() ? unsaveable : problem(config);
+    }
+
+    private Optional<String> unsaveable(C config) {
+        return codec.encodeStart(NbtOps.INSTANCE, config).error().map(DataResult.PartialResult::message);
+    }
+
+    /** Sets the settings if they make sense here (they save, the perk is loaded, the gun exists). Returns why not otherwise. */
     public Optional<String> trySet(C config) {
-        Optional<String> problem = problem(config);
+        Optional<String> problem = check(config);
         if (problem.isEmpty()) {
             setConfig(config);
         }
@@ -87,7 +101,9 @@ public abstract class ConfigBlockEntity<C> extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        codec.encodeStart(NbtOps.INSTANCE, config).result().ifPresent(t -> tag.put(CONFIG, t));
+        DataResult<Tag> encoded = codec.encodeStart(NbtOps.INSTANCE, config);
+        encoded.error().ifPresent(error -> Hellstorm.LOG.error("Couldn't save the settings of {} at {}: {}", getType(), worldPosition, error.message()));
+        encoded.result().ifPresent(t -> tag.put(CONFIG, t));
     }
 
     @Override

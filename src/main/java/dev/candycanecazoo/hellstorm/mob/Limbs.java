@@ -26,8 +26,9 @@ import java.util.UUID;
  * A zombie's lost limbs and whether it crawls, kept in its NBT ({@code ForgeData}) so they last through a save and a
  * profile can give them. {@value #REMOVED} holds the {@link BodyPart#bit()}s of the limbs it has lost.
  * {@value #CRAWLER}, a compound with {@value #SPEED}, makes it a crawler: its hitbox lies prone, {@link #PRONE} high,
- * its speed is multiplied by {@value #SPEED}, and it's drawn crawling along the ground. Clients are told both. The
- * hitbox itself is set in {@link MobScale#onSize}, with the scale.
+ * it moves {@value #SPEED} times as fast ({@link Dismemberment#CRAWL_SPEED} if that's missing or not above 0), and it's
+ * drawn crawling along the ground. Clients are told both. The hitbox itself is set in {@link MobScale#onSize}, with the
+ * scale.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class Limbs {
@@ -47,10 +48,13 @@ public final class Limbs {
         return (removed(entity) & part.bit()) != 0;
     }
 
-    /** The crawler's speed multiplier, if {@code entity} crawls. */
+    /** How many times as fast the crawler moves, if {@code entity} crawls. */
     public static Optional<Float> crawlSpeed(Entity entity) {
-        CompoundTag data = entity.getPersistentData();
-        return data.contains(CRAWLER, Tag.TAG_COMPOUND) ? Optional.of(data.getCompound(CRAWLER).getFloat(SPEED)) : Optional.empty();
+        if (!crawls(entity)) {
+            return Optional.empty();
+        }
+        float speed = entity.getPersistentData().getCompound(CRAWLER).getFloat(SPEED);
+        return Optional.of(speed > 0 ? speed : Dismemberment.CRAWL_SPEED);
     }
 
     public static boolean crawls(Entity entity) {
@@ -67,7 +71,7 @@ public final class Limbs {
         return true;
     }
 
-    /** Makes {@code mob} crawl at {@code speed} times its speed, unless it already does. */
+    /** Makes {@code mob} crawl {@code speed} times as fast as it walked, unless it already crawls. */
     public static void crawl(Mob mob, float speed) {
         if (crawls(mob)) {
             return;
@@ -84,7 +88,7 @@ public final class Limbs {
         mob.refreshDimensions();
         AttributeInstance speed = mob.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speed != null && speed.getModifier(CRAWL_SPEED) == null) {
-            speed.addPermanentModifier(new AttributeModifier(CRAWL_SPEED, "Hellstorm crawler", crawlSpeed(mob).orElse(1f) - 1,
+            speed.addPermanentModifier(new AttributeModifier(CRAWL_SPEED, "Hellstorm crawler", GroundSpeed.attributeFactor(crawlSpeed(mob).orElse(1f)) - 1,
                     AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
     }

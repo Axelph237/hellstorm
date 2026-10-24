@@ -59,7 +59,7 @@ public final class Codecs {
 
             @Override
             public <T> RecordBuilder<T> encode(Optional<A> input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
-                return input.isPresent() ? prefix.add(name, codec.encodeStart(ops, input.get())) : prefix;
+                return input.isPresent() ? prefix.add(name, codec.encodeStart(ops, input.get()).mapError(error -> name + ": " + error)) : prefix;
             }
 
             @Override

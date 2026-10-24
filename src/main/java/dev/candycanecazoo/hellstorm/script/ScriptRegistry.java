@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.script;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.util.DataFiles;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -16,7 +16,6 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,12 +93,8 @@ public final class ScriptRegistry {
 
         @Override
         protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-            List<EventDef> defs = new ArrayList<>();
-            files.forEach((id, json) -> EventDef.CODEC.parse(JsonOps.INSTANCE, json)
-                    .resultOrPartial(error -> Hellstorm.LOG.error("Bad event def {}: {}", id, error))
-                    .ifPresent(defs::add));
-            eventDefs = List.copyOf(defs);
-            Hellstorm.LOG.info("Loaded {} Hellstorm event defs", defs.size());
+            eventDefs = List.copyOf(DataFiles.parse("event def", EventDef.CODEC, files).values());
+            Hellstorm.LOG.info("Loaded {} Hellstorm event defs", eventDefs.size());
         }
     }
 }

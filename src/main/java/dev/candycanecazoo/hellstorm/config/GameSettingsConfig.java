@@ -1,6 +1,7 @@
 package dev.candycanecazoo.hellstorm.config;
 
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
+import dev.candycanecazoo.hellstorm.feature.TrapControllerBlock;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 
@@ -201,8 +202,8 @@ public final class GameSettingsConfig {
         b.pop();
         b.push("traps");
         trapDefaultCost = b.defineInRange("default_cost", d.traps().defaultCost(), 0, 1_000_000);
-        trapDefaultActiveTicks = b.comment("How long a new trap's redstone signal stays on.").defineInRange("default_active_ticks", d.traps().defaultActiveTicks(), 1, 12000);
-        trapDefaultCooldownTicks = b.defineInRange("default_cooldown_ticks", d.traps().defaultCooldownTicks(), 0, 72000);
+        trapDefaultActiveTicks = b.comment("How long a new trap's redstone signal stays on.").defineInRange("default_active_ticks", d.traps().defaultActiveTicks(), 1, TrapControllerBlock.Config.MAX_TICKS);
+        trapDefaultCooldownTicks = b.defineInRange("default_cooldown_ticks", d.traps().defaultCooldownTicks(), 0, TrapControllerBlock.Config.MAX_TICKS);
         b.pop();
         b.push("wave_events");
         waveEventsEnabled = b.comment("Special rounds from datapack wave events.").define("enabled", d.waveEvents().enabled());

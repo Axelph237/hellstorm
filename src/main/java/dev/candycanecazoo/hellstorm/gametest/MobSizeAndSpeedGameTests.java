@@ -5,6 +5,7 @@ import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GameWorld;
 import dev.candycanecazoo.hellstorm.mob.AiInjector;
 import dev.candycanecazoo.hellstorm.mob.Dismemberment;
+import dev.candycanecazoo.hellstorm.mob.GroundSpeed;
 import dev.candycanecazoo.hellstorm.mob.Limbs;
 import dev.candycanecazoo.hellstorm.mob.MobProfile;
 import dev.candycanecazoo.hellstorm.mob.MobScale;
@@ -24,8 +25,12 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
-/** Hellhounds spawn half again a wolf's size, a scaled crawler lies prone at its scale, and runners walk as fast as a walking player. */
+/**
+ * Hellhounds spawn half again a wolf's size, a scaled crawler lies prone at its scale, runners walk as fast as a walking
+ * player, and crawlers move 0.8 times as fast as walkers.
+ */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class MobSizeAndSpeedGameTests {
@@ -89,8 +94,8 @@ public final class MobSizeAndSpeedGameTests {
                     "a runner made twice has the run speed, not " + runner.getAttributeValue(Attributes.MOVEMENT_SPEED));
             Limbs.crawl(crawler, Dismemberment.CRAWL_SPEED);
             Runners.run(crawler);
-            helper.assertTrue(near(crawler.getAttributeValue(Attributes.MOVEMENT_SPEED), Runners.SPEED * Dismemberment.CRAWL_SPEED),
-                    "a running crawler has 0.8 of the run speed, not " + crawler.getAttributeValue(Attributes.MOVEMENT_SPEED));
+            helper.assertTrue(near(crawler.getAttributeValue(Attributes.MOVEMENT_SPEED), Runners.SPEED * GroundSpeed.attributeFactor(Dismemberment.CRAWL_SPEED)),
+                    "a running crawler has the root of 0.8 times the run speed, not " + crawler.getAttributeValue(Attributes.MOVEMENT_SPEED));
         } finally {
             GameManager.end(range.active());
         }
@@ -101,13 +106,10 @@ public final class MobSizeAndSpeedGameTests {
     private static final double WALKING_PLAYER = 0.1 * 0.98 / (1 - 0.6 * 0.91) * 20;
 
     /**
-     * On a straight 64-block track, a round 1 runner walks within 5% of a walking player's 4.32 blocks a second, a round 1
-     * walker is slower, and a runner whose round already makes it faster than that (sprinting, from round 9) keeps its speed.
+     * Drives one zombie per round speed down its own lane of a straight 64-block track with its move control, each made
+     * what {@code make} says first, and hands {@code check} them and their blocks a second, measured after a 20-tick start.
      */
-    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_runner_track")
-    public static void aRunnerWalksAsFastAsAWalkingPlayer(GameTestHelper helper) {
-        double[] roundSpeeds = {0.23, 0.23, 0.32};
-        boolean[] runs = {false, true, true};
+    private static void track(GameTestHelper helper, double[] roundSpeeds, BiConsumer<Integer, Zombie> make, BiConsumer<Zombie[], double[]> check) {
         int length = 64;
         Runnable clear = FarTargetGameTests.build(helper, 2 * roundSpeeds.length + 1, length, (x, z) -> x % 2 == 0 || z == 0 || z == length - 1);
         MobProfile profile = new MobProfile(EntityType.getKey(EntityType.ZOMBIE), 10, 1, Optional.empty(), MobProfile.Ai.REPLACE, Optional.empty(),
@@ -117,9 +119,7 @@ public final class MobSizeAndSpeedGameTests {
             zombies[i] = helper.spawn(EntityType.ZOMBIE, new BlockPos(2 * i + 1, TestLayout.ROOM_Y, 1));
             zombies[i].setBaby(false);
             AiInjector.inject(zombies[i], profile, new AiInjector.Stats(20, roundSpeeds[i], 0f), List::of);
-            if (runs[i]) {
-                Runners.run(zombies[i]);
-            }
+            make.accept(i, zombies[i]);
         }
         double[] from = new double[zombies.length];
         int[] ticks = {0};
@@ -139,6 +139,22 @@ public final class MobSizeAndSpeedGameTests {
                 perSecond[i] = (zombies[i].getZ() - from[i]) / ((ticks[0] - 20) / 20.0);
             }
             clear.run();
+            check.accept(zombies, perSecond);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * A round 1 runner walks within 5% of a walking player's 4.32 blocks a second, a round 1 walker is slower, and a
+     * runner whose round already makes it faster than that (sprinting, from round 9) keeps its speed.
+     */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_runner_track")
+    public static void aRunnerWalksAsFastAsAWalkingPlayer(GameTestHelper helper) {
+        track(helper, new double[] {0.23, 0.23, 0.32}, (i, zombie) -> {
+            if (i > 0) {
+                Runners.run(zombie);
+            }
+        }, (zombies, perSecond) -> {
             String speeds = String.format("walker %.3f, runner %.3f, sprint-round runner %.3f blocks/s, walking player %.3f",
                     perSecond[0], perSecond[1], perSecond[2], WALKING_PLAYER);
             Hellstorm.LOG.info("Measured ground speeds: {}", speeds);
@@ -146,7 +162,21 @@ public final class MobSizeAndSpeedGameTests {
             helper.assertTrue(perSecond[0] < perSecond[1], "a walker should be slower than a runner: " + speeds);
             helper.assertTrue(near(zombies[2].getAttributeValue(Attributes.MOVEMENT_SPEED), 0.32) && perSecond[2] >= perSecond[1],
                     "a runner already faster than the run speed keeps its own: " + speeds);
-            helper.succeed();
+        });
+    }
+
+    /** The crawl's 0.8 is how fast it moves on the ground, not its speed attribute: a crawler covers 0.8 of a walker's ground, within 5%. */
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_crawler_track")
+    public static void aCrawlerMovesEightTenthsAsFastAsAWalker(GameTestHelper helper) {
+        track(helper, new double[] {0.23, 0.23}, (i, zombie) -> {
+            if (i == 1) {
+                Limbs.crawl(zombie, Dismemberment.CRAWL_SPEED);
+            }
+        }, (zombies, perSecond) -> {
+            double ratio = perSecond[1] / perSecond[0];
+            String speeds = String.format("walker %.3f, crawler %.3f blocks/s, %.3f of a walker", perSecond[0], perSecond[1], ratio);
+            Hellstorm.LOG.info("Measured ground speeds: {}", speeds);
+            helper.assertTrue(Math.abs(ratio / Dismemberment.CRAWL_SPEED - 1) < 0.05, "a crawler should move 0.8 times as fast as a walker: " + speeds);
         });
     }
 }

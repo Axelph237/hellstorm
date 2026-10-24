@@ -59,9 +59,10 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
 - **Block.** `feature/TrapControllerBlock` (`hellstorm:trap_controller`, "Trap Controller" in the map tools tab): a full block with `facing` and `powered`. It's a `FeatureBlock` with a `ConfigBlockEntity<Config>`, indexed as `FeatureKind.TRAP`. Like the other machines, it can't be broken outside creative and drops nothing.
 - **Settings** (`Config`):
   - `cost`, `active_ticks`, and `cooldown_ticks` are optional. Unset, they fall back to `traps.default_cost`, `traps.default_active_ticks`, and `traps.default_cooldown_ticks`.
+  - `active_ticks` (1 up) and `cooldown_ticks` (0 up) go to `Config.MAX_TICKS`, 72000 ticks (an hour). The commands' arguments and the server config's two defaults have the same limit.
   - `requires_power` defaults to true, and `signal_strength` (1 to 15) defaults to 15.
   - `name` (optional, 1 to 32 characters) is what players see. Without one, the label is "Trap".
-  - Set them with these commands, or with the settings screen (`client/settings/TrapScreen`). Both go through `ConfigBlockEntity.trySet`.
+  - Set them with these commands, or with the settings screen (`client/settings/TrapScreen`). Both go through `ConfigBlockEntity.trySet`, which refuses settings the codec can't save (`ConfigBlockEntity.check`: the encode error first, then the block's own `problem`). Until 2026-10-24 the commands took any number, and a time over 72000 failed to save, so the whole config (name, cost, power, signal) was dropped at the next save with no message. Now `setConfig` throws on settings that don't save, and a save that fails anyway is logged.
     - `/hs trap name <text|default>`
     - `/hs trap cost|active|cooldown <n|default>`
     - `/hs trap power <bool>`
@@ -90,6 +91,7 @@ Runtime state: `READY | ACTIVE(ticksLeft) | COOLDOWN(ticksLeft)`.
     - A bought trap charges, emits `trap_activated`, and keeps two lamps lit for exactly `active_ticks` ticks: one next to it and one at the end of a dust line. Then it cools down and the lamps go out.
     - It refuses while running and while cooling down. Once ready it prompts again and sells again. Ending the game turns it off and makes it ready.
     - A named trap prompts with its name, including when it's saved through the settings screen's codec path. A name over 32 characters is refused and the old one stays. Clearing it goes back to "Trap".
+    - An active time or cooldown of 72001 is refused, 72000 is allowed, `setConfig` throws on 72001, and a named trap's settings survive a save and load. `/hs trap active` and `/hs trap cooldown` don't parse 72001 and do parse 72000.
     - A trap that needs power refuses until the power is on.
     - At signal 5, the first dust carries 5, a lamp after 5 dust lights, and a lamp after 6 dust stays dark.
     - A reset, run twice, leaves it ready and off, with its lamp dark.

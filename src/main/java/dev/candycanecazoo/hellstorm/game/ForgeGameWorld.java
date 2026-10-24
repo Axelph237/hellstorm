@@ -19,6 +19,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import dev.candycanecazoo.hellstorm.mob.path.MovementClass;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
+import dev.candycanecazoo.hellstorm.mob.GroundSpeed;
 import dev.candycanecazoo.hellstorm.mob.MobFactory;
 import dev.candycanecazoo.hellstorm.mob.MobProfile;
 import dev.candycanecazoo.hellstorm.mob.Runners;
@@ -123,7 +124,7 @@ public final class ForgeGameWorld implements GameWorld {
         mob.addTag(MOB_TAG);
         boolean guided = profile.navigation() == MobProfile.Navigation.FLOW && GamePathing.walks(mob);
         AiInjector.inject(mob, profile,
-                new AiInjector.Stats(spec.health() * profile.healthMultiplier(), spec.speed() * profile.speedMultiplier(), (float) profile.damage()),
+                new AiInjector.Stats(spec.health() * profile.healthMultiplier(), spec.speed() * GroundSpeed.attributeFactor(profile.speedMultiplier()), (float) profile.damage()),
                 this::targetablePlayers, guided ? new GuidedNavigator(pathing, level.random.nextInt()) : dev.candycanecazoo.hellstorm.mob.goals.Navigator.vanilla());
         if (guided && GameNavigation.canReplace(mob)) {
             GameNavigation.install(mob, pathing::shut);

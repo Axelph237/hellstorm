@@ -59,13 +59,15 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
     public record Config(Optional<String> name, Optional<Integer> cost, boolean requiresPower, Optional<Integer> activeTicks,
                          Optional<Integer> cooldownTicks, int signalStrength) {
         public static final int MAX_NAME = 32;
+        /** The longest active time or cooldown, an hour. */
+        public static final int MAX_TICKS = 72_000;
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codecs.strictOptional(Codec.STRING, "name").forGetter(Config::name),
                 Codecs.strictOptional(Codec.intRange(0, Integer.MAX_VALUE), "cost").forGetter(Config::cost),
                 Codecs.strictOptional(Codec.BOOL, "requires_power", true).forGetter(Config::requiresPower),
-                Codecs.strictOptional(Codec.intRange(1, 72_000), "active_ticks").forGetter(Config::activeTicks),
-                Codecs.strictOptional(Codec.intRange(0, 72_000), "cooldown_ticks").forGetter(Config::cooldownTicks),
+                Codecs.strictOptional(Codec.intRange(1, MAX_TICKS), "active_ticks").forGetter(Config::activeTicks),
+                Codecs.strictOptional(Codec.intRange(0, MAX_TICKS), "cooldown_ticks").forGetter(Config::cooldownTicks),
                 Codecs.strictOptional(Codec.intRange(1, 15), "signal_strength", 15).forGetter(Config::signalStrength)
         ).apply(i, Config::new));
 

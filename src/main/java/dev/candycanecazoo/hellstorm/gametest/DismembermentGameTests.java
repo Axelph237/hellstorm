@@ -15,6 +15,7 @@ import dev.candycanecazoo.hellstorm.map.ZoneId;
 import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.mob.BodyPart;
 import dev.candycanecazoo.hellstorm.mob.Dismemberment;
+import dev.candycanecazoo.hellstorm.mob.GroundSpeed;
 import dev.candycanecazoo.hellstorm.mob.Limbs;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
@@ -38,7 +39,7 @@ import java.util.UUID;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
-/** Shot limbs come off, a lost leg makes a crawler, and the crawler profile crawls from the start at 0.8 speed. */
+/** Shot limbs come off, a lost leg makes a crawler, and the crawler profile crawls from the start, 0.8 times as fast. */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class DismembermentGameTests {
@@ -87,8 +88,8 @@ public final class DismembermentGameTests {
             helper.assertTrue(Dismemberment.shot(zombie, on(zombie, -0.1, 0.3), false, share).equals(Optional.of(BodyPart.LEFT_LEG)), "the left leg comes off");
             helper.assertTrue(Limbs.crawls(zombie), "a zombie missing a leg crawls");
             helper.assertTrue(Math.abs(zombie.getBbHeight() - Limbs.PRONE.height) < 1e-4, "a crawler's hitbox is prone, " + zombie.getBbHeight() + " high");
-            helper.assertTrue(Math.abs(zombie.getAttributeValue(Attributes.MOVEMENT_SPEED) - speed * Dismemberment.CRAWL_SPEED) < 1e-6,
-                    "a crawler moves at " + Dismemberment.CRAWL_SPEED + " of " + speed + ", not " + zombie.getAttributeValue(Attributes.MOVEMENT_SPEED));
+            helper.assertTrue(Math.abs(zombie.getAttributeValue(Attributes.MOVEMENT_SPEED) - speed * GroundSpeed.attributeFactor(Dismemberment.CRAWL_SPEED)) < 1e-6,
+                    "a crawler's speed is the root of " + Dismemberment.CRAWL_SPEED + " times " + speed + ", not " + zombie.getAttributeValue(Attributes.MOVEMENT_SPEED));
             helper.assertTrue(Dismemberment.shot(zombie, on(zombie, 0.1, 0.3), false, share).isEmpty(), "a crawler keeps what it has left");
             helper.assertTrue(zombie.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ForgeData").getByte(Limbs.REMOVED)
                     == (BodyPart.RIGHT_ARM.bit() | BodyPart.LEFT_LEG.bit()), "the lost limbs are saved with the zombie");
@@ -123,11 +124,29 @@ public final class DismembermentGameTests {
             helper.assertTrue(Limbs.crawls(crawler) && Limbs.crawlSpeed(crawler).equals(Optional.of(0.8f)), "the crawler profile's tag crawls at 0.8");
             helper.assertTrue(Math.abs(crawler.getBbHeight() - Limbs.PRONE.height) < 1e-4, "its hitbox is prone, " + crawler.getBbHeight() + " high");
             double ratio = crawler.getAttributeValue(Attributes.MOVEMENT_SPEED) / walker.getAttributeValue(Attributes.MOVEMENT_SPEED);
-            helper.assertTrue(Math.abs(ratio - 0.8) < 1e-6, "it moves at 0.8 of a walker's speed, not " + ratio);
+            helper.assertTrue(Math.abs(ratio - Math.sqrt(0.8)) < 1e-6, "its speed is the root of 0.8 times a walker's, not " + ratio);
             helper.assertTrue(Limbs.removed(crawler) == 0, "it has all its limbs");
         } finally {
             GameManager.end(range.active());
         }
+        helper.succeed();
+    }
+
+    /** A profile's crawler tag with no speed crawls 0.8 times as fast and is sent to clients as crawling, rather than standing still. */
+    @GameTest(template = "floor", batch = "dismember_tag")
+    public static void aCrawlerTagWithoutASpeedCrawlsAtTheUsualSpeed(GameTestHelper helper) {
+        Zombie walker = helper.spawn(net.minecraft.world.entity.EntityType.ZOMBIE, new BlockPos(2, ROOM_Y, 2));
+        Zombie crawler = net.minecraft.world.entity.EntityType.ZOMBIE.create(helper.getLevel());
+        crawler.getPersistentData().put(Limbs.CRAWLER, new net.minecraft.nbt.CompoundTag());
+        Vec3 at = helper.absoluteVec(new Vec3(4.5, ROOM_Y, 2.5));
+        crawler.moveTo(at.x, at.y, at.z, 0, 0);
+        helper.getLevel().addFreshEntity(crawler);
+        walker.setNoAi(true);
+        crawler.setNoAi(true);
+        helper.assertTrue(Limbs.crawlSpeed(crawler).equals(Optional.of(Dismemberment.CRAWL_SPEED)), "a tag without a speed crawls at 0.8, not " + Limbs.crawlSpeed(crawler));
+        double ratio = crawler.getAttributeValue(Attributes.MOVEMENT_SPEED) / walker.getAttributeValue(Attributes.MOVEMENT_SPEED);
+        helper.assertTrue(Math.abs(ratio - GroundSpeed.attributeFactor(Dismemberment.CRAWL_SPEED)) < 1e-6, "its speed is the root of 0.8 times a walker's, not " + ratio);
+        helper.assertTrue(dev.candycanecazoo.hellstorm.net.LimbsPacket.of(crawler).crawlSpeed() > 0, "clients should be told it crawls");
         helper.succeed();
     }
 
