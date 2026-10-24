@@ -24,7 +24,7 @@ Found while writing the wiki for v0.0.1-prerelease, mostly by reading the code; 
 - **`string.rep`'s length cap can likely be bypassed** through TacZ's restored string metatable.
 - **`/hs scripts reload` says "Scripts reloaded"** with `scripting.enabled = false`, and loads nothing.
 - **Overriding the default crate pool with `{}` gives an empty pool**: the codec defaults `include_all_tacz_guns` to false; the built-in pool sets it true.
-- `game_start` fires at round 0, so no `round_min` filter matches it; `mob_override` picks evenly, ignoring weights; a `tacz_gun` item spec can't carry a `punch_id`.
+- `game_start` fires at round 0, so no `round_min` filter matches it; `mob_override` picks evenly, ignoring weights.
 
 ## Not built, though `features/` says it is
 
