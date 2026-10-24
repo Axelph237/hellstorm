@@ -92,7 +92,7 @@ public final class FarTargetGameTests {
         player.moveTo(helper.absolutePos(new BlockPos(17, ROOM_Y, 49)).getCenter());
         Mob mob = helper.spawn(type, new BlockPos(17, ROOM_Y, 30));
         MobProfile profile = new MobProfile(EntityType.getKey(type), 10, 1, Optional.empty(), MobProfile.Ai.REPLACE, Optional.empty(),
-                1, 1, 0, false, MobProfile.Navigation.VANILLA);
+                1, 1, 0, false, MobProfile.Navigation.VANILLA, 1.0);
         AiInjector.inject(mob, profile, STATS, () -> List.of(player));
         helper.succeedWhen(() -> {
             player.moveTo(helper.absolutePos(new BlockPos(17, ROOM_Y, 49)).getCenter());

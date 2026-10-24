@@ -20,7 +20,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     public record Rounds(
             int baseCount, int aiPerPlayer, double healthScale, double healthGrowth,
             int runFromRound, int sprintFromRound, double walkSpeed, double runSpeed, double sprintSpeed,
-            int maxAlive, int spawnDelayTicks, double spawnDelayFactor, int intermissionMs, int countdownTicks, int gameOverTicks) {
+            int maxAlive, int spawnDelayTicks, double spawnDelayFactor, int intermissionMs, int countdownTicks, int gameOverTicks,
+            double runnerChance) {
         public static final Codec<Rounds> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("base_count").forGetter(Rounds::baseCount),
                 Codec.INT.fieldOf("ai_per_player").forGetter(Rounds::aiPerPlayer),
@@ -36,7 +37,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
                 Codec.DOUBLE.fieldOf("spawn_delay_factor").forGetter(Rounds::spawnDelayFactor),
                 Codec.INT.fieldOf("intermission_ms").forGetter(Rounds::intermissionMs),
                 Codec.INT.fieldOf("countdown_ticks").forGetter(Rounds::countdownTicks),
-                Codec.INT.fieldOf("game_over_ticks").forGetter(Rounds::gameOverTicks)
+                Codec.INT.fieldOf("game_over_ticks").forGetter(Rounds::gameOverTicks),
+                Codec.DOUBLE.fieldOf("runner_chance").forGetter(Rounds::runnerChance)
         ).apply(i, Rounds::new));
 
         /** The break between rounds in whole ticks, rounded up so a short break is never skipped. */
@@ -209,7 +211,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     ).apply(i, GameSettings::new));
 
     public static final GameSettings DEFAULT = new GameSettings(
-            new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 5000, 100, 200),
+            new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 5000, 100, 200, 0.1),
             new Spawning(1, 24.0, 6.0),
             new Economy(500, 10, 60, 100, 130, 10, 500),
             new Players(List.of(ResourceLocation.tryBuild("tacz", "m1911")), List.of(ResourceLocation.tryBuild("minecraft", "iron_sword")), 4, true, 2, 4, 4, 1200, 0.85),

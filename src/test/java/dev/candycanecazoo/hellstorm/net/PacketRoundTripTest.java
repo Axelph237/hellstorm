@@ -131,4 +131,10 @@ class PacketRoundTripTest {
         LimbsPacket packet = new LimbsPacket(42, (byte) 5, 0.5f);
         assertEquals(packet, roundTrip(packet, LimbsPacket::encode, LimbsPacket::decode));
     }
+
+    @Test
+    void scale() {
+        ScalePacket packet = new ScalePacket(42, 1.5f);
+        assertEquals(packet, roundTrip(packet, ScalePacket::encode, ScalePacket::decode));
+    }
 }

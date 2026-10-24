@@ -82,3 +82,12 @@ None.
   - JUnit `DisconnectTest.droppingOutDuringTheCountdownJustLeavesToo`.
   - GameTest `GameLoopGameTests.joiningBeforeTheStartWaitsAndTheStartPutsThemInPlay`: through the real `/hs game join` and `/hs game start`, a creative fake player with diamonds keeps them and creative mode, has no snapshot, can't buy, and isn't a target; after the countdown they're alive, a target, able to buy, in adventure mode, saved, and holding the starting pistol; restoring gives the diamonds and creative back.
   - GameTests that buy or fight now play the game first: `PurchaseGameTests.play` starts it and runs the countdown out within the tick, and `PurchaseGameTests.game` calls it.
+
+## Blocks players can't use (2026-10-23)
+
+- **In a game, a player's right-click uses only Hellstorm's own blocks** (`GameHooks.onRightClickBlock`, for players `GameManager.playing` finds, so not while waiting). Doors, trapdoors, fence gates, levers, buttons, chests and every other block stay as the map left them: the event's `useBlock` is denied, so the held item still works (aiming, eating). Buying a door from one of its blocks comes first, as before. Zombies can still open wooden doors.
+- **Exceptions** go in the block tag `hellstorm:usable_in_game` (empty), which a map's datapack can add to.
+- **The client denies the same clicks** (`client/InGameBlockUse`, while the HUD says it's in a game), so a door doesn't swing open and shut again. The click still goes to the server, which decides.
+- **Not covered:** stepping on pressure plates and tripwires, and hitting blocks (a note block still plays).
+- **Tests.** GameTest `TerrainGameTests.aPlayerInAGameCantOpenDoorsOrFlipLevers`: in a game, clicking a trapdoor, a door, and a lever leaves them shut and off; after the game, the trapdoor opens.
+

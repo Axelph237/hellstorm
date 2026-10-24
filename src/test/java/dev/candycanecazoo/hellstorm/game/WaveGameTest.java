@@ -35,7 +35,7 @@ class WaveGameTest {
     @Test
     void aHoundsRoundSpawnsOnlyHoundsUnderFogAndItsLastKillDropsMaxAmmo() {
         GameSettings d = GameSettings.DEFAULT;
-        GameSettings settings = new GameSettings(new GameSettings.Rounds(16, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 2, 1.0, 150, 2, 2),
+        GameSettings settings = new GameSettings(new GameSettings.Rounds(16, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 2, 1.0, 150, 2, 2, 0.0),
                 new GameSettings.Spawning(1, 24.0, 0.0), d.economy(), d.players(), d.windows(), d.doors(), d.box(), d.pap(), d.downs(),
                 new GameSettings.PowerUps(0.0, 4, 600, 100, 400, 200, Integer.MAX_VALUE, 1.0, 0), d.traps(), d.waveEvents());
         WaveEventDef hounds = new WaveEventDef(new WaveTrigger.Rounds(List.of(2)), List.of(

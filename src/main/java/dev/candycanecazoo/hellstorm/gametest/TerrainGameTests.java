@@ -18,7 +18,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.LeverBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
+import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -60,9 +67,12 @@ public final class TerrainGameTests {
 
     /** A game over the test's floor, started and past its countdown when {@code started}, else left in its lobby. */
     private static GameManager.Active game(GameTestHelper helper, boolean started) {
+        return game(helper, started, PurchaseGameTests.player(helper, "pap_terrain"));
+    }
+
+    private static GameManager.Active game(GameTestHelper helper, boolean started, ServerPlayer player) {
         ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(new ZoneId("gametest_terrain"),
                 List.of(BlockBox.of(helper.absolutePos(new BlockPos(0, ROOM_Y, 0)), helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8)))), true));
-        ServerPlayer player = PurchaseGameTests.player(helper, "pap_terrain");
         GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, Set.of()),
                 List.of(helper.absolutePos(new BlockPos(1, ROOM_Y, 1))), id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
@@ -172,6 +182,38 @@ public final class TerrainGameTests {
         } finally {
             GameManager.end(active);
         }
+        helper.succeed();
+    }
+
+    /** Right-clicks {@code pos} with an empty hand, the way a player's click reaches the server. */
+    private static void click(ServerPlayer player, BlockPos pos) {
+        player.gameMode.useItemOn(player, player.serverLevel(), ItemStack.EMPTY, InteractionHand.MAIN_HAND,
+                new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false));
+    }
+
+    @GameTest(template = "floor", batch = "terrain_match_block_use")
+    public static void aPlayerInAGameCantOpenDoorsOrFlipLevers(GameTestHelper helper) {
+        BlockPos trapdoor = helper.absolutePos(new BlockPos(3, ROOM_Y, 3));
+        BlockPos door = helper.absolutePos(new BlockPos(5, ROOM_Y, 3));
+        BlockPos lever = helper.absolutePos(new BlockPos(3, ROOM_Y, 5));
+        helper.getLevel().setBlockAndUpdate(trapdoor, Blocks.OAK_TRAPDOOR.defaultBlockState());
+        helper.getLevel().setBlockAndUpdate(door, Blocks.OAK_DOOR.defaultBlockState());
+        helper.getLevel().setBlockAndUpdate(door.above(), Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER));
+        helper.getLevel().setBlockAndUpdate(lever, Blocks.LEVER.defaultBlockState().setValue(LeverBlock.FACE, AttachFace.FLOOR));
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_block_use");
+        GameManager.Active active = game(helper, true, player);
+        try {
+            click(player, trapdoor);
+            click(player, door);
+            click(player, lever);
+            helper.assertTrue(!helper.getLevel().getBlockState(trapdoor).getValue(TrapDoorBlock.OPEN), "the trapdoor opened in a game");
+            helper.assertTrue(!helper.getLevel().getBlockState(door).getValue(DoorBlock.OPEN), "the door opened in a game");
+            helper.assertTrue(!helper.getLevel().getBlockState(lever).getValue(LeverBlock.POWERED), "the lever flipped in a game");
+        } finally {
+            GameManager.end(active);
+        }
+        click(player, trapdoor);
+        helper.assertTrue(helper.getLevel().getBlockState(trapdoor).getValue(TrapDoorBlock.OPEN), "out of a game, the trapdoor should open");
         helper.succeed();
     }
 }

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** The game loop against a fake world: four touching zones A-B-C-D along x, a spawn marker in each, A is the start. */
 class GameTest {
     private static final GameSettings SETTINGS = new GameSettings(
-            new GameSettings.Rounds(12, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2),
+            new GameSettings.Rounds(12, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2, 0.0),
             new GameSettings.Spawning(1, 24.0, 0.0),
             GameSettings.DEFAULT.economy(),
             GameSettings.DEFAULT.players(),
@@ -174,7 +174,7 @@ class GameTest {
     @Test
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
-                new GameSettings.Rounds(40, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 2, 5, 1.0, 150, 0, 2),
+                new GameSettings.Rounds(40, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 2, 5, 1.0, 150, 0, 2, 0.0),
                 SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap(),
                 SETTINGS.downs(), SETTINGS.powerUps(), SETTINGS.traps(), SETTINGS.waveEvents());
         Game game = newGame(capped);
@@ -303,6 +303,52 @@ class GameTest {
         assertFalse(world.spawnedAt.isEmpty());
         Set<BlockPos> allowed = Set.of(marker(1), marker(2), marker(3));
         assertTrue(allowed.containsAll(world.spawnedAt), "player in C: only B, C, D markers, got " + world.spawnedAt);
+    }
+
+    @Test
+    void withARunnerChanceOfOneEveryZombieRuns() {
+        GameSettings.Rounds r = SETTINGS.rounds();
+        GameSettings allRun = new GameSettings(
+                new GameSettings.Rounds(r.baseCount(), r.aiPerPlayer(), r.healthScale(), r.healthGrowth(), r.runFromRound(), r.sprintFromRound(), r.walkSpeed(),
+                        r.runSpeed(), r.sprintSpeed(), r.maxAlive(), r.spawnDelayTicks(), r.spawnDelayFactor(), r.intermissionMs(), r.countdownTicks(), r.gameOverTicks(), 1.0),
+                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap(),
+                SETTINGS.downs(), SETTINGS.powerUps(), SETTINGS.traps(), SETTINGS.waveEvents());
+        Game game = newGame(allRun);
+        game.join(alice);
+        game.start();
+        tick(game, world, 50);
+        assertEquals(3, world.spawned.size());
+        assertTrue(world.runners.containsAll(world.spawned), "every spawn runs, got " + world.runners);
+    }
+
+    @Test
+    void theLastZombieOfARoundRunsOnce() {
+        Game game = startedGame();
+        tick(game, world, 50);
+        List<UUID> alive = List.copyOf(game.mobs());
+        assertEquals(3, alive.size());
+        game.onMobDied(alive.get(0), Optional.of(alice), false, false, BlockPos.ZERO);
+        tick(game, world, 5);
+        assertTrue(world.runners.isEmpty(), "with a runner chance of 0, two zombies left walk");
+        game.onMobDied(alive.get(1), Optional.of(alice), false, false, BlockPos.ZERO);
+        tick(game, world, 5);
+        assertEquals(List.of(alive.get(2)), world.runners, "the last one runs, once");
+    }
+
+    @Test
+    void theLastZombieDoesntRunWhileMoreAreStillToSpawn() {
+        GameSettings.Rounds r = SETTINGS.rounds();
+        GameSettings slow = new GameSettings(
+                new GameSettings.Rounds(r.baseCount(), r.aiPerPlayer(), r.healthScale(), r.healthGrowth(), r.runFromRound(), r.sprintFromRound(), r.walkSpeed(),
+                        r.runSpeed(), r.sprintSpeed(), r.maxAlive(), 100, r.spawnDelayFactor(), r.intermissionMs(), r.countdownTicks(), r.gameOverTicks(), 0.0),
+                SETTINGS.spawning(), SETTINGS.economy(), SETTINGS.players(), SETTINGS.windows(), SETTINGS.doors(), SETTINGS.box(), SETTINGS.pap(),
+                SETTINGS.downs(), SETTINGS.powerUps(), SETTINGS.traps(), SETTINGS.waveEvents());
+        Game game = newGame(slow);
+        game.join(alice);
+        game.start();
+        tick(game, world, 10);
+        assertEquals(1, game.mobs().size(), "one zombie in, two still to come");
+        assertTrue(world.runners.isEmpty(), "a lone zombie with more to come walks");
     }
 
     @Test

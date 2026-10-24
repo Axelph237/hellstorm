@@ -6,12 +6,15 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
 
 import java.util.Optional;
 
 /**
  * One kind of zombie: which entity to spawn and how the game drives it. Datapack JSON at
- * {@code data/<ns>/hellstorm/mob_profiles/<id>.json}. Any mob type works, including other mods' mobs.
+ * {@code data/<ns>/hellstorm/mob_profiles/<id>.json}. Any mob type works, including other mods' mobs. {@code scale} sizes
+ * the mob, its hitbox and how it's drawn ({@link MobScale}).
  */
 public record MobProfile(
         ResourceLocation entity,
@@ -24,7 +27,8 @@ public record MobProfile(
         double speedMultiplier,
         double damage,
         boolean breaksBarricades,
-        Navigation navigation) {
+        Navigation navigation,
+        double scale) {
 
     /** {@code replace} clears the mob's own goals; {@code augment} keeps them and adds the game's on top. */
     public enum Ai implements StringRepresentable {
@@ -64,13 +68,19 @@ public record MobProfile(
             Codecs.strictOptional(Codec.doubleRange(0.001, 100), "speed_multiplier", 1.0).forGetter(MobProfile::speedMultiplier),
             Codecs.strictOptional(Codec.doubleRange(0, 10_000), "damage", 4.0).forGetter(MobProfile::damage),
             Codecs.strictOptional(Codec.BOOL, "breaks_barricades", true).forGetter(MobProfile::breaksBarricades),
-            Codecs.strictOptional(Navigation.CODEC, "navigation", Navigation.FLOW).forGetter(MobProfile::navigation)
+            Codecs.strictOptional(Navigation.CODEC, "navigation", Navigation.FLOW).forGetter(MobProfile::navigation),
+            Codecs.strictOptional(Codec.doubleRange(0.1, 10), "scale", 1.0).forGetter(MobProfile::scale)
     ).apply(i, MobProfile::new));
 
     /** Used when no datapack provides any profile, so a game always has something to spawn. */
     public static final ResourceLocation FALLBACK_ID = ResourceLocation.tryBuild("hellstorm", "zombie");
     public static final MobProfile FALLBACK = new MobProfile(ResourceLocation.tryBuild("minecraft", "zombie"),
-            10, 1, Optional.empty(), Ai.REPLACE, Optional.empty(), 1.0, 1.0, 4.0, true, Navigation.FLOW);
+            10, 1, Optional.empty(), Ai.REPLACE, Optional.empty(), 1.0, 1.0, 4.0, true, Navigation.FLOW, 1.0);
+
+    /** The hitbox this profile's mob of {@code type} spawns with, at its {@link #scale}. */
+    public EntityDimensions hitbox(EntityType<?> type) {
+        return type.getDimensions().scale((float) scale);
+    }
 
     public boolean allowedIn(int round) {
         return round >= minRound && maxRound.map(max -> round <= max).orElse(true);

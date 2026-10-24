@@ -39,6 +39,8 @@ public final class Game {
     private final GameEvents events;
     private final Map<UUID, PlayerState> players = new LinkedHashMap<>();
     private final Set<UUID> mobs = new LinkedHashSet<>();
+    /** The round's last zombie, once it has been made to run. */
+    private UUID lastRunner;
     private GamePhase phase = new GamePhase.Lobby();
     private long ticks;
     private boolean warnedNoSpawns;
@@ -394,6 +396,10 @@ public final class Game {
             world.announce("Round " + round.round() + " survived");
             return new GamePhase.Intermission(round.round() + 1, settings.rounds().intermissionTicks());
         }
+        if (round.toSpawn() == 0 && mobs.size() == 1 && !mobs.contains(lastRunner)) {
+            lastRunner = mobs.iterator().next();
+            world.makeRunner(lastRunner);
+        }
         if (round.spawnCooldown() > 0) {
             return new GamePhase.RoundActive(round.round(), round.toSpawn(), round.spawnCooldown() - 1);
         }
@@ -404,6 +410,9 @@ public final class Game {
         Optional<UUID> spawned = marker.flatMap(m -> zombieSpec(round.round(), m, world).flatMap(spec -> world.spawnZombie(m, spec)));
         spawned.ifPresent(mob -> {
             mobs.add(mob);
+            if (settings.rounds().runnerChance() > 0 && random.nextDouble() < settings.rounds().runnerChance()) {
+                world.makeRunner(mob);
+            }
             events.emit(new GameEvent.ZombieSpawned(mob, marker.get()));
         });
         // The spawn tick itself counts toward the delay, so a delay of N puts the next spawn N ticks later.

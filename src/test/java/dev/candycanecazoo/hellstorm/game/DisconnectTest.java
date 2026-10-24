@@ -27,7 +27,7 @@ class DisconnectTest {
     private static final int GRACE = 30;
     private static final GameSettings.Players D = GameSettings.DEFAULT.players();
     private static final GameSettings SETTINGS = new GameSettings(
-            new GameSettings.Rounds(8, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2),
+            new GameSettings.Rounds(8, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2, 0.0),
             GameSettings.DEFAULT.spawning(), GameSettings.DEFAULT.economy(),
             new GameSettings.Players(D.startingGuns(), D.startingItems(), D.reserveMagazines(), D.startingGunsUnlimitedAmmo(), D.weaponSlots(),
                     D.perkLimit(), 2, GRACE, D.knockbackReduction()),

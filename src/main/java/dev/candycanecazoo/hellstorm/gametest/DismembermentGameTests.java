@@ -38,15 +38,15 @@ import java.util.UUID;
 
 import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 
-/** Shot limbs come off, a lost leg makes a crawler, and the crawler profile crawls from the start. */
+/** Shot limbs come off, a lost leg makes a crawler, and the crawler profile crawls from the start at 0.8 speed. */
 @GameTestHolder(Hellstorm.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class DismembermentGameTests {
     private DismembermentGameTests() {}
 
-    private record Range(GameManager.Active active, BlockPos marker, BlockPos min, BlockPos max) {}
+    record Range(GameManager.Active active, BlockPos marker, BlockPos min, BlockPos max) {}
 
-    private static Range range(GameTestHelper helper, String name, List<ServerPlayer> players) {
+    static Range range(GameTestHelper helper, String name, List<ServerPlayer> players) {
         BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
         BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8));
         BlockPos marker = helper.absolutePos(new BlockPos(7, ROOM_Y, 4));
@@ -58,7 +58,7 @@ public final class DismembermentGameTests {
         return new Range(active, marker, min, max);
     }
 
-    private static Zombie spawn(GameTestHelper helper, Range range, String profile) {
+    static Zombie spawn(GameTestHelper helper, Range range, String profile) {
         UUID id = range.active().world().spawnZombie(range.marker(), new GameWorld.ZombieSpec(Hellstorm.id(profile), 30, 0.23)).orElseThrow();
         Zombie zombie = (Zombie) helper.getLevel().getEntity(id);
         zombie.setNoAi(true);
@@ -120,10 +120,10 @@ public final class DismembermentGameTests {
         try {
             Zombie walker = spawn(helper, range, "zombie");
             Zombie crawler = spawn(helper, range, "crawler");
-            helper.assertTrue(Limbs.crawls(crawler) && Limbs.crawlSpeed(crawler).equals(Optional.of(0.5f)), "the crawler profile's tag crawls at 0.5");
+            helper.assertTrue(Limbs.crawls(crawler) && Limbs.crawlSpeed(crawler).equals(Optional.of(0.8f)), "the crawler profile's tag crawls at 0.8");
             helper.assertTrue(Math.abs(crawler.getBbHeight() - Limbs.PRONE.height) < 1e-4, "its hitbox is prone, " + crawler.getBbHeight() + " high");
             double ratio = crawler.getAttributeValue(Attributes.MOVEMENT_SPEED) / walker.getAttributeValue(Attributes.MOVEMENT_SPEED);
-            helper.assertTrue(Math.abs(ratio - 0.5) < 1e-6, "it moves at half a walker's speed, not " + ratio);
+            helper.assertTrue(Math.abs(ratio - 0.8) < 1e-6, "it moves at 0.8 of a walker's speed, not " + ratio);
             helper.assertTrue(Limbs.removed(crawler) == 0, "it has all its limbs");
         } finally {
             GameManager.end(range.active());

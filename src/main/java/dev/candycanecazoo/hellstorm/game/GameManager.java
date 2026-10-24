@@ -11,6 +11,7 @@ import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.map.validate.MapValidator;
 import dev.candycanecazoo.hellstorm.map.validate.ValidationContext;
 import dev.candycanecazoo.hellstorm.map.validate.ValidationReport;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.registries.ForgeRegistries;
 import dev.candycanecazoo.hellstorm.script.GameScripts;
@@ -93,7 +94,8 @@ public final class GameManager {
         MobProfiles.all().forEach((id, profile) -> {
             EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(profile.entity());
             if (type != null) {
-                mobs.add(new ValidationContext.MobSize(id.toString(), type.getWidth(), type.getHeight()));
+                EntityDimensions hitbox = profile.hitbox(type);
+                mobs.add(new ValidationContext.MobSize(id.toString(), hitbox.width, hitbox.height));
             }
         });
         return new ValidationContext(LevelCellProbe.of(level), pos -> StartCells.standable(level, pos), ServerConfig.MAX_PASSAGE_GAP.get(),

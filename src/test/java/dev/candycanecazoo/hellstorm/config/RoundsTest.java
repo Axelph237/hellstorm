@@ -8,7 +8,7 @@ class RoundsTest {
     private static int ticks(int ms) {
         GameSettings.Rounds d = GameSettings.DEFAULT.rounds();
         return new GameSettings.Rounds(d.baseCount(), d.aiPerPlayer(), d.healthScale(), d.healthGrowth(), d.runFromRound(), d.sprintFromRound(),
-                d.walkSpeed(), d.runSpeed(), d.sprintSpeed(), d.maxAlive(), d.spawnDelayTicks(), d.spawnDelayFactor(), ms, d.countdownTicks(), d.gameOverTicks())
+                d.walkSpeed(), d.runSpeed(), d.sprintSpeed(), d.maxAlive(), d.spawnDelayTicks(), d.spawnDelayFactor(), ms, d.countdownTicks(), d.gameOverTicks(), d.runnerChance())
                 .intermissionTicks();
     }
 

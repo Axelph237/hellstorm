@@ -48,7 +48,7 @@ final class PlayerState { UUID id; LifeState life; int points; Set<ResourceLocat
 
 ## Config surface
 
-`rounds.base_count`, `rounds.ai_per_player`, `rounds.health_scale`, `rounds.health_growth`, `rounds.run_from_round`, `rounds.sprint_from_round`, `rounds.walk_speed`, `rounds.run_speed`, `rounds.sprint_speed`, `rounds.max_alive`, `rounds.spawn_delay_ticks`, `rounds.spawn_delay_factor`, `rounds.intermission_ms`, `rounds.countdown_ticks`.
+`rounds.base_count`, `rounds.ai_per_player`, `rounds.health_scale`, `rounds.health_growth`, `rounds.run_from_round`, `rounds.sprint_from_round`, `rounds.walk_speed`, `rounds.run_speed`, `rounds.sprint_speed`, `rounds.max_alive`, `rounds.spawn_delay_ticks`, `rounds.spawn_delay_factor`, `rounds.intermission_ms`, `rounds.countdown_ticks`, `rounds.runner_chance` (see `mob-profiles-and-ai-injection.md`).
 
 ## Assets
 

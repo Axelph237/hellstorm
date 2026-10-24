@@ -13,6 +13,7 @@ import dev.candycanecazoo.hellstorm.mob.AiInjector;
 import dev.candycanecazoo.hellstorm.mob.goals.BreakBarricadeGoal;
 import dev.candycanecazoo.hellstorm.map.WindowDef;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.registries.ForgeRegistries;
 import dev.candycanecazoo.hellstorm.mob.path.MovementClass;
@@ -20,6 +21,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
 import dev.candycanecazoo.hellstorm.mob.MobFactory;
 import dev.candycanecazoo.hellstorm.mob.MobProfile;
+import dev.candycanecazoo.hellstorm.mob.Runners;
 import dev.candycanecazoo.hellstorm.mob.SupportTier;
 import dev.candycanecazoo.hellstorm.perk.PerkEffects;
 import dev.candycanecazoo.hellstorm.perk.Perks;
@@ -95,7 +97,8 @@ public final class ForgeGameWorld implements GameWorld {
         if (type == null) {
             return true;
         }
-        MovementClass size = MovementClass.ofHitbox(type.getWidth(), type.getHeight());
+        EntityDimensions hitbox = profile.hitbox(type);
+        MovementClass size = MovementClass.ofHitbox(hitbox.width, hitbox.height);
         return size.width() <= window.get().width() && size.height() <= window.get().height();
     }
 
@@ -203,6 +206,13 @@ public final class ForgeGameWorld implements GameWorld {
         Entity entity = level.getEntity(mob);
         if (entity != null) {
             entity.discard();
+        }
+    }
+
+    @Override
+    public void makeRunner(UUID mob) {
+        if (level.getEntity(mob) instanceof Mob runner) {
+            Runners.run(runner);
         }
     }
 

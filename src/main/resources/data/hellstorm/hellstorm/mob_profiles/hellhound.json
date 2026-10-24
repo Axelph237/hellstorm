@@ -4,5 +4,6 @@
   "ai": "replace",
   "health_multiplier": 0.0242424,
   "speed_multiplier": 1.5,
-  "damage": 3.0
+  "damage": 3.0,
+  "scale": 1.5
 }

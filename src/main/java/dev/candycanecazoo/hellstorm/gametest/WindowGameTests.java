@@ -431,7 +431,7 @@ public final class WindowGameTests {
         helper.succeed();
     }
 
-    /** An iron golem (1.4 x 2.7, so 2x3) can't come through a 1x2 window; a zombie (1x2) can. */
+    /** An iron golem (1.4 x 2.7, so 2x3) can't come through a 1x2 window; a zombie (1x2) can, but not one scaled up past 2 tall. */
     @GameTest(template = "floor")
     public static void theDirectorOnlySpawnsMobsThatFitTheMarkersWindow(GameTestHelper helper) {
         WindowDef w = window(helper, "fit", 4, 4, 2);
@@ -441,17 +441,25 @@ public final class WindowGameTests {
         GameMap gameMap = GameMap.of(map, Set.of(), 6.0);
         net.minecraft.resources.ResourceLocation golem = net.minecraft.resources.ResourceLocation.tryBuild("test", "golem");
         net.minecraft.resources.ResourceLocation zombie = net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie");
+        net.minecraft.resources.ResourceLocation big = net.minecraft.resources.ResourceLocation.tryBuild("test", "big_zombie");
         java.util.Map<net.minecraft.resources.ResourceLocation, dev.candycanecazoo.hellstorm.mob.MobProfile> profiles = java.util.Map.of(
                 golem, new dev.candycanecazoo.hellstorm.mob.MobProfile(net.minecraft.resources.ResourceLocation.tryParse("minecraft:iron_golem"), 1, 1,
-                        java.util.Optional.empty(), dev.candycanecazoo.hellstorm.mob.MobProfile.Ai.REPLACE, java.util.Optional.empty(), 1, 1, 4, true, dev.candycanecazoo.hellstorm.mob.MobProfile.Navigation.FLOW),
-                zombie, dev.candycanecazoo.hellstorm.mob.MobProfile.FALLBACK);
+                        java.util.Optional.empty(), dev.candycanecazoo.hellstorm.mob.MobProfile.Ai.REPLACE, java.util.Optional.empty(), 1, 1, 4, true, dev.candycanecazoo.hellstorm.mob.MobProfile.Navigation.FLOW, 1.0),
+                zombie, dev.candycanecazoo.hellstorm.mob.MobProfile.FALLBACK,
+                big, scaled(dev.candycanecazoo.hellstorm.mob.MobProfile.FALLBACK, 1.5));
         ForgeGameWorld world = new ForgeGameWorld(helper.getLevel(), gameMap, List.of(), List::of, id -> null, profiles, id -> false, dev.candycanecazoo.hellstorm.config.GameSettings.DEFAULT,
                 new dev.candycanecazoo.hellstorm.game.GamePathing(helper.getLevel(), gameMap,
                         Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2)));
         helper.assertTrue(gameMap.windowFor(marker).isPresent(), "marker should link to the window");
         helper.assertTrue(!world.canSpawn(golem, marker), "iron golem allowed at a 1x2 window");
         helper.assertTrue(world.canSpawn(zombie, marker), "zombie refused at a 1x2 window");
+        helper.assertTrue(!world.canSpawn(big, marker), "a zombie at 1.5 times its size (0.9 x 2.9, so 1x3) allowed at a 1x2 window");
         helper.succeed();
+    }
+
+    private static dev.candycanecazoo.hellstorm.mob.MobProfile scaled(dev.candycanecazoo.hellstorm.mob.MobProfile p, double scale) {
+        return new dev.candycanecazoo.hellstorm.mob.MobProfile(p.entity(), p.weight(), p.minRound(), p.maxRound(), p.ai(), p.nbt(), p.healthMultiplier(),
+                p.speedMultiplier(), p.damage(), p.breaksBarricades(), p.navigation(), scale);
     }
 
     /** Carpet raises the floor 1/16 block, so a 1.95-tall zombie needs a 3-tall doorway over it (a 2-tall one is too low in vanilla too). */

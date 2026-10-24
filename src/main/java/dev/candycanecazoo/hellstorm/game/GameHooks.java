@@ -2,12 +2,16 @@ package dev.candycanecazoo.hellstorm.game;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.perk.Perks;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
@@ -23,6 +27,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Optional;
 import java.util.Set;
@@ -46,13 +51,29 @@ public final class GameHooks {
         }
     }
 
-    /** Right-clicking any block of a door buys it; the click does nothing else. */
+    /** Blocks a player in a game may still use by hand besides Hellstorm's own: none unless a map's datapack adds them. */
+    public static final TagKey<Block> USABLE_IN_GAME = TagKey.create(Registries.BLOCK, Hellstorm.id("usable_in_game"));
+
+    /** Hellstorm's blocks, and those in {@link #USABLE_IN_GAME}. A player in a game can't open, flip, or press any other. */
+    public static boolean usableInGame(BlockState state) {
+        return state.is(USABLE_IN_GAME) || Hellstorm.MOD_ID.equals(ForgeRegistries.BLOCKS.getKey(state.getBlock()).getNamespace());
+    }
+
+    /**
+     * Right-clicking any block of a door buys it; the click does nothing else. Otherwise a player in a game uses only
+     * {@link #usableInGame} blocks: doors, trapdoors, levers, chests and the rest stay as the map left them. Their held
+     * item still works. The client does the same ({@code client/InGameBlockUse}), so nothing flickers open.
+     */
     @SubscribeEvent
     public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
-        if (event.getEntity() instanceof ServerPlayer player && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
-                && Doors.use(player, event.getPos())) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND && Doors.use(player, event.getPos())) {
             event.setCanceled(true);
             event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+        } else if (GameManager.playing(player.getUUID()).isPresent() && !usableInGame(event.getLevel().getBlockState(event.getPos()))) {
+            event.setUseBlock(net.minecraftforge.eventbus.api.Event.Result.DENY);
         }
     }
 

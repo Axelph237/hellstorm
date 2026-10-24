@@ -13,7 +13,6 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -27,7 +26,8 @@ import java.util.UUID;
  * A zombie's lost limbs and whether it crawls, kept in its NBT ({@code ForgeData}) so they last through a save and a
  * profile can give them. {@value #REMOVED} holds the {@link BodyPart#bit()}s of the limbs it has lost.
  * {@value #CRAWLER}, a compound with {@value #SPEED}, makes it a crawler: its hitbox lies prone, {@link #PRONE} high,
- * its speed is multiplied by {@value #SPEED}, and it's drawn crawling along the ground. Clients are told both.
+ * its speed is multiplied by {@value #SPEED}, and it's drawn crawling along the ground. Clients are told both. The
+ * hitbox itself is set in {@link MobScale#onSize}, with the scale.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class Limbs {
@@ -92,14 +92,6 @@ public final class Limbs {
     private static void sync(Mob mob) {
         if (!mob.level().isClientSide()) {
             PapNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> mob), LimbsPacket.of(mob));
-        }
-    }
-
-    /** A crawler's hitbox lies prone, on both sides: each works it out from the tag. */
-    @SubscribeEvent
-    public static void onSize(EntityEvent.Size event) {
-        if (event.getEntity().getType() == EntityType.ZOMBIE && crawls(event.getEntity())) {
-            event.setNewSize(PRONE, true);
         }
     }
 

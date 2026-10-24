@@ -9,7 +9,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class PapNetwork {
-    private static final String PROTOCOL = "1";
+    private static final String PROTOCOL = "2";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             Hellstorm.id("main"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
 
@@ -48,6 +48,8 @@ public final class PapNetwork {
                 .encoder(FogPacket::encode).decoder(FogPacket::decode).consumerMainThread(FogPacket::handle).add();
         CHANNEL.messageBuilder(LimbsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(LimbsPacket::encode).decoder(LimbsPacket::decode).consumerMainThread(LimbsPacket::handle).add();
+        CHANNEL.messageBuilder(ScalePacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ScalePacket::encode).decoder(ScalePacket::decode).consumerMainThread(ScalePacket::handle).add();
     }
 
     public static void send(ServerPlayer player, Object packet) {

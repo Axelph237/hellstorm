@@ -40,7 +40,7 @@ public final class MobGameTests {
     private MobGameTests() {}
 
     private static MobProfile profile(String entity, MobProfile.Ai ai) {
-        return new MobProfile(ResourceLocation.tryParse(entity), 10, 1, Optional.empty(), ai, Optional.empty(), 1, 1, 5, true, MobProfile.Navigation.FLOW);
+        return new MobProfile(ResourceLocation.tryParse(entity), 10, 1, Optional.empty(), ai, Optional.empty(), 1, 1, 5, true, MobProfile.Navigation.FLOW, 1.0);
     }
 
     private static Set<Class<?>> goalTypes(Set<WrappedGoal> goals) {

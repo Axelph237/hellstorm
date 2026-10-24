@@ -13,7 +13,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Optional;
 
-/** Creates the entity a profile names, applying its NBT. Profiles that name a missing or non-mob entity are logged and skipped. */
+/** Creates the entity a profile names, applying its NBT and scale. Profiles that name a missing or non-mob entity are logged and skipped. */
 public final class MobFactory {
     private MobFactory() {}
 
@@ -40,6 +40,9 @@ public final class MobFactory {
         if (!(entity instanceof Mob mob)) {
             Hellstorm.LOG.error("Mob profile {} names {}, which is not a mob", profileId, profile.entity());
             return Optional.empty();
+        }
+        if (profile.scale() != 1.0) {
+            MobScale.set(mob, (float) profile.scale());
         }
         return Optional.of(mob);
     }

@@ -43,6 +43,9 @@ public interface GameWorld {
 
     void removeMob(UUID mob);
 
+    /** The mob runs faster from now on (see {@code mob/Runners}); nothing if it already does or is gone. */
+    default void makeRunner(UUID mob) {}
+
     /**
      * The player starts taking part: their own state (inventory, effects, game mode, position) is saved to give back when
      * they leave, and they get the starting loadout. Once per player per game, before their first {@link #respawn} or
