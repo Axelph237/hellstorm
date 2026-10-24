@@ -1,0 +1,6 @@
+{
+  "entity": "zombiesmore:boomer_zombie",
+  "weight": 1,
+  "ai": "replace",
+  "health_multiplier": 1.5
+}

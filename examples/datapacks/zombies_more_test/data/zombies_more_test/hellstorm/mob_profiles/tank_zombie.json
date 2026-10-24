@@ -1,0 +1,8 @@
+{
+  "entity": "zombiesmore:tank_zombie",
+  "weight": 1,
+  "ai": "replace",
+  "health_multiplier": 4.0,
+  "speed_multiplier": 0.75,
+  "damage": 8.0
+}

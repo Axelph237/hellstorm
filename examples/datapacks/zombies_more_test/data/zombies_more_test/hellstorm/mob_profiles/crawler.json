@@ -1,0 +1,8 @@
+{
+  "entity": "zombiesmore:crawler",
+  "weight": 1,
+  "ai": "replace",
+  "health_multiplier": 0.6,
+  "speed_multiplier": 1.2,
+  "damage": 3.0
+}

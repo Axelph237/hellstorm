@@ -1,0 +1,5 @@
+{
+  "entity": "minecraft:zombie",
+  "weight": 100,
+  "ai": "replace"
+}

@@ -6,6 +6,11 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 - [ ] **Walls between rooms.** Draw two rooms that touch and reach well above a wall two blocks high between them, with a Hellstorm door in the wall. `/hs map validate` reports no loophole, and `/hs map paths` lists no connection between them. Lower one stretch of the wall to one block: now it reports a loophole there. A fence instead of the low stretch keeps them apart. Try your real walls too (slabs, stairs, glass panes, leaves) and tell me any that come out wrong.
 
+## Items with NBT
+
+- [ ] **Starting kit with NBT.** With `examples/datapacks/zombies_more_test` and its README's `[players]` settings, start a game: you get the Glock and the LesRaisins dagger, the dagger works as a melee weapon, and after bleeding out and respawning you get both back.
+- [ ] **Zombies More zombies.** With that pack, `/hs mobtest zombies_more_test:<name>` for `tank_zombie`, `explosive_zombie`, `crawler`, `cursed_zombie` and `boomer_zombie`: each walks to you and attacks. In a game, about one spawn in 21 is one of them. Note any that stand still, climb out of the map (the crawler is a spider underneath), or break blocks.
+
 ## Zombies
 
 - [ ] **No block use in a game.** In a game, right-click a wooden door, a trapdoor, a lever and a chest: none opens or flips, and none flickers. Wall-buys, machines, the power switch, and buying a door still work, and a gun still aims.
