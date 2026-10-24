@@ -1,6 +1,6 @@
 # Known issues
 
-Found while writing the wiki for v0.0.1-prerelease, mostly by reading the code; few have been seen in game. None are fixed yet. Remove an item when it's fixed or decided against.
+Found while writing the wiki for v0.0.1-prerelease, mostly by reading the code, and since; few have been seen in game. Remove an item when it's fixed or decided against.
 
 ## Gameplay and commands
 
@@ -15,10 +15,11 @@ Found while writing the wiki for v0.0.1-prerelease, mostly by reading the code; 
 - **Windows can name a stale room** in their outline color and `/hs zones list`, after rooms are redrawn.
 - **A round can stall** if a wave event's `mob_override` names only profiles that can't spawn, or every profile has weight 0.
 - **Command titles say "mystery box"** in places (`Unable to set mystery box pool`).
+- **The upgrader's fire and the vending machine's light and hum can jitter in multiplayer.** They time themselves from the client's game time, which the server resets once a second, so behind a busy server they jump back now and then (`client/PapMachineRenderer`, `client/VendingMachineRenderer`, `client/VendingMachineHum`). The Mystery Crate had the same problem; `feature/BoxSpin` is the fix to copy.
 
 ## Datapacks and scripts
 
-- **Out-of-range values still load.** Loaders use `resultOrPartial`, which keeps the bad value: `"weight": -1` is logged as an error and loads anyway.
+- **Out-of-range values still load.** Loaders use `resultOrPartial`, which keeps the bad value: `"weight": -1` is logged as an error and loads anyway. Upgrade files are the exception: a bad entry is skipped.
 - **A crawler tag without `speed_multiplier` freezes the zombie** (the missing value reads as 0).
 - **Script error line numbers point at the start of the function**: `InstructionBudget.onInstruction` doesn't call `super`, so the debug position never moves.
 - **`string.rep`'s length cap can likely be bypassed** through TacZ's restored string metatable.
@@ -29,10 +30,11 @@ Found while writing the wiki for v0.0.1-prerelease, mostly by reading the code; 
 ## Not built, though `features/` says it is
 
 - **Per-map setting overrides.** `SettingsResolver` exists and is tested, but `GameManager.settings()` always passes no override, and maps and map packs store none.
-- **Validator checks** for the power switch and upgrader being reachable, and for wall-buy gun ids existing. Upgrade-definition problems are warnings, not errors.
+- **Validator checks** for the power switch and upgrader being reachable, and for wall-buy gun ids existing. Upgrade file problems are warnings, not errors.
 - `power.start_on`, powered machine blockstates, `wallbuys.default_pap_ammo_cost`, `windows.default_boards`, and `doors.max_members` aren't settings.
 
 ## Docs to tidy
 
 - Old setting names in `features/tacz-bridge.md` (`tacz.reserve_ammo_mags`, `tacz.pap_*`) and `features/sessions-and-multiplayer.md` (`sessions.*`); the `base_count` config comment; the speed description in `features/game-loop-and-rounds.md`.
-- `features/mob-profiles-and-ai-injection.md` was cut to a few lines (commit 3af5539) and still says the hellhound's `health_multiplier` is 0.33; `features/wave-events.md` describes the hound test the old way; `features/mystery-box.md` says the crate works in the lobby (it doesn't); `features/wall-buys.md` says there's no settings screen (there is); `features/power-switch.md` has no "As built" section.
+- `features/mob-profiles-and-ai-injection.md` still says the hellhound's `health_multiplier` is 0.33 (it's 0.0242424); `features/wave-events.md` describes the hound test the old way; `features/mystery-box.md` says the crate works in the lobby (it doesn't); `features/wall-buys.md` says there's no settings screen (there is); `features/power-switch.md` has no "As built" section.
+- **Crawler speed is described wrong.** The docs (and the wiki's Gameplay page) say a crawler moves at 0.8 of a walker's or runner's speed. 0.8 multiplies its speed attribute, and a mob's ground speed goes with the square of that, so it really moves at about 0.64 of the speed.
