@@ -133,7 +133,7 @@ class GameTest {
         assertFalse(waiting.alive() || waiting.inPlay(), "waiting isn't playing");
         assertFalse(game.targetable(alice), "nothing targets a waiting player");
         assertEquals(Optional.of(new Refusal.NotStarted()), game.charge(alice, 0, false));
-        game.onRepair(alice);
+        game.onRepair(alice, "w");
         assertEquals(SETTINGS.economy().startingPoints(), waiting.points(), "a waiting player earns nothing");
         assertFalse(game.collectPowerUp(ResourceLocation.tryBuild("hellstorm", "max_ammo"), alice));
 

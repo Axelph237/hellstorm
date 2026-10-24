@@ -36,6 +36,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue meleeKill;
     private final ForgeConfigSpec.IntValue repair;
     private final ForgeConfigSpec.IntValue repairCapPerRound;
+    private final ForgeConfigSpec.IntValue repairCapPerWindow;
     private final ForgeConfigSpec.IntValue windowMaxWidth;
     private final ForgeConfigSpec.IntValue windowMaxHeight;
     private final ForgeConfigSpec.IntValue tearTicks;
@@ -123,6 +124,9 @@ public final class GameSettingsConfig {
         repair = b.comment("Points per window board repaired.").defineInRange("repair", d.economy().repair(), 0, 100_000);
         repairCapPerRound = b.comment("Most repair points one player can earn per round.")
                 .defineInRange("repair_cap_per_round", d.economy().repairCapPerRound(), 0, 1_000_000);
+        repairCapPerWindow = b.comment("Most repair points one player can earn at any one window per round. Past it, boards still go on there but pay",
+                        "nothing until the player repairs a different window or the next round starts. The default, 100, is ten boards at 10 points: a full window and four more.")
+                .defineInRange("repair_cap_per_window", d.economy().repairCapPerWindow(), 0, 1_000_000);
         b.pop();
         b.push("windows");
         windowMaxWidth = b.comment("Widest window opening allowed, in blocks.").defineInRange("max_width", d.windows().maxWidth(), 1, 16);
@@ -251,7 +255,7 @@ public final class GameSettingsConfig {
                         r.read(countdownTicks), r.read(gameOverTicks), r.read(runnerChance)),
                 new GameSettings.Spawning(r.read(falloffBlocks), r.read(minDistance)),
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
-                        r.read(repair), r.read(repairCapPerRound)),
+                        r.read(repair), r.read(repairCapPerRound), r.read(repairCapPerWindow)),
                 new GameSettings.Players(guns(r.read(startingGuns)), items(r.read(startingItems)), r.read(reserveMagazines),
                         r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks), r.read(knockbackReduction)),
                 new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),

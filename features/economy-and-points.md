@@ -26,6 +26,7 @@ record Admin() implements PointSource {}
   - Every kill goes through Forge's `LivingDeathEvent`. The killer is the damage source's entity. It's melee when the player is also the direct source. The headshot flag comes from `CombatLog`, which keeps the last TacZ `EntityHurtByGunEvent.Pre` for each mob, so a kill is never counted twice.
   - Deaths no player caused (traps, falls) pay nothing.
   - Window repair awards `Repair`, capped per round at `economy.repair_cap_per_round`.
+  - As built: repair is also capped per window, at `economy.repair_cap_per_window` per player per round, so a player past it at one window earns again only at another (`Economy.repairPay`, see `windows-and-barricades.md`).
 - **Double Points** doubles every award while active.
 - **`Purchasable`.** Every purchase in the map goes through one server path: check the player is within reach, check state and power, `charge`, then apply. If apply fails, refund. All purchases are server-authoritative.
 - **Sync.** Points changes are batched and sent to clients once per tick for the HUD.
@@ -34,6 +35,7 @@ record Admin() implements PointSource {}
 
 - `economy.hit` (10), `economy.kill` (60), `economy.headshot_kill` (100), `economy.melee_kill` (130), `economy.repair` (10).
 - `economy.repair_cap_per_round` (500).
+- `economy.repair_cap_per_window` (100).
 - `economy.starting_points` (500).
 
 ## Assets

@@ -55,7 +55,9 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
         ).apply(i, Spawning::new));
     }
 
-    public record Economy(int startingPoints, int hit, int kill, int headshotKill, int meleeKill, int repair, int repairCapPerRound) {
+    /** {@code repairCapPerWindow}: the most repair points a player earns at any one window in a round, so moving between windows pays. */
+    public record Economy(int startingPoints, int hit, int kill, int headshotKill, int meleeKill, int repair, int repairCapPerRound,
+                          int repairCapPerWindow) {
         public static final Codec<Economy> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("starting_points").forGetter(Economy::startingPoints),
                 Codec.INT.fieldOf("hit").forGetter(Economy::hit),
@@ -63,7 +65,8 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
                 Codec.INT.fieldOf("headshot_kill").forGetter(Economy::headshotKill),
                 Codec.INT.fieldOf("melee_kill").forGetter(Economy::meleeKill),
                 Codec.INT.fieldOf("repair").forGetter(Economy::repair),
-                Codec.INT.fieldOf("repair_cap_per_round").forGetter(Economy::repairCapPerRound)
+                Codec.INT.fieldOf("repair_cap_per_round").forGetter(Economy::repairCapPerRound),
+                Codec.INT.fieldOf("repair_cap_per_window").forGetter(Economy::repairCapPerWindow)
         ).apply(i, Economy::new));
     }
 
@@ -213,7 +216,7 @@ public record GameSettings(Rounds rounds, Spawning spawning, Economy economy, Pl
     public static final GameSettings DEFAULT = new GameSettings(
             new Rounds(24, 6, 0.15, 0.1, 5, 9, 0.23, 0.28, 0.32, 24, 40, 0.95, 5000, 100, 200, 0.1),
             new Spawning(24.0, 6.0),
-            new Economy(500, 10, 60, 100, 130, 10, 500),
+            new Economy(500, 10, 60, 100, 130, 10, 500, 100),
             new Players(List.of(ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "m1911"))), List.of(new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "iron_sword"), 1, java.util.Optional.empty())), 4, true, 2, 4, 4, 1200, 0.85),
             new Windows(5, 4, 30, 15, 6.0),
             new Doors(750),

@@ -230,6 +230,28 @@ public final class WindowGameTests {
         helper.succeed();
     }
 
+    /** With the server's settings, a window stops paying at {@code economy.repair_cap_per_window} and a different window still pays. */
+    @GameTest(template = "floor", batch = "game_repair_window_cap")
+    public static void aWindowStopsPayingAtItsCapButAnotherStillPays(GameTestHelper helper) {
+        ServerPlayer player = FakePlayerFactory.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "pap_repair_cap_test"));
+        GameManager.Active active = PurchaseGameTests.game(helper, player);
+        try {
+            var economy = active.game().settings().economy();
+            helper.assertTrue(economy.repair() > 0 && economy.repairCapPerWindow() + economy.repair() <= economy.repairCapPerRound(),
+                    "the server's settings leave no room to see the window cap: " + economy);
+            int paidAtFirst = 0;
+            for (int board = 0; board < economy.repairCapPerWindow() / economy.repair() + 3; board++) {
+                paidAtFirst += active.game().onRepair(player.getUUID(), "first");
+            }
+            helper.assertTrue(paidAtFirst == economy.repairCapPerWindow(), "one window paid " + paidAtFirst + ", its cap is " + economy.repairCapPerWindow());
+            int paidAtSecond = active.game().onRepair(player.getUUID(), "second");
+            helper.assertTrue(paidAtSecond == economy.repair(), "a different window paid " + paidAtSecond + ", expected " + economy.repair());
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
     /**
      * A window whose bottom row sits one block up on {@code sill}, reached from a 1-wide, 3-high corridor outside, like a
      * window set in a wall above a step. The zombie has to jump onto the sill to climb in.

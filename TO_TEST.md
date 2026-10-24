@@ -31,6 +31,10 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 - [ ] **No drops.** With the Zombies More pack, play until a few of its zombies die, the boomer and the cursed zombie among them: nothing drops, no XP, and whatever they leave behind drops nothing when killed and is gone once the game ends. Power-ups still drop as before.
 - [ ] **Dismemberment.** Shoot zombies' arms and legs in a game. An arm comes off (about three pistol shots early on, with a spray of red) and the zombie keeps coming; a leg comes off and it drops to a crawl: lying face down, pulling itself along with its arms, at about half speed, and small enough to shoot low. Check both sides come off the side you shot, the crawl looks right from the front, side, and behind, and the head looks forward. To see one up close, `/summon minecraft:zombie ~ ~ ~ {ForgeData:{hellstorm_crawler:{speed_multiplier:0.5f}}}` makes a crawler (and `{ForgeData:{hellstorm_limbs:5b}}` one missing its left arm and left leg).
 
+## Windows
+
+- [ ] **Repair cap per window.** In a game, let a zombie tear a window down and rebuild it, again and again, in one round. After ten paid boards (100 points) the boards still go on but the points and the cha-ching stop. Rebuild a different window: it pays again. In the next round the first window pays again. Check `repair_cap_per_window = 100` appears under `[economy]` in the world's `serverconfig/hellstorm-server.toml` with its comment.
+
 ## Downs
 
 - [ ] **Hellhounds.** In round 5 a hound has 2 HP and dies to about one pistol shot.

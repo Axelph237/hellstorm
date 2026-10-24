@@ -16,4 +16,12 @@ public final class Economy {
         }
         return doublePoints ? base * 2 : base;
     }
+
+    /**
+     * What a board worth {@code award} pays, given what the player has earned from repairs this round in all and at this
+     * window: no more than is left under either cap.
+     */
+    public static int repairPay(GameSettings.Economy s, int award, int paidThisRound, int paidAtWindow) {
+        return Math.max(0, Math.min(award, Math.min(s.repairCapPerRound() - paidThisRound, s.repairCapPerWindow() - paidAtWindow)));
+    }
 }

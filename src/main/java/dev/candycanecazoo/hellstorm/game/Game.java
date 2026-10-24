@@ -541,7 +541,7 @@ public final class Game {
                 continue;
             }
             world.addBoard(hold.window());
-            if (onRepair(entry.getKey()) > 0) {
+            if (onRepair(entry.getKey(), hold.window()) > 0) {
                 world.chaChing(entry.getKey());
             }
             if (world.boardsMissing(hold.window()) == 0) {
@@ -552,16 +552,19 @@ public final class Game {
         }
     }
 
-    /** A player put a window board back. Pays until the player hits this round's repair cap, and returns what it paid. */
-    public int onRepair(UUID repairer) {
+    /**
+     * A player put a board back on {@code window}. Pays until the player hits this round's repair cap, overall or at this
+     * window, and returns what it paid.
+     */
+    public int onRepair(UUID repairer, String window) {
         PlayerState player = players.get(repairer);
         if (player == null || !player.alive()) {
             return 0;
         }
         int award = Economy.award(settings.economy(), new PointSource.Repair(), doublePoints());
-        int paid = Math.max(0, Math.min(award, settings.economy().repairCapPerRound() - player.repairPointsThisRound()));
+        int paid = Economy.repairPay(settings.economy(), award, player.repairPointsThisRound(), player.repairPointsThisRound(window));
         if (paid > 0) {
-            player.addRepairPoints(paid);
+            player.addRepairPoints(window, paid);
             earned += paid;
         }
         return paid;

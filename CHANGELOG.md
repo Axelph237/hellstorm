@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Zombies spawn only in rooms a player has walked into this game, and the start rooms. Buying a door no longer makes the rooms behind it spawn: someone has to go in. Once found, a room spawns for the rest of the game, wherever the players are, with markers nearer the players still picked more often. The `spawning.adjacent_hops` setting is gone.
+- Repairing one window over and over stops paying: a player earns at most 100 points (ten boards) at any one window per round (`economy.repair_cap_per_window`). Boards still go back on past that, for nothing, until the player repairs a different window or the next round starts. The 500 per round cap across all windows stays.
 - Hellhounds are half again the size of a wolf. Mob profiles take a `scale` that sizes the mob's hitbox and how it's drawn (`hellstorm_scale` in its NBT).
 - Some zombies are runners (`rounds.runner_chance`, 10%), and the last zombie of a round always runs. A runner walks as fast as a walking player, 4.3 blocks a second, unless its round already makes it faster (zombies sprint about that fast from round 9), so the last zombie no longer outruns a sprinting player. A crawler can run too, at 0.8 of that.
 - Game mobs drop nothing in a game, whichever mod they come from: no loot, equipment, or XP, and nothing another mod adds to their drops or spawns as they die. A mob a game mob leaves behind when it dies (a slime's young, a mod's head or ghost) belongs to the game too: it drops nothing either and goes when the game ends. Power-ups still drop.

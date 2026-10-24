@@ -114,14 +114,14 @@ public final class PowerUpGameTests {
         GameManager.Active active = PurchaseGameTests.game(helper, player);
         try {
             int before = points(active, player);
-            active.game().onRepair(player.getUUID());
+            active.game().onRepair(player.getUUID(), "w");
             int single = points(active, player) - before;
             helper.assertTrue(collect(active, player, "double_points"), "Double Points wasn't collected");
             helper.assertTrue(active.game().timedActive(TimedEffects.DOUBLE_POINTS), "Double Points isn't running");
             helper.assertTrue(active.game().status(player.getUUID()).timers().stream().anyMatch(t -> t.name().equals("powerup.hellstorm.double_points")),
                     "no Double Points timer on the HUD");
             int mid = points(active, player);
-            active.game().onRepair(player.getUUID());
+            active.game().onRepair(player.getUUID(), "w");
             helper.assertTrue(points(active, player) - mid == 2 * single, "a repair paid " + (points(active, player) - mid) + ", expected " + 2 * single);
         } finally {
             GameManager.end(active);

@@ -1,5 +1,7 @@
 package dev.candycanecazoo.hellstorm.game;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public final class PlayerState {
@@ -8,7 +10,8 @@ public final class PlayerState {
     private int points;
     private int kills;
     private int headshots;
-    private int repairPointsThisRound;
+    /** Repair points earned this round, by window id. */
+    private final Map<String, Integer> repairPointsThisRound = new HashMap<>();
     private int selfRevivesUsed;
     /** The game tick they disconnected at, or -1 while connected. */
     private long disconnectedAt = -1;
@@ -106,15 +109,19 @@ public final class PlayerState {
     }
 
     int repairPointsThisRound() {
-        return repairPointsThisRound;
+        return repairPointsThisRound.values().stream().mapToInt(Integer::intValue).sum();
     }
 
-    void addRepairPoints(int points) {
-        repairPointsThisRound += points;
+    int repairPointsThisRound(String window) {
+        return repairPointsThisRound.getOrDefault(window, 0);
+    }
+
+    void addRepairPoints(String window, int points) {
+        repairPointsThisRound.merge(window, points, Integer::sum);
         this.points += points;
     }
 
     void resetRoundCounters() {
-        repairPointsThisRound = 0;
+        repairPointsThisRound.clear();
     }
 }
