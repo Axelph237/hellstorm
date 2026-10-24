@@ -472,7 +472,8 @@ public final class PerkGameTests {
                     + ((AbstractGunItem) gun.getItem()).canReload(player, gun) + ", reserve " + iGun.getDummyAmmoAmount(gun)
                     + ", needs ammo " + operator.needCheckAmmo() + ", bolting " + data.isBolting);
         }
-        data.reloadTimestamp -= elapsedMillis;
+        // From now, not from when reload() ran, so a slow tick between the two can't add to it.
+        data.reloadTimestamp = System.currentTimeMillis() - elapsedMillis;
         ReloadState state = ((AbstractGunItem) gun.getItem()).tickReload(data, gun, player);
         return new Reloaded(state.getStateType(), iGun.getCurrentAmmoCount(gun));
     }

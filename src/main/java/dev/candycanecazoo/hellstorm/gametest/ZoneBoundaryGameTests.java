@@ -36,7 +36,8 @@ import static dev.candycanecazoo.hellstorm.gametest.TestLayout.ROOM_Y;
 /**
  * Zombies crossing from one zone into the next, where the two zones' boxes touch, to a player standing just past the
  * boundary. Each test sends zombies from the far end of the east zone and passes once every one of them has reached the
- * player within its deadline, none having stood still for five seconds on the way. The deadlines are what the game's
+ * player within its deadline, none having stood still for five seconds on the way; in a crowd, where the zombies at the
+ * back are meant to wait their turn, the doorway instead must never go five seconds without letting one through. The deadlines are what the game's
  * own pathing manages with some room to spare; the steering it replaced missed the doorway ones in a third to half of runs. The
  * arenas reach past the 9x9 test floor, so each test has a batch to itself.
  */
@@ -48,6 +49,8 @@ public final class ZoneBoundaryGameTests {
     private static final int BOUNDARY_X = 8;
     /** Five seconds without getting half a block anywhere, short of the player: stuck, not just queueing at a doorway. */
     private static final int STUCK_LIMIT = 100;
+    /** In a crowd: five seconds, after the first zombie is through, with zombies still waiting and none getting through. */
+    private static final int GAP_LIMIT = 100;
 
     private ZoneBoundaryGameTests() {}
 
@@ -79,16 +82,17 @@ public final class ZoneBoundaryGameTests {
                 spawns.add(new BlockPos(WIDTH - 4, ROOM_Y, z));
             }
         }
-        chase(helper, name, map, new BlockPos(3, ROOM_Y, 3), spawns, deadline, clear);
+        chase(helper, name, map, new BlockPos(3, ROOM_Y, 3), spawns, deadline, crowd, clear);
     }
 
     /**
      * Starts a game on {@code map} with the player at {@code standAt}, sends a zombie from each of {@code spawnsAt}, and
      * passes once every zombie has reached the player within {@code deadline} ticks, none having stood still on the way
-     * for {@link #STUCK_LIMIT} ticks.
+     * for {@link #STUCK_LIMIT} ticks, or for a {@code crowd}, the boundary never going {@link #GAP_LIMIT} ticks without a
+     * zombie crossing it while others wait.
      */
     private static void chase(GameTestHelper helper, String name, ZombiesMap map, BlockPos standAt, List<BlockPos> spawnsAt, int deadline,
-                              Runnable clear) {
+                              boolean crowd, Runnable clear) {
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
         helper.assertTrue(!passages.open().isEmpty(), "the zones should connect");
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_boundary_" + name);
@@ -99,9 +103,16 @@ public final class ZoneBoundaryGameTests {
         active.game().join(player.getUUID());
         PurchaseGameTests.play(active);
         player.setInvulnerable(true);
+        List<BlockPos> spawns = spawnsAt.stream().map(helper::absolutePos).toList();
+        TestLayout.onceTicking(helper, spawns, () -> watch(helper, name, active, player, stand, spawns, deadline, crowd, clear));
+    }
+
+    /** Spawns the zombies and checks their way to the player; see {@link #chase}. */
+    private static void watch(GameTestHelper helper, String name, GameManager.Active active, ServerPlayer player, BlockPos stand,
+                              List<BlockPos> spawns, int deadline, boolean crowd, Runnable clear) {
         List<Mob> zombies = new ArrayList<>();
-        for (BlockPos at : spawnsAt) {
-            UUID id = active.world().spawnZombie(helper.absolutePos(at),
+        for (BlockPos at : spawns) {
+            UUID id = active.world().spawnZombie(at,
                             new GameWorld.ZombieSpec(ResourceLocation.tryBuild(Hellstorm.MOD_ID, "zombie"), 200, 0.23))
                     .orElseThrow(() -> new IllegalStateException("a zombie didn't spawn"));
             zombies.add((Mob) helper.getLevel().getEntity(id));
@@ -113,9 +124,26 @@ public final class ZoneBoundaryGameTests {
         Vec3[] mark = new Vec3[zombies.size()];
         int[] ticks = {0};
         boolean[] ended = {false};
+        boolean[] east = new boolean[zombies.size()];
+        Arrays.fill(east, true);
+        // Ticks since a zombie last crossed, counted once the first is through and while any is still east of the boundary.
+        int[] gap = {-1, 0};
         helper.onEachTick(() -> {
             ticks[0]++;
             player.moveTo(stand.getCenter());
+            boolean crossed = false;
+            boolean waiting = false;
+            for (int i = 0; i < zombies.size(); i++) {
+                boolean nowEast = arrivedAt[i] == 0 && helper.relativeVec(zombies.get(i).position()).x >= BOUNDARY_X;
+                crossed |= east[i] && !nowEast;
+                waiting |= nowEast;
+                east[i] = nowEast;
+            }
+            if (crossed) {
+                gap[0] = 0;
+            } else if (gap[0] >= 0 && waiting) {
+                gap[1] = Math.max(gap[1], ++gap[0]);
+            }
             for (int i = 0; i < zombies.size(); i++) {
                 Mob zombie = zombies.get(i);
                 if (arrivedAt[i] != 0) {
@@ -148,9 +176,13 @@ public final class ZoneBoundaryGameTests {
                 }
             }
             helper.assertTrue(left.isEmpty(), "zombies still on the way after " + ticks[0] + " ticks at " + left);
-            int worst = worst(longestHold);
-            helper.assertTrue(longestHold[worst] < STUCK_LIMIT, "a zombie stood still for " + longestHold[worst] + " ticks at " + heldAt[worst]
-                    + " on its way");
+            if (crowd) {
+                helper.assertTrue(gap[1] < GAP_LIMIT, "the boundary let no zombie through for " + gap[1] + " ticks while others waited");
+            } else {
+                int worst = worst(longestHold);
+                helper.assertTrue(longestHold[worst] < STUCK_LIMIT, "a zombie stood still for " + longestHold[worst] + " ticks at "
+                        + heldAt[worst] + " on its way");
+            }
             int last = Arrays.stream(arrivedAt).max().orElse(0);
             helper.assertTrue(last <= deadline, "the last zombie reached the player after " + last + " ticks, over the " + deadline + " allowed");
         });
@@ -203,7 +235,7 @@ public final class ZoneBoundaryGameTests {
     /** Eight zombies for the one doorway, so they arrive in a crowd. */
     @GameTest(template = "floor", timeoutTicks = 1200, batch = "boundary_doorway_crowd")
     public static void aCrowdOfZombiesCrossesADoorwayBoundaryIntoTheNextZone(GameTestHelper helper) {
-        cross(helper, "doorway_crowd", true, 260, (z, dy) -> doorway(helper, z, dy));
+        cross(helper, "doorway_crowd", true, 320, (z, dy) -> doorway(helper, z, dy));
     }
 
     /** Test map coordinates to the test's own: the layout's lowest layer is the floor. */
@@ -272,6 +304,6 @@ public final class ZoneBoundaryGameTests {
                         testMapBox(helper, 9, -60, 14, 16, -57, 18)), false))
                 .withDoor(door);
         chase(helper, "test_map", map, testMap(1, -60, 0),
-                List.of(testMap(16, -60, 4), testMap(16, -60, 6), testMap(15, -60, 5), testMap(16, -60, 7)), 220, clear);
+                List.of(testMap(16, -60, 4), testMap(16, -60, 6), testMap(15, -60, 5), testMap(16, -60, 7)), 220, false, clear);
     }
 }

@@ -105,7 +105,9 @@ public final class ForgeGameWorld implements GameWorld {
     @Override
     public Optional<UUID> spawnZombie(BlockPos marker, ZombieSpec spec) {
         MobProfile profile = profiles.get(spec.profile());
-        if (profile == null || !level.isLoaded(marker) || DebugRules.get(level.getServer()).get(DebugRules.Rule.NO_ZOMBIES)) {
+        // Ticking entities, not just loaded: a mob added to a chunk still being promoted is stored but hidden, and one past
+        // the simulation distance never moves, and either would hold the round open. The game tries again next time.
+        if (profile == null || !level.isPositionEntityTicking(marker) || DebugRules.get(level.getServer()).get(DebugRules.Rule.NO_ZOMBIES)) {
             return Optional.empty();
         }
         Optional<Mob> created = MobFactory.create(level, profile, spec.profile());

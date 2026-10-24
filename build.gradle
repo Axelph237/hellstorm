@@ -52,8 +52,8 @@ minecraft {
             args '--nogui'
         }
 
-        // Its own folder: in the shared run/world (generated terrain, if runServer made it) caves and aquifers next to the
-        // tests flood them. Here the test server makes its own flat world.
+        // Its own folder, and a fresh flat world each run (see prepareRunGameTestServer below): on generated terrain, caves,
+        // lava and aquifers next to the tests break them, differently each run.
         gameTestServer {
             workingDirectory project.file('run-gametest')
         }
@@ -66,6 +66,18 @@ minecraft {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// Forge's test server takes its world type from server.properties, which defaults to normal terrain, and keeps the world
+// between runs along with whatever failed tests left behind.
+tasks.matching { it.name == 'prepareRunGameTestServer' }.configureEach {
+    doFirst {
+        delete 'run-gametest/world'
+        def properties = file('run-gametest/server.properties')
+        properties.parentFile.mkdirs()
+        def kept = properties.exists() ? properties.readLines().findAll { !it.startsWith('level-type=') } : []
+        properties.text = (kept + ['level-type=minecraft\\:flat']).join('\n') + '\n'
+    }
+}
 
 repositories {
     // Not exclusiveContent: ForgeGradle serves the remapped jar under the same group from its own local repo.

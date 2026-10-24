@@ -7,8 +7,7 @@ Each item was checked against the code on 2026-10-24, several with a probe test;
 - **A round stalls forever when nothing can spawn.** If every mob profile allowed in a round has weight 0 (or `min_round`/`max_round` leave a round with none), or a wave event's `mob_override` names only missing or broken profiles, no zombie spawns and the round never ends. `ForgeGameWorld.canSpawn` says yes to a profile that doesn't exist, and a missing profile fails to spawn without a log line. Nothing in validation catches either case.
 - **Trap times over 72000 ticks wipe the trap's settings.** `/hs trap active` and `/hs trap cooldown` accept any value and say it worked, but the trap's codec caps both at 72000. The block entity then fails to save its whole config without a message, so after a reload the trap is back to all defaults (name, cost, power, signal), and a map pack exported meanwhile carries the defaults.
 - **Wall-buy refills charge for a full gun.** Buying ammo for a gun that's already full, or that has unlimited ammo, costs the ammo price and changes nothing (`WallBuy.decide` refills whenever the gun is owned). A refill on a gun with no `DummyAmmo` tag also turns it into an empty dummy-ammo gun.
-- **A zombie can spawn frozen in a chunk that isn't ticking entities.** `ForgeGameWorld.spawnZombie` only checks `level.isLoaded`, so a zombie added to a chunk before it's fully promoted is stored but hidden, or one beyond the simulation distance never moves, and either holds the round open. Seen as the flaky "hellhound spawned null" GameTest.
-- **Crowds jam a 1-wide doorway for a few seconds.** Two zombies side by side at its mouth both press into the jambs and neither turns in; in about 8% of runs of the crowd GameTest nobody gets through for 2 to 3 seconds before it clears.
+- **Crowds jam a 1-wide doorway for a few seconds.** Two zombies side by side at its mouth both press into the jambs and neither turns in, and sometimes nobody gets through for 2 to 3 seconds before it clears (about 8% of runs of the crowd GameTest, which now checks that the doorway keeps flowing).
 - **Room detection:** a Hellstorm door made of blocks with no collision box (cobwebs, vines) doesn't stop the fill, though `features/doors-and-debris.md` says door members are walls. Carpets, slabs, stairs, paths, farmland and 2 or more snow layers are left out of detected rooms, and starting on one gives "Your feet are inside a solid block". Since players are placed in the room at their feet, a room whose floor is all such blocks is never discovered, so its spawns never wake.
 - **`/hs zones add window` can fail with "An unexpected error occurred".** It finds the room behind the window from the opening's corner column (`orElseThrow`) after checking only the centre column, so an opening whose corner has no room behind it throws.
 - **A window's board count can't be changed.** Re-adding a window keeps its old count without saying so, and there's no `/hs zones set window`.
@@ -30,11 +29,6 @@ Each item was checked against the code on 2026-10-24, several with a probe test;
 - **A script command that fires an event at once refills the listener's instruction budget**, since every dispatch resets it (`LuaRuntime.guarded`). Not yet seen in a test.
 - **Overriding the default crate pool with `{}` gives an empty pool**: the codec defaults `include_all_tacz_guns` to false; the built-in pool sets it true. Documented in the wiki, but easy to trip over.
 - `game_start` fires at round 0, so a `round_min` of 1 or more never matches it (documented).
-
-## Tests
-
-- **The GameTest world isn't flat.** `run-gametest/server.properties` has `level-type=minecraft:normal`, so tests run at y=-60 among bedrock, deepslate and lava, on different terrain each run as batch order changes. Lava in arenas and caves cause flaky failures (the far-target hound, the wooden door, the outside-a-match terrain tests); a flat, fresh world removed them in trial runs.
-- **The TacZ live-fire GameTests time with the wall clock** (`attachmentPropertyEventChangesRpmInLiveFire`), so a slow tick fails them. Backdating TacZ's own shot timestamps makes them independent of it.
 
 ## Not built, though `features/` says it is
 

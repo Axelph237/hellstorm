@@ -6,6 +6,7 @@ import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
 import com.tacz.guns.api.entity.ShootResult;
 import com.tacz.guns.api.item.IGun;
+import com.tacz.guns.entity.shooter.ShooterDataHolder;
 import com.tacz.guns.resource.modifier.AttachmentPropertyManager;
 import com.tacz.guns.resource.pojo.data.gun.FeedType;
 import dev.candycanecazoo.hellstorm.Hellstorm;
@@ -115,51 +116,48 @@ public final class TaczSpikeTests {
     }
 
     /**
-     * Fires an unmodified AK and an AK overridden to 60 RPM, then fires both again after 300ms of wall time.
-     * The stock gun (600 RPM, 100ms interval) must fire. The 60 RPM gun (1000ms interval) must still be cooling down.
+     * Fires an unmodified AK and an AK overridden to 60 RPM, then fires both again 300 ms later as TacZ sees it, by moving
+     * their last-shot times back rather than waiting on the wall clock. The stock gun (600 RPM, 100 ms interval) must fire;
+     * the 60 RPM gun (1000 ms interval) must still be cooling down, and fires again 1100 ms after its first shot.
      */
-    @GameTest(template = "floor", timeoutTicks = LONG_TIMEOUT)
+    @GameTest(template = "floor")
     public static void attachmentPropertyEventChangesRpmInLiveFire(GameTestHelper helper) {
         ResourceLocation gunId = ResourceLocation.tryBuild("tacz", "ak47");
         ItemStack slowStack = TaczBridge.createGun(gunId, 3).orElseThrow(() -> new IllegalStateException("tacz:ak47 missing"));
         slowStack.getOrCreateTag().putInt(SpikeRpmOverride.TAG, 60);
-        Zombie stock = gunHolder(helper, new BlockPos(2, TestLayout.ROOM_Y, 4), TaczBridge.createGun(gunId, 3).orElseThrow());
-        Zombie slow = gunHolder(helper, new BlockPos(6, TestLayout.ROOM_Y, 4), slowStack);
+        Zombie stock = readyToFire(gunHolder(helper, new BlockPos(2, TestLayout.ROOM_Y, 4), TaczBridge.createGun(gunId, 3).orElseThrow()));
+        Zombie slow = readyToFire(gunHolder(helper, new BlockPos(6, TestLayout.ROOM_Y, 4), slowStack));
         AttachmentPropertyManager.postChangeEvent(slow, slow.getMainHandItem());
         AttachmentPropertyManager.postChangeEvent(stock, stock.getMainHandItem());
         Integer cachedRpm = IGunOperator.fromLivingEntity(slow).getCacheProperty().getCache(GunProperties.ROUNDS_PER_MINUTE);
         helper.assertTrue(cachedRpm != null && cachedRpm == 60, "cached RPM was " + cachedRpm + ", expected 60");
+        ShootResult stockFirst = shoot(stock);
+        ShootResult slowFirst = shoot(slow);
+        helper.assertTrue(stockFirst == ShootResult.SUCCESS && slowFirst == ShootResult.SUCCESS, "first shots " + stockFirst + " " + slowFirst);
+        ShooterDataHolder stockData = IGunOperator.fromLivingEntity(stock).getDataHolder();
+        ShooterDataHolder slowData = IGunOperator.fromLivingEntity(slow).getDataHolder();
+        stockData.shootTimestamp -= 300;
+        slowData.shootTimestamp -= 300;
+        ShootResult stockSecond = shoot(stock);
+        ShootResult slowSecond = shoot(slow);
+        helper.assertTrue(stockSecond == ShootResult.SUCCESS, "stock AK second shot " + stockSecond);
+        helper.assertTrue(slowSecond == ShootResult.COOL_DOWN, "60 RPM AK second shot " + slowSecond);
+        slowData.shootTimestamp -= 800;
+        ShootResult slowThird = shoot(slow);
+        helper.assertTrue(slowThird == ShootResult.SUCCESS, "60 RPM AK after 1100 ms " + slowThird);
+        helper.succeed();
+    }
 
-        long[] firstShotAt = {-1, -1};
-        Zombie[] shooters = {stock, slow};
-        helper.onEachTick(() -> {
-            for (int i = 0; i < shooters.length; i++) {
-                if (firstShotAt[i] < 0) {
-                    ShootResult result = IGunOperator.fromLivingEntity(shooters[i]).shoot(() -> 0f, () -> 0f);
-                    if (result == ShootResult.SUCCESS) {
-                        firstShotAt[i] = System.currentTimeMillis();
-                    } else if (result != ShootResult.IS_DRAWING && result != ShootResult.NOT_DRAW && result != ShootResult.COOL_DOWN) {
-                        helper.fail("unexpected first shot result " + result);
-                    }
-                }
-            }
-            if (firstShotAt[0] < 0 || firstShotAt[1] < 0) {
-                return;
-            }
-            long elapsed = System.currentTimeMillis() - Math.max(firstShotAt[0], firstShotAt[1]);
-            if (elapsed < 300) {
-                return;
-            }
-            ShootResult stockSecond = IGunOperator.fromLivingEntity(stock).shoot(() -> 0f, () -> 0f);
-            ShootResult slowSecond = IGunOperator.fromLivingEntity(slow).shoot(() -> 0f, () -> 0f);
-            Hellstorm.LOG.info("[spike] rpm override: {}ms after first shot, stock={} slow(60rpm)={}", elapsed, stockSecond, slowSecond);
-            if (elapsed > 900) {
-                helper.fail("ran past the 60 RPM window without a clean comparison");
-            }
-            helper.assertTrue(stockSecond == ShootResult.SUCCESS, "stock AK second shot " + stockSecond);
-            helper.assertTrue(slowSecond == ShootResult.COOL_DOWN, "60 RPM AK second shot " + slowSecond);
-            helper.succeed();
-        });
+    /** Drawn and last fired long ago, as TacZ sees it: a fresh operator starts mid-draw and mid-cooldown. */
+    private static Zombie readyToFire(Zombie holder) {
+        ShooterDataHolder data = IGunOperator.fromLivingEntity(holder).getDataHolder();
+        data.drawTimestamp = 0;
+        data.shootTimestamp = -1_000_000L;
+        return holder;
+    }
+
+    private static ShootResult shoot(Zombie zombie) {
+        return IGunOperator.fromLivingEntity(zombie).shoot(() -> 0f, () -> 0f);
     }
 
     @GameTest(template = "floor")

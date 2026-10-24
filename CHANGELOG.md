@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A zombie no longer spawns in a chunk that isn't ticking entities, where it would stand frozen (or stay hidden) and hold the round open; the game tries again on its next spawn.
 - A gun with unlimited ammo, such as the starting pistol, shows ∞ for its reserve on the ammo HUD, as in creative, instead of a number.
 - Players in a game can't hurt each other, by gun, melee, or blast. Turn friendly fire on with `players.friendly_fire` in the server config. A player's own blast still hurts them.
 - Zombies spawn only in rooms a player has walked into this game, and the start rooms. Buying a door no longer makes the rooms behind it spawn: someone has to go in. Once found, a room spawns for the rest of the game, wherever the players are, with markers nearer the players still picked more often. The `spawning.adjacent_hops` setting is gone.

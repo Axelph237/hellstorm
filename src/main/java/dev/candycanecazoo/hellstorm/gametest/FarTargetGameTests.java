@@ -134,22 +134,27 @@ public final class FarTargetGameTests {
             active.game().tick(active.world());
         }
         player.setInvulnerable(true);
-        UUID id = active.world().spawnZombie(marker, new GameWorld.ZombieSpec(ResourceLocation.tryBuild(Hellstorm.MOD_ID, profile), 200, 0.3))
-                .orElseThrow(() -> new IllegalStateException(profile + " didn't spawn"));
-        Mob mob = (Mob) helper.getLevel().getEntity(id);
-        helper.assertTrue(kind.isInstance(mob), profile + " spawned " + mob);
-        helper.assertTrue(mob.distanceTo(player) > 40, "the " + profile + " should start far away, not " + mob.distanceTo(player) + " blocks");
+        Mob[] mob = {null};
         List<Integer> targetedAt = new ArrayList<>();
-        int[] ticks = {0};
+        int[] ticks = {0, 0};
+        TestLayout.onceTicking(helper, List.of(marker), () -> {
+            UUID id = active.world().spawnZombie(marker, new GameWorld.ZombieSpec(ResourceLocation.tryBuild(Hellstorm.MOD_ID, profile), 200, 0.3))
+                    .orElseThrow(() -> new IllegalStateException(profile + " didn't spawn"));
+            mob[0] = (Mob) helper.getLevel().getEntity(id);
+            ticks[1] = ticks[0];
+            helper.assertTrue(kind.isInstance(mob[0]), profile + " spawned " + mob[0]);
+            helper.assertTrue(mob[0].distanceTo(player) > 40, "the " + profile + " should start far away, not " + mob[0].distanceTo(player) + " blocks");
+        });
         helper.onEachTick(() -> {
             ticks[0]++;
-            if (targetedAt.isEmpty() && mob.getTarget() == player) {
-                targetedAt.add(ticks[0]);
+            if (mob[0] != null && targetedAt.isEmpty() && mob[0].getTarget() == player) {
+                targetedAt.add(ticks[0] - ticks[1]);
             }
         });
         helper.succeedWhen(() -> {
             player.moveTo(stand.getCenter());
-            helper.assertTrue(mob.distanceTo(player) < 2.5, "the " + profile + " is " + String.format("%.1f", mob.distanceTo(player))
+            helper.assertTrue(mob[0] != null, "the " + profile + " hasn't spawned yet");
+            helper.assertTrue(mob[0].distanceTo(player) < 2.5, "the " + profile + " is " + String.format("%.1f", mob[0].distanceTo(player))
                     + " blocks from the player; guided legs " + active.pathing().guidedLegs());
             int legs = active.pathing().guidedLegs();
             GameManager.end(active);
