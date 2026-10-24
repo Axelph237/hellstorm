@@ -43,10 +43,10 @@ public final class BoxPools {
             protected void apply(Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
                 Map<ResourceLocation, BoxPool> loaded = new TreeMap<>();
                 files.forEach((id, json) -> BoxPool.CODEC.parse(JsonOps.INSTANCE, json)
-                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad box pool {}: {}", id, error))
+                        .resultOrPartial(error -> Hellstorm.LOG.error("Bad Mystery Crate pool {}: {}", id, error))
                         .ifPresent(pool -> loaded.put(id, pool)));
                 pools = Map.copyOf(loaded);
-                Hellstorm.LOG.info("Loaded {} Hellstorm box pools", loaded.size());
+                Hellstorm.LOG.info("Loaded {} Hellstorm Mystery Crate pools", loaded.size());
             }
         });
     }

@@ -147,7 +147,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         @Override
         protected Optional<String> problem(Config config) {
             return BoxPools.get(config.pool()).isPresent() ? Optional.empty()
-                    : Optional.of("No box pool " + config.pool() + " is loaded (data/<ns>/hellstorm/box_pools/<id>.json)");
+                    : Optional.of("No Mystery Crate pool " + config.pool() + " is loaded (data/<ns>/hellstorm/box_pools/<id>.json)");
         }
 
         public Phase phase() {

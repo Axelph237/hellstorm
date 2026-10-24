@@ -39,6 +39,13 @@ public final class GunBalanceGameTests {
         helper.succeed();
     }
 
+    @GameTest(template = "floor")
+    public static void theMinigunGetsAMagazineMoreReserveSinceItNeverUsesItsMagazine(GameTestHelper helper) {
+        int minigun = reserve(ResourceLocation.tryBuild("tacz", "minigun"));
+        helper.assertTrue(minigun == (4 + 1) * 30, "the minigun (30-round magazine, fed from the reserve) should carry 5 magazines, 150, not " + minigun);
+        helper.succeed();
+    }
+
     private static float hit(GameTestHelper helper, Zombie target, String gun, float amount, LogicalSide side) {
         EntityHurtByGunEvent.Pre event = new EntityHurtByGunEvent.Pre(null, target, null, ResourceLocation.tryBuild("tacz", gun), null,
                 amount, Pair.of(null, null), false, 1f, side);

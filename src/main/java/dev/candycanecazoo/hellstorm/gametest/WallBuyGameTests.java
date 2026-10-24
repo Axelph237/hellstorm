@@ -42,6 +42,8 @@ public final class WallBuyGameTests {
     // TacZ's own NBT keys, so the test can empty a gun without going through TacZ.
     private static final String MAGAZINE = "GunCurrentAmmoCount";
     private static final String RESERVE = "DummyAmmo";
+    private static final String MAX_RESERVE = "MaxDummyAmmo";
+    private static final String BARREL = "HasBulletInBarrel";
 
     private WallBuyGameTests() {}
 
@@ -71,6 +73,12 @@ public final class WallBuyGameTests {
         helper.assertTrue(actual == expected, why + ": expected " + expected + " points, have " + actual);
     }
 
+    /** What using {@code at} would do for {@code player}, as their prompt shows it. */
+    private static WallBuy.Action action(GameTestHelper helper, BlockPos at, ServerPlayer player) {
+        WallBuyBlock.Entity entity = entity(helper, at);
+        return WallBuyBlock.action(entity.config(), entity.display(), player, WallBuyBlock.find(player.getInventory(), entity.config().item()));
+    }
+
     @GameTest(template = "floor", batch = "wallbuy_gun")
     public static void aGunWallBuySellsTheGunThenRefillsItsAmmo(GameTestHelper helper) {
         BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 300, WallBuy.Repurchase.REFILL_AMMO, 100, 50, false));
@@ -84,21 +92,76 @@ public final class WallBuyGameTests {
             assertPoints(helper, active, player, 200, "the gun costs 300");
             helper.assertTrue(events.contains(new GameEvent.WallBuy(player.getUUID(), AK47.toString(), 300, false)), "a wall_buy event, got " + events);
 
+            helper.assertTrue(action(helper, at, player) instanceof WallBuy.Action.Deny, "a full gun gets no prompt, got " + action(helper, at, player));
+            FeatureBlock.use(player, at);
+            assertPoints(helper, active, player, 200, "a full gun isn't refilled or charged");
+            helper.assertFalse(events.stream().anyMatch(e -> e instanceof GameEvent.WallBuy buy && buy.refill()), "no refill event for a full gun");
+
             ItemStack gun = guns(player, AK47).get(0);
             gun.getTag().putInt(MAGAZINE, 0);
             gun.getTag().putInt(RESERVE, 0);
+            gun.getTag().putBoolean(BARREL, false);
+            helper.assertTrue(action(helper, at, player) instanceof WallBuy.Action.Refill, "an empty gun is offered a refill");
             FeatureBlock.use(player, at);
             assertPoints(helper, active, player, 100, "a refill costs the ammo cost");
             helper.assertTrue(guns(player, AK47).size() == 1, "a refill doesn't give a second gun");
             gun = guns(player, AK47).get(0);
-            helper.assertTrue(gun.getTag().getInt(MAGAZINE) > 0 && gun.getTag().getInt(RESERVE) > 0,
-                    "the refill fills magazine and reserve: " + gun.getTag());
+            helper.assertTrue(gun.getTag().getInt(MAGAZINE) > 0 && gun.getTag().getInt(RESERVE) > 0 && gun.getTag().getBoolean(BARREL),
+                    "the refill fills magazine and reserve and chambers a round: " + gun.getTag());
+            helper.assertTrue(TaczBridge.ammoFull(gun), "a refilled gun is full: " + gun.getTag());
             helper.assertTrue(events.contains(new GameEvent.WallBuy(player.getUUID(), AK47.toString(), 100, true)), "a refill event");
+            FeatureBlock.use(player, at);
+            assertPoints(helper, active, player, 100, "refilling again straight away charges nothing");
 
             CompoundTag pap = gun.getOrCreateTagElement(ItemSpec.PAP);
             pap.putInt("tier", 1);
+            gun.getTag().putInt(MAGAZINE, 0);
             FeatureBlock.use(player, at);
             assertPoints(helper, active, player, 50, "an upgraded gun refills at the upgraded ammo cost");
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "wallbuy_unlimited")
+    public static void aGunWithUnlimitedAmmoIsNotRefilled(GameTestHelper helper) {
+        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 300, WallBuy.Repurchase.REFILL_AMMO, 100, 50, false));
+        ServerPlayer player = player(helper, "pap_wallbuy_unlimited");
+        GameManager.Active active = game(helper, player, at);
+        try {
+            ItemStack gun = TaczBridge.createGun(AK47, 1).orElseThrow();
+            TaczBridge.setUnlimitedAmmo(gun, true);
+            gun.getTag().putInt(MAGAZINE, 0);
+            player.getInventory().setItem(player.getInventory().selected, gun);
+            helper.assertTrue(action(helper, at, player) instanceof WallBuy.Action.Deny, "an unlimited gun gets no prompt, got " + action(helper, at, player));
+            FeatureBlock.use(player, at);
+            assertPoints(helper, active, player, 500, "an unlimited gun isn't charged for a refill");
+            helper.assertTrue(guns(player, AK47).get(0).getTag().getInt(MAGAZINE) == 0, "nor refilled: its magazine reloads from the endless reserve");
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "floor", batch = "wallbuy_item_fed")
+    public static void aGunFedByAmmoItemsRefillsOnlyItsMagazine(GameTestHelper helper) {
+        BlockPos at = wallBuy(helper, new WallBuy.Config(ItemSpec.Gun.of(AK47), 300, WallBuy.Repurchase.REFILL_AMMO, 100, 50, false));
+        ServerPlayer player = player(helper, "pap_wallbuy_item_fed");
+        GameManager.Active active = game(helper, player, at);
+        try {
+            ItemStack gun = TaczBridge.createGun(AK47, 1).orElseThrow();
+            gun.getTag().remove(RESERVE);
+            gun.getTag().remove(MAX_RESERVE);
+            gun.getTag().putInt(MAGAZINE, 0);
+            player.getInventory().setItem(player.getInventory().selected, gun);
+            FeatureBlock.use(player, at);
+            assertPoints(helper, active, player, 400, "a refill costs the ammo cost");
+            gun = guns(player, AK47).get(0);
+            helper.assertTrue(gun.getTag().getInt(MAGAZINE) > 0, "the magazine is filled: " + gun.getTag());
+            helper.assertFalse(gun.getTag().contains(RESERVE), "a gun fed by ammo items gets no dummy reserve: " + gun.getTag());
+            FeatureBlock.use(player, at);
+            assertPoints(helper, active, player, 400, "with its magazine full, it's full");
         } finally {
             GameManager.end(active);
         }

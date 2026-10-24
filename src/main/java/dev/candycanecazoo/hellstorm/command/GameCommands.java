@@ -6,6 +6,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.GamePhase;
 import dev.candycanecazoo.hellstorm.game.GameSounds;
+import dev.candycanecazoo.hellstorm.game.LifeState;
 import dev.candycanecazoo.hellstorm.game.PlayerState;
 import dev.candycanecazoo.hellstorm.game.Sessions;
 import dev.candycanecazoo.hellstorm.map.validate.Problem;
@@ -127,15 +128,51 @@ final class GameCommands {
             ctx.getSource().sendSuccess(() -> Component.literal("No game is running here"), false);
             return 0;
         }
-        ctx.getSource().sendSuccess(() -> Component.literal("Phase: " + active.get().game().phase()), false);
+        String phase = phaseText(active.get().game().phase(), active.get().game().mobs().size());
+        ctx.getSource().sendSuccess(() -> Component.literal(phase), false);
         ServerLevel level = ctx.getSource().getLevel();
         for (PlayerState player : active.get().game().players()) {
             ServerPlayer online = level.getServer().getPlayerList().getPlayer(player.id());
             String name = online == null ? player.id().toString() : online.getGameProfile().getName();
-            ctx.getSource().sendSuccess(() -> Component.literal(" " + name + ": " + player.points() + " pts, "
-                    + player.kills() + " kills (" + player.headshots() + " headshots)"
-                    + (player.alive() ? "" : player.waiting() ? ", waiting for the start" : ", spectating")), false);
+            ctx.getSource().sendSuccess(() -> Component.literal(" " + name + ": " + lifeText(player.life()) + ", " + player.points() + " pts, "
+                    + player.kills() + " kills (" + player.headshots() + " headshots)"), false);
         }
         return 1;
+    }
+
+    /** The phase as {@code /hs game status} says it, with {@code zombies} alive in the game. */
+    static String phaseText(GamePhase phase, int zombies) {
+        if (phase instanceof GamePhase.Countdown countdown) {
+            return "Starting in " + seconds(countdown.ticksLeft());
+        }
+        if (phase instanceof GamePhase.RoundActive round) {
+            return "Round " + round.round() + ": " + round.toSpawn() + (round.toSpawn() == 1 ? " zombie" : " zombies")
+                    + " still to spawn, " + zombies + " alive";
+        }
+        if (phase instanceof GamePhase.Intermission intermission) {
+            return "Round " + intermission.nextRound() + " starts in " + seconds(intermission.ticksLeft());
+        }
+        if (phase instanceof GamePhase.GameOver over) {
+            return "Game over at round " + over.roundReached() + ", ending in " + seconds(over.ticksLeft());
+        }
+        return "In the lobby: /hs game start when everyone is in";
+    }
+
+    /** A player's state as {@code /hs game status} says it. */
+    static String lifeText(LifeState life) {
+        if (life instanceof LifeState.Waiting) {
+            return "waiting for the start";
+        }
+        if (life instanceof LifeState.Downed down) {
+            return down.reviver().isPresent() || down.selfReviving() ? "down, being revived" : "down, bleeds out in " + seconds(down.bleedTicksLeft());
+        }
+        if (life instanceof LifeState.Spectating) {
+            return "spectating until the next round";
+        }
+        return "alive";
+    }
+
+    private static String seconds(int ticks) {
+        return Math.max(0, (ticks + 19) / 20) + " s";
     }
 }

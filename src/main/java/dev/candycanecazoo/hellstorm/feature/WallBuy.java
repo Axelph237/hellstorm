@@ -90,8 +90,13 @@ public final class WallBuy {
         return Optional.empty();
     }
 
-    /** What the player already carries of the item: how many, and whether a gun is upgraded. */
-    public record Owned(int count, boolean punched) {}
+    /** What the player already carries of the item: how many, whether a gun is upgraded, and whether a refill would add ammo. */
+    public record Owned(int count, boolean punched, Ammo ammo) {}
+
+    /** Whether a refill would give the gun anything: it has room, it is full, or its ammo never runs out. ROOM for other items. */
+    public enum Ammo {
+        ROOM, FULL, UNLIMITED
+    }
 
     public sealed interface Action {
         int cost();
@@ -119,7 +124,11 @@ public final class WallBuy {
         Owned have = owned.get();
         Repurchase repurchase = config.effectiveRepurchase();
         if (repurchase == Repurchase.REFILL_AMMO) {
-            return new Action.Refill(have.punched() ? config.papAmmoCost() : config.ammoCost());
+            return switch (have.ammo()) {
+                case FULL -> new Action.Deny("That gun's ammo is full");
+                case UNLIMITED -> new Action.Deny("That gun has unlimited ammo");
+                case ROOM -> new Action.Refill(have.punched() ? config.papAmmoCost() : config.ammoCost());
+            };
         }
         if (repurchase == Repurchase.DUPLICATE) {
             return new Action.Buy(config.cost());

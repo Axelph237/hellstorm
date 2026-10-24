@@ -19,6 +19,11 @@ class WallBuyTest {
         return new WallBuy.Config(AK, 1200, repurchase, 600, 4500, false);
     }
 
+    /** Carrying {@code count} with room for more ammo. */
+    private static WallBuy.Owned owned(int count, boolean punched) {
+        return new WallBuy.Owned(count, punched, WallBuy.Ammo.ROOM);
+    }
+
     @Test
     void notOwnedIsAPurchaseAtTheFullCost() {
         for (WallBuy.Repurchase mode : WallBuy.Repurchase.values()) {
@@ -28,22 +33,44 @@ class WallBuyTest {
 
     @Test
     void ownedGunsRefillAtTheAmmoCostOrThePapAmmoCost() {
-        assertEquals(new WallBuy.Action.Refill(600), WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(new WallBuy.Owned(1, false))));
-        assertEquals(new WallBuy.Action.Refill(4500), WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(new WallBuy.Owned(1, true))));
+        assertEquals(new WallBuy.Action.Refill(600), WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(owned(1, false))));
+        assertEquals(new WallBuy.Action.Refill(4500), WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(owned(1, true))));
+    }
+
+    @Test
+    void aFullGunIsRefusedWithoutCharging() {
+        WallBuy.Action full = WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(new WallBuy.Owned(1, false, WallBuy.Ammo.FULL)));
+        assertEquals(new WallBuy.Action.Deny("That gun's ammo is full"), full);
+        assertEquals(0, full.cost());
+        assertEquals(new WallBuy.Action.Deny("That gun's ammo is full"),
+                WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(new WallBuy.Owned(1, true, WallBuy.Ammo.FULL))));
+    }
+
+    @Test
+    void anUnlimitedAmmoGunIsRefusedEvenWhenItsMagazineIsEmpty() {
+        assertEquals(new WallBuy.Action.Deny("That gun has unlimited ammo"),
+                WallBuy.decide(gun(WallBuy.Repurchase.REFILL_AMMO), Optional.of(new WallBuy.Owned(1, false, WallBuy.Ammo.UNLIMITED))));
+    }
+
+    @Test
+    void fullnessOnlyMattersToRefills() {
+        assertEquals(new WallBuy.Action.Buy(1200), WallBuy.decide(gun(WallBuy.Repurchase.DUPLICATE), Optional.of(new WallBuy.Owned(1, false, WallBuy.Ammo.FULL))));
+        WallBuy.Config apples = new WallBuy.Config(APPLES, 300, WallBuy.Repurchase.REFILL_AMMO, 150, 4500, false);
+        assertEquals(new WallBuy.Action.TopUp(300, 1), WallBuy.decide(apples, Optional.of(new WallBuy.Owned(2, false, WallBuy.Ammo.FULL))));
     }
 
     @Test
     void topUpFillsBackToTheSpecCountAndRefusesWhenFull() {
         WallBuy.Config apples = new WallBuy.Config(APPLES, 300, WallBuy.Repurchase.TOP_UP, 150, 4500, false);
-        assertEquals(new WallBuy.Action.TopUp(300, 2), WallBuy.decide(apples, Optional.of(new WallBuy.Owned(1, false))));
-        assertInstanceOf(WallBuy.Action.Deny.class, WallBuy.decide(apples, Optional.of(new WallBuy.Owned(3, false))));
-        assertInstanceOf(WallBuy.Action.Deny.class, WallBuy.decide(apples, Optional.of(new WallBuy.Owned(5, false))));
+        assertEquals(new WallBuy.Action.TopUp(300, 2), WallBuy.decide(apples, Optional.of(owned(1, false))));
+        assertInstanceOf(WallBuy.Action.Deny.class, WallBuy.decide(apples, Optional.of(owned(3, false))));
+        assertInstanceOf(WallBuy.Action.Deny.class, WallBuy.decide(apples, Optional.of(owned(5, false))));
     }
 
     @Test
     void duplicateBuysAnotherAndDenyRefusesWithoutCost() {
-        assertEquals(new WallBuy.Action.Buy(1200), WallBuy.decide(gun(WallBuy.Repurchase.DUPLICATE), Optional.of(new WallBuy.Owned(1, false))));
-        WallBuy.Action deny = WallBuy.decide(gun(WallBuy.Repurchase.DENY), Optional.of(new WallBuy.Owned(1, false)));
+        assertEquals(new WallBuy.Action.Buy(1200), WallBuy.decide(gun(WallBuy.Repurchase.DUPLICATE), Optional.of(owned(1, false))));
+        WallBuy.Action deny = WallBuy.decide(gun(WallBuy.Repurchase.DENY), Optional.of(owned(1, false)));
         assertInstanceOf(WallBuy.Action.Deny.class, deny);
         assertEquals(0, deny.cost());
     }
@@ -51,7 +78,7 @@ class WallBuyTest {
     @Test
     void refillAmmoOnAPlainItemTopsUpInstead() {
         WallBuy.Config apples = new WallBuy.Config(APPLES, 300, WallBuy.Repurchase.REFILL_AMMO, 150, 4500, false);
-        assertEquals(new WallBuy.Action.TopUp(300, 1), WallBuy.decide(apples, Optional.of(new WallBuy.Owned(2, false))));
+        assertEquals(new WallBuy.Action.TopUp(300, 1), WallBuy.decide(apples, Optional.of(owned(2, false))));
     }
 
     @Test

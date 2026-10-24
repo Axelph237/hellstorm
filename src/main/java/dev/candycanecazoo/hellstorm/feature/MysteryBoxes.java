@@ -1,5 +1,6 @@
 package dev.candycanecazoo.hellstorm.feature;
 
+import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.data.BoxPool;
 import dev.candycanecazoo.hellstorm.data.BoxPools;
@@ -148,7 +149,8 @@ public final class MysteryBoxes {
             @Override
             public Optional<Refusal> check(GameManager.Active g, ServerPlayer p) {
                 if (BoxPools.get(box.config().pool()).isEmpty()) {
-                    return Optional.of(new Refusal.Because("Unknown box pool " + box.config().pool()));
+                    Hellstorm.LOG.warn("The Mystery Crate at {} rolls from pool {}, which isn't loaded", box.getBlockPos().toShortString(), box.config().pool());
+                    return Optional.of(new Refusal.Translated("message.hellstorm.box.empty", List.of(BOX)));
                 }
                 return pool(g, box.config().pool()).isEmpty() ? Optional.of(new Refusal.Translated("message.hellstorm.box.empty", List.of(BOX))) : Optional.empty();
             }

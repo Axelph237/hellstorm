@@ -160,7 +160,15 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
             return Optional.empty();
         }
         int count = matches.stream().mapToInt(ItemStack::getCount).sum();
-        return Optional.of(new Match(matches.get(0), new WallBuy.Owned(count, punched(matches.get(0)))));
+        ItemStack first = matches.get(0);
+        return Optional.of(new Match(first, new WallBuy.Owned(count, punched(first), ammo(first))));
+    }
+
+    private static WallBuy.Ammo ammo(ItemStack stack) {
+        if (TaczBridge.hasUnlimitedAmmo(stack)) {
+            return WallBuy.Ammo.UNLIMITED;
+        }
+        return TaczBridge.ammoFull(stack) ? WallBuy.Ammo.FULL : WallBuy.Ammo.ROOM;
     }
 
     /** The upgrader writes its tier into the item's {@code pap} compound. */

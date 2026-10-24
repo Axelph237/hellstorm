@@ -74,9 +74,6 @@ public final class VendingMachineBlock extends TwoBlockMachine {
      */
     public static final String USE = "use";
     public static final int VEND_TICKS = 32;
-    /** When each of the use animation's three keys hits bottom, and its click's pitch. */
-    private static final int[] PRESS_TICKS = {3, 6, 9};
-    private static final float[] PRESS_PITCHES = {1.0f, 1.12f, 0.94f};
     /** How long the machine takes to light up or go dark. */
     public static final int FADE_TICKS = 20;
     /** Each block's shape, by the side of it away from the other half: the model is 4 pixels short of the blocks' ends. */
@@ -120,7 +117,12 @@ public final class VendingMachineBlock extends TwoBlockMachine {
         /** Synced: whether it can sell, and when the vend ends in server time (0 for none). */
         private boolean on;
         private long vendUntil;
-        /** Client only, in client time: when it last lit up or went dark, when the vend it's drawing began, and its last tick of it. */
+        /**
+         * Client only: the ticks this machine has run on the client. Its own clock, since the client's game time jumps, back
+         * as well as forward, when the server lags and it catches up.
+         */
+        private long clientTicks;
+        /** Client only, in {@link #clientTicks}: when it last lit up or went dark, when the vend it's drawing began, and its last tick of it. */
         private long switchedAt = NEVER;
         private long vendStarted = NEVER;
         private long vendHeard = -1;
@@ -132,7 +134,7 @@ public final class VendingMachineBlock extends TwoBlockMachine {
         @Override
         public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
             controllers.add(new AnimationController<>(this, USE, 0, state -> {
-                if (level != null && vendTick(level.getGameTime()) >= 0) {
+                if (vendTick() >= 0) {
                     return state.setAndContinue(USE_ANIMATION);
                 }
                 // So the next vend plays from the start, even though the controller last played the same animation.
@@ -224,29 +226,31 @@ public final class VendingMachineBlock extends TwoBlockMachine {
 
         /** The clicks of the keys, in time with the use animation, and the hum while lit. */
         void clientTick() {
-            long tick = vendTick(level.getGameTime());
-            if (tick > vendHeard) {
+            clientTicks++;
+            long tick = vendTick();
+            for (VendTiming.Press press : VendTiming.pressesDue(vendHeard, tick)) {
                 Vec3 keys = center();
-                for (int i = 0; i < PRESS_TICKS.length; i++) {
-                    if (vendHeard < PRESS_TICKS[i] && tick >= PRESS_TICKS[i]) {
-                        level.playLocalSound(keys.x, keys.y, keys.z, PapRegistries.VENDING_MACHINE_BUTTON.get(), SoundSource.BLOCKS, 0.8f, PRESS_PITCHES[i], false);
-                    }
-                }
+                level.playLocalSound(keys.x, keys.y, keys.z, PapRegistries.VENDING_MACHINE_BUTTON.get(), SoundSource.BLOCKS, 0.8f, press.pitch(), false);
             }
-            vendHeard = tick;
+            vendHeard = Math.max(vendHeard, tick);
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> VendingMachineHum.keep(this));
         }
 
-        /** Client side: ticks into the vend being drawn at {@code now}, or -1 when there's none. */
-        public long vendTick(long now) {
-            long tick = now - vendStarted;
+        /** Client side: ticks into the vend being drawn, or -1 when there's none. */
+        private long vendTick() {
+            long tick = clientTicks - vendStarted;
             return tick >= 0 && tick < VEND_TICKS ? tick : -1;
         }
 
-        /** Client side: how lit it is {@code partialTick} after {@code now}, from 0 (dark) to 1, fading over {@link #FADE_TICKS} when it switches. */
-        public float lit(long now, float partialTick) {
-            float switched = Mth.clamp((now - switchedAt + partialTick) / FADE_TICKS, 0, 1);
+        /** Client side: how lit it is {@code partialTick} into the tick, from 0 (dark) to 1, fading over {@link #FADE_TICKS} when it switches. */
+        public float lit(float partialTick) {
+            float switched = Mth.clamp((clientTicks - switchedAt + partialTick) / FADE_TICKS, 0, 1);
             return on ? switched : 1 - switched;
+        }
+
+        /** Client side: this machine's own time in ticks, {@code partialTick} into the tick, for its animated lights. */
+        public double clientTime(float partialTick) {
+            return clientTicks + (double) partialTick;
         }
 
         /** The middle of the machine, on the seam between its blocks. */
@@ -273,11 +277,11 @@ public final class VendingMachineBlock extends TwoBlockMachine {
                 return;
             }
             if (on != wasOn) {
-                switchedAt = level.getGameTime();
+                switchedAt = clientTicks;
             }
             if (vendUntil != wasUntil) {
-                // The client's clock, so the sounds keep time with the animation, which starts when this arrives.
-                vendStarted = vendUntil != 0 ? level.getGameTime() : NEVER;
+                // The animation and its clicks start when this arrives, not when the server began the vend.
+                vendStarted = vendUntil != 0 ? clientTicks : NEVER;
                 vendHeard = -1;
             }
         }

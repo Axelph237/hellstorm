@@ -162,10 +162,10 @@ public final class GameSettingsConfig {
         b.push("box");
         boxCost = b.defineInRange("cost", d.box().cost(), 0, 1_000_000);
         boxFireSaleCost = b.comment("What a roll costs during a Fire Sale.").defineInRange("fire_sale_cost", d.box().fireSaleCost(), 0, 1_000_000);
-        boxRollTicks = b.comment("How long the box cycles items before showing the result.").defineInRange("roll_ticks", d.box().rollTicks(), 1, 1200);
+        boxRollTicks = b.comment("How long the Mystery Crate cycles items before showing the result.").defineInRange("roll_ticks", d.box().rollTicks(), 1, 1200);
         boxCollectTicks = b.comment("How long the roller has to take the result.").defineInRange("collect_ticks", d.box().collectTicks(), 1, 12000);
-        boxMinUses = b.comment("Rolls at one location before the box can move.").defineInRange("min_uses_before_move", d.box().minUsesBeforeMove(), 0, 1000);
-        boxMoveChance = b.comment("Chance per roll, after the minimum, that the box moves instead.").defineInRange("move_chance", d.box().moveChance(), 0.0, 1.0);
+        boxMinUses = b.comment("Rolls at one location before the Mystery Crate can move.").defineInRange("min_uses_before_move", d.box().minUsesBeforeMove(), 0, 1000);
+        boxMoveChance = b.comment("Chance per roll, after the minimum, that the Mystery Crate moves instead.").defineInRange("move_chance", d.box().moveChance(), 0.0, 1.0);
         b.pop();
         b.push("pap");
         papDefaultCost = b.defineInRange("default_cost", d.pap().defaultCost(), 0, 1_000_000);

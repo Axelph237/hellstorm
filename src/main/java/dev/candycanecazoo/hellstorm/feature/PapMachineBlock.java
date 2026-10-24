@@ -116,6 +116,12 @@ public final class PapMachineBlock extends TwoBlockMachine {
         private Optional<Job> job = Optional.empty();
         /** The machine's cost as the running game sees it, synced for the prompt. */
         private int shownCost;
+        /**
+         * Client only: the ticks this machine has run on the client, and the one its item's fire started at. Its own clock,
+         * since the client's game time jumps, back as well as forward, when the server lags and it catches up.
+         */
+        private long clientTicks;
+        private long burnStart;
 
         public Entity(BlockPos pos, BlockState state) {
             super(PapRegistries.PAP_MACHINE_ENTITY.get(), pos, state, Config.CODEC, new Config(Optional.empty()));
@@ -291,9 +297,9 @@ public final class PapMachineBlock extends TwoBlockMachine {
                     .add(Vec3.atLowerCornerOf(side(facing).getNormal()).scale(SIDE_OFFSET));
         }
 
-        /** Ticks the item has been burning, or -1 when nothing is burning. */
-        public long burning(long now) {
-            return job.isPresent() && !job.get().ready() ? Math.max(0, now - job.get().started()) : -1;
+        /** Client side: ticks the item has been burning, or -1 when nothing is burning. */
+        public long burning() {
+            return job.isPresent() && !job.get().ready() ? Math.max(0, clientTicks - burnStart) : -1;
         }
 
         @Override
@@ -312,7 +318,8 @@ public final class PapMachineBlock extends TwoBlockMachine {
 
         /** While the item burns, embers and smoke rise off it. The flames themselves are drawn by the renderer. */
         void clientTick(Level level) {
-            if (burning(level.getGameTime()) < 0) {
+            clientTicks++;
+            if (burning() < 0) {
                 return;
             }
             RandomSource random = level.random;
@@ -335,7 +342,13 @@ public final class PapMachineBlock extends TwoBlockMachine {
         @Override
         public void load(CompoundTag tag) {
             super.load(tag);
+            Optional<Job> was = job;
             job = tag.contains("job") ? Optional.of(Job.load(tag.getCompound("job"))) : Optional.empty();
+            boolean newBurn = job.isPresent() && !job.get().ready() && (was.isEmpty() || was.get().started() != job.get().started());
+            if (newBurn && level != null && level.isClientSide) {
+                // Already burning as long as the server says when this arrives, then on this machine's own clock.
+                burnStart = clientTicks - Math.max(0, level.getGameTime() - job.get().started());
+            }
             shownCost = tag.getInt("shown_cost");
         }
 

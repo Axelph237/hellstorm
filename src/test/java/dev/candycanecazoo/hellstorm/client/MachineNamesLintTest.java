@@ -25,6 +25,10 @@ class MachineNamesLintTest {
     private static final Pattern NAMES = Pattern.compile("Pack-a-Punch|Pack-A-Punch|Mystery Crate|Vigoraid|Vigorade|Load-Up|RE:Load|Hellfire|Saint's Brew|Off-Hand|"
             + "Wandering Spirit|Jockey Energy|Insta-Kill|Max Ammo|Double Points|Fire Sale|Carpenter|Nuke", Pattern.CASE_INSENSITIVE);
     private static final Pattern KEY = Pattern.compile("\"((?:name|message)\\.hellstorm\\.[a-z0-9_.]*[a-z0-9_])\"");
+    private static final Pattern STRING = Pattern.compile("\"((?:[^\"\\\\\\n]|\\\\.)*)\"");
+    private static final Pattern CRATE_AS_BOX = Pattern.compile("\\bmystery box|(?<!/hs )\\bbox pools?\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CONFIG_COMMENT = Pattern.compile("\\.comment\\(\"([^\"]*)\"");
+    private static final Pattern BOX = Pattern.compile("\\bbox(es)?\\b", Pattern.CASE_INSENSITIVE);
 
     private static List<Path> sources() throws IOException {
         try (Stream<Path> files = Files.walk(Path.of("src/main/java"))) {
@@ -44,6 +48,34 @@ class MachineNamesLintTest {
             }
         }
         assertEquals(List.of(), offenders, "use a name.hellstorm.* key (Refusal.Translated, GameWorld.announceNamed, Language for prompts)");
+    }
+
+    /**
+     * Players and map makers know it as the Mystery Crate. Any string may say "box" for a selection box, so strings are only
+     * checked for the crate's old names (the {@code /hs box} command keeps its name); config comments and the lang file never mean a selection box, so there "box" is out.
+     */
+    @Test
+    void noTextCallsTheCrateABox() throws IOException {
+        List<String> offenders = new ArrayList<>();
+        for (Path file : sources()) {
+            String source = Files.readString(file);
+            Matcher text = STRING.matcher(source);
+            while (text.find()) {
+                if (CRATE_AS_BOX.matcher(text.group(1)).find()) {
+                    offenders.add(file.getFileName() + ": \"" + text.group(1) + "\"");
+                }
+            }
+            Matcher comment = CONFIG_COMMENT.matcher(source);
+            while (comment.find()) {
+                if (BOX.matcher(comment.group(1)).find()) {
+                    offenders.add(file.getFileName() + " config comment: \"" + comment.group(1) + "\"");
+                }
+            }
+        }
+        JsonObject lang = JsonParser.parseString(Files.readString(Path.of("src/main/resources/assets/hellstorm/lang/en_us.json"))).getAsJsonObject();
+        lang.entrySet().stream().filter(e -> BOX.matcher(e.getValue().getAsString()).find())
+                .forEach(e -> offenders.add("en_us.json: " + e.getKey()));
+        assertEquals(List.of(), offenders, "say Mystery Crate (in player text, name.hellstorm.mystery_crate)");
     }
 
     @Test

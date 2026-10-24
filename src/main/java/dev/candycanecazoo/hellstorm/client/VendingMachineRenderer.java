@@ -69,8 +69,8 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
         if (level == null) {
             return;
         }
-        float lit = machine.lit(level.getGameTime(), partialTick);
-        int frame = (int) ((long) ((level.getGameTime() + (double) partialTick) / 20 * LIT_FPS) % LIT_FRAMES);
+        float lit = machine.lit(partialTick);
+        int frame = (int) ((long) (machine.clientTime(partialTick) / 20 * LIT_FPS) % LIT_FRAMES);
         // Named in the F3+L profile, under blockentities.
         ProfilerFiller profiler = level.getProfiler();
         profiler.push(Hellstorm.MOD_ID + "_vending_machine");

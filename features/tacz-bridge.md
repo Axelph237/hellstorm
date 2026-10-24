@@ -57,13 +57,18 @@ None.
 Run with `./gradlew runGameTestServer` (`gametest/TaczSpikeTests`). All four pass.
 
 - **Dummy ammo works for every magazine-fed gun.** All 53 magazine-fed guns in the default pack reload from dummy ammo.
-- **`inventory` feed guns can't use dummy ammo.** TacZ's reload returns early when `useInventoryAmmo` is true, so dummy ammo never applies. In the default pack that is only `tacz:minigun`. The bridge must give these guns real ammo items (`AmmoItemBuilder`) for reserve and refills.
+- **`inventory` feed guns fire straight from the dummy reserve.** TacZ's reload returns early when `useInventoryAmmo` is true, so they never reload, and their magazine is never used: each shot takes a round from the dummy reserve. In the default pack that is only `tacz:minigun`. (This spike first read it as "can't use dummy ammo"; a 2026-10-24 GameTest probe fired a Hellstorm-built minigun's 90-round reserve dry with its 30-round magazine untouched.) So `createGun` gives such a gun one more magazine of reserve (below).
 - **Always set a fire mode.** `createGun` sets the first mode from `GunData.getFireModeSet()`. Without it, scripted guns stall: `tacz:hk_mk23`'s Lua reload logic only sets timings for `SEMI` and `BURST`, so its reload never finished.
 - **The RPM override works in live fire.** Setting `ROUNDS_PER_MINUTE` to 60 through `AttachmentPropertyEvent` is cached and enforced. 330 ms after the first shot, the stock AK fires again and the 60 RPM AK returns `COOL_DOWN`.
 - **Mag size can't be changed through the cache.** `GunProperties` has no capacity entry, and capacity comes from `AttachmentDataUtils.getAmmoCountWithAttachment` (extended-mag level). The upgrader's mag boost installs an extended-mag attachment instead.
 - **Gun type for the downed-pistol rule** is `CommonGunIndex.getType()` (for example `"pistol"`).
 - **TacZ timers use wall-clock time.** Draw, reload, and shoot timers use `System.currentTimeMillis`, and the GameTest server ticks faster than real time, so GameTests involving them must poll for completion, not wait a fixed number of ticks.
 - **Vanilla side:** `Mob.goalSelector` and `targetSelector` are accessible without an access transformer. `Player.setForcedPose(Pose.SWIMMING)` produces the crawl pose and hitbox.
+
+## As built (ammo, 2026-10-24)
+
+- **The minigun's supply.** A gun that feeds from the inventory (`IGun.useInventoryAmmo`, the `inventory` feed type) fires from its dummy reserve and never touches its magazine, so `createGun` gives it `reserve_magazines + 1` magazines of reserve: the one magazine a magazine-fed gun carries loaded goes into its reserve instead. At the default 4, the minigun carries 150 rounds, not 120. Refills fill it back to that. GameTest `GunBalanceGameTests.theMinigunGetsAMagazineMoreReserveSinceItNeverUsesItsMagazine`.
+- **Refills.** `refillAmmo` fills the magazine (with attachments), chambers a round unless the gun fires from an open bolt (`GunData.getBolt()`), and fills the dummy reserve to its maximum. A gun with no `DummyAmmo` tag, fed by ammo items, gets only its magazine: before, the refill wrote `DummyAmmo` 0, and TacZ reloads from dummy ammo whenever that tag exists, so the gun stopped reloading from its ammo items. `ammoFull` says whether a refill would add nothing: the magazine is full, a round is chambered (unless open bolt), and any dummy reserve is at its maximum. Wall-buys use it to refuse a full gun (`wall-buys.md`). Max Ammo and the upgrader refill through the same call, so they chamber a round too.
 
 ## As built (no terrain damage)
 

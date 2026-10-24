@@ -78,7 +78,7 @@ public final class PapMachineRenderer implements BlockEntityRenderer<PapMachineB
         items.renderStatic(stack, ItemDisplayContext.FIXED, LevelRenderer.getLightColor(machine.getLevel(), machine.getBlockPos().above()),
                 OverlayTexture.NO_OVERLAY, pose, buffers, machine.getLevel(), (int) machine.getBlockPos().asLong());
         pose.popPose();
-        long burning = machine.burning(machine.getLevel().getGameTime());
+        long burning = machine.burning();
         if (burning >= 0) {
             flames(machine, pose, buffers, burning + partialTick);
         }

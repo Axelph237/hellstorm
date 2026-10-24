@@ -34,7 +34,7 @@ public final class VendingMachineHum extends AbstractTickableSoundInstance {
 
     /** Starts the machine's hum if it is lit and not already humming. Called every client tick. */
     public static void keep(VendingMachineBlock.Entity machine) {
-        float lit = machine.lit(machine.getLevel().getGameTime(), 0);
+        float lit = machine.lit(0);
         WeakReference<VendingMachineHum> playing = PLAYING.get(machine);
         VendingMachineHum hum = playing == null ? null : playing.get();
         if (lit > 0 && (hum == null || !Minecraft.getInstance().getSoundManager().isActive(hum))) {
@@ -52,7 +52,7 @@ public final class VendingMachineHum extends AbstractTickableSoundInstance {
 
     @Override
     public void tick() {
-        float lit = machine.isRemoved() || machine.getLevel() == null ? 0 : machine.lit(machine.getLevel().getGameTime(), 0);
+        float lit = machine.isRemoved() || machine.getLevel() == null ? 0 : machine.lit(0);
         if (lit <= 0) {
             PLAYING.remove(machine);
             stop();

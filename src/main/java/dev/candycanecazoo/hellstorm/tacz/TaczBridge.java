@@ -4,6 +4,7 @@ import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.resource.index.CommonGunIndex;
+import com.tacz.guns.resource.pojo.data.gun.Bolt;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz.guns.util.AttachmentDataUtils;
 import dev.candycanecazoo.hellstorm.data.GunBalances;
@@ -56,7 +57,9 @@ public final class TaczBridge {
                     .setAmmoInBarrel(true)
                     .build();
             IGun gun = IGun.getIGunOrNull(stack);
-            int reserve = GunBalances.of(gunId).reserve(magazine, reserveMagazines);
+            // A gun fed from the inventory (the minigun) fires from the reserve and never uses its magazine, so it gets one more.
+            int magazines = gun.useInventoryAmmo(stack) ? reserveMagazines + 1 : reserveMagazines;
+            int reserve = GunBalances.of(gunId).reserve(magazine, magazines);
             gun.setMaxDummyAmmoAmount(stack, reserve);
             gun.setDummyAmmoAmount(stack, reserve);
             return stack;
@@ -73,7 +76,10 @@ public final class TaczBridge {
                 .map(index -> new GunInfo(gunId, index.getType(), magazineSize(stack, index)));
     }
 
-    /** Fills the magazine and the dummy reserve. Returns false if the stack is not a known TacZ gun. */
+    /**
+     * Fills the magazine, chambers a round (unless the gun fires from an open bolt), and fills the dummy reserve. A gun fed
+     * by ammo items, with no dummy reserve, gets only its magazine. Returns false if the stack is not a known TacZ gun.
+     */
     public static boolean refillAmmo(ItemStack stack) {
         IGun gun = IGun.getIGunOrNull(stack);
         if (gun == null) {
@@ -84,8 +90,31 @@ public final class TaczBridge {
             return false;
         }
         gun.setCurrentAmmoCount(stack, magazineSize(stack, index.get()));
-        gun.setDummyAmmoAmount(stack, gun.getMaxDummyAmmoAmount(stack));
+        if (chambers(index.get())) {
+            gun.setBulletInBarrel(stack, true);
+        }
+        if (gun.useDummyAmmo(stack)) {
+            gun.setDummyAmmoAmount(stack, gun.getMaxDummyAmmoAmount(stack));
+        }
         return true;
+    }
+
+    /** Whether {@link #refillAmmo} would add nothing. False for a stack that isn't a known TacZ gun. */
+    public static boolean ammoFull(ItemStack stack) {
+        IGun gun = IGun.getIGunOrNull(stack);
+        if (gun == null) {
+            return false;
+        }
+        return TimelessAPI.getCommonGunIndex(gun.getGunId(stack)).map(index ->
+                gun.getCurrentAmmoCount(stack) >= magazineSize(stack, index)
+                        && (!chambers(index) || gun.hasBulletInBarrel(stack))
+                        && (!gun.useDummyAmmo(stack) || gun.getDummyAmmoAmount(stack) >= gun.getMaxDummyAmmoAmount(stack)))
+                .orElse(false);
+    }
+
+    /** An open-bolt gun keeps no round in the chamber. */
+    private static boolean chambers(CommonGunIndex index) {
+        return index.getGunData().getBolt() != Bolt.OPEN_BOLT;
     }
 
     private static final String TAG = "hellstorm";
