@@ -50,17 +50,7 @@ final class GameCommands {
         if (existing.isPresent()) {
             active = existing.get();
         } else {
-            GameManager.CreateResult result = GameManager.create(level);
-            if (result instanceof GameManager.CreateResult.Invalid invalid) {
-                throw CommandErrors.failAll(MapCommands.messages(invalid.report(), Problem.Severity.ERROR), List.of());
-            }
-            if (result instanceof GameManager.CreateResult.EditMode) {
-                throw CommandErrors.fail("This map is in edit mode. An op can open it for games with {}", "/hs map mode play");
-            }
-            if (result instanceof GameManager.CreateResult.NoStartCells) {
-                throw CommandErrors.fail("No start room has a spot to stand on (solid floor and two blocks of headroom)");
-            }
-            active = ((GameManager.CreateResult.Created) result).active();
+            active = opened(GameManager.create(level));
         }
         if (active.game().full()) {
             throw CommandErrors.fail("This game is full ({} players)", active.game().settings().players().maxPlayers());
@@ -78,6 +68,20 @@ final class GameCommands {
                 : waiting ? " It's about to start" : " You'll spawn next round";
         ctx.getSource().sendSuccess(() -> Component.literal("Joined the game." + next).withStyle(ChatFormatting.GREEN), false);
         return 1;
+    }
+
+    /** The game {@code result} opened, or the reason it couldn't, as a command failure. */
+    private static GameManager.Active opened(GameManager.CreateResult result) throws CommandSyntaxException {
+        if (result instanceof GameManager.CreateResult.Invalid invalid) {
+            throw CommandErrors.failAll(MapCommands.messages(invalid.report(), Problem.Severity.ERROR), List.of());
+        }
+        if (result instanceof GameManager.CreateResult.EditMode) {
+            throw CommandErrors.fail("This map is in edit mode. An op can open it for games with {}", "/hs map mode play");
+        }
+        if (result instanceof GameManager.CreateResult.NoStartCells) {
+            throw CommandErrors.fail("No start room has a spot to stand on (solid floor and two blocks of headroom)");
+        }
+        return ((GameManager.CreateResult.Created) result).active();
     }
 
     private static int leave(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -105,7 +109,11 @@ final class GameCommands {
         if (active.isEmpty()) {
             throw CommandErrors.fail("No game here. Run {} first", "/hs game join");
         }
-        if (!active.get().game().start()) {
+        GameManager.Active game = active.get();
+        if (game.game().phase() instanceof GamePhase.Lobby) {
+            game = opened(GameManager.reopen(game));
+        }
+        if (!game.game().start()) {
             throw CommandErrors.fail("The game has already started");
         }
         ctx.getSource().sendSuccess(() -> Component.literal("Starting"), true);

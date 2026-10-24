@@ -135,6 +135,31 @@ public final class GameManager {
         return new CreateResult.Created(register(level, gameMap, startCells, level.getServer().getPlayerList()::getPlayer));
     }
 
+    /**
+     * Opens a fresh game from {@code lobby}'s level for its players, so edits to the map or the world made while the lobby
+     * was open are in the game that starts. The map is checked first, without touching the lobby: a map that has broken
+     * since the lobby opened is refused, and the lobby stays as it was. Lobby players are only waiting (nothing of theirs
+     * has been taken yet), so the old game is dropped without ending it, which would announce a game over.
+     */
+    public static CreateResult reopen(Active lobby) {
+        ServerLevel level = lobby.level();
+        if (MapSavedData.get(level).mode() == dev.candycanecazoo.hellstorm.map.MapMode.EDIT) {
+            return new CreateResult.EditMode();
+        }
+        ValidationReport report = MapValidator.validate(MapSavedData.get(level).map(), validationContext(level));
+        if (!report.playable()) {
+            return new CreateResult.Invalid(report);
+        }
+        List<UUID> waiting = lobby.game().players().stream().map(PlayerState::id).toList();
+        lobby.pathing().close();
+        GAMES.remove(level.dimension());
+        CreateResult result = create(level);
+        if (result instanceof CreateResult.Created created) {
+            waiting.forEach(created.active().game()::join);
+        }
+        return result;
+    }
+
     /** Registers a game directly. GameTests use this with their own map and player lookup. */
     public static Active register(ServerLevel level, GameMap map, List<net.minecraft.core.BlockPos> startCells, Function<UUID, ServerPlayer> lookup) {
         var settings = settings();
