@@ -4,7 +4,7 @@ Hellstorm is a Forge 1.20.1 mod (mod id `hellstorm`, package `dev.candycanecazoo
 
 ## Build and test
 
-- **Toolchain.** Forge 47.4.10, Parchment mappings, ForgeGradle 6. The Gradle wrapper must stay at **8.8**: ForgeGradle 6 doesn't run on Gradle 9. Run Gradle with JDK 17: `JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew ...` (the default `java` is newer).
+- **Toolchain.** Forge 47.4.10, Parchment mappings, ForgeGradle 6. The Gradle wrapper must stay at **8.8**: ForgeGradle 6 doesn't run on Gradle 9. Run Gradle with JDK 17: `JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew ...` (the default `java` is newer). The Gradle daemon is on (`gradle.properties`), which saves about 8 s a run; `./gradlew --stop` frees its memory.
 - **Unit tests:** `./gradlew test`. Pure logic (map model, validator, settings, formulas, codecs) and lints over the sources.
 - **GameTests:** `./gradlew runGameTestServer`, a real dedicated server running every `@GameTest` in `gametest/`, in its own flat world in `run-gametest/`. Not `run/world`: that has generated terrain, and caves and aquifers beside the tests flood them. **Its exit code lies:** it exits 0 when the server fails to start. After every run, grep the log for `All N required tests passed`, and for `Failed to start` or `invalid dist`. Run GameTests, not only unit tests, after anything that touches rendering from a common class.
 - **Flaky by nature:** tests that drive TacZ guns run on wall-clock timers. If one times out once, rerun before digging.

@@ -189,7 +189,8 @@ public final class TaczSpikeTests {
 
     /**
      * Both guns start with one magazine of reserve. Each is emptied, then reloaded from empty up to three times. The limited
-     * gun can reload once, then has nothing left. The unlimited gun reloads every time.
+     * gun can reload once, then has nothing left. The unlimited gun reloads every time. They reload at the same pace, so once
+     * the unlimited gun has done its three, the limited one has had time for three too.
      */
     @GameTest(template = "floor", timeoutTicks = LONG_TIMEOUT)
     public static void unlimitedAmmoGunsNeverRunOutOfReserve(GameTestHelper helper) {
@@ -208,7 +209,6 @@ public final class TaczSpikeTests {
         int[] reloads = {0, 0};
         boolean[] emptied = {false, false};
         Zombie[] holders = {limited, unlimited};
-        long startedAt = System.currentTimeMillis();
         helper.onEachTick(() -> {
             for (int i = 0; i < holders.length; i++) {
                 ItemStack stack = holders[i].getMainHandItem();
@@ -225,9 +225,6 @@ public final class TaczSpikeTests {
             }
         });
         helper.succeedWhen(() -> {
-            if (System.currentTimeMillis() - startedAt < 12_000) {
-                helper.fail("letting reloads run (limited " + reloads[0] + ", unlimited " + reloads[1] + ")");
-            }
             helper.assertTrue(reloads[1] == 3, "unlimited gun only completed " + reloads[1] + " reload cycles");
             helper.assertTrue(reloads[0] == 1, "limited gun completed " + reloads[0] + " reload cycles, expected 1 (one magazine of reserve)");
             ItemStack stack = limited.getMainHandItem();
