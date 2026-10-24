@@ -36,7 +36,7 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 - Validation problems with positions draw in red.
 
 **Room detection** (`/hs zones detect <room>`):
-1. Flood-fill air from the player's position, stopping at solid blocks, door members, barricade blocks, and cells already in any room, up to `tools.detect_max_volume`. Standing inside an existing room is refused with a message naming that room.
+1. Flood-fill air from the player's position (or the cell above it when the player stands in a low floor block such as a carpet or slab), stopping at solid blocks, door members whatever they're made of, barricade blocks, and cells already in any room; low floor blocks (carpets, bottom slabs, stairs, paths, farmland, snow layers) directly under the fill join the room but never spread it, up to `tools.detect_max_volume`. Standing inside an existing room is refused with a message naming that room.
 2. If the cap is hit, report "room is not closed" and stop.
 3. Merge the voxel set into AABBs with greedy box merging (grow along x, then z, then y).
 4. Preview the merged boxes and confirm with `/hs zones confirm` (or `/hs zones cancel`). The preview sends boxes rather than every cell, because a 32k-cell room is too large for one packet.
@@ -93,3 +93,9 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 - `no_zombies` (default false). Games spawn no zombies: `ForgeGameWorld.spawnZombie` refuses, and the game treats that as a spawn that didn't happen. A round's zombies never come, so it doesn't end until the rule is off again. Zombies already up stay.
 
 **The wand's model** is your Blockbench model, a cube frame with a smaller frame turned inside it, drawn by GeckoLib (`geo/item/zone_wand.geo.json`, `textures/item/zone_wand.png`) so the inner frame keeps its free rotations. Both frames turn about the middle, looping every 10 seconds (`animations/item/zone_wand.animation.json`, `zone_wand_spin`, played by `ZoneWandItem`'s controller), wherever the wand is drawn. `client/BlockAlignedItemRenderer` puts the model's floor where a block model's would be, so `models/item/zone_wand.json` uses vanilla's block display transforms.
+
+## As built (2026-10-24)
+
+- **Low floors and soft doors** (`map/RoomDetector`, `tools/RoomDetection`). A floor cell is a block with a collision box no more than a block tall whose bottom face is full and top face isn't. Detection adds the floor layer under a room, never spreads through it, and starts a block up when the player stands in one. Door members stop the fill whatever they're made of, so a cobweb or vine door closes a room. Players and zombies are placed in the room at their feet or the cell above (`ZoneIndex.zoneOfBody`), used for discovery, a climbing zombie's "inside" and `/hs zones detect`'s "you're standing in a room" check, so maps detected before still work. Tests: `RoomDetectorTest`, `MapGameTests.detectionTakesCarpetsSlabsAndStairsButStopsAtACobwebDoor`, `GameTest` (discovering a room from a floor block).
+- **Windows name the room behind them now.** `WindowDef` no longer stores a room; `/hs zones list` and the outline colour use `zoneBehind`, as gameplay does. An old save's `"zone"` key is ignored. `/hs zones add window` no longer fails with an unexpected error when the opening's corner has no room behind it.
+- **`/hs zones set window <window> boards <0-6>`** changes a window's boards and re-boards it, with undo. Re-adding a window still keeps its boards, and says so, naming the `set` command.

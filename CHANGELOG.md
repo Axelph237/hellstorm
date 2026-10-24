@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Scripts can no longer escape their sandbox.** String methods such as `("x"):rep(n)` use the script's own capped string table, never the one TacZ's gun scripts share, and `getmetatable("")` gives the script's own. `scripting.max_string_length` now caps `..`, `string.format`, `string.gsub` and `table.concat` too, `..` costs budget for what it builds, and a listener that runs the server out of memory is switched off.
+- Script errors name the line that failed, not the function's first line. An event a script's command fires at once no longer refills its instruction budget. `game_start` counts as round 1 for round filters, and its table has `round = 1`.
+- `/hs scripts reload` with `scripting.enabled` off says scripting is off (and stops the game's scripts), instead of "Scripts reloaded"; `/hs scripts check` warns about it.
+- Room detection takes in carpets, slabs, stairs and paths on the floor, and a door made of cobwebs or vines stops it. A room floored with them is discovered when a player walks onto it.
+- `/hs zones add window` no longer fails with "An unexpected error occurred" when the opening's corner has no room behind it, and windows name the room behind them as it is now. New: `/hs zones set window <window> boards <0-6>`.
+- `/hs map import <name> replace` takes the old map's machines, markers and barricades out first, and a machine that isn't part of the game's map sells nothing.
+- `/hs game start` rebuilds the game from the map as it is then, so rooms and machines changed while the lobby was open are in the game; a map broken in the meantime is refused and the lobby stays open.
+- A round no longer stalls forever on a mob profile that's missing or can't make its mob: the game never picks one, and logs a round with nothing to spawn. `/hs map validate` reports a round no profile can spawn in (an error), broken mob profiles, wave overrides of profiles that can't spawn, Mystery Crate pools with nothing to give, machines whose settings are no longer valid (a wall-buy for a gun that's gone), datapack files skipped at the last reload, a power switch only reachable through a door that needs power (an error), and a power switch or upgrader in no room.
 - A wall-buy no longer charges for ammo a gun can't take: a full gun, or one with unlimited ammo, is refused for nothing, and a full gun shows no prompt at its wall-buy. A refill chambers a round. A gun that loads from ammo items gets its magazine filled and keeps loading from its items, where a refill used to leave it with an empty dummy reserve.
 - The minigun carries one more magazine of reserve (150 rounds at the default 4 magazines, not 120), since it fires from its reserve and never uses its magazine.
 - `/hs game status` reads as sentences ("Round 3: 12 zombies still to spawn, 4 alive"), and shows a downed player as down, with their bleed-out time, instead of spectating.

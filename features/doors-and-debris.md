@@ -57,7 +57,7 @@ record DoorSnapshot(DoorId id, Map<BlockPos, BlockState> states, Map<BlockPos, C
 
 - Per door: cost, power requirement, style, name.
 - `doors.default_cost` (750).
-- `doors.max_members` (256).
+- At most 256 blocks per door (`DoorBlocks.MAX`). It's fixed in code, not a setting. `/hs zones add door` skips blocks past it and says how many.
 
 ## Assets
 

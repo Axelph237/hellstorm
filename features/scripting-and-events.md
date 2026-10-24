@@ -52,8 +52,9 @@ end)
 - Not loaded: `io`, `os`, `luajava`, `coroutine` (LuaJ runs each coroutine on its own Java thread), `package` (its Java searcher can load classes), and `bit32` (absent from the Figura fork).
 - Removed: `debug`, `dofile`, `loadfile`, `load`, `loadstring`, `collectgarbage`, `module`, `string.dump`. `print` goes to the log. `require` is our own function.
 - **Instruction budget.** An `InstructionBudget` subclass of `DebugLib` is the interpreter's instruction hook (the `debug` table is never visible). Each listener call and each script load gets `scripting.instruction_budget` instructions. Past that it throws a `java.lang.Error`, which `pcall` can't catch, so a runaway loop can't swallow its own stop.
-- `string.rep` is capped at `scripting.max_string_length`. Deep recursion is caught as a stack overflow.
-- **Shared string metatable.** `StringLib` replaces the JVM-wide string metatable, which TacZ's own Lua states also use. The runtime saves it before loading and restores it after, so TacZ is unaffected.
+- `scripting.max_string_length` caps the bytes a script builds with `string.rep`, `..` (metered by the instruction hook on `OP_CONCAT`, which also charges one instruction per 64 bytes), `string.format`, `string.gsub` and `table.concat`. Deep recursion is caught as a stack overflow, and a listener that runs the server out of memory is switched off at once. Errors name the line that failed: `InstructionBudget` counts, then calls `DebugLib`'s own `onInstruction`, which moves each frame's position (until 2026-10-24 it didn't, so every error named the function's first line).
+- **Nested dispatch.** Only the outermost `guarded` call resets the instruction budget: an event a listener's command fires at once runs on what's left of the same budget, so a loop of commands can't multiply the work. `game_start` counts as round 1 for `round_min`/`round_max`, and its table has `round = 1`. `/hs scripts reload` with `scripting.enabled` off stops the game's scripts and fails saying so; `/hs scripts check` still lints and warns. GameTests `ScriptsOffGameTests`.
+- **Shared string metatable** (`script/SharedStrings`, 2026-10-24). LuaJ keeps one string metatable for the whole JVM, and TacZ's gun scripts, which load first, own it. Hellstorm installs a router there before its own `StringLib` loads: while a Hellstorm listener runs (`LuaRuntime.guarded` enters it, and `command` leaves it), string methods such as `("x"):rep(n)` go to that runtime's own capped `string` table; otherwise they go to the metatable that was there before, so TacZ's scripts behave as they did. `getmetatable("")` gives the runtime's own metatable, so a script can add its own string methods but can't reach or change TacZ's. Until 2026-10-24 the runtime put TacZ's metatable back, so method calls skipped the `rep` cap, reached `string.dump`, and could change TacZ's string methods.
 - Errors are caught and logged with the script and line, and sent in chat to ops in the game. A listener that fails `scripting.max_consecutive_errors` times in a row is disabled for the rest of the game. A success resets the count.
 - **Scope of the sandbox.** It protects the host machine (no files, network, threads, or reflection). It does not protect the world: commands run at `scripting.command_permission_level`, the same trust datapack functions get. Memory isn't capped exactly: the instruction budget bounds what one call can build, and `string.rep` is capped (method-call syntax `("x"):rep(n)` uses the shared metatable and isn't).
 - **Scripting settings live only in the server config**, never in a map's settings override, so a downloaded map can't raise its own permission level.
@@ -75,7 +76,7 @@ end)
 - `scripting.command_permission_level` (2).
 - `scripting.instruction_budget` (1,000,000).
 - `scripting.max_consecutive_errors` (5).
-- `scripting.max_string_length` (1,000,000).
+- `scripting.max_string_length` (1,000,000 bytes).
 - Per world, `/hs debug show_errors <true|false>` (default true, saved like a gamerule): send script errors to ops' chat. They always go to the log.
 
 ## Examples

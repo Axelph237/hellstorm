@@ -17,20 +17,20 @@ Snapshots are stored in `MapSavedData` so they survive a crash.
 - **Joining** (`/hs game join` or a join pad block):
   1. Save an `InventorySnapshot`.
   2. Clear the inventory and effects. The player stays where they are until the game starts; the countdown ending moves everyone to the start room in adventure mode.
-  3. Give the starting loadout (configurable `ItemSpec` list, default a TacZ pistol and a knife).
+  3. Give the starting loadout (configurable `ItemSpec` list, default `tacz:m1911` and an iron sword).
   4. Set starting points.
 - **Late join.** Joining during `RoundActive` puts the player in `Spectating(respawnNextRound = true)`.
 - **Leaving** (`/hs game leave`, game over, or kick): restore the snapshot exactly and delete it.
-- **Disconnect.** The player's state is kept for `sessions.reconnect_grace_ticks`. Reconnecting in time restores their game state. After that they are removed from the game, and their snapshot is restored on their next login.
+- **Disconnect.** The player's state is kept for `players.reconnect_grace_ticks`. Reconnecting in time restores their game state. After that they are removed from the game, and their snapshot is restored on their next login.
 - **Crash.** On server start, any leftover snapshot is restored the next time that player logs in.
 - **Server authority.** Every purchase, revive, and pickup is decided on the server. Clients only send intent packets ("use pressed on block X"), which the server validates.
 - **Packets.** One `SimpleChannel` with protocol version checks. Broadcast scope is the players in that game, never `PacketDistributor.ALL`.
 
 ## Config surface
 
-- `sessions.starting_loadout` (list of `ItemSpec`).
-- `sessions.reconnect_grace_ticks` (1200).
-- `sessions.max_players` (4, map overridable).
+- `players.starting_guns` (`tacz:m1911`), `players.starting_items` (an iron sword), `players.starting_guns_unlimited_ammo` (true).
+- `players.reconnect_grace_ticks` (1200).
+- `players.max_players` (4).
 
 ## Assets
 
@@ -91,3 +91,7 @@ None.
 - **Not covered:** stepping on pressure plates and tripwires, and hitting blocks (a note block still plays).
 - **Tests.** GameTest `TerrainGameTests.aPlayerInAGameCantOpenDoorsOrFlipLevers`: in a game, clicking a trapdoor, a door, and a lever leaves them shut and off; after the game, the trapdoor opens.
 
+
+## As built: start rebuilds the game (2026-10-24)
+
+`/hs game start` in the lobby calls `GameManager.reopen`: it validates the saved map first, without touching the lobby, and a map broken since the lobby opened is refused with its errors while the lobby stays open. Otherwise it drops the lobby (its players are only waiting, so nothing of theirs is restored) and opens a fresh game from the map and world as they are, with the same players. Edits made while the lobby was open are in the game. GameTests `LobbyGameTests`.

@@ -88,7 +88,7 @@ public final class GameSettingsConfig {
     GameSettingsConfig(ForgeConfigSpec.Builder b) {
         GameSettings d = GameSettings.DEFAULT;
         b.push("rounds");
-        baseCount = b.comment("Black Ops' zombie count: (this + extra for players) times a round multiplier, then 25/30/50/70/90% of it in rounds 1 to 5. CoD's zombie_max_ai, 24.")
+        baseCount = b.comment("Black Ops' zombie count: this plus an extra for players that grows with the round (see ai_per_player), then 25/30/50/70/90% of it in rounds 1 to 5. CoD's zombie_max_ai, 24.")
                 .defineInRange("base_count", d.rounds().baseCount(), 1, 1000);
         aiPerPlayer = b.comment("CoD's zombie_ai_per_player (6): each player past the first adds this times the round multiplier; alone, half of it.")
                 .defineInRange("ai_per_player", d.rounds().aiPerPlayer(), 0, 100);
@@ -143,7 +143,7 @@ public final class GameSettingsConfig {
                 .defineListAllowEmpty("starting_guns", d.players().startingGuns().stream().map(ItemSpec.Gun::asGive).toList(), GameSettingsConfig::isGun);
         startingItems = b.comment("Items every player starts with, written as /give takes them: an item id, with NBT after it if needed, such as lrtactical:melee{MeleeWeaponId:\"lrtactical:dagger\"}.")
                 .defineListAllowEmpty("starting_items", d.players().startingItems().stream().map(ItemSpec.Plain::asGive).toList(), GameSettingsConfig::isItem);
-        reserveMagazines = b.comment("Reserve ammo for starting guns, in magazines.").defineInRange("reserve_magazines", d.players().reserveMagazines(), 0, 100);
+        reserveMagazines = b.comment("Reserve ammo, in magazines, for every gun Hellstorm hands out: starting guns, wall-buys, the Mystery Crate and upgrades. A gun that feeds from the inventory (the minigun) gets one more.").defineInRange("reserve_magazines", d.players().reserveMagazines(), 0, 100);
         startingGunsUnlimitedAmmo = b.comment("Give starting guns an endless reserve. The magazine still needs reloading.")
                 .define("starting_guns_unlimited_ammo", d.players().startingGunsUnlimitedAmmo());
         weaponSlots = b.comment("TacZ guns a player can carry. Buying another replaces the held gun. Off-Hand adds one.")

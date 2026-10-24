@@ -2,6 +2,16 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Fixes from the known-issues pass (2026-10-24)
+
+- [ ] **Script sandbox.** With `examples/datapacks/hellstorm_sandbox_check` in a singleplayer world, `/reload` and join a game: the log's sandbox lines all say "blocked", and TacZ's default guns still fire, animate and reload normally.
+- [ ] **Scripting off.** Set `scripting.enabled = false`, join a game: `/hs scripts reload` says scripting is off; `/hs scripts check` warns.
+- [ ] **Carpeted rooms.** Detect a room floored with carpet or slabs: the outline covers the floor layer, and standing on the carpet works. A cobweb door stops detection. Walking onto a carpeted room in a game wakes its spawns.
+- [ ] **Window tools.** `/hs zones set window <w> boards 2`, then `/hs undo`. Redraw the room behind a window: its outline colour follows.
+- [ ] **Import replace.** Import a pack with `replace` over a map: the old wall-buys, crates and barricades are gone, the terrain stays.
+- [ ] **Lobby edits.** Open a lobby, add a room, `/hs game start`: the room is in the game. Open a lobby, unflag the start room, start: it's refused and the lobby stays.
+- [ ] **Validation.** Put the only power switch behind a door that needs power: `/hs map validate` reports it as an error. Set every mob profile's weight to 0 in a datapack: validation refuses the game. A wall-buy for a gun from a removed gun pack is a warning.
+
 ## Maps
 
 - [ ] **Walls between rooms.** Draw two rooms that touch and reach well above a wall two blocks high between them, with a Hellstorm door in the wall. `/hs map validate` reports no loophole, and `/hs map paths` lists no connection between them. Lower one stretch of the wall to one block: now it reports a loophole there. A fence instead of the low stretch keeps them apart. Try your real walls too (slabs, stairs, glass panes, leaves) and tell me any that come out wrong.

@@ -4,33 +4,9 @@ Each item was checked against the code on 2026-10-24, several with a probe test;
 
 ## Gameplay and commands
 
-- **A round stalls forever when nothing can spawn.** If every mob profile allowed in a round has weight 0 (or `min_round`/`max_round` leave a round with none), or a wave event's `mob_override` names only missing or broken profiles, no zombie spawns and the round never ends. `ForgeGameWorld.canSpawn` says yes to a profile that doesn't exist, and a missing profile fails to spawn without a log line. Nothing in validation catches either case. Since datapack files are loaded strictly, a pack that overrides a profile with a bad value removes it rather than keeping the mod's copy, so a broken `hellstorm:hellhound` override stalls every hound round.
 - **Crowds jam a 1-wide doorway for a few seconds.** Two zombies side by side at its mouth both press into the jambs and neither turns in, and sometimes nobody gets through for 2 to 3 seconds before it clears (about 8% of runs of the crowd GameTest, which now checks that the doorway keeps flowing).
-- **Room detection:** a Hellstorm door made of blocks with no collision box (cobwebs, vines) doesn't stop the fill, though `features/doors-and-debris.md` says door members are walls. Carpets, slabs, stairs, paths, farmland and 2 or more snow layers are left out of detected rooms, and starting on one gives "Your feet are inside a solid block". Since players are placed in the room at their feet, a room whose floor is all such blocks is never discovered, so its spawns never wake.
-- **`/hs zones add window` can fail with "An unexpected error occurred".** It finds the room behind the window from the opening's corner column (`orElseThrow`) after checking only the centre column, so an opening whose corner has no room behind it throws.
-- **A window's board count can't be changed.** Re-adding a window keeps its old count without saying so, and there's no `/hs zones set window`.
-- **`/hs map import <name> replace` leaves the old map's blocks** (barricades, machines) in the world, and a leftover wall-buy, crate or perk machine still sells in games, since `FeatureBlock.use` doesn't check the game's map.
-- **Map edits while a lobby is open don't reach the game.** Validation, the map reset and the game's map snapshot happen at the first `/hs game join`; `/hs game start` uses them as they were (documented in the wiki).
-- **Windows can name a stale room** in their outline color and `/hs zones list` after rooms are redrawn. Gameplay uses the live room.
 
-## Datapacks and scripts
+## Not built yet
 
-- **Scripts can escape the string sandbox.** TacZ bundles the same LuaJ and owns the JVM-wide string metatable, which `LuaRuntime` keeps. So `("x"):rep(n)` skips the `string.rep` length cap (`rep(2^31-1)` is one 2 GiB allocation, and running out of memory isn't caught), `string.dump` is reachable, and `getmetatable("").__index` lets a script change the string methods TacZ's own gun scripts use.
-- **Script error line numbers point at the start of the function**: `InstructionBudget.onInstruction` doesn't call `super`, so the debug position never moves.
-- **`/hs scripts reload` says "Scripts reloaded"** with `scripting.enabled = false`, and loads nothing; `/hs scripts check` ignores the setting.
-- **A script command that fires an event at once refills the listener's instruction budget**, since every dispatch resets it (`LuaRuntime.guarded`). Not yet seen in a test.
-- **Overriding the default crate pool with `{}` gives an empty pool**: the codec defaults `include_all_tacz_guns` to false; the built-in pool sets it true. Documented in the wiki, but easy to trip over.
-- `game_start` fires at round 0, so a `round_min` of 1 or more never matches it (documented).
-
-## Not built, though `features/` says it is
-
-- **Per-map setting overrides.** `SettingsResolver` exists and is tested, but `GameManager.settings()` always passes no override, and maps and map packs store none.
-- **Validator checks** for the power switch being reachable without power (a switch behind a door that needs power can never be bought), the switch and upgrader being in or beside a room, and wall-buy guns still being installed (refused when set, but not after a gun pack is removed or a map imported). `features/map-validation.md` promises item problems as errors; they're warnings on purpose.
+- **Per-map setting overrides.** `SettingsResolver` exists and is tested, but `GameManager.settings()` always passes no override, and maps and map packs store none. The feature docs say so.
 - `power.start_on`, powered machine blockstates, `wallbuys.default_pap_ammo_cost`, `windows.default_boards`, and `doors.max_members` aren't settings.
-
-## Docs to tidy
-
-- `features/mob-profiles-and-ai-injection.md` lost its first 88 lines (title, Goal, Data shape, Implementation, Config surface, Verification, Phase) in commit 3af5539; the last full copy is in f7aea67. What's left says the hellhound's `health_multiplier` is 0.33 (it's 0.0242424, 2 HP in round 5) and cites a GameTest that doesn't exist.
-- Old setting names in `features/tacz-bridge.md` (`tacz.reserve_ammo_mags`, `tacz.pap_*`) and `features/sessions-and-multiplayer.md` (`sessions.*`). In the toml, the `base_count` comment says the whole count grows with the round (only the players' extra does), and the `reserve_magazines` comment says it's for starting guns (it's for every gun Hellstorm hands out).
-- The wiki's Compatibility page says inventory-fed guns can't use dummy ammo; they fire straight from it (`features/tacz-bridge.md`).
-- `features/wave-events.md` says the hound test checks 0.33 of a zombie's health; `features/mystery-box.md` says the crate can be used in the lobby (it can be seen, not used); `features/wall-buys.md` says there's no settings screen (there is); `features/power-switch.md` has no "As built" section and calls the switch's property `on` (it's the lever's `powered`).

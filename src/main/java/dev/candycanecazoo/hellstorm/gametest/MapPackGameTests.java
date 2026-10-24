@@ -70,4 +70,35 @@ public final class MapPackGameTests {
         }
         helper.succeed();
     }
+
+    /**
+     * Importing with {@code replace} first takes out the old map's own blocks: a wall-buy at one of its feature positions
+     * and the barricades in its window go, with no drops, and the terrain around them stays.
+     */
+    @GameTest(template = "floor", batch = "map_pack_clear")
+    public static void clearingAMapTakesOutItsMachinesAndBarricadesButNotTheTerrain(GameTestHelper helper) {
+        var level = helper.getLevel();
+        ZombiesMap saved = MapSavedData.get(level).map();
+        try {
+            BlockPos machine = helper.absolutePos(new BlockPos(2, TestLayout.ROOM_Y, 2));
+            level.setBlockAndUpdate(machine, PapRegistries.WALL_BUY.get().defaultBlockState()
+                    .setValue(dev.candycanecazoo.hellstorm.feature.WallBuyBlock.FACING, net.minecraft.core.Direction.NORTH));
+            BlockPos board = helper.absolutePos(new BlockPos(6, TestLayout.ROOM_Y, 6));
+            level.setBlockAndUpdate(board, PapRegistries.BARRICADE.get().defaultBlockState());
+            BlockPos wall = helper.absolutePos(new BlockPos(6, TestLayout.ROOM_Y + 1, 6));
+            level.setBlockAndUpdate(wall, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+            ZombiesMap old = ZombiesMap.EMPTY.withFeature(machine, FeatureKind.WALL_BUY)
+                    .withWindow(new dev.candycanecazoo.hellstorm.map.WindowDef("old", BlockBox.of(board, board), net.minecraft.core.Direction.NORTH, 6));
+            MapPack.Cleared cleared = MapPack.clear(level, old);
+            helper.assertTrue(cleared.machines() == 1 && cleared.windows() == 1, "cleared " + cleared);
+            helper.assertTrue(level.getBlockState(machine).isAir(), "the old wall-buy is gone");
+            helper.assertTrue(level.getBlockState(board).isAir(), "the old window's barricade is gone");
+            helper.assertTrue(level.getBlockState(wall).is(net.minecraft.world.level.block.Blocks.STONE), "terrain stays");
+            helper.assertTrue(level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                    new net.minecraft.world.phys.AABB(machine).inflate(3)).isEmpty(), "nothing dropped");
+        } finally {
+            MapEdits.apply(level, m -> saved);
+        }
+        helper.succeed();
+    }
 }

@@ -8,7 +8,7 @@ Every tunable value lives in one place and resolves the same way. Adding a new c
 
 Three layers resolve into one immutable record:
 
-1. **Per-map override.** Stored with the map in `MapSavedData` and in exported map JSON.
+1. **Per-map override.** Designed, not built. No map stores one, and `GameManager.settings()` passes none (see "Per-map overrides: not built" below).
 2. **Server config.** `ForgeConfigSpec` of type SERVER, stored per world in `serverconfig/hellstorm-server.toml` and synced to clients.
 3. **Built-in defaults.** Constants in code.
 
@@ -22,7 +22,7 @@ record GameSettings(
     TaczSettings tacz) { ... }
 ```
 
-Each sub-record has a `Codec`. The same codec reads map-override JSON, writes NBT, and syncs to clients.
+Each sub-record has a `Codec`. Only `SettingsResolver` uses it, to merge an override over the server settings. Clients get the server config through Forge's own config sync, not the codec.
 
 Content definitions are separate from settings. They are datapack JSON under `data/<ns>/hellstorm/`:
 - `mob_profiles/`, `powerups/`, `wave_events/`, `box_pools/`, `weapon_tiers/`, `punch/`, `events/`, `scripts/`
@@ -30,8 +30,8 @@ Content definitions are separate from settings. They are datapack JSON under `da
 ## Implementation
 
 - `config/ServerConfig` builds the `ForgeConfigSpec`.
-- `config/SettingsResolver.resolve(mapOverride, serverConfig)` returns a `GameSettings`. For each field it takes the map override if present, else the server config value, else the default. It is a pure function with no Minecraft dependencies.
-- A game resolves its `GameSettings` once at game start and keeps it for the whole game.
+- `config/SettingsResolver.resolve(server, mapOverride)` returns a `DataResult<GameSettings>`: the server settings (whose defaults are `GameSettings.DEFAULT`) with an optional JSON override merged on top. Objects merge key by key, and lists and values replace. A bad override is an error, not a silent default. Nothing passes it an override yet: `GameManager.settings()` always gives `Optional.empty()`.
+- A game resolves its `GameSettings` once, when it opens (`GameManager.register`, again at `/hs game start`), and keeps it for the whole game. Code outside a game reads the server's settings (`GameManager.settings()`, or `ServerConfig.GAME` directly in a few places).
 - `data/` registers one `SimpleJsonResourceReloadListener` per content type through `AddReloadListenerEvent`, so `/reload` picks up edits. Each listener parses with its codec and logs per-file errors without dropping the other files.
 - Content that clients need (perk names and icons, power-up types) is synced with a packet after login and after `/reload`.
 
@@ -49,7 +49,7 @@ Nothing. Everything else depends on this.
 
 ## Verification
 
-- JUnit on `SettingsResolver`: a map override beats the server config, and the server config beats the default, for every field.
+- JUnit `SettingsResolverTest`: no override keeps the server settings, a partial override replaces only what it names, lists are replaced rather than merged, and a bad override is an error. No test sends an override to a game, since nothing can.
 - JUnit codec round-trips: `GameSettings` to JSON and back, and to NBT and back, are equal.
 - In game: change a power-up JSON, run `/reload`, and see the new value on the next drop.
 
@@ -67,10 +67,14 @@ Nothing. Everything else depends on this.
 - `players.reconnect_grace_ticks` (1200): how long a player who disconnects mid-game keeps their place, points, and perks (see `sessions-and-multiplayer.md`).
 - `players.knockback_reduction` (0.85): how much knockback a player in a game is spared, 0 to 1. At 0.85 they're pushed 15% as far as usual. It scales `LivingKnockBackEvent`'s strength (`GameHooks.onKnockback`) for any player in a game, so zombie hits and any other knockback through `knockback()`. Explosions push separately: a gun's explosion pushes nothing during a match (see `tacz-bridge.md`), whatever this is set to. A vanilla explosion (TNT in a map maker's trap) still pushes as usual. GameTest `KnockbackGameTests`.
 - `players.friendly_fire` (false): whether players in a game can hurt each other. Off, `GameHooks.onAttacked` cancels the attack when its source's entity (the player behind a swing, a TacZ bullet, an arrow or a blast) is another player in the same game. A player's own blast still hurts them, and a player outside the game isn't a teammate. Before this setting, players in a game could always hurt each other. GameTest `FriendlyFireGameTests`.
-- `powerups.repeat_cooldown_kills` (25): zombie deaths before a power-up that dropped can drop again (see `power-ups.md`). Until 2026-10-23 this was `pickup_cooldown_kills` and counted from the pickup; a map override still naming the old key is ignored.
+- `powerups.repeat_cooldown_kills` (25): zombie deaths before a power-up that dropped can drop again (see `power-ups.md`). Until 2026-10-23 this was `pickup_cooldown_kills` and counted from the pickup.
 - `rounds.intermission_ms` (5000; 3000 until 2026-10-23): the break between rounds, in milliseconds, rounded up to whole ticks. Replaces `rounds.intermission_ticks`.
 - `export.margin` (6): blocks around the map's zones and machines that `/hs map export` saves when there's no Zone Wand selection (see `map-export-import.md`).
 - Per-map, not server config: `/hs map mode edit|play`, saved with the map.
 - **CoD scaling** replaced `rounds.count_per_round`, `rounds.player_factor`, and `rounds.speed_growth` with `rounds.ai_per_player` (6), `rounds.run_from_round` (5), `rounds.run_speed` (0.28), and `rounds.spawn_delay_factor` (0.95), and added `powerups.drop_increment` (2000) and `powerups.drop_increment_growth` (1.14). Changed defaults: `base_count` 6 to 24 (it is now CoD's base, not round 1's count), `sprint_from_round` 6 to 9, `health_growth` 0.004 to 0.1, `drop_chance` 0.03 to 0.02. See `game-loop-and-rounds.md` and `power-ups.md`.
 - `rounds.runner_chance` (0.1, 2026-10-23): the chance each zombie spawns as a runner, walking at least as fast as a walking player; the last zombie of a round always runs. See `mob-profiles-and-ai-injection.md`.
 - **Common config** (`config/hellstorm-common.toml`, 2026-10-23): `zombies.dismemberment` (true). Read by both sides at startup; see `mob-profiles-and-ai-injection.md`.
+
+## Per-map overrides: not built
+
+`SettingsResolver` merges a JSON override over the server's settings and is tested, but nothing stores or passes one. `MapSavedData` saves only the map and its mode, map packs carry no settings, and `GameManager.settings()` resolves with `Optional.empty()`. Every game uses the server config. The design above (and `GameSettings` sub-records named there that don't exist, such as `scripting` and `tacz`) is the original plan: the real record is `GameSettings(rounds, spawning, economy, players, windows, doors, box, pap, downs, powerUps, traps, waveEvents)`, and the scripting settings sit in `ServerConfig` outside it.

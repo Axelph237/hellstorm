@@ -63,3 +63,7 @@ None.
 ## Phase
 
 1.
+
+## As built
+
+`ZombiesMap` is `(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> features, Map<String, WindowDef> windows, Map<String, DoorDef> doors)`: no id, portals, origin, or settings override, unlike the design above. The map's mode (`edit` or `play`) is saved beside it in `MapSavedData`. A per-map settings override is designed but not built (see `configuration.md`).

@@ -2,7 +2,7 @@
 
 ## Goal
 
-A finished map can be shared as one file and loaded into another world, with its blocks, zones, feature configs, settings, and scripts intact.
+A finished map can be shared as one file and loaded into another world, with its blocks, zones, feature configs, and datapack (scripts, mob profiles, upgrades) intact. Settings aren't carried: per-map overrides aren't built, so the importing server's config applies.
 
 ## Data shape
 
@@ -10,7 +10,7 @@ A map pack is a zip:
 
 ```
 mymap.zip
-  map.json                  ZombiesMap (zones, portals, doors, feature index, settings override)
+  map.json                  Manifest: format, name, origin, size, and the ZombiesMap (zones, windows, doors, feature index)
   structure/*.nbt           the map's blocks as one or more structure templates
   datapack/                 the map's datapack: EventDefs, Lua scripts, mob profiles, punch defs, ...
   pack.mcmeta
@@ -74,3 +74,7 @@ None.
 - **When.** A level's spawn markers are hidden from the moment its game registers (`GameManager.register`, so from the first `/hs game join` that opens the lobby) until it ends. Players never see where zombies come from; map makers see every marker between games, in play mode as well as edit mode. Hidden is the marker's existing `hidden` block state: drawn as nothing, with no outline to target.
 - **How.** `SpawnMarkerBlock.setHidden(level, positions, hidden)` is the one switch. It only touches positions that hold a marker not already that way, so running it again changes nothing. `GameManager.register` hides the game map's markers. `MapReset.reset` shows them, so they come back when the game ends, and also before a new game is validated after a crash left them hidden. `GameManager.end` also shows the level map's markers, which covers one placed mid-game (it isn't in the game's map). A marker placed while a game runs hides itself (`onPlace`). `MapModes.set` sets hidden to whether a game runs.
 - **Tests.** GameTest `MapModeGameTests`: `markersHideWhileAGameRunsAndShowWhenItEnds` (a game hides its markers, one placed mid-game hides itself, ending shows all three, a second reset leaves them showing) and `markersShowInBothModesAndEditModeBlocksGames` (a hidden marker is shown by a mode switch; edit mode refuses a game).
+
+## As built: replace clears the old map (2026-10-24)
+
+`/hs map import <name> replace` first takes the old map's own blocks out (`MapPack.clear`): the machine or spawn marker at each feature position, whole, and every window's barricades, with no drops. Terrain and door blocks stay. It reports the counts. In a game, a machine that isn't in the game's map refuses to sell (`FeatureBlock.use`, `ZombiesMap.hasFeature`, lang key `message.hellstorm.machine.not_in_map`), so a leftover machine can't. Tests: `MapPackGameTests.clearingAMapTakesOutItsMachinesAndBarricadesButNotTheTerrain`, `WallBuyGameTests.aWallBuyNotInTheGamesMapSellsNothing`.

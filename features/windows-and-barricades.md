@@ -14,7 +14,7 @@ record WindowState(
     Direction facing,
     int width, int height,          // 1x1 up to windows.max_width x windows.max_height
     List<BlockPos> members,
-    int maxBoards,                  // per window, default windows.default_boards
+    int maxBoards,                  // per window, 0 to 6, default 6 (WindowDef.MAX_BOARDS)
     int boards) {}
 ```
 
@@ -32,7 +32,7 @@ record WindowState(
 ## Config surface
 
 - `windows.max_width` (default 5), `windows.max_height` (default 4).
-- `windows.default_boards` (default 6), overridable per window.
+- Per window: max boards, 0 to 6 (default 6, `WindowDef.MAX_BOARDS`), from the optional `boards` of `/hs zones add window <name> [boards]`, changed with `/hs zones set window <name> boards <n>`. There is no `windows.default_boards` setting. `windows.link_range` (6.0): how far a spawn marker links to a window.
 - `windows.tear_ticks` (default 30), `windows.repair_ticks` (default 15).
 
 ## Assets

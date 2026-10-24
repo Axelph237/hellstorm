@@ -22,7 +22,7 @@ Stack NBT the bridge reads and writes:
 
 - **Gun stacks.** `ItemStack createGun(ResourceLocation gunId)` uses `GunItemBuilder.create().setId(gunId).setAmmoCount(maxMag).build()`, then calls `IGun#setMaxDummyAmmoAmount` and `IGun#setDummyAmmoAmount` so reserve ammo lives in NBT, not in ammo items.
 - **Gun listing.** `List<ResourceLocation> allGuns()` reads `TimelessAPI.getAllCommonGunIndex()`. The box pool and `PunchAudit` use it.
-- **Identity.** `Optional<GunInfo> inspect(ItemStack)` uses `IGun.getIGunOrNull(stack)` and `TimelessAPI.getCommonGunIndex(id)`. How to read the gun type from `CommonGunIndex` is a phase 0 spike.
+- **Identity.** `Optional<GunInfo> inspect(ItemStack)` uses `IGun.getIGunOrNull(stack)` and `TimelessAPI.getCommonGunIndex(id)`. The gun type is `CommonGunIndex.getType()`.
 - **Ammo.** `refillAmmo(ItemStack)` sets the magazine to full and the dummy reserve to its max. Max Ammo, wall-buy refills, and the upgrader call it.
 - **Unlimited ammo.** `setUnlimitedAmmo(stack, true)` tags a gun (`hellstorm.unlimited_ammo` in its NBT). While any entity holds it, its dummy reserve is topped back to max every tick (`TaczEvents.onLivingTick`). The magazine still empties and needs reloading. Topping up only on TacZ's reload or fire events isn't enough: TacZ refuses a reload before posting its reload event once the reserve is empty, and a single reload can use up the whole reserve. The starting guns use it when `players.starting_guns_unlimited_ammo` is on (default on). Wall-buys and box entries get a per-weapon `unlimited_ammo` field in phase 5.
 - **∞ on the HUD.** TacZ's ammo HUD shows an unlimited gun's reserve as ∞, as it does in creative, not the reserve the top-up keeps full. Client mixin `GunHudOverlayMixin` redirects the HUD's second `DecimalFormat.format(long)` in `render`, the reserve (the first is the magazine), to `TaczBridge.showsInfiniteReserve`: the held gun has unlimited ammo, or the reserve is TacZ's unchecked 9999 (creative). GameTest `TaczSpikeTests.theStartingPistolsReserveShowsAsInfinite` checks the rule; the GameTest server loads no client mixins, so the HUD itself is checked in game (2026-10-24).
@@ -33,8 +33,8 @@ Stack NBT the bridge reads and writes:
 
 ## Config surface
 
-- `tacz.reserve_ammo_mags`: reserve size in magazines for new guns (default 8).
-- `tacz.pap_damage_multiplier`, `tacz.pap_rpm_multiplier`, `tacz.pap_mag_multiplier`.
+- `players.reserve_magazines`: reserve size in magazines for every gun Hellstorm makes (default 4), times the gun's `reserve_multiplier` from gun balance.
+- `pap.damage_multiplier` (2.0), `pap.rpm_multiplier` (1.2), `pap.magazine_multiplier` (1.5): the default upgrade per tier for a TacZ gun with no `punch_id`. The magazine multiplier also scales the reserve.
 - All values resolve through `GameSettings` (see `configuration.md`).
 
 ## Assets

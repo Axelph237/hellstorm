@@ -50,7 +50,7 @@ public final class ServerConfig {
                 .comment("A listener that fails this many times in a row is disabled for the rest of the game.")
                 .defineInRange("max_consecutive_errors", 5, 1, 1000);
         SCRIPT_MAX_STRING_LENGTH = builder
-                .comment("Longest string string.rep may build.")
+                .comment("Longest string, in bytes, a script may build with string.rep, .., string.format, string.gsub or table.concat.")
                 .defineInRange("max_string_length", 1_000_000, 1_000, 100_000_000);
         builder.pop();
         SPEC = builder.build();
