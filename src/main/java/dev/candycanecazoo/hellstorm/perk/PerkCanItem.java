@@ -39,10 +39,13 @@ public final class PerkCanItem extends Item implements GeoItem {
     private static final int DRINK_TICKS = 32;
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private final Supplier<MobEffect> perk;
+    /** The color of the word its lore highlights: Vigoraid's "HP" red, Load-Up's "reload" green. */
+    private final net.minecraft.ChatFormatting highlight;
 
-    public PerkCanItem(Properties properties, Supplier<MobEffect> perk) {
+    public PerkCanItem(Properties properties, Supplier<MobEffect> perk, net.minecraft.ChatFormatting highlight) {
         super(properties);
         this.perk = perk;
+        this.highlight = highlight;
     }
 
     /** The perk with no time limit and no particles, its icon still shown. */
@@ -92,20 +95,13 @@ public final class PerkCanItem extends Item implements GeoItem {
     }
 
     /**
-     * What the can's perk does, from the lang key {@code item.<ns>.<id>.lore}, in lore style. The text can name the perk's
-     * boost as a share of what the player has without it ({@code %s}): Load-Up's +1 reload speed on a base of 1 is "100%".
+     * What the can's perk does, in white: the lang key {@code item.<ns>.<id>.lore}, such as "Doubles %s speed", with the
+     * word {@code item.<ns>.<id>.lore.highlight} ("reload") in the can's highlight color in place of {@code %s}.
      */
     public Component lore() {
-        return Component.translatable(getDescriptionId() + ".lore", boost()).withStyle(dev.candycanecazoo.hellstorm.util.ItemLore.STYLE);
-    }
-
-    private String boost() {
-        return perk.get().getAttributeModifiers().entrySet().stream().findFirst().map(e -> {
-            double base = e.getKey().getDefaultValue();
-            double amount = e.getValue().getAmount();
-            double share = e.getValue().getOperation() == net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION && base != 0 ? amount / base : amount;
-            return Math.round(share * 100) + "%";
-        }).orElse("");
+        String key = getDescriptionId() + ".lore";
+        return Component.translatable(key, Component.translatable(key + ".highlight").withStyle(highlight))
+                .withStyle(style -> style.withColor(net.minecraft.ChatFormatting.WHITE).withItalic(false));
     }
 
     /** Its own blurb, unless a {@code Lore} tag says something else (vanilla shows that one). */

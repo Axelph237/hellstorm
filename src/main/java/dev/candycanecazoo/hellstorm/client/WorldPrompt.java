@@ -47,12 +47,20 @@ public final class WorldPrompt {
         pose.translate(offset.x, offset.y, offset.z);
         pose.mulPose(camera.rotation());
         pose.scale(-scale, -scale, scale);
-        Matrix4f matrix = pose.last().pose();
         Font font = mc.font;
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        float y = 0;
         for (int i = 0; i < lines.size(); i++) {
+            // The prompt's own line full size, the details (a drink's lore) under it smaller.
+            float lineScale = i == 0 ? 1 : PromptOverlay.DETAIL_SCALE;
             Component line = lines.get(i);
-            font.drawInBatch(line, -font.width(line) / 2f, i * (font.lineHeight + 1), 0xFFFFFFFF, false, matrix, buffers, Font.DisplayMode.NORMAL, BACKGROUND, LightTexture.FULL_BRIGHT);
+            pose.pushPose();
+            pose.translate(0, y, 0);
+            pose.scale(lineScale, lineScale, 1);
+            Matrix4f matrix = pose.last().pose();
+            font.drawInBatch(line, -font.width(line) / 2f, 0, 0xFFFFFFFF, false, matrix, buffers, Font.DisplayMode.NORMAL, BACKGROUND, LightTexture.FULL_BRIGHT);
+            pose.popPose();
+            y += (font.lineHeight + 1) * lineScale;
         }
         buffers.endBatch();
         pose.popPose();

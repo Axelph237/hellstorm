@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Looking at a vending machine shows the drink's lore on a line under its name and price. Each can says what it does: Vigoraid "Doubles HP", Load-Up "Increases reload speed by 100%", Saint's Brew "Increases revive speed by 100%". A drink with its own `Lore` tag shows that instead.
+- Looking at a vending machine shows the drink's lore on a smaller line under its name and price, with the prompt hanging in front of the machine. Each can says what it does, in white with one word in color: Vigoraid "Doubles HP", Load-Up "Doubles reload speed", Saint's Brew "Doubles revive speed". A drink with its own `Lore` tag shows that instead.
 - Using a machine outside a game as anyone but an op in creative does nothing; it no longer shows the machine's settings in chat.
 - The `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` commands are gone: set every machine on its settings screen (use it as an op in creative, outside a game). To sell a gun, hold it, using `/hs give <gun>` if needed.
 - New: a Saint's Brew can, `hellstorm:saints_brew`, with its own model.

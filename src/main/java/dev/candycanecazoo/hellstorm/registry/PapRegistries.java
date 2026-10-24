@@ -141,11 +141,11 @@ public final class PapRegistries {
             MysteryBoxBlock.MODEL, MysteryBoxBlock.MODEL_OFFSET));
     public static final RegistryObject<Item> PAP_MACHINE_ITEM = ITEMS.register("pap_machine", () -> new BlockItem(PAP_MACHINE.get(), new Item.Properties()));
     public static final RegistryObject<Item> VIGORAID_CAN = ITEMS.register("vigoraid", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
-            PerkEffects.VIGORADE));
+            PerkEffects.VIGORADE, net.minecraft.ChatFormatting.RED));
     public static final RegistryObject<Item> LOAD_UP_CAN = ITEMS.register("load_up", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
-            PerkEffects.RELOAD));
+            PerkEffects.RELOAD, net.minecraft.ChatFormatting.GREEN));
     public static final RegistryObject<Item> SAINTS_BREW_CAN = ITEMS.register("saints_brew", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
-            PerkEffects.SAINTS_BREW));
+            PerkEffects.SAINTS_BREW, net.minecraft.ChatFormatting.GOLD));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()

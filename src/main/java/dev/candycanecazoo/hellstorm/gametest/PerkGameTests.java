@@ -487,19 +487,24 @@ public final class PerkGameTests {
     }
 
     /**
-     * Each can carries a blurb of what its perk does, with the perk's boost filled in, and a vending machine's prompt shows
+     * Each can carries a blurb of what its perk does, white with one word in the can's color, and a vending machine's prompt shows
      * the sold drink's lore under its name and price: the can's blurb, or the item's own {@code Lore} tag if it has one.
      */
     @GameTest(template = "floor", batch = "perk_can_lore")
     public static void cansDescribeTheirPerkAndAVendingMachinesPromptShowsTheDrinksLore(GameTestHelper helper) {
         java.util.function.Function<net.minecraft.world.item.Item, net.minecraft.network.chat.contents.TranslatableContents> lore =
                 item -> (net.minecraft.network.chat.contents.TranslatableContents) ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) item).lore().getContents();
-        helper.assertTrue(lore.apply(PapRegistries.VIGORAID_CAN.get()).getKey().equals("item.hellstorm.vigoraid.lore"), "Vigoraid's blurb key");
-        for (var can : List.of(PapRegistries.LOAD_UP_CAN.get(), PapRegistries.SAINTS_BREW_CAN.get())) {
+        var cans = java.util.Map.of(PapRegistries.VIGORAID_CAN.get(), net.minecraft.ChatFormatting.RED,
+                PapRegistries.LOAD_UP_CAN.get(), net.minecraft.ChatFormatting.GREEN, PapRegistries.SAINTS_BREW_CAN.get(), net.minecraft.ChatFormatting.GOLD);
+        cans.forEach((can, color) -> {
+            net.minecraft.network.chat.Component line = ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) can).lore();
             var contents = lore.apply(can);
-            helper.assertTrue(contents.getArgs().length == 1 && "100%".equals(contents.getArgs()[0]),
-                    can + "'s blurb should name its +1 on a base of 1 as 100%, got " + java.util.Arrays.toString(contents.getArgs()));
-        }
+            helper.assertTrue(line.getStyle().getColor().equals(net.minecraft.network.chat.TextColor.fromLegacyFormat(net.minecraft.ChatFormatting.WHITE))
+                    && !line.getStyle().isItalic(), can + "'s blurb should be plain white, got " + line.getStyle());
+            helper.assertTrue(contents.getArgs().length == 1 && contents.getArgs()[0] instanceof net.minecraft.network.chat.Component word
+                    && word.getStyle().getColor().equals(net.minecraft.network.chat.TextColor.fromLegacyFormat(color)),
+                    can + "'s highlighted word should be " + color + ", got " + java.util.Arrays.toString(contents.getArgs()));
+        });
         BlockPos at = vendingMachine(helper);
         WallBuyBlock.Entity machine = WallBuyBlock.entity(helper.getLevel(), at).orElseThrow();
         machine.setConfig(new WallBuy.Config(new dev.candycanecazoo.hellstorm.data.ItemSpec.Plain(Hellstorm.id("load_up"), 1, Optional.empty()),

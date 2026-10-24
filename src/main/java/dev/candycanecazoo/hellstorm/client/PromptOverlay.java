@@ -61,13 +61,24 @@ public final class PromptOverlay {
         }
         target(mc).ifPresent(t -> {
             int y = height / 2 + 14;
-            for (Component line : lines(t.prompt())) {
-                y += WrappedText.drawCentered(graphics, mc.font, line, width / 2, y, width, 0xFFFFFF);
+            y += WrappedText.drawCentered(graphics, mc.font, text(t.prompt()), width / 2, y, width, 0xFFFFFF);
+            for (Component line : t.prompt().details()) {
+                graphics.pose().pushPose();
+                graphics.pose().translate(width / 2f, y, 0);
+                graphics.pose().scale(DETAIL_SCALE, DETAIL_SCALE, 1);
+                int drawn = WrappedText.drawCentered(graphics, mc.font, line, 0, 0, (int) (width / DETAIL_SCALE), 0xFFFFFF);
+                graphics.pose().popPose();
+                y += (int) Math.ceil(drawn * DETAIL_SCALE);
             }
         });
     }
 
     /** A prompt and the point in the world it belongs to: above a machine or a downed teammate, or on a door or window's near face. */
+    /** How far below a machine's top a prompt in front of it starts. */
+    private static final double IN_FRONT_BELOW_TOP = 0.2;
+    /** Detail lines (a drink's lore) are drawn this much smaller than the prompt's own line. */
+    static final float DETAIL_SCALE = 0.7f;
+
     record Target(Prompted.Prompt prompt, Vec3 anchor) {}
 
     /** What the crosshair is on, if it is a downed teammate, a door, a window with boards missing, or a machine with something to sell. */
@@ -108,6 +119,13 @@ public final class PromptOverlay {
         for (BlockPos part : parts) {
             box = box.minmax(bounds(mc, part));
         }
+        Optional<Prompted.Prompt> prompt = prompted.prompt();
+        if (prompt.isPresent() && !prompt.get().details().isEmpty()) {
+            // A prompt with lines under it (a vending machine's drink lore) would sink into the machine from above it: it
+            // hangs in front of the machine's top instead, its lines running down over the face.
+            Vec3 front = overFront(box, hit.getDirection(), camera, box.maxY - IN_FRONT_BELOW_TOP);
+            return prompt.map(p -> new Target(p, front));
+        }
         Vec3 above = new Vec3((box.minX + box.maxX) / 2, box.maxY + ABOVE, (box.minZ + box.maxZ) / 2);
         BlockPos over = BlockPos.containing(above);
         if (!parts.contains(over) && !mc.level.getBlockState(over).getShape(mc.level, over).isEmpty()) {
@@ -116,7 +134,7 @@ public final class PromptOverlay {
         // A wall-buy's plate sits against the wall; pulled toward the viewer, its text doesn't sink into the wall when seen from the side.
         Vec3 toward = camera.subtract(above).multiply(1, 0, 1);
         Vec3 anchor = toward.lengthSqr() > TOWARD_VIEWER * TOWARD_VIEWER ? above.add(toward.normalize().scale(TOWARD_VIEWER)) : above;
-        return prompted.prompt().map(p -> new Target(p, anchor));
+        return prompt.map(p -> new Target(p, anchor));
     }
 
     /**
