@@ -11,6 +11,10 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 - [ ] **Starting kit with NBT.** With `examples/datapacks/zombies_more_test` and its README's `[players]` settings, start a game: you get the Glock and the LesRaisins dagger, the dagger works as a melee weapon, and after bleeding out and respawning you get both back.
 - [ ] **Zombies More zombies.** With that pack, `/hs mobtest zombies_more_test:<name>` for `tank_zombie`, `explosive_zombie`, `crawler`, `cursed_zombie` and `boomer_zombie`: each walks to you and attacks. In a game, about one spawn in 21 is one of them. Note any that stand still, climb out of the map (the crawler is a spider underneath), or break blocks.
 
+## Mystery Crate
+
+- [ ] **Smooth spin in multiplayer.** On a dedicated server (or LAN, hosted from a second machine), with two clients A and B in a game standing at the crate. Make the server run behind: summon a few hundred mobs away from the arena until `/forge tps` shows well under 20. A rolls the crate several times: on both screens the guns rise and flick forward only, one gun after the next, slowing to a stop, and the dings keep pace with them, never repeating a gun or stuttering back. On a busy server the last gun may hang at the top for a moment before the result swaps in. Then B walks away out of render distance, A rolls, and B comes back mid-roll: B's guns join partway up and run on smoothly. B rolls while A watches. Repeat once with the server not busy.
+
 ## Zombies
 
 - [ ] **No block use in a game.** In a game, right-click a wooden door, a trapdoor, a lever and a chest: none opens or flips, and none flickers. Wall-buys, machines, the power switch, and buying a door still work, and a gun still aims.

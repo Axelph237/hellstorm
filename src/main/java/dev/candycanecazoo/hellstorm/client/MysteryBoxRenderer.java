@@ -82,7 +82,7 @@ public final class MysteryBoxRenderer implements BlockEntityRenderer<MysteryBoxB
         model.render(entity, partialTick, pose, buffers, light, overlay);
         Direction facing = TwoBlockMachine.along(entity.getBlockState());
         portal(pose, buffers, facing);
-        Optional<Float> rise = entity.rise(level.getGameTime() + partialTick);
+        Optional<Float> rise = entity.rise(partialTick);
         ItemStack stack;
         double height;
         if (rise.isPresent()) {

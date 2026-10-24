@@ -1,6 +1,7 @@
 package dev.candycanecazoo.hellstorm.gametest;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.feature.BoxSpin;
 import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
 import dev.candycanecazoo.hellstorm.feature.MysteryBoxBlock;
 import dev.candycanecazoo.hellstorm.feature.MysteryBoxes;
@@ -10,6 +11,7 @@ import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -172,6 +174,36 @@ public final class MysteryBoxGameTests {
         helper.runAfterDelay(ticks + 2 + MysteryBoxBlock.LID_TICKS + 2, () -> {
             try {
                 helper.assertTrue(box.phase() == MysteryBoxBlock.Phase.IDLE && active(helper, at), "then the box waits for the next roll, is " + box.phase());
+            } finally {
+                GameManager.end(active);
+            }
+            helper.succeed();
+        });
+    }
+
+    /**
+     * A client that gets the roll halfway through (it came into range, say) starts its own clock where the server is, so
+     * its guns are as far up as the server's, whatever its game time says.
+     */
+    @GameTest(template = "floor", batch = "box_spin", timeoutTicks = 400)
+    public static void aClientSentTheRollMidwayPicksUpWhereTheServerIs(GameTestHelper helper) {
+        BlockPos at = box(helper, 2, 2);
+        ServerPlayer roller = player(helper, "pap_box_spinner");
+        GameManager.Active active = game(helper, roller, at);
+        int rollTicks = active.game().settings().box().rollTicks();
+        MysteryBoxBlock.Entity box = entity(helper, at);
+        active.game().refund(roller.getUUID(), active.game().settings().box().cost());
+        FeatureBlock.use(roller, at);
+        helper.runAfterDelay(rollTicks / 2, () -> {
+            try {
+                CompoundTag sent = box.getUpdateTag();
+                int elapsed = sent.getCompound("box").getInt("elapsed");
+                helper.assertTrue(Math.abs(elapsed - rollTicks / 2) <= 1, "the update says how far into the roll the server is: " + elapsed + " of " + rollTicks);
+                MysteryBoxBlock.Entity client = new MysteryBoxBlock.Entity(box.getBlockPos(), box.getBlockState());
+                client.load(sent);
+                helper.assertTrue(client.rise(0).equals(BoxSpin.rise(elapsed, rollTicks)), "the client's guns are where the server's are: "
+                        + client.rise(0) + ", expected " + BoxSpin.rise(elapsed, rollTicks));
+                helper.assertTrue(client.reel().contains(client.flick(client.rise(0).orElseThrow())), "and show a gun from the reel");
             } finally {
                 GameManager.end(active);
             }

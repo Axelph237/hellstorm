@@ -109,6 +109,7 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
 
     public static final class Entity extends ConfigBlockEntity<Config> implements Prompted, GeoBlockEntity {
         private static final String STATE = "box";
+        private static final String ELAPSED = "elapsed";
         public static final String OPEN = "box_open";
         public static final String CLOSE = "box_close";
         private static final RawAnimation OPEN_LID = RawAnimation.begin().thenPlayAndHold(OPEN);
@@ -126,6 +127,8 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         private String resultLabel = "";
         /** Who is rolling, for skipping what they already carry. Not saved. */
         private ServerPlayer rollerPlayer;
+        /** The client's clock for the guns rising. Not saved. */
+        private final BoxSpin spin = new BoxSpin();
         /** The flick the client last dinged for. */
         private int dinged = -1;
 
@@ -289,35 +292,27 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
         }
 
         /**
-         * How far the guns have risen at {@code now}, 0 to 1, slowing as they near the top. Empty unless they're rising: only
-         * while rolling, once the lid is open.
+         * On the client, how far the guns have risen {@code partialTick} past its last tick ({@link BoxSpin}). Empty unless
+         * they're rising: only while rolling, once the lid is open.
          */
-        public Optional<Float> rise(float now) {
-            float elapsed = duration - (until - now);
-            if (phase != Phase.ROLLING || reel.isEmpty() || elapsed < LID_TICKS) {
-                return Optional.empty();
-            }
-            float risen = Mth.clamp((elapsed - LID_TICKS) / Math.max(1, duration - LID_TICKS), 0, 1);
-            return Optional.of(1 - (1 - risen) * (1 - risen));
+        public Optional<Float> rise(float partialTick) {
+            return phase == Phase.ROLLING && !reel.isEmpty() ? spin.rise(partialTick) : Optional.empty();
         }
 
         /** Which gun of the reel shows at {@code rise}. */
         public ItemStack flick(float rise) {
-            return reel.get(flickIndex(rise) % reel.size());
-        }
-
-        private static int flickIndex(float rise) {
-            return (int) (rise * FLICKS);
+            return reel.get(BoxSpin.flick(rise) % reel.size());
         }
 
         void clientTick() {
+            spin.tick();
             ding();
             smoulder();
         }
 
         /** A ding each time the rising gun changes, like a prize wheel's clicker. */
         private void ding() {
-            int flick = rise(level.getGameTime()).map(Entity::flickIndex).orElse(-1);
+            int flick = rise(0).map(BoxSpin::flick).orElse(-1);
             if (flick > dinged) {
                 Vec3 at = gunAt(GUN_HIGH);
                 level.playLocalSound(at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 0.35f, 1.5f, false);
@@ -452,6 +447,21 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
             reel = List.copyOf(stacks);
             result = ItemStack.of(box.getCompound("result"));
             resultLabel = box.getString("label");
+            if (phase != Phase.ROLLING) {
+                spin.stop();
+            } else if (box.contains(ELAPSED)) {
+                spin.receive(until, duration, box.getInt(ELAPSED));
+            }
+        }
+
+        /** What clients get: what's saved, and while rolling, how far into the roll the server is now, for {@link BoxSpin}. */
+        @Override
+        public CompoundTag getUpdateTag() {
+            CompoundTag tag = super.getUpdateTag();
+            if (phase == Phase.ROLLING && level != null) {
+                tag.getCompound(STATE).putInt(ELAPSED, Mth.clamp((int) (level.getGameTime() - (until - duration)), 0, duration));
+            }
+            return tag;
         }
 
         @Override

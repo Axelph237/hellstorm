@@ -10,6 +10,7 @@
 - Every setting that names an item takes NBT the way `/give` does, such as `lrtactical:melee{MeleeWeaponId:"lrtactical:dagger"}`: `players.starting_items`, `players.starting_guns` (merged onto the gun), and in datapacks, a power-up's `item` and any item spec (wall-buys, crate pools, upgrades), where the string works in place of the object. A `tacz_gun` spec takes `nbt` too, so a gun upgrade can carry its own `punch_id`.
 - A loophole (a door whose rooms are joined anyway) is a warning again, so it no longer stops a game from starting.
 - Crawlers move at 0.8 of a zombie's speed, up from half.
+- In multiplayer, the Mystery Crate's guns flick by smoothly on every player's screen. They used to stutter, jumping back a few guns about once a second, on a server running behind or over an uneven connection.
 - With `dismemberment` off, Hellstorm no longer registers a zombie renderer, so another mod's zombie renderer is kept instead of being replaced by Minecraft's.
 - A game's ambient tracks play on the Music volume slider instead of Ambient/Environment, and Minecraft's own music stops and holds off while one plays.
 - The game start sound is about half as loud.
