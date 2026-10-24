@@ -43,8 +43,9 @@ public record MobProfile(
     }
 
     /**
-     * {@code flow} steers on the game's shared flow fields (crowds spread, no stalls). {@code vanilla} uses the mob's own
-     * navigation with a long follow range. Mobs that don't walk (fliers, swimmers) always use their own navigation.
+     * {@code flow} walks on vanilla navigation with real collision checks, guided down the game's distance field toward a
+     * far player. {@code vanilla} uses the mob's own navigation, straight at the player, with a long follow range. Mobs that
+     * don't walk (fliers, swimmers) always use their own navigation.
      */
     public enum Navigation implements StringRepresentable {
         FLOW, VANILLA;

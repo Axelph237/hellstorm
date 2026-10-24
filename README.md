@@ -19,7 +19,7 @@ All `/hs` commands below need operator permission, except `/hs game join`, `leav
 3. Place Zombie Spawn Markers inside the rooms.
 4. Add doors and windows. Select the door's blocks with the Zone Wand and run `/hs zones add door <id> [cost]`. Run it again with the same id to add more blocks to that door. Fill a hole in a room's wall with any blocks, select them, and run `/hs zones add window <id> [boards]`.
 5. Place the machines from the creative tab: wall-buys, the Mystery Crate, vending machines, the upgrader, trap controllers and the power switch. In creative mode, use a machine outside a game to open its settings screen. Commands also configure the machine you are looking at, for example `/hs wallbuy set <cost> held`, `/hs wallbuy set <cost> gun <gunId>` or `/hs upgrader cost <points>`. To hide a trap controller in a wall, use it in creative with a full block in hand; sneak and use it with an empty hand to undo.
-6. Run `/hs map validate` and fix what it reports. `/hs map paths` shows how zombies cross between rooms.
+6. Run `/hs map validate` and fix what it reports. `/hs map paths` shows which rooms connect, and where.
 7. Run `/hs map mode play`. Edit mode blocks games. Spawn markers show between games and hide while one runs.
 8. Each player runs `/hs game join`. Then anyone in the game runs `/hs game start`. `/hs game status` shows the scores, `/hs game leave` leaves the game and gives back your inventory, and `/hs game stop` ends the game.
 

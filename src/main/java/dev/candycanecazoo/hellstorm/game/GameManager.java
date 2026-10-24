@@ -124,16 +124,11 @@ public final class GameManager {
         if (startCells.isEmpty()) {
             return new CreateResult.NoStartCells();
         }
-        return new CreateResult.Created(register(level, gameMap, passages, startCells, level.getServer().getPlayerList()::getPlayer));
+        return new CreateResult.Created(register(level, gameMap, startCells, level.getServer().getPlayerList()::getPlayer));
     }
 
-    /** Registers a game directly, finding passages from the live world. GameTests use this with their own map and player lookup. */
+    /** Registers a game directly. GameTests use this with their own map and player lookup. */
     public static Active register(ServerLevel level, GameMap map, List<net.minecraft.core.BlockPos> startCells, Function<UUID, ServerPlayer> lookup) {
-        return register(level, map, Passages.find(map.map(), map.index(), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get()), startCells, lookup);
-    }
-
-    public static Active register(ServerLevel level, GameMap map, Passages.Result passages, List<net.minecraft.core.BlockPos> startCells,
-                                  Function<UUID, ServerPlayer> lookup) {
         var settings = settings();
         Doors.snapshot(level, map.map());
         // Players never see where zombies come from. MapReset shows the markers again when the game ends.
@@ -143,7 +138,7 @@ public final class GameManager {
                 .map(e -> new MobRoster.Entry(e.getKey(), e.getValue().weight(), e.getValue().minRound(), e.getValue().maxRound()))
                 .toList());
         Game game = new Game(settings, map, roster, RandomSource.create(), new GameEvents(), survivalContent());
-        GamePathing pathing = new GamePathing(level, map, passages);
+        GamePathing pathing = new GamePathing(level, map);
         ForgeGameWorld world = new ForgeGameWorld(level, map, startCells, () -> game.players().stream().map(PlayerState::id).toList(), lookup,
                 profiles, game::targetable, settings, pathing);
         Active active = new Active(level, game, world, GameScripts.attach(level, game, origin(map, startCells)), pathing);

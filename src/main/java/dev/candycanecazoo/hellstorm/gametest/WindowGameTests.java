@@ -320,8 +320,8 @@ public final class WindowGameTests {
 
     /**
      * The two rooms of {@link #chaseThroughDoorway} with the doorway at {@code doorZ}, {@code decorate} run after the
-     * walls are built, and the marker and player where given. Passes once a zombie reaches the east room steering on the
-     * flow field without ever stalling.
+     * walls are built, and the marker and player where given. Passes once a zombie reaches the east room without ever
+     * stalling.
      */
     private static void chase(GameTestHelper helper, int doorZ, int doorwayHeight, java.util.function.Consumer<BlockPos> doorway,
                               net.minecraft.world.level.block.Block floor, Runnable decorate, BlockPos markerAt, BlockPos standAt) {
@@ -351,7 +351,7 @@ public final class WindowGameTests {
         player.moveTo(stand.getCenter());
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
         helper.assertTrue(!passages.open().isEmpty(), "the doorway should connect the rooms");
-        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
         active.game().start();
@@ -363,10 +363,8 @@ public final class WindowGameTests {
             helper.assertTrue(zombies.stream().anyMatch(z -> east.contains(z.blockPosition())),
                     "no zombie in the east room yet; stalls " + active.pathing().stalls() + ", positions relative to the test "
                             + zombies.stream().map(z -> helper.relativeVec(z.position())).map(v -> String.format("(%.2f %.2f %.2f)", v.x, v.y, v.z)).toList());
-            int steps = active.pathing().flowSteps();
             int stalls = active.pathing().stalls();
             GameManager.end(active);
-            helper.assertTrue(steps > 0, "the zombie got there without steering on a flow field");
             helper.assertTrue(stalls == 0, "zombies stalled " + stalls + " times on the way");
         });
     }
@@ -440,7 +438,7 @@ public final class WindowGameTests {
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2);
         Zombie template = EntityType.ZOMBIE.create(helper.getLevel());
         try (dev.candycanecazoo.hellstorm.game.GamePathing pathing =
-                     new dev.candycanecazoo.hellstorm.game.GamePathing(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages)) {
+                     new dev.candycanecazoo.hellstorm.game.GamePathing(helper.getLevel(), GameMap.of(map, passages.open(), 6.0))) {
             dev.candycanecazoo.hellstorm.mob.path.FlowGraph graph = pathing.graph(template);
             for (int z = 0; z <= 7; z++) {
                 helper.assertTrue(graph.indexOf(helper.absolutePos(new BlockPos(4, ROOM_Y, z))) < 0, "wall cell z=" + z + " is walkable");
@@ -471,8 +469,7 @@ public final class WindowGameTests {
                 zombie, dev.candycanecazoo.hellstorm.mob.MobProfile.FALLBACK,
                 big, scaled(dev.candycanecazoo.hellstorm.mob.MobProfile.FALLBACK, 1.5));
         ForgeGameWorld world = new ForgeGameWorld(helper.getLevel(), gameMap, List.of(), List::of, id -> null, profiles, id -> false, dev.candycanecazoo.hellstorm.config.GameSettings.DEFAULT,
-                new dev.candycanecazoo.hellstorm.game.GamePathing(helper.getLevel(), gameMap,
-                        Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(helper.getLevel()), 2)));
+                new dev.candycanecazoo.hellstorm.game.GamePathing(helper.getLevel(), gameMap));
         helper.assertTrue(gameMap.windowFor(marker).isPresent(), "marker should link to the window");
         helper.assertTrue(!world.canSpawn(golem, marker), "iron golem allowed at a 1x2 window");
         helper.assertTrue(world.canSpawn(zombie, marker), "zombie refused at a 1x2 window");

@@ -119,20 +119,18 @@ public final class ForgeGameWorld implements GameWorld {
             zombie.setBaby(false);
         }
         mob.addTag(MOB_TAG);
+        boolean guided = profile.navigation() == MobProfile.Navigation.FLOW && GamePathing.walks(mob);
         AiInjector.inject(mob, profile,
                 new AiInjector.Stats(spec.health() * profile.healthMultiplier(), spec.speed() * profile.speedMultiplier(), (float) profile.damage()),
-                this::targetablePlayers, navigatorFor(mob, profile));
+                this::targetablePlayers, guided ? new GuidedNavigator(pathing, level.random.nextInt()) : dev.candycanecazoo.hellstorm.mob.goals.Navigator.vanilla());
+        if (guided && GameNavigation.canReplace(mob)) {
+            GameNavigation.install(mob, pathing::shut);
+        }
         if (profile.breaksBarricades() && mob instanceof PathfinderMob walker) {
             map.windowFor(marker).ifPresent(window -> walker.goalSelector.addGoal(0,
                     new BreakBarricadeGoal(walker, windowAdapter(window), tearTicks, pos -> map.index().zoneAt(pos).isPresent())));
         }
         return level.addFreshEntity(mob) ? Optional.of(mob.getUUID()) : Optional.empty();
-    }
-
-    private dev.candycanecazoo.hellstorm.mob.goals.Navigator navigatorFor(Mob mob, MobProfile profile) {
-        return profile.navigation() == MobProfile.Navigation.FLOW && GamePathing.walks(mob)
-                ? new FlowNavigator(pathing, level.random.nextInt())
-                : dev.candycanecazoo.hellstorm.mob.goals.Navigator.vanilla();
     }
 
     /** Picks one column of the window for this zombie, with a small random offset, and drops both points to the ground. */

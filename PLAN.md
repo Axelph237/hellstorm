@@ -121,7 +121,7 @@ The main risk is behavior parity across arbitrary mods, not the injection code. 
 
 ## Zombie pathfinding
 
-> **Superseded in play testing:** zombies now steer on per-player flow fields over one grid of all unlocked zones (see `features/zombie-pathfinding.md`, "Flow fields"). The hierarchical design below is kept as history.
+> **Superseded in play testing:** zombies now walk on vanilla navigation, straight at a near player and guided down a per-player distance field toward a far one, with no part played by zones or portals (see `features/zombie-pathfinding.md`, "As built"). The hierarchical design below is kept as history.
 
 This is HPA\*-style hierarchical search. It lives in `features/zombie-pathfinding.md`.
 

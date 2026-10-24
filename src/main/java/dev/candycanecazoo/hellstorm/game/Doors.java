@@ -95,7 +95,7 @@ public final class Doors {
         Set<String> open = map.doors().keySet().stream().filter(id -> id.equals(door.id()) || active.game().doorOpen(id)).collect(Collectors.toSet());
         Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get(), open);
         active.game().openDoor(door.id(), by, ZoneGraph.of(map, passages.open()));
-        active.pathing().reconnect(passages, active.game().unlocked());
+        active.pathing().doorOpened(active.game().unlocked(), open);
     }
 
     /** Saves every door's blocks before a game, so the reset can put them back even after a crash mid-game. */

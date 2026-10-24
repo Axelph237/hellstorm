@@ -1,6 +1,5 @@
 package dev.candycanecazoo.hellstorm.mob.path;
 
-import dev.candycanecazoo.hellstorm.map.BlockBox;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -117,24 +116,6 @@ public final class FlowGraph {
         return new Builder();
     }
 
-    /** A graph over a {@link PassabilityGrid} with {@link BlockAStar}'s moves. Used by the pure tests. */
-    public static FlowGraph build(PassabilityGrid grid, BlockAStar moves) {
-        Builder builder = builder();
-        BlockBox b = grid.bounds();
-        for (int y = b.minY(); y <= b.maxY(); y++) {
-            for (int z = b.minZ(); z <= b.maxZ(); z++) {
-                for (int x = b.minX(); x <= b.maxX(); x++) {
-                    if (grid.walkable(x, y, z)) {
-                        BlockPos from = new BlockPos(x, y, z);
-                        builder.node(from);
-                        moves.forEachMove(grid, x, y, z, (tx, ty, tz, c) -> builder.move(from, new BlockPos(tx, ty, tz), c));
-                    }
-                }
-            }
-        }
-        return builder.build();
-    }
-
     public int nodeCount() {
         return positions.length;
     }
@@ -191,6 +172,6 @@ public final class FlowGraph {
                 }
             }
         }
-        return Optional.of(new FlowField(this, goal.immutable(), distance));
+        return Optional.of(new FlowField(this, distance));
     }
 }

@@ -8,28 +8,17 @@ import java.util.Optional;
 
 /**
  * Walking cost from every node of a {@link FlowGraph} to one goal. Any number of zombies chasing the same player read the
- * same field: each steps downhill from wherever it stands, so there's no per-zombie path to compute, hand off, or lose.
- * Immutable.
+ * same field, each from wherever it stands. Immutable.
  */
 public final class FlowField {
     public static final int UNREACHABLE = Integer.MAX_VALUE;
 
     private final FlowGraph graph;
-    private final BlockPos goal;
     private final int[] distance;
 
-    FlowField(FlowGraph graph, BlockPos goal, int[] distance) {
+    FlowField(FlowGraph graph, int[] distance) {
         this.graph = graph;
-        this.goal = goal;
         this.distance = distance;
-    }
-
-    public BlockPos goal() {
-        return goal;
-    }
-
-    public FlowGraph graph() {
-        return graph;
     }
 
     /** Walking cost from {@code pos} to the goal, or {@link #UNREACHABLE} (also for cells off the grid). */
@@ -66,18 +55,23 @@ public final class FlowField {
         return ties.isEmpty() ? Optional.empty() : Optional.of(graph.position(ties.get(Math.floorMod(tieBreak, ties.size()))));
     }
 
-    /** Up to {@code maxSteps} cells downhill from {@code from}, not including it. */
-    public List<BlockPos> descent(BlockPos from, int maxSteps, int tieBreak) {
-        List<BlockPos> cells = new ArrayList<>();
+    /**
+     * The first cell on the downhill walk from {@code from} that is at least {@code cost} nearer the goal, or the goal itself
+     * if that is nearer. Empty at the goal or when unreachable.
+     */
+    public Optional<BlockPos> ahead(BlockPos from, int cost, int tieBreak) {
+        int start = distance(from);
+        if (start == UNREACHABLE || start == 0) {
+            return Optional.empty();
+        }
         BlockPos at = from;
-        for (int i = 0; i < maxSteps; i++) {
+        while (distance(at) > start - cost) {
             Optional<BlockPos> next = next(at, tieBreak);
             if (next.isEmpty()) {
                 break;
             }
             at = next.get();
-            cells.add(at);
         }
-        return cells;
+        return Optional.of(at);
     }
 }

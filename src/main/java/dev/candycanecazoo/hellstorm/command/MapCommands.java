@@ -3,19 +3,14 @@ package dev.candycanecazoo.hellstorm.command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.map.MapSavedData;
 import dev.candycanecazoo.hellstorm.map.Passages;
-import dev.candycanecazoo.hellstorm.map.ZoneIndex;
-import dev.candycanecazoo.hellstorm.map.ZombiesMap;
 import dev.candycanecazoo.hellstorm.map.validate.MapValidator;
 import dev.candycanecazoo.hellstorm.map.validate.Problem;
 import dev.candycanecazoo.hellstorm.map.validate.ValidationReport;
-import dev.candycanecazoo.hellstorm.mob.path.Portal;
 import dev.candycanecazoo.hellstorm.net.PapNetwork;
 import dev.candycanecazoo.hellstorm.net.ProblemsPacket;
-import dev.candycanecazoo.hellstorm.tools.LevelCellProbe;
 import dev.candycanecazoo.hellstorm.tools.PathDebug;
 import dev.candycanecazoo.hellstorm.util.Highlight;
 import net.minecraft.ChatFormatting;
@@ -26,7 +21,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
-import java.util.Optional;
 
 /** `/hs map validate|paths|export|import|packs|mode`. */
 final class MapCommands {
@@ -42,26 +36,18 @@ final class MapCommands {
                 .then(MapPackCommands.mode());
     }
 
-    /** Which room connections the pathfinder can use for a normal-sized zombie, and through which cell. */
+    /** Which rooms connect, and where a walker crosses from one to the other. */
     private static int paths(CommandContext<CommandSourceStack> ctx) {
         ServerLevel level = ctx.getSource().getLevel();
-        ZombiesMap map = MapSavedData.get(level).map();
-        Passages.Result passages = Passages.find(map, ZoneIndex.of(map), LevelCellProbe.of(level), ServerConfig.MAX_PASSAGE_GAP.get());
-        List<Portal> portals = PathDebug.portals(level, map);
+        Passages.Result passages = PathDebug.passages(level, MapSavedData.get(level).map());
         if (passages.open().isEmpty()) {
             ctx.getSource().sendSuccess(() -> Component.literal("No room connects to another"), false);
         }
-        for (Passages.Link link : passages.open()) {
-            Optional<Portal> portal = portals.stream().filter(p -> Passages.Link.of(p.zoneA(), p.zoneB()).equals(link)).findFirst();
-            ctx.getSource().sendSuccess(() -> portal.map(p -> Component.literal(link.a() + " <-> " + link.b() + ": through "
-                            + (p.cellA().equals(p.cellB()) ? "doorway " + p.cellA().toShortString() : p.cellA().toShortString() + " / " + p.cellB().toShortString()))
-                    .withStyle(ChatFormatting.GREEN))
-                    .orElse(Component.literal(link.a() + " <-> " + link.b() + ": connected, but no walkable 1x2 crossing (too low, too narrow, or no floor)")
-                            .withStyle(ChatFormatting.RED)), false);
-        }
+        passages.openings().forEach((link, cell) -> ctx.getSource().sendSuccess(() -> Component.literal(link.a() + " <-> " + link.b()
+                + ": through " + cell.toShortString()).withStyle(ChatFormatting.GREEN), false));
         passages.closedDoors().forEach((link, door) -> ctx.getSource().sendSuccess(() -> Component.literal(link.a() + " <-> " + link.b()
                 + ": only through a closed door at " + door.toShortString()).withStyle(ChatFormatting.GOLD), false));
-        return portals.size();
+        return passages.open().size();
     }
 
     private static int validate(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

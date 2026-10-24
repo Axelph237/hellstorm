@@ -115,7 +115,8 @@ public final class FarTargetGameTests {
 
     /**
      * A game's hall 9 wide and 49 long, cut by a wall with a gap at its east end. The mob spawns at the far end, 46 blocks
-     * from the player and out of sight, and must target the player at once and reach them steering on the flow field.
+     * from the player and out of sight, and must target the player at once and reach them, guided down the player's
+     * distance field while it is far.
      */
     private static void chaseTheLengthOfAHall(GameTestHelper helper, String profile, Class<? extends Mob> kind) {
         Runnable clear = build(helper, 9, 49, (x, z) -> z == 24 && x < 8);
@@ -149,12 +150,12 @@ public final class FarTargetGameTests {
         helper.succeedWhen(() -> {
             player.moveTo(stand.getCenter());
             helper.assertTrue(mob.distanceTo(player) < 2.5, "the " + profile + " is " + String.format("%.1f", mob.distanceTo(player))
-                    + " blocks from the player; flow steps " + active.pathing().flowSteps());
-            int steps = active.pathing().flowSteps();
+                    + " blocks from the player; guided legs " + active.pathing().guidedLegs());
+            int legs = active.pathing().guidedLegs();
             GameManager.end(active);
             clear.run();
             helper.assertTrue(!targetedAt.isEmpty() && targetedAt.get(0) <= 5, "the " + profile + " took " + targetedAt + " ticks to target the player");
-            helper.assertTrue(steps > 0, "the " + profile + " got there without steering on a flow field");
+            helper.assertTrue(legs > 0, "the " + profile + " got there without being guided down a distance field");
         });
     }
 

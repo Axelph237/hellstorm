@@ -76,7 +76,7 @@ public final class DoorGameTests {
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_door_test");
         BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
         player.moveTo(stand.getCenter());
-        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
         PurchaseGameTests.play(active);
@@ -127,7 +127,7 @@ public final class DoorGameTests {
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_door_touching_test");
         BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
         player.moveTo(stand.getCenter());
-        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
         PurchaseGameTests.play(active);
@@ -172,7 +172,7 @@ public final class DoorGameTests {
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_door_wooden_test");
         BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
         player.moveTo(stand.getCenter());
-        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+        GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), List.of(stand),
                 id -> id.equals(player.getUUID()) ? player : null);
         active.game().join(player.getUUID());
         PurchaseGameTests.play(active);
@@ -280,7 +280,7 @@ public final class DoorGameTests {
             ServerPlayer player = PurchaseGameTests.player(helper, "pap_" + name + "_test");
             BlockPos stand = helper.absolutePos(new BlockPos(1, ROOM_Y, 1));
             player.moveTo(stand.getCenter());
-            GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), passages, List.of(stand),
+            GameManager.Active active = GameManager.register(helper.getLevel(), GameMap.of(map, passages.open(), 6.0), List.of(stand),
                     id -> id.equals(player.getUUID()) ? player : null);
             active.game().join(player.getUUID());
             PurchaseGameTests.play(active);
