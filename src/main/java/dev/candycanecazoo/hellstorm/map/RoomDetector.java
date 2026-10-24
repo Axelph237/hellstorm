@@ -22,14 +22,20 @@ public final class RoomDetector {
 
     public record StartBlocked() implements Result {}
 
-    public static Result detect(BlockPos start, Predicate<BlockPos> open, int maxVolume) {
-        if (!open.test(start)) {
+    /**
+     * Fills the {@code open} cells joined to {@code start}. {@code floor} cells are low blocks walked on, such as carpets,
+     * slabs and stairs: one right under the fill joins the room, so someone standing on it stands in the room, but the fill
+     * never spreads from it. Starting in one starts from the cell above.
+     */
+    public static Result detect(BlockPos start, Predicate<BlockPos> open, Predicate<BlockPos> floor, int maxVolume) {
+        BlockPos from = !open.test(start) && floor.test(start) ? start.above() : start;
+        if (!open.test(from)) {
             return new StartBlocked();
         }
         LongOpenHashSet seen = new LongOpenHashSet();
         LongArrayFIFOQueue queue = new LongArrayFIFOQueue();
-        seen.add(start.asLong());
-        queue.enqueue(start.asLong());
+        seen.add(from.asLong());
+        queue.enqueue(from.asLong());
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         while (!queue.isEmpty()) {
             long current = queue.dequeueLong();
@@ -47,6 +53,15 @@ public final class RoomDetector {
         }
         Set<BlockPos> cells = new HashSet<>(seen.size());
         seen.forEach(l -> cells.add(BlockPos.of(l)));
+        for (long l : seen.toLongArray()) {
+            cursor.set(l).move(Direction.DOWN);
+            if (!seen.contains(cursor.asLong()) && floor.test(cursor)) {
+                if (cells.size() >= maxVolume) {
+                    return new TooLarge(maxVolume);
+                }
+                cells.add(cursor.immutable());
+            }
+        }
         return new Found(cells);
     }
 }

@@ -95,10 +95,10 @@ class MapValidatorTest {
     @Test
     void windowChecks() {
         ZombiesMap map = twoTouchingZonesWithSpawns()
-                .withWindow(new WindowDef("huge", new BlockBox(2, 0, -1, 9, 1, -1), Direction.NORTH, 6, START))
-                .withWindow(new WindowDef("lost", new BlockBox(12, 0, -1, 12, 1, -1), Direction.NORTH, 6, new ZoneId("nowhere")))
+                .withWindow(new WindowDef("huge", new BlockBox(2, 0, -1, 9, 1, -1), Direction.NORTH, 6))
+                .withWindow(new WindowDef("lost", new BlockBox(12, 0, -1, 12, 1, -1), Direction.NORTH, 6))
                 .withFeature(new BlockPos(12, 0, -3), FeatureKind.SPAWN)
-                .withWindow(new WindowDef("orphan", new BlockBox(25, 0, -1, 25, 1, -1), Direction.NORTH, 6, NEXT));
+                .withWindow(new WindowDef("orphan", new BlockBox(25, 0, -1, 25, 1, -1), Direction.NORTH, 6));
         ValidationReport report = MapValidator.validate(map, new dev.candycanecazoo.hellstorm.map.validate.ValidationContext(
                 CellProbe.zonesOnly(ZoneIndex.of(map)), pos -> false, 2, new dev.candycanecazoo.hellstorm.config.GameSettings.Windows(5, 4, 30, 15, 6.0),
                 List.of(new dev.candycanecazoo.hellstorm.map.validate.ValidationContext.MobSize("test:giant", 3.6f, 12f))));

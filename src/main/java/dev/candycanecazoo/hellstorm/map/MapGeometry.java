@@ -41,7 +41,7 @@ public final class MapGeometry {
         Map<BlockPos, FeatureKind> features = new LinkedHashMap<>();
         map.features().forEach((pos, kind) -> features.put(pos.offset(dx, dy, dz), kind));
         Map<String, WindowDef> windows = new TreeMap<>();
-        map.windows().forEach((id, w) -> windows.put(id, new WindowDef(id, w.opening().moved(dx, dy, dz), w.outward(), w.maxBoards(), w.zone())));
+        map.windows().forEach((id, w) -> windows.put(id, new WindowDef(id, w.opening().moved(dx, dy, dz), w.outward(), w.maxBoards())));
         Map<String, DoorDef> doors = new TreeMap<>();
         map.doors().forEach((id, d) -> doors.put(id, new DoorDef(id, d.members().stream().map(p -> p.offset(dx, dy, dz)).collect(Collectors.toSet()),
                 d.cost(), d.requiresPower(), d.style())));

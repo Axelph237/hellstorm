@@ -131,7 +131,7 @@ public final class MapToolRenderer {
         for (WindowDef window : ClientMapState.map().windows().values()) {
             AABB box = window.opening().toAabb();
             if (box.intersects(nearby)) {
-                ZoneOutlines.box(new WindowSlot(window.id()), box.inflate(0.02), zoneColor(window.zone()), ZoneOutlines.THICK);
+                ZoneOutlines.box(new WindowSlot(window.id()), box.inflate(0.02), window.zoneBehind(ClientMapState.index()).map(MapToolRenderer::zoneColor).orElse(UNZONED), ZoneOutlines.THICK);
             }
         }
 

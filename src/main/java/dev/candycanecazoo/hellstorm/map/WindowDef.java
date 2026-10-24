@@ -9,17 +9,17 @@ import net.minecraft.core.Direction;
 /**
  * A boarded window: a flat opening, one block thick, in a zone's wall. Zombies outside tear its boards off and climb in.
  * {@code outward} points from the zone to the outside. The current board count isn't stored here: it is the
- * {@code boards} blockstate shared by every barricade block in the opening.
+ * {@code boards} blockstate shared by every barricade block in the opening. The zone it opens into isn't stored either
+ * ({@link #zoneBehind}); saves and map packs from before still carry a {@code zone} key, which loading ignores.
  */
-public record WindowDef(String id, BlockBox opening, Direction outward, int maxBoards, ZoneId zone) {
+public record WindowDef(String id, BlockBox opening, Direction outward, int maxBoards) {
     public static final int MAX_BOARDS = 6;
 
     public static final Codec<WindowDef> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.STRING.fieldOf("id").forGetter(WindowDef::id),
             BlockBox.CODEC.fieldOf("opening").forGetter(WindowDef::opening),
             Direction.CODEC.fieldOf("outward").forGetter(WindowDef::outward),
-            Codecs.strictOptional(Codec.intRange(0, MAX_BOARDS), "max_boards", MAX_BOARDS).forGetter(WindowDef::maxBoards),
-            ZoneId.CODEC.fieldOf("zone").forGetter(WindowDef::zone)
+            Codecs.strictOptional(Codec.intRange(0, MAX_BOARDS), "max_boards", MAX_BOARDS).forGetter(WindowDef::maxBoards)
     ).apply(i, WindowDef::new));
 
     public WindowDef {
@@ -53,10 +53,7 @@ public record WindowDef(String id, BlockBox opening, Direction outward, int maxB
         return bottomCenter().relative(outward);
     }
 
-    /**
-     * The zone the window opens into now: the one holding {@link #insideSpot}. {@code zone} records where it opened when
-     * it was made, and goes stale when the zones behind it are redrawn.
-     */
+    /** The zone the window opens into: the one holding {@link #insideSpot}. */
     public java.util.Optional<ZoneId> zoneBehind(ZoneIndex index) {
         return index.zoneAt(insideSpot());
     }

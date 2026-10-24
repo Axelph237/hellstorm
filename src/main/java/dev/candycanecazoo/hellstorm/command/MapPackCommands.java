@@ -172,6 +172,11 @@ final class MapPackCommands {
                 throw CommandErrors.fail("Couldn't install the pack's datapack: {}", e.getMessage());
             }
         }
+        MapPack.Cleared cleared = MapPack.clear(level, MapSavedData.get(level).map());
+        if (cleared.machines() + cleared.windows() > 0) {
+            ctx.getSource().sendSuccess(() -> Component.literal("Removed the old map's " + cleared.machines() + " machines and markers and "
+                    + cleared.windows() + " windows' barricades"), true);
+        }
         MapPack.place(level, contents, corner);
         MapModes.set(level, MapMode.PLAY);
         var size = contents.manifest().size();

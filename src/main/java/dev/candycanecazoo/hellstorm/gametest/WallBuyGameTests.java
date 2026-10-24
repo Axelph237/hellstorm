@@ -105,6 +105,25 @@ public final class WallBuyGameTests {
         helper.succeed();
     }
 
+    /** A wall-buy the game's map doesn't have, such as one left by the map imported before, sells nothing. */
+    @GameTest(template = "floor", batch = "wallbuy_not_in_map")
+    public static void aWallBuyNotInTheGamesMapSellsNothing(GameTestHelper helper) {
+        ItemSpec apples = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3, Optional.empty());
+        BlockPos at = wallBuy(helper, new WallBuy.Config(apples, 100, WallBuy.Repurchase.TOP_UP, 0, 0, false));
+        ServerPlayer player = player(helper, "pap_wallbuy_stray");
+        GameManager.Active active = game(helper, player);
+        try {
+            int before = points(active, player);
+            FeatureBlock.use(player, at);
+            assertPoints(helper, active, player, before, "a wall-buy outside the map shouldn't charge");
+            helper.assertFalse(player.getInventory().items.stream().anyMatch(s -> s.is(net.minecraft.world.item.Items.GOLDEN_APPLE)),
+                    "a wall-buy outside the map shouldn't sell");
+        } finally {
+            GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "floor", batch = "wallbuy_top_up")
     public static void aTopUpWallBuyFillsTheStackBackToItsCount(GameTestHelper helper) {
         ItemSpec apples = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3, Optional.empty());

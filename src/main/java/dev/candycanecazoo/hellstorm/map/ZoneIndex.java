@@ -51,4 +51,12 @@ public final class ZoneIndex {
     public Optional<ZoneId> zoneAt(BlockPos pos) {
         return zoneAt(pos.getX(), pos.getY(), pos.getZ());
     }
+
+    /**
+     * The zone someone whose feet are in {@code feet} stands in. Standing on a carpet, slab or stair puts the feet in that
+     * block, which a zone drawn over the floor leaves out, so the block above counts too.
+     */
+    public Optional<ZoneId> zoneOfBody(BlockPos feet) {
+        return zoneAt(feet).or(() -> zoneAt(feet.getX(), feet.getY() + 1, feet.getZ()));
+    }
 }

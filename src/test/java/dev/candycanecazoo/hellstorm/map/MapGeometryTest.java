@@ -16,7 +16,7 @@ class MapGeometryTest {
         return ZombiesMap.EMPTY
                 .withZone(new Zone(HALL, List.of(new BlockBox(10, 64, 10, 19, 67, 15), new BlockBox(20, 64, 12, 24, 66, 13)), true))
                 .withFeature(new BlockPos(-3, 70, 11), FeatureKind.SPAWN)
-                .withWindow(new WindowDef("w", new BlockBox(25, 65, 12, 25, 66, 13), Direction.EAST, 6, HALL))
+                .withWindow(new WindowDef("w", new BlockBox(25, 65, 12, 25, 66, 13), Direction.EAST, 6))
                 .withDoor(DoorDef.empty("gate", 750).withMember(new BlockPos(14, 63, 30)));
     }
 

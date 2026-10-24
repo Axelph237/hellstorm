@@ -93,6 +93,10 @@ public record ZombiesMap(Map<ZoneId, Zone> zones, Map<BlockPos, FeatureKind> fea
         return features.entrySet().stream().map(e -> new FeatureRef(e.getKey(), e.getValue())).toList();
     }
 
+    public boolean hasFeature(BlockPos pos, FeatureKind kind) {
+        return features.get(pos) == kind;
+    }
+
     public List<BlockPos> features(FeatureKind kind) {
         return features.entrySet().stream().filter(e -> e.getValue() == kind).map(Map.Entry::getKey).toList();
     }

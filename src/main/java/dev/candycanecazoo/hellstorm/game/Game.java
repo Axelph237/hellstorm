@@ -463,7 +463,7 @@ public final class Game {
     private void discoverZones(GameWorld world) {
         for (PlayerState player : players.values()) {
             if (player.alive()) {
-                world.playerPosition(player.id()).flatMap(map.index()::zoneAt).ifPresent(discovered::add);
+                world.playerPosition(player.id()).flatMap(map.index()::zoneOfBody).ifPresent(discovered::add);
             }
         }
     }

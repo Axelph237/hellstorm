@@ -136,9 +136,9 @@ public final class PowerUpGameTests {
         ZoneId zone = new ZoneId("gametest_carpenter");
         List<WindowDef> windows = List.of(
                 new WindowDef("left", BlockBox.of(helper.absolutePos(new BlockPos(2, ROOM_Y, 9)), helper.absolutePos(new BlockPos(2, ROOM_Y + 1, 9))),
-                        Direction.SOUTH, 6, zone),
+                        Direction.SOUTH, 6),
                 new WindowDef("right", BlockBox.of(helper.absolutePos(new BlockPos(6, ROOM_Y, 9)), helper.absolutePos(new BlockPos(7, ROOM_Y, 9))),
-                        Direction.SOUTH, 4, zone));
+                        Direction.SOUTH, 4));
         ZombiesMap map = ZombiesMap.EMPTY.withZone(new Zone(zone, List.of(BlockBox.of(min, max)), true));
         for (WindowDef window : windows) {
             map = map.withWindow(window);

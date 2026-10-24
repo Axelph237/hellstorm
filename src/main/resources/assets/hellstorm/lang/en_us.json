@@ -60,6 +60,7 @@
   "item.hellstorm.punch.iron_sword": "Upgraded Sword",
   "name.hellstorm.pack_a_punch": "Dante's Toil",
   "name.hellstorm.mystery_crate": "Mystery Crate",
+  "message.hellstorm.machine.not_in_map": "This machine isn't part of the game's map",
   "message.hellstorm.box.not_here": "The %s isn't here",
   "message.hellstorm.box.in_use": "The %s is in use",
   "message.hellstorm.box.empty": "The %s is empty",
