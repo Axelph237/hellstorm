@@ -393,7 +393,7 @@ public final class TrapControllerBlock extends HorizontalDirectionalBlock implem
                 + (c.activeTicks().isEmpty() ? " (default)" : "") + ", cooldown " + c.cooldownTicks(defaults) + " ticks"
                 + (c.cooldownTicks().isEmpty() ? " (default)" : "") + ", " + trap.cycle().phase().getSerializedName()
                 + trap.look().map(look -> ", looks like " + look.getBlock().getName().getString()).orElse("")
-                + ". Set with /hs trap name|cost|power|active|cooldown|signal");
+                + ". An op in creative changes it by using it");
     }
 
     @Override

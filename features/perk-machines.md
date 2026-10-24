@@ -26,7 +26,7 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
 ## Config surface
 
 - Per machine: the same settings as a wall-buy (item, cost, repurchase, power).
-- `players.perk_limit` (4).
+- `players.perk_limit` (5; 4 until 2026-10-24).
 - The `hellstorm:perks` and `hellstorm:self_revive` mob effect tags.
 
 ## Assets
@@ -53,6 +53,7 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
 ## As built
 
 - **Perk cans** (2026-10-22, `perk/PerkCanItem`). `hellstorm:load_up` is a can of Load-Up and `hellstorm:vigoraid` a can of Vigoraid, each with your GeckoLib model (`geo/item/<id>.geo.json`), texture (`textures/item/<id>.png`), and display transforms (`models/item/<id>.json`, parent `builtin/entity`). They're drawn by GeckoLib's own `GeoItemRenderer` (made in `client/PerkCanRenderer`, so the server never loads renderer classes to check the item), not `client/BlockAlignedItemRenderer`: the GeckoLib Blockbench plugin's display preview assumes GeckoLib's lift of 0.51 block, so the display settings you export there look the same in game. (The first build drew them block-aligned, half a block lower than Blockbench showed in every view.) A can is drunk like a potion: the drinking pose and sound for 32 ticks, then Load-Up with no time limit and no particles (the effect icon still shows), and nothing is left (a potion leaves a bottle). It stacks to 1, as potions do. Its tooltip lists the effect the way a potion's does.
+- **Saint's Brew can** (2026-10-24). `hellstorm:saints_brew`, a `PerkCanItem` for `PerkEffects.SAINTS_BREW`, with the GeckoLib model, texture and display settings the user made (`geo/item/saints_brew.geo.json`, `textures/item/saints_brew.png`, `models/item/saints_brew.json`, whose particle texture was pointed at the can's own). GameTest `PerkGameTests` drinks one.
   - **Perk rules.** `Perks.drunk(stack)` is a can's perk or a potion's effects, and the perk limit (`Perks.given`) and "You already have Load-Up" (`Perks.alreadyHas`) read it, so a can counts as its perk everywhere a potion does. To sell it, hold a can, look at the machine, and run `/hs wallbuy set <cost> held`, then `/hs wallbuy repurchase deny`. New machines still sell potions by default.
   - **Color.** `client/PerkCanColors` gives every `PerkCanItem` an item color (layer 0): the stack's `CustomPotionColor` if it has one, otherwise the perk's effect color (Load-Up's #3fae4a, Vigoraid's #d33a2c). The model doesn't use it; it's there so a vending machine selling the can repaints itself as it does for a potion.
   - **Another can** is one line in `PapRegistries` (`new PerkCanItem(props, PerkEffects.<PERK>)`), its three asset files named after the item id, and an `item.hellstorm.<id>` lang entry. The model is found from the item id when the can is first drawn. It can't come from a constructor argument: Forge calls `initializeClient` from `Item`'s constructor, before `PerkCanItem`'s own fields are set. (The first build passed a model-name field and so drew with a null name. That crashed the creative tab, and a can in the hotbar logged a stack trace every frame, which made the game unplayably slow.)
@@ -142,3 +143,5 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
 - **Item.** A flat item with your 16-pixel texture, `textures/item/vending_machine.png` (`models/item/perk_machine.json`, `item/generated`), not the block's model.
 - **Check in game** (not covered by tests): the model's position on its blocks and its front facing you, the fade and the lit animation's speed, the glass, the stock's size and spots (TacZ guns may sit off center), the keys' clicks against the animation, the rattle, the hum's loop and volume, and the item in a slot and in hand.
 
+
+- **No commands** (2026-10-24). `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are gone: each machine is set on its settings screen (an op in creative using it outside a game). Anyone else sees its settings in chat, ending "An op in creative changes it by using it". `CommandTreeGameTests` checks none of them is registered.

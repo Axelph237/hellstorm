@@ -144,6 +144,8 @@ public final class PapRegistries {
             PerkEffects.VIGORADE));
     public static final RegistryObject<Item> LOAD_UP_CAN = ITEMS.register("load_up", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
             PerkEffects.RELOAD));
+    public static final RegistryObject<Item> SAINTS_BREW_CAN = ITEMS.register("saints_brew", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
+            PerkEffects.SAINTS_BREW));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
@@ -160,6 +162,7 @@ public final class PapRegistries {
                 output.accept(TRAP_CONTROLLER_ITEM.get());
                 output.accept(VIGORAID_CAN.get());
                 output.accept(LOAD_UP_CAN.get());
+                output.accept(SAINTS_BREW_CAN.get());
             })
             .build());
 

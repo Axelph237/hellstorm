@@ -330,6 +330,9 @@ public final class PerkGameTests {
             helper.assertTrue(drink(player, new ItemStack(PapRegistries.VIGORAID_CAN.get())), "drinking a Vigoraid can shouldn't be refused");
             MobEffectInstance vigoraid = player.getEffect(PerkEffects.VIGORADE.get());
             helper.assertTrue(vigoraid != null && vigoraid.isInfiniteDuration(), "the Vigoraid can should give Vigoraid with no time limit, got " + vigoraid);
+            helper.assertTrue(drink(player, new ItemStack(PapRegistries.SAINTS_BREW_CAN.get())), "drinking a Saint's Brew can shouldn't be refused");
+            MobEffectInstance saintsBrew = player.getEffect(PerkEffects.SAINTS_BREW.get());
+            helper.assertTrue(saintsBrew != null && saintsBrew.isInfiniteDuration(), "the Saint's Brew can should give Saint's Brew with no time limit, got " + saintsBrew);
         } finally {
             GameManager.end(active);
         }

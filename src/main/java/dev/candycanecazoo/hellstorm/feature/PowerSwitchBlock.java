@@ -116,7 +116,7 @@ public final class PowerSwitchBlock extends LeverBlock implements EntityBlock, F
     @Override
     public Component describe(ServerLevel level, BlockPos pos) {
         int cost = config(level, pos).cost();
-        return Component.literal("Power switch: " + (cost == 0 ? "free" : cost + " points") + ". Set with /hs power cost <points>");
+        return Component.literal("Power switch: " + (cost == 0 ? "free" : cost + " points") + ". An op in creative changes it by using it");
     }
 
     @Override

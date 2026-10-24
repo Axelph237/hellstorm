@@ -458,6 +458,6 @@ public final class PapMachineBlock extends TwoBlockMachine {
     public Component describe(ServerLevel level, BlockPos pos) {
         Optional<Integer> cost = level.getBlockEntity(pos) instanceof Entity machine ? machine.config().cost() : Optional.empty();
         return Component.translatable(NAME).append(": " + cost.map(c -> c + " points").orElse("the default cost (pap.default_cost)")
-                + ". Set with /hs upgrader cost <points|default>");
+                + ". An op in creative changes it by using it");
     }
 }

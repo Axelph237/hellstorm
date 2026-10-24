@@ -52,7 +52,7 @@ class MachineNamesLintTest {
 
     /**
      * Players and map makers know it as the Mystery Crate. Any string may say "box" for a selection box, so strings are only
-     * checked for the crate's old names (the {@code /hs box} command keeps its name); config comments and the lang file never mean a selection box, so there "box" is out.
+     * checked for the crate's old names; config comments and the lang file never mean a selection box, so there "box" is out.
      */
     @Test
     void noTextCallsTheCrateABox() throws IOException {

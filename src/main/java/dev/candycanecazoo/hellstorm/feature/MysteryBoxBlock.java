@@ -549,6 +549,6 @@ public final class MysteryBoxBlock extends TwoBlockMachine {
     public static Component describe(Entity entity) {
         Config c = entity.config();
         return Component.literal("Mystery Crate location: pool " + c.pool() + ", cost " + c.cost().map(String::valueOf).orElse("default (box.cost)")
-                + ". Set with /hs box pool <id> and /hs box cost <points|default>");
+                + ". An op in creative changes it by using it");
     }
 }

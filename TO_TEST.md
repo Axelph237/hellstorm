@@ -2,6 +2,12 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Machines and perks (2026-10-24)
+
+- [ ] **Saint's Brew can.** `/give @s hellstorm:saints_brew`: it shows its model in hand (first and third person), on the ground, in a frame and in the inventory, and drinking it gives Saint's Brew. Sell it from a vending machine: the machine takes its color.
+- [ ] **Five perks.** In a game, a sixth perk is refused with "You can only hold 5 perks". Check `perk_limit = 5` in a fresh world's `serverconfig/hellstorm-server.toml`.
+- [ ] **Machines without commands.** `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are unknown commands; each machine's settings screen still sets everything. A non-op using a machine outside a game sees its settings in chat.
+
 ## Zone Wand (2026-10-24)
 
 - [ ] **Corners above, sneak for the block.** With the Zone Wand, look at the floor: the preview box starts in the air above it. Sneak: it moves onto the floor block. Click a door, a lever and a chest: none opens or flips, standing or sneaking, and the corner is set. `/hsz desel` clears the selection, and `/hsz add room <name>` works like `/hs zones add room`.

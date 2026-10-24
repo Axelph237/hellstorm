@@ -339,7 +339,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         }
         return entity.getBlockState().getBlock().getName().append(": " + entity.itemName() + " (" + c.item().describe() + ") for "
                 + c.cost() + (c.requiresPower() ? ", needs power" : "") + "; buying again: " + again
-                + ". Set with /hs wallbuy set|ammo|repurchase|power");
+                + ". An op in creative changes it by using it");
     }
 
     @Override

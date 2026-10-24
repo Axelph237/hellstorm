@@ -229,19 +229,6 @@ public final class TrapGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "trap_max_ticks_command")
-    public static void trapTimeCommandsRefuseMoreThanAnHour(GameTestHelper helper) {
-        var server = helper.getLevel().getServer();
-        var dispatcher = server.getCommands().getDispatcher();
-        for (String setting : new String[] {"active", "cooldown"}) {
-            var over = dispatcher.parse("hs trap " + setting + " " + (TrapControllerBlock.Config.MAX_TICKS + 1), server.createCommandSourceStack());
-            helper.assertTrue(over.getContext().getCommand() == null && !over.getExceptions().isEmpty(), "/hs trap " + setting + " over an hour should not parse");
-            var hour = dispatcher.parse("hs trap " + setting + " " + TrapControllerBlock.Config.MAX_TICKS, server.createCommandSourceStack());
-            helper.assertTrue(hour.getContext().getCommand() != null && hour.getExceptions().isEmpty(), "/hs trap " + setting + " of an hour should parse");
-        }
-        helper.succeed();
-    }
-
     @GameTest(template = "floor", batch = "trap_power")
     public static void aTrapThatNeedsPowerWaitsForThePower(GameTestHelper helper) {
         BlockPos at = helper.absolutePos(new BlockPos(2, ROOM_Y, 2));
