@@ -262,7 +262,11 @@ public final class GameHooks {
                 .flatMap(a -> a.game().player(player.getUUID())).map(s -> s.life() instanceof LifeState.Downed).orElse(false);
         boolean notFighting = event.getEntity() instanceof ServerPlayer player && GameManager.forPlayer(player.getUUID())
                 .map(a -> a.game().protectsPlayers()).orElse(false);
-        if (burningZombie || god || downed || notFighting) {
+        // A shot, a swing, or a blast a teammate causes: the source's entity is the player behind it, whatever hit.
+        boolean friendlyFire = event.getEntity() instanceof ServerPlayer player && event.getSource().getEntity() instanceof ServerPlayer attacker
+                && attacker != player && GameManager.forPlayer(player.getUUID())
+                .filter(a -> a.game().player(attacker.getUUID()).isPresent() && !a.game().settings().players().friendlyFire()).isPresent();
+        if (burningZombie || god || downed || notFighting || friendlyFire) {
             event.setCanceled(true);
         }
     }

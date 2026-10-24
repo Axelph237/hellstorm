@@ -51,6 +51,7 @@ public final class GameSettingsConfig {
     private final ForgeConfigSpec.IntValue maxPlayers;
     private final ForgeConfigSpec.IntValue reconnectGraceTicks;
     private final ForgeConfigSpec.DoubleValue knockbackReduction;
+    private final ForgeConfigSpec.BooleanValue friendlyFire;
     private final ForgeConfigSpec.IntValue doorDefaultCost;
     private final ForgeConfigSpec.IntValue boxCost;
     private final ForgeConfigSpec.IntValue boxFireSaleCost;
@@ -152,6 +153,8 @@ public final class GameSettingsConfig {
                 .defineInRange("reconnect_grace_ticks", d.players().reconnectGraceTicks(), 0, 72_000);
         knockbackReduction = b.comment("How much knockback a player in a game is spared: 0 keeps all of it, 1 none (0.85 leaves 15%).")
                 .defineInRange("knockback_reduction", d.players().knockbackReduction(), 0.0, 1.0);
+        friendlyFire = b.comment("Let players in a game hurt each other: shots, melee, and anything else a player causes. Off by default.")
+                .define("friendly_fire", d.players().friendlyFire());
         b.pop();
         b.push("doors");
         doorDefaultCost = b.comment("What a new door costs until set otherwise.").defineInRange("default_cost", d.doors().defaultCost(), 0, 1_000_000);
@@ -235,6 +238,11 @@ public final class GameSettingsConfig {
         return read(ConfigValueReader.CURRENT);
     }
 
+    /** For GameTests, which turn it on for one game and back off. */
+    public ForgeConfigSpec.BooleanValue friendlyFire() {
+        return friendlyFire;
+    }
+
     /** The values a fresh config file would have. Must equal {@link GameSettings#DEFAULT}. */
     public GameSettings defaults() {
         return read(ConfigValueReader.DEFAULT);
@@ -257,7 +265,8 @@ public final class GameSettingsConfig {
                 new GameSettings.Economy(r.read(startingPoints), r.read(hit), r.read(kill), r.read(headshotKill), r.read(meleeKill),
                         r.read(repair), r.read(repairCapPerRound), r.read(repairCapPerWindow)),
                 new GameSettings.Players(guns(r.read(startingGuns)), items(r.read(startingItems)), r.read(reserveMagazines),
-                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks), r.read(knockbackReduction)),
+                        r.read(startingGunsUnlimitedAmmo), r.read(weaponSlots), r.read(perkLimit), r.read(maxPlayers), r.read(reconnectGraceTicks), r.read(knockbackReduction),
+                        r.read(friendlyFire)),
                 new GameSettings.Windows(r.read(windowMaxWidth), r.read(windowMaxHeight), r.read(tearTicks), r.read(repairTicks), r.read(linkRange)),
                 new GameSettings.Doors(r.read(doorDefaultCost)),
                 new GameSettings.Box(r.read(boxCost), r.read(boxFireSaleCost), r.read(boxRollTicks), r.read(boxCollectTicks), r.read(boxMinUses),

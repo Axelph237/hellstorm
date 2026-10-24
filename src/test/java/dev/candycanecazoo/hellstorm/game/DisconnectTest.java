@@ -30,7 +30,7 @@ class DisconnectTest {
             new GameSettings.Rounds(8, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 24, 1, 1.0, 150, 2, 2, 0.0),
             GameSettings.DEFAULT.spawning(), GameSettings.DEFAULT.economy(),
             new GameSettings.Players(D.startingGuns(), D.startingItems(), D.reserveMagazines(), D.startingGunsUnlimitedAmmo(), D.weaponSlots(),
-                    D.perkLimit(), 2, GRACE, D.knockbackReduction()),
+                    D.perkLimit(), 2, GRACE, D.knockbackReduction(), D.friendlyFire()),
             GameSettings.DEFAULT.windows(), GameSettings.DEFAULT.doors(), GameSettings.DEFAULT.box(), GameSettings.DEFAULT.pap(),
             new GameSettings.Downs(400, 10, 2.5, 3, 5, 4.0),
             GameSettings.DEFAULT.powerUps(), GameSettings.DEFAULT.traps(), GameSettings.DEFAULT.waveEvents());
