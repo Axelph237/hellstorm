@@ -52,7 +52,11 @@ minecraft {
             args '--nogui'
         }
 
-        gameTestServer {}
+        // Its own folder: in the shared run/world (generated terrain, if runServer made it) caves and aquifers next to the
+        // tests flood them. Here the test server makes its own flat world.
+        gameTestServer {
+            workingDirectory project.file('run-gametest')
+        }
 
         data {
             workingDirectory project.file('run-data')

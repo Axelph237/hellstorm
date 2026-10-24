@@ -2,6 +2,10 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Maps
+
+- [ ] **Walls between rooms.** Draw two rooms that touch and reach well above a wall two blocks high between them, with a Hellstorm door in the wall. `/hs map validate` reports no loophole, and `/hs map paths` lists no connection between them. Lower one stretch of the wall to one block: now it reports a loophole there. A fence instead of the low stretch keeps them apart. Try your real walls too (slabs, stairs, glass panes, leaves) and tell me any that come out wrong.
+
 ## Zombies
 
 - [ ] **No block use in a game.** In a game, right-click a wooden door, a trapdoor, a lever and a chest: none opens or flips, and none flickers. Wall-buys, machines, the power switch, and buying a door still work, and a gun still aims.

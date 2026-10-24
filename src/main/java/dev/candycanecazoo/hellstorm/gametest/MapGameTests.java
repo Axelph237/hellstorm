@@ -96,7 +96,7 @@ public final class MapGameTests {
         helper.succeed();
     }
 
-    /** Game zombies open wooden doors, so those always pass. Iron doors and fence gates pass only while open. */
+    /** Game zombies open wooden doors, so those always pass. Iron doors and fence gates pass only while open. A fence is too tall to jump. */
     @GameTest(template = "floor")
     public static void probeClassifiesDoorsTheWayGameZombiesSeeThem(GameTestHelper helper) {
         helper.setBlock(at(2, 0, 2), Blocks.OAK_DOOR.defaultBlockState());
@@ -111,7 +111,7 @@ public final class MapGameTests {
         assertCell(helper, at(2, 0, 5), CellProbe.Cell.CLOSED_DOOR);
         assertCell(helper, at(6, 0, 5), CellProbe.Cell.CLOSED_DOOR);
         assertCell(helper, at(4, 0, 2), CellProbe.Cell.SOLID);
-        assertCell(helper, at(5, 0, 2), CellProbe.Cell.SOLID);
+        assertCell(helper, at(5, 0, 2), CellProbe.Cell.TALL);
         assertCell(helper, at(6, 0, 2), CellProbe.Cell.OPEN);
         assertCell(helper, at(3, 0, 2), CellProbe.Cell.OPEN);
         helper.setBlock(at(7, 0, 7), PapRegistries.BARRICADE.get().defaultBlockState().setValue(dev.candycanecazoo.hellstorm.feature.BarricadeBlock.BOARDS, 0));

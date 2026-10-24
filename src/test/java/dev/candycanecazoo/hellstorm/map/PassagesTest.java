@@ -34,15 +34,25 @@ class PassagesTest {
         return pos -> cells.getOrDefault(pos, index.zoneAt(pos).isPresent() ? CellProbe.Cell.OPEN : CellProbe.Cell.SOLID);
     }
 
+    /** Flat ground at y -1 and open sky above it. */
+    private static CellProbe.Cell ground(BlockPos pos) {
+        return pos.getY() < 0 ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+    }
+
     private static Passages.Result find(ZombiesMap map, CellProbe probe, int maxGap) {
         return Passages.find(map, ZoneIndex.of(map), probe, maxGap);
     }
 
     @Test
     void aOneCellDoorwayConnectsTheRooms() {
-        Passages.Result result = find(rooms(1), openings(rooms(1), Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(3, 1, 1), CellProbe.Cell.OPEN)), 2);
-        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), result.open());
-        assertTrue(MapValidator.validate(rooms(1), openings(rooms(1), Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN)), 2).playable());
+        CellProbe doorway = openings(rooms(1), Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(3, 1, 1), CellProbe.Cell.OPEN));
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(1), doorway, 2).open());
+        assertTrue(MapValidator.validate(rooms(1), doorway, 2).playable());
+    }
+
+    @Test
+    void aHoleOneBlockHighIsTooLowToWalkThrough() {
+        assertEquals(Set.of(), find(rooms(1), openings(rooms(1), Map.of(new BlockPos(3, 0, 1), CellProbe.Cell.OPEN)), 2).open());
     }
 
     @Test
@@ -69,7 +79,8 @@ class PassagesTest {
 
     @Test
     void anOpenDoorwayNextToAClosedDoorStillConnectsWithoutAWarning() {
-        CellProbe probe = openings(rooms(1), Map.of(new BlockPos(3, 0, 0), CellProbe.Cell.CLOSED_DOOR, new BlockPos(3, 0, 2), CellProbe.Cell.OPEN));
+        CellProbe probe = openings(rooms(1), Map.of(new BlockPos(3, 0, 0), CellProbe.Cell.CLOSED_DOOR, new BlockPos(3, 1, 0), CellProbe.Cell.CLOSED_DOOR,
+                new BlockPos(3, 0, 2), CellProbe.Cell.OPEN, new BlockPos(3, 1, 2), CellProbe.Cell.OPEN));
         ValidationReport report = MapValidator.validate(rooms(1), probe, 2);
         assertFalse(report.has(MapValidator.UNREACHABLE_ZONE));
         assertFalse(report.has(MapValidator.CLOSED_DOOR_GAP));
@@ -78,20 +89,21 @@ class PassagesTest {
     @Test
     void aCorridorLongerThanTheGapLimitDoesNotConnect() {
         CellProbe corridor = openings(rooms(3), Map.of(
-                new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(4, 0, 1), CellProbe.Cell.OPEN, new BlockPos(5, 0, 1), CellProbe.Cell.OPEN));
+                new BlockPos(3, 0, 1), CellProbe.Cell.OPEN, new BlockPos(4, 0, 1), CellProbe.Cell.OPEN, new BlockPos(5, 0, 1), CellProbe.Cell.OPEN,
+                new BlockPos(3, 1, 1), CellProbe.Cell.OPEN, new BlockPos(4, 1, 1), CellProbe.Cell.OPEN, new BlockPos(5, 1, 1), CellProbe.Cell.OPEN));
         assertEquals(Set.of(), find(rooms(3), corridor, 2).open(), "3 open cells must not bridge a 2-cell limit");
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(3), corridor, 3).open());
     }
 
     @Test
     void touchingZonesConnectWhereAMobCanStepAcross() {
-        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), pos -> CellProbe.Cell.OPEN, 2).open());
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), PassagesTest::ground, 2).open());
     }
 
     @Test
     void doorBlocksDrawnInsideTouchingZonesKeepThemApartUntilTheyAreGone() {
         Set<BlockPos> door = Set.of(new BlockPos(2, 0, 1), new BlockPos(2, 1, 1));
-        CellProbe walls = pos -> pos.getX() == 2 && !door.contains(pos) ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+        CellProbe walls = pos -> pos.getX() == 2 && !door.contains(pos) ? CellProbe.Cell.SOLID : ground(pos);
         CellProbe closed = pos -> door.contains(pos) ? CellProbe.Cell.SOLID : walls.at(pos);
         assertEquals(Set.of(), find(rooms(0), closed, 2).open(), "the door's blocks are the only way across");
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), walls, 2).open(), "bought: the blocks are air");
@@ -118,9 +130,58 @@ class PassagesTest {
     void aGapInsideAThickDoorDoesNotConnectTheZones() {
         BlockPos gap = new BlockPos(3, 1, 1);
         Set<BlockPos> doorway = Set.of(new BlockPos(3, 0, 1), gap, new BlockPos(4, 0, 1), new BlockPos(4, 1, 1));
-        CellProbe closed = pos -> (pos.getX() == 3 && !pos.equals(gap)) || pos.getX() == 4 ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+        CellProbe closed = pos -> (pos.getX() == 3 && !pos.equals(gap)) || pos.getX() == 4 ? CellProbe.Cell.SOLID : ground(pos);
         assertEquals(Set.of(), find(rooms(0), closed, 2).open(), "the gap is a pocket of the east zone, not a way in");
-        CellProbe bought = pos -> (pos.getX() == 3 || pos.getX() == 4) && !doorway.contains(pos) ? CellProbe.Cell.SOLID : CellProbe.Cell.OPEN;
+        CellProbe bought = pos -> (pos.getX() == 3 || pos.getX() == 4) && !doorway.contains(pos) ? CellProbe.Cell.SOLID : ground(pos);
         assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(rooms(0), bought, 2).open(), "bought, the doorway runs through");
+    }
+
+    /**
+     * Two fields under open sky, drawn ten blocks tall and touching at x 4|5, split by a wall along x 4 inside the west
+     * field. The wall is {@code height} blocks of {@code wall}, with a door players buy, "gate", two blocks tall at z 2.
+     */
+    private static ZombiesMap fields() {
+        return ZombiesMap.EMPTY
+                .withZone(new Zone(WEST, List.of(new BlockBox(0, 0, 0, 4, 9, 4)), true))
+                .withZone(new Zone(EAST, List.of(new BlockBox(5, 0, 0, 9, 9, 4)), false))
+                .withFeature(new BlockPos(1, 0, 1), FeatureKind.SPAWN)
+                .withFeature(new BlockPos(8, 0, 1), FeatureKind.SPAWN)
+                .withDoor(DoorDef.empty("gate", 750).withMember(new BlockPos(4, 0, 2)).withMember(new BlockPos(4, 1, 2)));
+    }
+
+    private static CellProbe fieldWall(int height, CellProbe.Cell wall) {
+        return pos -> pos.getX() == 4 && pos.getY() >= 0 && pos.getY() < height ? wall : ground(pos);
+    }
+
+    @Test
+    void aWallTwoBlocksHighKeepsFieldsApartThoughTheAirAboveItTouches() {
+        CellProbe world = fieldWall(2, CellProbe.Cell.SOLID);
+        assertEquals(Set.of(), find(fields(), world, 2).open(), "nothing climbs a two-block wall");
+        ValidationReport report = MapValidator.validate(fields(), world, 2);
+        assertFalse(report.has(MapValidator.LOOPHOLE), report.problems().toString());
+        assertFalse(report.has(MapValidator.UNREACHABLE_ZONE), "the gate joins them: " + report.problems());
+        CellProbe bought = pos -> pos.getX() == 4 && pos.getZ() == 2 ? ground(pos) : world.at(pos);
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), Passages.find(fields(), ZoneIndex.of(fields()), bought, 2, Set.of("gate")).open());
+    }
+
+    @Test
+    void aWallOneBlockHighIsJumpedSoTheGateIsALoophole() {
+        CellProbe world = fieldWall(1, CellProbe.Cell.SOLID);
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(fields(), world, 2).open());
+        assertTrue(MapValidator.validate(fields(), world, 2).has(MapValidator.LOOPHOLE));
+    }
+
+    @Test
+    void aFenceIsNotJumpedEvenOneBlockHigh() {
+        assertEquals(Set.of(), find(fields(), fieldWall(1, CellProbe.Cell.TALL), 2).open());
+    }
+
+    @Test
+    void aDropFromHigherGroundJoinsTheZonesBelow() {
+        ZombiesMap map = ZombiesMap.EMPTY
+                .withZone(new Zone(WEST, List.of(new BlockBox(0, 4, 0, 4, 9, 4)), true))
+                .withZone(new Zone(EAST, List.of(new BlockBox(5, 0, 0, 9, 9, 4)), false));
+        CellProbe cliff = pos -> pos.getX() <= 4 && pos.getY() < 4 ? CellProbe.Cell.SOLID : ground(pos);
+        assertEquals(Set.of(Passages.Link.of(WEST, EAST)), find(map, cliff, 2).open(), "a player can jump down past a door");
     }
 }

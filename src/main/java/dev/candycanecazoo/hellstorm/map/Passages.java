@@ -4,21 +4,27 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
- * Finds passages between zones: where their boxes touch and a mob can step across, and through the cells that belong to
- * no zone, such as a doorway, an arch, or an open door. Searches at most {@code maxGap} cells out from each zone's surface. A path that needs a closed door is recorded
- * separately: zombies can't open doors, so it is not a passage, but it is worth telling the map maker about.
+ * Finds passages between zones: ways a walker two blocks tall, a player or a zombie, gets from one zone's walkable space
+ * to another's by stepping sideways, jumping up one block, or falling. It crosses where the zones' boxes touch, or through
+ * at most {@code maxGap} steps outside every zone, such as a doorway, an arch, or an open door. Open air alone joins
+ * nothing: two zones drawn taller than the wall between them stay apart unless the wall is low enough to jump. A path
+ * that needs a closed door is recorded separately: zombies can't open doors, so it is not a passage, but it is worth
+ * telling the map maker about.
  */
 public final class Passages {
+    /** How far down a fall is followed. A player at full health survives a drop this far, so it still gets past a door. */
+    static final int MAX_FALL = 16;
+
     /** An unordered pair of zones. */
     public record Link(ZoneId a, ZoneId b) {
         public static Link of(ZoneId x, ZoneId y) {
@@ -41,6 +47,9 @@ public final class Passages {
         }
     }
 
+    /** One move to where a walker's feet end up, and the first closed door it passes through, or null. */
+    private record Move(BlockPos to, BlockPos door) {}
+
     private record Step(BlockPos pos, int depth, BlockPos door) {}
 
     private Passages() {}
@@ -61,12 +70,15 @@ public final class Passages {
         Map<Link, BlockPos> open = new LinkedHashMap<>();
         Map<Link, BlockPos> closedDoors = new LinkedHashMap<>();
         Map<ZoneId, Set<BlockPos>> spaces = new HashMap<>();
+        Map<BlockPos, ZoneId> owners = new HashMap<>();
         for (Zone zone : map.zones().values()) {
-            spaces.put(zone.id(), walkableSpace(zone, index, probe));
+            Set<BlockPos> space = walkableSpace(zone, index, probe);
+            spaces.put(zone.id(), space);
+            space.forEach(spot -> owners.put(spot, zone.id()));
         }
         Map<ZoneId, Set<BlockPos>> openCells = new HashMap<>();
         for (Zone zone : map.zones().values()) {
-            openCells.put(zone.id(), search(zone, index, probe, maxGap, spaces, open, closedDoors));
+            openCells.put(zone.id(), search(zone.id(), probe, maxGap, spaces.get(zone.id()), owners, open, closedDoors));
         }
         closedDoors.keySet().removeAll(open.keySet());
         Map<Link, Set<BlockPos>> gaps = new HashMap<>();
@@ -79,100 +91,102 @@ public final class Passages {
     }
 
     /**
-     * A zone's walkable space: the largest connected group of its cells that aren't solid. Air sealed off from the rest
-     * of the zone, such as the gaps inside a thick door drawn into the zone's boxes, is left out, so a passage that only
-     * reaches such a pocket doesn't connect the zone.
+     * A zone's walkable space: the spots in it where a walker stands, in the largest group it can walk around in (steps up
+     * or down one block), plus whatever it can fall to from there. Spots it can't get to, such as on top of a wall drawn
+     * into the zone's boxes or in a gap inside a thick door, are left out, so a passage that only reaches them doesn't
+     * connect the zone.
      */
     static Set<BlockPos> walkableSpace(Zone zone, ZoneIndex index, CellProbe probe) {
-        Set<BlockPos> cells = new HashSet<>();
+        Set<BlockPos> spots = new HashSet<>();
         for (BlockBox box : zone.boxes()) {
-            for (BlockPos pos : BlockPos.betweenClosed(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ())) {
-                if (index.zoneAt(pos).filter(zone.id()::equals).isPresent() && probe.at(pos) != CellProbe.Cell.SOLID) {
-                    cells.add(pos.immutable());
-                }
-            }
-        }
-        Set<BlockPos> largest = Set.of();
-        Set<BlockPos> seen = new HashSet<>();
-        for (BlockPos start : cells) {
-            if (!seen.add(start)) {
-                continue;
-            }
-            Set<BlockPos> group = new HashSet<>();
-            Deque<BlockPos> queue = new ArrayDeque<>(List.of(start));
-            while (!queue.isEmpty()) {
-                BlockPos pos = queue.poll();
-                group.add(pos);
-                for (Direction direction : Direction.values()) {
-                    BlockPos next = pos.relative(direction);
-                    if (cells.contains(next) && seen.add(next)) {
-                        queue.add(next);
+            for (int x = box.minX(); x <= box.maxX(); x++) {
+                for (int z = box.minZ(); z <= box.maxZ(); z++) {
+                    CellProbe.Cell below = probe.at(new BlockPos(x, box.minY() - 1, z));
+                    CellProbe.Cell feet = probe.at(new BlockPos(x, box.minY(), z));
+                    for (int y = box.minY(); y <= box.maxY(); y++) {
+                        BlockPos pos = new BlockPos(x, y, z);
+                        CellProbe.Cell head = probe.at(pos.above());
+                        if (below == CellProbe.Cell.SOLID && passable(feet) && passable(head) && index.zoneAt(pos).filter(zone.id()::equals).isPresent()) {
+                            spots.add(pos);
+                        }
+                        below = feet;
+                        feet = head;
                     }
                 }
             }
-            if (group.size() > largest.size()) {
-                largest = group;
+        }
+        Set<BlockPos> space = new HashSet<>(largestPiece(spots));
+        Deque<BlockPos> queue = new ArrayDeque<>(space);
+        while (!queue.isEmpty()) {
+            for (Move move : moves(probe, queue.poll())) {
+                if (spots.contains(move.to) && space.add(move.to)) {
+                    queue.add(move.to);
+                }
+            }
+        }
+        return space;
+    }
+
+    /** The largest group of spots joined by sideways steps up to one block up or down. */
+    private static Set<BlockPos> largestPiece(Set<BlockPos> spots) {
+        Set<BlockPos> largest = Set.of();
+        Set<BlockPos> seen = new HashSet<>();
+        for (BlockPos start : spots) {
+            if (!seen.add(start)) {
+                continue;
+            }
+            Set<BlockPos> piece = new HashSet<>();
+            Deque<BlockPos> queue = new ArrayDeque<>(List.of(start));
+            while (!queue.isEmpty()) {
+                BlockPos pos = queue.poll();
+                piece.add(pos);
+                for (Direction direction : Direction.Plane.HORIZONTAL) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        BlockPos next = pos.relative(direction).above(dy);
+                        if (spots.contains(next) && seen.add(next)) {
+                            queue.add(next);
+                        }
+                    }
+                }
+            }
+            if (piece.size() > largest.size()) {
+                largest = piece;
             }
         }
         return largest;
     }
 
-    /** Searches out from one zone's walkable space. Returns the open (not door) cells it reached. */
-    private static Set<BlockPos> search(Zone zone, ZoneIndex index, CellProbe probe, int maxGap, Map<ZoneId, Set<BlockPos>> spaces,
+    /**
+     * Walks out from one zone's walkable space, through spots in no zone's walkable space, recording every other zone it
+     * reaches. Returns the open (not door) cells it passed through outside the zones.
+     */
+    private static Set<BlockPos> search(ZoneId zone, CellProbe probe, int maxGap, Set<BlockPos> own, Map<BlockPos, ZoneId> owners,
                                         Map<Link, BlockPos> open, Map<Link, BlockPos> closedDoors) {
-        Set<BlockPos> own = spaces.get(zone.id());
         Set<BlockPos> reachedOpen = new HashSet<>();
         Deque<Step> queue = new ArrayDeque<>();
-        Set<BlockPos> seenOpen = new HashSet<>();
+        own.forEach(spot -> queue.add(new Step(spot, 0, null)));
+        Set<BlockPos> seenOpen = new HashSet<>(own);
         Set<BlockPos> seenViaDoor = new HashSet<>();
-        for (BlockBox box : zone.boxes()) {
-            forEachShellCell(box, (inside, cell) -> {
-                if (!own.contains(inside)) {
-                    return;
-                }
-                Optional<ZoneId> owner = index.zoneAt(cell);
-                if (owner.isEmpty()) {
-                    queue.add(new Step(cell, 1, null));
-                } else if (!owner.get().equals(zone.id()) && spaces.get(owner.get()).contains(cell)) {
-                    crossing(probe, inside, cell).ifPresent(door -> {
-                        Link link = Link.of(zone.id(), owner.get());
-                        if (door.isEmpty()) {
-                            open.putIfAbsent(link, cell);
-                        } else {
-                            closedDoors.putIfAbsent(link, door.get());
-                        }
-                    });
-                }
-            });
-        }
         while (!queue.isEmpty()) {
             Step step = queue.poll();
-            Set<BlockPos> seen = step.door == null ? seenOpen : seenViaDoor;
-            if (seenOpen.contains(step.pos) || !seen.add(step.pos)) {
-                continue;
-            }
-            CellProbe.Cell cell = probe.at(step.pos);
-            if (cell == CellProbe.Cell.SOLID) {
-                continue;
-            }
-            if (cell == CellProbe.Cell.OPEN && step.door == null) {
-                reachedOpen.add(step.pos);
-            }
-            BlockPos door = cell == CellProbe.Cell.CLOSED_DOOR && step.door == null ? step.pos : step.door;
-            for (Direction direction : Direction.values()) {
-                BlockPos next = step.pos.relative(direction);
-                Optional<ZoneId> owner = index.zoneAt(next);
-                if (owner.isPresent()) {
-                    if (!owner.get().equals(zone.id()) && spaces.get(owner.get()).contains(next)) {
-                        Link link = Link.of(zone.id(), owner.get());
+            for (Move move : moves(probe, step.pos)) {
+                BlockPos door = step.door != null ? step.door : move.door;
+                ZoneId owner = owners.get(move.to);
+                if (owner != null) {
+                    if (!owner.equals(zone)) {
+                        Link link = Link.of(zone, owner);
                         if (door == null) {
-                            open.putIfAbsent(link, step.pos);
+                            open.putIfAbsent(link, step.depth == 0 ? move.to : step.pos);
                         } else {
                             closedDoors.putIfAbsent(link, door);
                         }
                     }
-                } else if (step.depth < maxGap) {
-                    queue.add(new Step(next, step.depth + 1, door));
+                } else if (step.depth < maxGap && (door == null ? seenOpen.add(move.to) : !seenOpen.contains(move.to) && seenViaDoor.add(move.to))) {
+                    if (door == null) {
+                        reachedOpen.add(move.to);
+                        reachedOpen.add(move.to.above());
+                    }
+                    queue.add(new Step(move.to, step.depth + 1, door));
                 }
             }
         }
@@ -180,41 +194,51 @@ public final class Passages {
     }
 
     /**
-     * Whether a mob can step from {@code inside} one zone to {@code outside} in the zone next to it, where their boxes touch.
-     * Empty when either cell is solid, such as a wall or a bought door's blocks drawn inside the boxes. Otherwise holds
-     * the closed door in the way, if there is one.
+     * Where a walker standing at {@code feet} can get to in one move: a step sideways, falling as far as {@link #MAX_FALL}
+     * if there's no floor, or a jump up onto a block, which needs a third block of headroom. A wall two blocks tall, or a
+     * fence or wall block of any height, stops it.
      */
-    private static Optional<Optional<BlockPos>> crossing(CellProbe probe, BlockPos inside, BlockPos outside) {
-        CellProbe.Cell from = probe.at(inside);
-        CellProbe.Cell to = probe.at(outside);
-        if (from == CellProbe.Cell.SOLID || to == CellProbe.Cell.SOLID) {
-            return Optional.empty();
+    private static List<Move> moves(CellProbe probe, BlockPos feet) {
+        List<Move> moves = new ArrayList<>(4);
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockPos side = feet.relative(direction);
+            CellProbe.Cell sideCell = probe.at(side);
+            if (passable(sideCell)) {
+                CellProbe.Cell headCell = probe.at(side.above());
+                if (!passable(headCell)) {
+                    continue;
+                }
+                BlockPos door = headCell == CellProbe.Cell.CLOSED_DOOR ? side.above() : sideCell == CellProbe.Cell.CLOSED_DOOR ? side : null;
+                BlockPos land = side;
+                CellProbe.Cell under = probe.at(land.below());
+                for (int fall = 0; passable(under) && fall < MAX_FALL; fall++) {
+                    land = land.below();
+                    if (door == null && under == CellProbe.Cell.CLOSED_DOOR) {
+                        door = land;
+                    }
+                    under = probe.at(land.below());
+                }
+                if (under == CellProbe.Cell.SOLID) {
+                    moves.add(new Move(land, door));
+                }
+            } else if (sideCell == CellProbe.Cell.SOLID) {
+                BlockPos jump = feet.above(2);
+                BlockPos landFeet = side.above();
+                BlockPos landHead = side.above(2);
+                CellProbe.Cell jumpCell = probe.at(jump);
+                CellProbe.Cell feetCell = probe.at(landFeet);
+                CellProbe.Cell headCell = probe.at(landHead);
+                if (passable(jumpCell) && passable(feetCell) && passable(headCell)) {
+                    BlockPos door = jumpCell == CellProbe.Cell.CLOSED_DOOR ? jump : headCell == CellProbe.Cell.CLOSED_DOOR ? landHead
+                            : feetCell == CellProbe.Cell.CLOSED_DOOR ? landFeet : null;
+                    moves.add(new Move(landFeet, door));
+                }
+            }
         }
-        if (from == CellProbe.Cell.CLOSED_DOOR) {
-            return Optional.of(Optional.of(inside));
-        }
-        return Optional.of(to == CellProbe.Cell.CLOSED_DOOR ? Optional.of(outside) : Optional.empty());
+        return moves;
     }
 
-    /** Every cell that shares a face with the box but lies outside it, with the cell inside the box across that face. */
-    private static void forEachShellCell(BlockBox box, java.util.function.BiConsumer<BlockPos, BlockPos> action) {
-        for (int y = box.minY(); y <= box.maxY(); y++) {
-            for (int z = box.minZ(); z <= box.maxZ(); z++) {
-                action.accept(new BlockPos(box.minX(), y, z), new BlockPos(box.minX() - 1, y, z));
-                action.accept(new BlockPos(box.maxX(), y, z), new BlockPos(box.maxX() + 1, y, z));
-            }
-        }
-        for (int x = box.minX(); x <= box.maxX(); x++) {
-            for (int z = box.minZ(); z <= box.maxZ(); z++) {
-                action.accept(new BlockPos(x, box.minY(), z), new BlockPos(x, box.minY() - 1, z));
-                action.accept(new BlockPos(x, box.maxY(), z), new BlockPos(x, box.maxY() + 1, z));
-            }
-        }
-        for (int x = box.minX(); x <= box.maxX(); x++) {
-            for (int y = box.minY(); y <= box.maxY(); y++) {
-                action.accept(new BlockPos(x, y, box.minZ()), new BlockPos(x, y, box.minZ() - 1));
-                action.accept(new BlockPos(x, y, box.maxZ()), new BlockPos(x, y, box.maxZ() + 1));
-            }
-        }
+    private static boolean passable(CellProbe.Cell cell) {
+        return cell == CellProbe.Cell.OPEN || cell == CellProbe.Cell.CLOSED_DOOR;
     }
 }

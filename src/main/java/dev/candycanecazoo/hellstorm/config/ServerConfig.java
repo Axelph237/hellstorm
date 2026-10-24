@@ -28,7 +28,7 @@ public final class ServerConfig {
         builder.pop();
         builder.push("map");
         MAX_PASSAGE_GAP = builder
-                .comment("Two rooms count as connected when a mob could walk between them through at most this many cells that belong to no room (a doorway, an arch, an open door).")
+                .comment("Two rooms count as connected when a mob could walk between them in at most this many steps outside any room (a doorway, an arch, an open door).")
                 .defineInRange("max_passage_gap", 2, 0, 8);
         builder.pop();
         builder.push("export");

@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.tools;
 import dev.candycanecazoo.hellstorm.map.CellProbe;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
@@ -13,7 +14,7 @@ import net.minecraft.world.level.pathfinder.PathComputationType;
 
 /**
  * Classifies cells the way a game zombie sees them. Wooden doors always pass, because game zombies open them. Iron doors,
- * fence gates, and trapdoors pass only while open.
+ * fence gates, and trapdoors pass only while open. Fences and walls are {@code TALL}.
  */
 public final class LevelCellProbe {
     private LevelCellProbe() {}
@@ -39,6 +40,9 @@ public final class LevelCellProbe {
         if (openable && state.hasProperty(BlockStateProperties.OPEN) && !state.getValue(BlockStateProperties.OPEN)) {
             return CellProbe.Cell.CLOSED_DOOR;
         }
-        return state.isPathfindable(level, pos, PathComputationType.LAND) ? CellProbe.Cell.OPEN : CellProbe.Cell.SOLID;
+        if (state.isPathfindable(level, pos, PathComputationType.LAND)) {
+            return CellProbe.Cell.OPEN;
+        }
+        return state.getCollisionShape(level, pos).max(Direction.Axis.Y) > 1.0 ? CellProbe.Cell.TALL : CellProbe.Cell.SOLID;
     }
 }

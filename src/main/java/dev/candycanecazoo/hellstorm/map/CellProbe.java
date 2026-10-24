@@ -5,7 +5,8 @@ import net.minecraft.core.BlockPos;
 /** What a mob could do with one cell. Keeps passage finding independent of the live world. */
 @FunctionalInterface
 public interface CellProbe {
-    enum Cell { OPEN, CLOSED_DOOR, SOLID }
+    /** {@code TALL} is solid and higher than a block, such as a fence or a wall block: nothing stands on it or jumps it. */
+    enum Cell { OPEN, CLOSED_DOOR, SOLID, TALL }
 
     CellProbe ALL_SOLID = pos -> Cell.SOLID;
 

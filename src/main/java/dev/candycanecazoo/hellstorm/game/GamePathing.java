@@ -106,7 +106,8 @@ public final class GamePathing implements AutoCloseable {
         synchronized (state) {
             boolean moved = !targetCell.equals(state.requestedGoal);
             boolean due = !state.requested || now - state.requestedAt >= RECOMPUTE_TICKS;
-            if (moved && due && !state.running && graph.indexOf(targetCell) >= 0) {
+            // A zombie left over from a game that has ended may still ask: its worker is gone, so nothing is computed.
+            if (moved && due && !state.running && !worker.isShutdown() && graph.indexOf(targetCell) >= 0) {
                 state.running = true;
                 state.requested = true;
                 state.requestedGoal = targetCell.immutable();
