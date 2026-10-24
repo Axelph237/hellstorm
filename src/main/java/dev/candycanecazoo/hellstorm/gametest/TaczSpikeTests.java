@@ -187,6 +187,25 @@ public final class TaczSpikeTests {
         helper.succeed();
     }
 
+    /** The HUD shows ∞ for the reserve of the starting pistol, as for a player in creative, and a count for a bought gun. */
+    @GameTest(template = "floor", batch = "tacz_infinite_reserve")
+    public static void theStartingPistolsReserveShowsAsInfinite(GameTestHelper helper) {
+        ServerPlayer player = PurchaseGameTests.player(helper, "pap_infinite_reserve");
+        dev.candycanecazoo.hellstorm.game.GameManager.Active active = PurchaseGameTests.game(helper, player);
+        try {
+            ItemStack pistol = player.getInventory().items.stream().filter(s -> IGun.getIGunOrNull(s) != null).findFirst().orElseThrow();
+            int reserve = IGun.getIGunOrNull(pistol).getDummyAmmoAmount(pistol);
+            helper.assertTrue(active.game().settings().players().startingGunsUnlimitedAmmo(), "starting guns have unlimited ammo by default");
+            helper.assertTrue(TaczBridge.showsInfiniteReserve(pistol, reserve), "the starting pistol's reserve of " + reserve + " should show as infinite");
+            ItemStack bought = TaczBridge.createGun(ResourceLocation.tryBuild("tacz", "glock_17"), 1).orElseThrow();
+            helper.assertFalse(TaczBridge.showsInfiniteReserve(bought, 24), "a bought gun's reserve shows as a count");
+            helper.assertTrue(TaczBridge.showsInfiniteReserve(bought, 9999), "an unchecked reserve, as in creative, shows as infinite");
+        } finally {
+            dev.candycanecazoo.hellstorm.game.GameManager.end(active);
+        }
+        helper.succeed();
+    }
+
     /**
      * Both guns start with one magazine of reserve. Each is emptied, then reloaded from empty up to three times. The limited
      * gun can reload once, then has nothing left. The unlimited gun reloads every time. They reload at the same pace, so once

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A gun with unlimited ammo, such as the starting pistol, shows ∞ for its reserve on the ammo HUD, as in creative, instead of a number.
 - Players in a game can't hurt each other, by gun, melee, or blast. Turn friendly fire on with `players.friendly_fire` in the server config. A player's own blast still hurts them.
 - Zombies spawn only in rooms a player has walked into this game, and the start rooms. Buying a door no longer makes the rooms behind it spawn: someone has to go in. Once found, a room spawns for the rest of the game, wherever the players are, with markers nearer the players still picked more often. The `spawning.adjacent_hops` setting is gone.
 - Repairing one window over and over stops paying: a player earns at most 100 points (ten boards) at any one window per round (`economy.repair_cap_per_window`). Boards still go back on past that, for nothing, until the player repairs a different window or the next round starts. The 500 per round cap across all windows stays.

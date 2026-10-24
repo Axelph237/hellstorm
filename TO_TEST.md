@@ -36,6 +36,10 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 - [ ] **Repair cap per window.** In a game, let a zombie tear a window down and rebuild it, again and again, in one round. After ten paid boards (100 points) the boards still go on but the points and the cha-ching stop. Rebuild a different window: it pays again. In the next round the first window pays again. Check `repair_cap_per_window = 100` appears under `[economy]` in the world's `serverconfig/hellstorm-server.toml` with its comment.
 
+## Ammo HUD
+
+- [ ] **∞ for unlimited ammo.** In a game in survival, hold the starting pistol: the reserve on TacZ's ammo HUD (bottom right) reads ∞, the same as holding it in creative, and the magazine count still drops as you fire and refills on reload. A wall-buy gun shows its reserve as a number that goes down as you reload.
+
 ## Friendly fire
 
 - [ ] **Off by default.** In a two-player game, shoot your teammate, hit them with the knife, and blow up a grenade or rocket by them: they take no damage. Your own blast still hurts you. Set `friendly_fire = true` under `[players]` in `serverconfig/hellstorm-server.toml` and start a new game: all three hurt them now.

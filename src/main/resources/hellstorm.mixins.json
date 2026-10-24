@@ -12,6 +12,7 @@
     "ProjectileExplosionMixin"
   ],
   "client": [
+    "GunHudOverlayMixin",
     "ObjectAnimationRunnerMixin"
   ],
   "injectors": {

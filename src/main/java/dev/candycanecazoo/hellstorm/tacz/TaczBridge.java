@@ -107,6 +107,16 @@ public final class TaczBridge {
         return stack.getTagElement(TAG) != null && stack.getTagElement(TAG).getBoolean(UNLIMITED_AMMO);
     }
 
+    /** What TacZ's ammo HUD shows for an endless reserve. */
+    public static final String INFINITE = "\u221E";
+    /** The reserve TacZ's HUD counts for a player it doesn't check ammo for, one in creative. */
+    private static final long UNCHECKED_RESERVE = 9999;
+
+    /** Whether the HUD shows {@link #INFINITE} for the held gun's reserve: it has unlimited ammo, or ammo isn't checked. */
+    public static boolean showsInfiniteReserve(ItemStack held, long reserve) {
+        return reserve >= UNCHECKED_RESERVE || held != null && hasUnlimitedAmmo(held);
+    }
+
     /** Fills an unlimited gun's reserve back to its maximum (at least one magazine). No-op for other stacks. */
     static void topUpUnlimitedReserve(ItemStack stack) {
         if (!hasUnlimitedAmmo(stack)) {
