@@ -72,7 +72,7 @@ public final class DismembermentGameTests {
         return zombie.position().add(-right, up, 0);
     }
 
-    @GameTest(template = "floor", batch = "dismember")
+    @GameTest(template = "floor", batch = "dismember", setupTicks = 5)
     public static void aShotArmComesOffOnceItHasTakenItsShareAndALegMakesACrawler(GameTestHelper helper) {
         Range range = range(helper, "dismember", List.of());
         try {
@@ -99,7 +99,7 @@ public final class DismembermentGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "dismember_off")
+    @GameTest(template = "floor", batch = "dismember_off", setupTicks = 5)
     public static void withDismembermentOffNothingComesOff(GameTestHelper helper) {
         Range range = range(helper, "dismember_off", List.of());
         CommonConfig.DISMEMBERMENT.set(false);
@@ -115,7 +115,7 @@ public final class DismembermentGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "dismember_profile")
+    @GameTest(template = "floor", batch = "dismember_profile", setupTicks = 5)
     public static void theCrawlerProfileIsAZombieThatCrawlsFromTheStart(GameTestHelper helper) {
         Range range = range(helper, "crawler", List.of());
         try {
@@ -133,7 +133,7 @@ public final class DismembermentGameTests {
     }
 
     /** A profile's crawler tag with no speed crawls 0.8 times as fast and is sent to clients as crawling, rather than standing still. */
-    @GameTest(template = "floor", batch = "dismember_tag")
+    @GameTest(template = "floor", batch = "dismember_tag", setupTicks = 5)
     public static void aCrawlerTagWithoutASpeedCrawlsAtTheUsualSpeed(GameTestHelper helper) {
         Zombie walker = helper.spawn(net.minecraft.world.entity.EntityType.ZOMBIE, new BlockPos(2, ROOM_Y, 2));
         Zombie crawler = net.minecraft.world.entity.EntityType.ZOMBIE.create(helper.getLevel());
@@ -154,7 +154,7 @@ public final class DismembermentGameTests {
      * A fake player shoots a real TacZ AK at a game zombie's legs: the hit point TacZ handles reaches the game, the leg
      * comes off, and the zombie crawls. Draw and shoot timers are wall-clock, so the test polls.
      */
-    @GameTest(template = "floor", timeoutTicks = 4000, batch = "dismember_gun")
+    @GameTest(template = "floor", timeoutTicks = 4000, batch = "dismember_gun", setupTicks = 5)
     public static void shootingAZombiesLegsWithATaczGunMakesItCrawl(GameTestHelper helper) {
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_dismember_gun");
         Range range = range(helper, "legs", List.of(player));

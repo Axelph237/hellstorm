@@ -33,7 +33,7 @@ public final class MobDropsGameTests {
      * would drop slimeballs. Nothing drops: no items and no XP, from the zombie, the slime, or the young it splits into,
      * which are game mobs too and go when the game ends.
      */
-    @GameTest(template = "floor", timeoutTicks = 100, batch = "mob_drops")
+    @GameTest(template = "floor", timeoutTicks = 100, batch = "mob_drops", setupTicks = 5)
     public static void gameMobsAndTheYoungTheyLeaveDropNothing(GameTestHelper helper) {
         ServerPlayer player = PurchaseGameTests.player(helper, "pap_drops");
         DismembermentGameTests.Range range = DismembermentGameTests.range(helper, "drops", List.of());

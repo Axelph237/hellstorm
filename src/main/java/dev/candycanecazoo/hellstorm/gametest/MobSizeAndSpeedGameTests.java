@@ -40,7 +40,7 @@ public final class MobSizeAndSpeedGameTests {
         return Math.abs(a - b) < 1e-4;
     }
 
-    @GameTest(template = "floor", batch = "mob_scale")
+    @GameTest(template = "floor", batch = "mob_scale", setupTicks = 5)
     public static void aHellhoundIsOneAndAHalfTimesAWolf(GameTestHelper helper) {
         DismembermentGameTests.Range range = DismembermentGameTests.range(helper, "hound_size", List.of());
         try {
@@ -63,7 +63,7 @@ public final class MobSizeAndSpeedGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "mob_scale_crawl")
+    @GameTest(template = "floor", batch = "mob_scale_crawl", setupTicks = 5)
     public static void aScaledCrawlerLiesProneAtItsScale(GameTestHelper helper) {
         DismembermentGameTests.Range range = DismembermentGameTests.range(helper, "scaled_crawl", List.of());
         try {
@@ -79,7 +79,7 @@ public final class MobSizeAndSpeedGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "floor", batch = "mob_runner")
+    @GameTest(template = "floor", batch = "mob_runner", setupTicks = 5)
     public static void aRunnerIsRaisedToTheRunSpeedOnceAndACrawlerRunsAtEightTenthsOfIt(GameTestHelper helper) {
         DismembermentGameTests.Range range = DismembermentGameTests.range(helper, "runners", List.of());
         try {
@@ -148,7 +148,7 @@ public final class MobSizeAndSpeedGameTests {
      * A round 1 runner walks within 5% of a walking player's 4.32 blocks a second, a round 1 walker is slower, and a
      * runner whose round already makes it faster than that (sprinting, from round 9) keeps its speed.
      */
-    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_runner_track")
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_runner_track", setupTicks = 5)
     public static void aRunnerWalksAsFastAsAWalkingPlayer(GameTestHelper helper) {
         track(helper, new double[] {0.23, 0.23, 0.32}, (i, zombie) -> {
             if (i > 0) {
@@ -166,7 +166,7 @@ public final class MobSizeAndSpeedGameTests {
     }
 
     /** The crawl's 0.8 is how fast it moves on the ground, not its speed attribute: a crawler covers 0.8 of a walker's ground, within 5%. */
-    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_crawler_track")
+    @GameTest(template = "floor", timeoutTicks = 200, batch = "mob_crawler_track", setupTicks = 5)
     public static void aCrawlerMovesEightTenthsAsFastAsAWalker(GameTestHelper helper) {
         track(helper, new double[] {0.23, 0.23}, (i, zombie) -> {
             if (i == 1) {

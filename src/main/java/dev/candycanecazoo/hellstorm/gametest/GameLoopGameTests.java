@@ -192,7 +192,7 @@ public final class GameLoopGameTests {
      * With {@code no_zombies} on, the world refuses every zombie, which a game takes as a spawn that didn't happen. Other
      * tests run alongside, so the rule is only on within this one tick.
      */
-    @GameTest(template = "floor", batch = "game_no_zombies")
+    @GameTest(template = "floor", batch = "game_no_zombies", setupTicks = 5)
     public static void noZombiesRefusesEverySpawn(GameTestHelper helper) {
         BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
         BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8));
@@ -224,7 +224,7 @@ public final class GameLoopGameTests {
     }
 
     /** A hellhound spawned in round 5, the first hounds round, has 2 HP: nearly one shot from the starting pistol. */
-    @GameTest(template = "floor", batch = "game_hound_health")
+    @GameTest(template = "floor", batch = "game_hound_health", setupTicks = 5)
     public static void aHoundInTheFirstHoundsRoundHasTwoHealth(GameTestHelper helper) {
         BlockPos min = helper.absolutePos(new BlockPos(0, ROOM_Y, 0));
         BlockPos max = helper.absolutePos(new BlockPos(8, ROOM_Y + 3, 8));
