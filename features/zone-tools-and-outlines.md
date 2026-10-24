@@ -50,7 +50,7 @@ Map makers draw zones (rooms, windows, and doors) with a tool that feels like Cr
 ## Assets
 
 - None. Lines and room faces are vertex colors on a white pixel made in memory.
-- **Needed from you:** a face texture for the hovered room highlight. Until then, hover shows thicker lines only. Listed in `TEXTURES_NEEDED.md`.
+- **Needed from you:** a face texture for the hovered room highlight. Until then, hover shows thicker lines only. Listed in `NEEDED/TEXTURES.md`.
 
 ## Depends on
 

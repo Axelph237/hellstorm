@@ -13,7 +13,7 @@ Hellstorm is a Forge 1.20.1 mod (mod id `hellstorm`, package `dev.candycanecazoo
 
 ## Rules that aren't obvious from the code
 
-- **Never add texture files.** A feature that needs one leaves it missing or uses a vanilla texture, and gets a row in `TEXTURES_NEEDED.md`. Models may reference vanilla textures. In-memory `DynamicTexture`s are fine. The same goes for sounds: list what's needed in `SOUNDS_NEEDED.md`. Files the user supplies are copied in, converted only as they ask (sounds to Ogg Vorbis: mono if played at a place in the world, stereo if played to a player).
+- **Never add texture files.** A feature that needs one leaves it missing or uses a vanilla texture, and gets a row in `NEEDED/TEXTURES.md`. Models may reference vanilla textures. In-memory `DynamicTexture`s are fine. The same goes for sounds: list what's needed in `NEEDED/SOUNDS.md`. Files the user supplies are copied in, converted only as they ask (sounds to Ogg Vorbis: mono if played at a place in the world, stereo if played to a player).
 - **Third-party assets.** Every sound is from Pixabay and every Minecraft-derived texture is Mojang's. Each is listed by path in `LICENSE`, `THIRD_PARTY_NOTICES` and `README.md`; a new one is added to all three.
 - **Dedicated servers.** Common classes must never name client classes, not even as a lambda's return type: the server's verifier loads them and the server crashes. Build client objects inside `client/`, and reach them from packets through `DistExecutor`.
 - **TacZ boundary.** Only the `tacz/` package imports `com.tacz.*`. Mixins (`tacz/mixin/`, `hellstorm.mixins.json`) have **no refmap**: they may only name TacZ's own methods and fields, never Minecraft's, or they break in production. Minecraft class names in descriptors are fine.

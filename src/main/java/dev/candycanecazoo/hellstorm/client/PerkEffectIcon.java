@@ -11,7 +11,7 @@ import net.minecraftforge.client.extensions.common.IClientMobEffectExtensions;
 
 /**
  * A perk effect's icon as a square in the effect's color with the perk's initial, standing in for the icon textures in
- * TEXTURES_NEEDED.md so nothing draws as a missing texture.
+ * NEEDED/TEXTURES.md so nothing draws as a missing texture.
  */
 public final class PerkEffectIcon implements IClientMobEffectExtensions {
     private static final int SIZE = 18;

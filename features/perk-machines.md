@@ -32,7 +32,7 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
 ## Assets
 
 - The machine uses your textures. Its green is repainted in memory in the color of what it sells (see As built); no texture files are added.
-- **Needed from you:** one HUD icon per default perk (16×16), and one mob effect icon per perk (18×18). Listed in `TEXTURES_NEEDED.md`.
+- **Needed from you:** one HUD icon per default perk (16×16), and one mob effect icon per perk (18×18). Listed in `NEEDED/TEXTURES.md`.
 
 ## Depends on
 

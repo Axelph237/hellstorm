@@ -34,7 +34,7 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
 
 ## Assets
 
-- **Needed from you:** perk icons, power-up icons, a points icon, a downed icon (all 16×16). Listed in `TEXTURES_NEEDED.md`. The HUD falls back to text badges.
+- **Needed from you:** perk icons, power-up icons, a points icon, a downed icon (all 16×16). Listed in `NEEDED/TEXTURES.md`. The HUD falls back to text badges.
 
 ## Depends on
 

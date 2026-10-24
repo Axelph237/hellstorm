@@ -79,7 +79,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
 ## Assets
 
 - Machine block uses vanilla textures in a custom model.
-- **Needed from you** if you want a distinct look: a machine texture. Optional in `TEXTURES_NEEDED.md`.
+- **Needed from you** if you want a distinct look: a machine texture. Optional in `NEEDED/TEXTURES.md`.
 
 ## Depends on
 
@@ -138,7 +138,7 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
   - **Bad entries** are skipped one by one; the rest of the file loads. Each is kept in `Loaded.errors` with its file and key, and not logged at load: `PunchAudit` reports it.
   - **Audit.** `PunchAudit.Finding` is now `(kind, message, pos)`, its `Kind` holding the problem code. Besides the two item findings it reports, through `checkFiles`: `pap_bad_entry` (a skipped entry: bad JSON, a bad pap id, a bad method, bad NBT, a missing `item-id`), `pap_missing_result` (an `item-id` that is neither an installed item nor a TacZ gun), and `pap_unknown_gun_class` (a `defaults` class no installed gun has; the message lists the real ones). All are warnings. The op notice reads "found N problems with upgrades". The audit also reads a gun result's `nbt`, so a gun upgrade whose `punch_id` names nothing is flagged.
   - **Tests.** JUnit: `PunchDefTest` (each field, NBT as object and SNBT, namespacing, the reserved key, overrides, bad entries), `GunDefaultTest` (each method on a sample gun's NBT, the codec's defaults and errors), `PunchAuditTest` (`checkFiles`). GameTest: `PapGameTests.aGunClassDefaultChangesTheUpgradedGunAndAGunResultIsAFullGun` runs each method on a real upgraded AK through `PapGunStats.upgrade`, checks a pistol default leaves it alone and that TacZ's classes are the ones above, and builds a gun result. The machine passing the loaded defaults is left to the in-game check, since a GameTest can't load a datapack without changing every other test's upgrades.
-- **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `TEXTURES_NEEDED.md`.
+- **Model.** Vanilla textures only: a crying-obsidian base with a smithing-table top, and an anvil-textured frame. The item spins low inside the frame while it works, then rises and turns slowly once ready. No new textures. The optional texture is already listed in `NEEDED/TEXTURES.md`.
 
 ## The upgrader model and the fire (phase 7)
 
@@ -160,6 +160,6 @@ enum RejectReason { NOT_PUNCHABLE, UNKNOWN_PUNCH_ID, NO_UPGRADE_PATH }
   4. Half a second later a soft bell rings: it's ready.
 - **Rendering both halves.** The block entity's render box covers both blocks and the flames above, so the gun and the fire don't vanish when only the head half is on screen.
 - **Checked in a live client:** the GeckoLib model draws with all three textures and runs from the foot to the head for all four facings (vertices captured from the renderer: 16 by 32 pixels, 13 tall, the candles at the head end and the skull at the foot, both on the side away from the gun); the item draws with its floor at the bottom of the item's cube, 32 pixels long; the candle flames sit on the wick tops measured from the rendered model; the flames are 5 two-sided columns along the gun's line, from just under the table top to 1.54 blocks up; the candle flames land on the wicks for all four facings.
-- **Fire sound** (2026-10-23). Putting an item in plays the anvil at pitch 0.6 (slowed) and the fire whoosh (`upgrader/fire`, stretched to the 3 s the item burns at the default `pap.process_ticks` of 60, raised to just under full scale, played at pitch 0.9), at the machine, in place of the smithing table and the fire charge. A changed `process_ticks` doesn't change the sound. See `SOUNDS_NEEDED.md`.
+- **Fire sound** (2026-10-23). Putting an item in plays the anvil at pitch 0.6 (slowed) and the fire whoosh (`upgrader/fire`, stretched to the 3 s the item burns at the default `pap.process_ticks` of 60, raised to just under full scale, played at pitch 0.9), at the machine, in place of the smithing table and the fire charge. A changed `process_ticks` doesn't change the sound. See `NEEDED/SOUNDS.md`.
 
 - **No commands** (2026-10-24). `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` are gone: each machine is set on its settings screen (an op in creative using it outside a game). Anyone else gets nothing from using it outside a game (until 2026-10-24 they saw its settings in chat). GameTest `WallBuyGameTests.usingAMachineOutsideAGameAsANonOpSaysNothing`. `CommandTreeGameTests` checks none of them is registered.

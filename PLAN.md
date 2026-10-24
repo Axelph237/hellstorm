@@ -24,7 +24,7 @@ These are the parts this plan builds as its foundation. Two of its ideas are wor
 
 ## Project docs: `PLAN.md` and `features/`
 
-`PLAN.md` (this file) is the overview. `features/` holds one implementation plan per feature. `TEXTURES_NEEDED.md` lists the textures the mod is waiting on. `TO_TEST.md` lists what still needs checking in game.
+`PLAN.md` (this file) is the overview. `features/` holds one implementation plan per feature. `NEEDED/TEXTURES.md` lists the textures the mod is waiting on. `TO_TEST.md` lists what still needs checking in game.
 
 Each feature file uses the same sections:
 - **Goal**
@@ -68,10 +68,10 @@ The feature files:
 
 ## Asset rule: never add textures
 
-Sounds follow the same rule: this mod makes no sound files. What a feature needs is listed in `SOUNDS_NEEDED.md` for you to supply, and a supplied file is copied in unchanged.
+Sounds follow the same rule: this mod makes no sound files. What a feature needs is listed in `NEEDED/SOUNDS.md` for you to supply, and a supplied file is copied in unchanged.
 
 - **No texture files.** Never add a texture file to the repo, under any circumstances.
-- **When a feature needs a custom texture,** leave it missing (the purple-and-black checkerboard). Add a row to `TEXTURES_NEEDED.md` with the path, what it's for, its size, and the feature that needs it, and tell you in the reply for that work.
+- **When a feature needs a custom texture,** leave it missing (the purple-and-black checkerboard). Add a row to `NEEDED/TEXTURES.md` with the path, what it's for, its size, and the feature that needs it, and tell you in the reply for that work.
 - **Models may reference vanilla textures.** That isn't adding a texture, and it's the default stand-in. Window boards use a custom block model whose cuboids reference `minecraft:block/oak_planks`.
 - **Known gaps:**
   - The hover face texture on outlines. Until you supply one, outlines draw as lines only.
@@ -295,7 +295,7 @@ The design as researched:
 
 **Before v0.1.0:**
 - Perk cans for Hellfire, Saint's Brew, Off-Hand, and Jockey Energy, from your models (Load-Up and Vigoraid are in). Then the default machines sell cans instead of potions.
-- The sounds and music in `SOUNDS_NEEDED.md`, as you supply them.
+- The sounds and music in `NEEDED/SOUNDS.md`, as you supply them.
 - Possibly the extras below (GobbleGum-style buffs, point sharing), or they go to an addon.
 
 **After v0.1.0, in the base mod:**
@@ -320,7 +320,7 @@ The design as researched:
 ## Phases (each ends in a check)
 
 0. **Scaffold and spikes.**
-   - Write `PLAN.md`, the `features/` files, and an empty `TEXTURES_NEEDED.md` before writing any code. (Done.)
+   - Write `PLAN.md`, the `features/` files, and an empty `NEEDED/TEXTURES.md` before writing any code. (Done.)
    - Set up the Forge 1.20.1 MDK with Parchment mappings, the TacZ dependency, and Ponder and Flywheel bundled with jarJar. Add `/hs give <gunId>`.
    - Spike the open unknowns:
      - That an `AttachmentPropertyEvent` override shows up in live fire for RPM and mag size.

@@ -35,7 +35,7 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 ## Assets
 
 - Revive progress bar and downed indicator on the HUD (see `hud-and-prompts.md`).
-- **Needed from you:** a downed-player icon for the HUD (16×16). Listed in `TEXTURES_NEEDED.md`.
+- **Needed from you:** a downed-player icon for the HUD (16×16). Listed in `NEEDED/TEXTURES.md`.
 
 ## Depends on
 
@@ -87,5 +87,5 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
   - downed players earn kill points
 
   GameTest `DownsGameTests`: real lethal damage downs a FakePlayer who bought and drank a Vigoraid (crawl pose, slowed, pistol held, Vigoraid's max health gone, not targetable), and a teammate's held revive stands them up at half health with the lent pistol gone. `PerkGameTests` checks which effects going down and dying take. `DownedGlowGameTests`: a downed player glows on a red team and gets their own team back when the game ends. The client crawl and the screen effect are checked in game, not by tests.
-- **Sounds** (2026-10-23). While down you hear a looping heartbeat (`client/BleedingSound`); a revive plays the loud heartbeat's two beats to the revived player, and bleeding out plays the dark bell to everyone in the game. See `SOUNDS_NEEDED.md`.
+- **Sounds** (2026-10-23). While down you hear a looping heartbeat (`client/BleedingSound`); a revive plays the loud heartbeat's two beats to the revived player, and bleeding out plays the dark bell to everyone in the game. See `NEEDED/SOUNDS.md`.
 - **Through grass** (2026-10-23, `client/ReviveTarget`). A downed teammate is targeted past blocks with nothing to collide with (grass, flowers, torches; a carpet or slab has a collision box and still blocks), within your entity reach, for the revive key, the "Revive" prompt, and right click. Vanilla's crosshair stops at a plant's outline, so before this a teammate lying in grass couldn't be revived. Right click through a plant sends the revive itself (`UseKey.Ticks.onUse`) and skips using the plant. The server's check is unchanged: the reviver must stay within `downs.revive_range`.

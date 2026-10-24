@@ -44,7 +44,7 @@ Players pay to roll a random item from a weighted pool. The box moves to another
 ## Assets
 
 - The box block uses vanilla textures in a custom model (for example `minecraft:block/chest` side parts or `minecraft:block/barrel_side`).
-- **Needed from you** if you want a distinct look: a box texture. Listed in `TEXTURES_NEEDED.md` as optional.
+- **Needed from you** if you want a distinct look: a box texture. Listed in `NEEDED/TEXTURES.md` as optional.
 
 ## Depends on
 
