@@ -29,6 +29,8 @@ public final class CommandTreeGameTests {
             helper.assertTrue(hs.getChild(gone) == null, "/hs " + gone + " is still registered");
         }
         helper.assertTrue(root.getChild("hs").getChild("pap") == null, "/hs pap is still registered; it is /hs upgrader now");
+        helper.assertTrue(root.getChild("hsz") != null && root.getChild("hsz").getRedirect() == hs.getChild("zones"), "/hsz should be /hs zones");
+        helper.assertTrue(hs.getChild("zones").getChild("desel") != null, "/hs zones desel should clear the selection");
         helper.succeed();
     }
 }
