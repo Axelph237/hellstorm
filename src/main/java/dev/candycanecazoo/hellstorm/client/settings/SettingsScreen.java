@@ -45,11 +45,11 @@ abstract class SettingsScreen<C> extends Screen {
     /** A number row is as tall as the spinner's two halves and the gap between them. */
     private static final int NUMBER_HEIGHT = 30;
     private static final int SPIN_GAP = 2;
-    private static final int GAP = 3;
+    private static final int GAP = 2;
     /** From the frame's outside to the rows: clear of its corner knots, with the title in the gap of its top edge. */
-    private static final int PAD_SIDE = 16;
-    private static final int PAD_TOP = 18;
-    private static final int PAD_BOTTOM = 14;
+    private static final int PAD_SIDE = 24;
+    private static final int PAD_TOP = 26;
+    private static final int PAD_BOTTOM = 22;
     private static final int TITLE_Y = 2;
     /** The frame's two top corners, which the title stays between. */
     private static final int TITLE_CLEARANCE = 128;

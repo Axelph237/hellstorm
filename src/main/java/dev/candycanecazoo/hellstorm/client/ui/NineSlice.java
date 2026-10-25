@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A square region of a sprite sheet drawn at any size: its corners stay as drawn, its edges and middle stretch. Below
- * twice the corner size each corner is cut to half the target, keeping its outer side, so small boxes stay closed.
+ * A square region of a sprite sheet drawn at any size: its corners stay as drawn, its edges and middle stretch. On the
+ * sheet the pieces may stand {@code gap} pixels apart, which is skipped. Below twice the corner size each corner is cut
+ * to half the target, keeping its outer side, so small boxes stay closed.
  */
-public record NineSlice(int u, int v, int size, int corner) {
+public record NineSlice(int u, int v, int size, int corner, int gap) {
     /** Where one piece of the sheet lands on screen. */
     public record Piece(int x, int y, int width, int height, int u, int v, int uWidth, int vHeight) {}
 
@@ -16,12 +17,12 @@ public record NineSlice(int u, int v, int size, int corner) {
         int cornerY = Math.min(corner, height / 2);
         int[] xs = {x, x + cornerX, x + width - cornerX};
         int[] widths = {cornerX, width - 2 * cornerX, cornerX};
-        int[] us = {u, u + corner, u + size - cornerX};
-        int[] uWidths = {cornerX, size - 2 * corner, cornerX};
+        int[] us = {u, u + corner + gap, u + size - cornerX};
+        int[] uWidths = {cornerX, size - 2 * (corner + gap), cornerX};
         int[] ys = {y, y + cornerY, y + height - cornerY};
         int[] heights = {cornerY, height - 2 * cornerY, cornerY};
-        int[] vs = {v, v + corner, v + size - cornerY};
-        int[] vHeights = {cornerY, size - 2 * corner, cornerY};
+        int[] vs = {v, v + corner + gap, v + size - cornerY};
+        int[] vHeights = {cornerY, size - 2 * (corner + gap), cornerY};
         List<Piece> pieces = new ArrayList<>(9);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 3; column++) {

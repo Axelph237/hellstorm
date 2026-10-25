@@ -15,8 +15,9 @@ public final class UiKit {
     private static final ResourceLocation INPUTS = Hellstorm.id("textures/gui/inputs.png");
     private static final int FRAME_SHEET = 192;
     private static final int INPUTS_SHEET = 128;
-    private static final NineSlice FRAME_SLICES = new NineSlice(0, 0, 192, 64);
-    private static final NineSlice BOX_SLICES = new NineSlice(82, 82, 44, 16);
+    private static final NineSlice FRAME_SLICES = new NineSlice(0, 0, 192, 64, 0);
+    /** On the sheet the box's 12-pixel corners and its edge pieces stand 4 pixels apart. */
+    private static final NineSlice BOX_SLICES = new NineSlice(82, 82, 44, 12, 4);
 
     public record Sprite(int u, int v, int width, int height) {}
 
@@ -26,8 +27,8 @@ public final class UiKit {
     public static final Sprite SPIN_DOWN = new Sprite(106, 49, 10, 14);
     public static final Sprite SEARCH = new Sprite(119, 74, 7, 7);
 
-    /** Behind every screen: 55% black over the world. */
-    public static final int TINT = 0x8C000000;
+    /** Behind every screen: 80% black over the world. */
+    public static final int TINT = 0xCC000000;
     /** Stands in for hover art until there is some: a faint lift inside the box. */
     public static final int HOVER = 0x26FFFFFF;
     /** The toggle's green, for what's chosen. */
