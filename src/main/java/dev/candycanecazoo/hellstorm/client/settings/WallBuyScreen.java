@@ -5,7 +5,9 @@ import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.feature.WallBuy;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
 import dev.candycanecazoo.hellstorm.net.OpenSettingsPacket;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,8 +19,11 @@ import java.util.Optional;
  */
 final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
     private final Optional<OpenSettingsPacket.Held> held;
+    /** What the player held as the screen opened: the item the server describes in {@link #held}. */
+    private final ItemStack heldStack;
     private ItemSpec item;
     private Component itemName;
+    private ItemStack itemStack;
     private WallBuy.Repurchase repurchase;
     private String cost;
     private String ammoCost;
@@ -29,8 +34,10 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
         super(entity.getBlockState().getBlock().getName(), entity);
         WallBuy.Config config = entity.config();
         held = packet.held();
+        heldStack = Minecraft.getInstance().player == null ? ItemStack.EMPTY : Minecraft.getInstance().player.getMainHandItem().copy();
         item = config.item();
         itemName = entity.display().isEmpty() ? Component.literal(item.describe()) : entity.display().getHoverName();
+        itemStack = entity.display();
         repurchase = config.effectiveRepurchase();
         cost = String.valueOf(config.cost());
         ammoCost = String.valueOf(config.ammoCost());
@@ -40,26 +47,26 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
 
     @Override
     protected void rows() {
-        text(Component.literal("Sells"), () -> itemName);
+        item(Component.literal("Sells"), () -> itemStack, () -> itemName);
         held.ifPresentOrElse(
                 h -> button(Component.empty(), Component.literal("Sell held: ").append(h.name()), () -> sell(h)),
                 () -> text(Component.empty(), () -> Component.literal("Hold an item to sell it")));
-        number(Component.literal("Cost"), cost, Component.empty(), v -> cost = v);
-        choice(Component.literal("Needs power"), List.of(true, false), requiresPower,
-                v -> Component.literal(v ? "Yes" : "No"), v -> requiresPower = v);
+        number(Component.literal("Cost"), cost, Component.empty(), 50, v -> cost = v);
+        toggle(Component.literal("Needs power"), requiresPower, v -> requiresPower = v);
         choice(Component.literal("Buying again"), allowed(), repurchase, WallBuyScreen::name, v -> {
             repurchase = v;
             relayout();
         });
         if (refills()) {
-            number(Component.literal("Ammo cost"), ammoCost, Component.empty(), v -> ammoCost = v);
-            number(Component.literal("Upgraded ammo"), papAmmoCost, Component.empty(), v -> papAmmoCost = v);
+            number(Component.literal("Ammo cost"), ammoCost, Component.empty(), 50, v -> ammoCost = v);
+            number(Component.literal("Upgraded ammo"), papAmmoCost, Component.empty(), 50, v -> papAmmoCost = v);
         }
     }
 
     private void sell(OpenSettingsPacket.Held held) {
         item = held.item();
         itemName = held.name();
+        itemStack = heldStack;
         repurchase = WallBuy.Repurchase.defaultFor(item);
         relayout();
     }

@@ -2,6 +2,10 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
+## Screens (2026-10-25)
+
+- [ ] **Starter UI on the machines' settings screens.** In creative, use each of: a wall-buy (holding a gun), a vending machine, the Mystery Crate, the upgrader, a trap controller and the power switch. Each: the world behind is darkened to about half, the frame surrounds the rows with the title sitting in the gap of its top edge, and the flames in its bottom right corner don't touch any button. Buttons, text fields and the wall-buy's item slot are the input box (with its small gaps near the corners on wide boxes), and hovering a button or dropdown lifts it faintly. Number fields have the + and − halves beside them: each click steps costs by 50 (500 with Shift), the trap's ticks by 20 and its signal by 1, and never below 0. "Needs power" is a toggle that saves. Open "Buying again" (wall-buy) or "Pool" (crate): a list of boxes stacks under it, the chosen one green, the mouse wheel scrolls a long list, a click picks, Escape or a click outside closes it. Done saves and closes; a refused value shows in red above the buttons. Try GUI Scale 2 to 4: at 4 on a 1080p screen the wall-buy with ammo rows is the tallest and should still fit.
+
 ## Machines and perks (2026-10-24)
 
 - [ ] **Drink lore.** Hover each can: Vigoraid "Doubles HP" (HP red), Load-Up "Doubles reload speed" (reload green), Saint's Brew "Doubles revive speed" (revive gold), the rest white, not italic. In a game, look at a vending machine selling a can: the prompt hangs in front of the machine's top, not over it, with the lore on a smaller line under the name and price, in both prompt styles (in the world, and on the HUD with `prompt_style = HUD`). A drink with a `Lore` tag (`/give @s hellstorm:load_up{display:{Lore:['"Tastes like iron"']}}`) shows that line instead.

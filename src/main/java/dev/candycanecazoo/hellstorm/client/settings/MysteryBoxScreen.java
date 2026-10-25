@@ -25,7 +25,7 @@ final class MysteryBoxScreen extends SettingsScreen<MysteryBoxBlock.Config> {
     @Override
     protected void rows() {
         choice(Component.literal("Pool"), pools, pool, id -> Component.literal(id.toString()), v -> pool = v);
-        number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), v -> cost = v);
+        number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), 50, v -> cost = v);
     }
 
     @Override

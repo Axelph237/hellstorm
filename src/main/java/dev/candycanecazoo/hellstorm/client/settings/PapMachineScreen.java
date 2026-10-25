@@ -17,7 +17,7 @@ final class PapMachineScreen extends SettingsScreen<PapMachineBlock.Config> {
 
     @Override
     protected void rows() {
-        number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), v -> cost = v);
+        number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), 50, v -> cost = v);
     }
 
     @Override

@@ -5,7 +5,6 @@ import dev.candycanecazoo.hellstorm.feature.TrapControllerBlock;
 import dev.candycanecazoo.hellstorm.net.OpenSettingsPacket;
 import net.minecraft.network.chat.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 /** A trap's name, price, whether it needs power, how long its redstone signal lasts and how strong it is, and its cooldown. */
@@ -33,12 +32,11 @@ final class TrapScreen extends SettingsScreen<TrapControllerBlock.Config> {
     @Override
     protected void rows() {
         text(Component.literal("Name"), name, TrapControllerBlock.Config.MAX_NAME, Component.literal("Trap"), v -> name = v);
-        number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), v -> cost = v);
-        choice(Component.literal("Needs power"), List.of(true, false), requiresPower,
-                v -> Component.literal(v ? "Yes" : "No"), v -> requiresPower = v);
-        number(Component.literal("Active (ticks)"), activeTicks, Component.literal("Default"), v -> activeTicks = v);
-        number(Component.literal("Cooldown (ticks)"), cooldownTicks, Component.literal("Default"), v -> cooldownTicks = v);
-        number(Component.literal("Signal (1-15)"), signal, Component.empty(), v -> signal = v);
+        number(Component.literal("Cost"), cost, Component.literal("Default (" + defaultCost + ")"), 50, v -> cost = v);
+        toggle(Component.literal("Needs power"), requiresPower, v -> requiresPower = v);
+        number(Component.literal("Active (ticks)"), activeTicks, Component.literal("Default"), 20, v -> activeTicks = v);
+        number(Component.literal("Cooldown (ticks)"), cooldownTicks, Component.literal("Default"), 20, v -> cooldownTicks = v);
+        number(Component.literal("Signal (1-15)"), signal, Component.empty(), 1, v -> signal = v);
     }
 
     @Override

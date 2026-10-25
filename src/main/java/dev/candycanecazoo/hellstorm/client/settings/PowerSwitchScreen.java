@@ -14,7 +14,7 @@ final class PowerSwitchScreen extends SettingsScreen<PowerSwitchBlock.Config> {
 
     @Override
     protected void rows() {
-        number(Component.literal("Cost"), cost, Component.literal("0 is free"), v -> cost = v);
+        number(Component.literal("Cost"), cost, Component.literal("0 is free"), 50, v -> cost = v);
     }
 
     @Override
