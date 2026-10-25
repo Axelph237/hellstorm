@@ -29,3 +29,6 @@ logs
 run-client2
 run-gametest
 src/main/java/dev/candycanecazoo/hellstorm/DevLan.java
+
+# Minecraft's own GUI textures, copied from the game for reference while designing UI. Mojang's, never committed.
+NEEDED/minecraft_ui/
