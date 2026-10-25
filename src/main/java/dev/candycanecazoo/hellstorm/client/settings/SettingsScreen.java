@@ -170,18 +170,13 @@ abstract class SettingsScreen<C> extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackdrop(graphics, mouseX, mouseY, partialTick);
+        renderBackground(graphics);
         WrappedText.drawCentered(graphics, font, title, width / 2, top - 16, width, 0xFFFFFF);
         for (Text text : texts) {
             graphics.drawString(font, text.text().get(), text.x(), text.y() + top, LABEL_COLOR);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
         problem.ifPresent(p -> WrappedText.drawCentered(graphics, font, p, width / 2, top + rows * ROW + 6 + HEIGHT + 6, width, PROBLEM_COLOR));
-    }
-
-    /** What's drawn behind the rows: Minecraft's darkened background, unless a screen adds to it. */
-    protected void renderBackdrop(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
     }
 
     protected static DataResult<Integer> cost(String text, String what) {

@@ -2,10 +2,6 @@
 
 What's built and covered by automated tests but not yet checked by playing. Tick an item off (delete it) once you've seen it work; note anything wrong under it.
 
-## Screens (2026-10-25)
-
-- [ ] **Ember prototype.** In creative, right-click an upgrader to open its settings. Small square embers stream out of the bottom right corner in a tight band, flowing up and left at 135 degrees, white-hot to orange to red as they fade, gone before the middle of the screen. Move the cursor through the stream: the embers scatter away and get swept along, then settle back into parallel lines. Try GUI Scale 2 to 4 and a resized window: the stream stays in the corner. Every 5 seconds the log prints `Embers: N alive, tick X us, draw Y us a frame`. Note those numbers and the F3 frame graph with and without `screens.embers = false` in `config/hellstorm-client.toml`. Judge the look: band width, density, square size, speed, colour.
-
 ## Machines and perks (2026-10-24)
 
 - [ ] **Drink lore.** Hover each can: Vigoraid "Doubles HP" (HP red), Load-Up "Doubles reload speed" (reload green), Saint's Brew "Doubles revive speed" (revive gold), the rest white, not italic. In a game, look at a vending machine selling a can: the prompt hangs in front of the machine's top, not over it, with the lore on a smaller line under the name and price, in both prompt styles (in the world, and on the HUD with `prompt_style = HUD`). A drink with a `Lore` tag (`/give @s hellstorm:load_up{display:{Lore:['"Tastes like iron"']}}`) shows that line instead.
