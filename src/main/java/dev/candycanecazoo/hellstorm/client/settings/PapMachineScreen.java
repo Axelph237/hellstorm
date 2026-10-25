@@ -6,8 +6,6 @@ import dev.candycanecazoo.hellstorm.config.ClientConfig;
 import dev.candycanecazoo.hellstorm.feature.PapMachineBlock;
 import dev.candycanecazoo.hellstorm.net.OpenSettingsPacket;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
 
 final class PapMachineScreen extends SettingsScreen<PapMachineBlock.Config> {
@@ -34,15 +32,9 @@ final class PapMachineScreen extends SettingsScreen<PapMachineBlock.Config> {
     @Override
     public void tick() {
         super.tick();
-        if (!ClientConfig.EMBERS.get()) {
-            return;
+        if (ClientConfig.EMBERS.get()) {
+            embers.tick();
         }
-        for (GuiEventListener child : children()) {
-            if (child instanceof AbstractWidget widget && widget.isHovered()) {
-                embers.emitFrom(widget.getX(), widget.getX() + widget.getWidth(), widget.getY(), 2);
-            }
-        }
-        embers.tick();
     }
 
     @Override
@@ -52,13 +44,5 @@ final class PapMachineScreen extends SettingsScreen<PapMachineBlock.Config> {
             embers.resize(width, height);
             embers.render(graphics, mouseX, mouseY, partialTick);
         }
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (ClientConfig.EMBERS.get()) {
-            embers.burst(mouseX, mouseY);
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 }

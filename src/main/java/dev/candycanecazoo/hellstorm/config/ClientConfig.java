@@ -33,7 +33,7 @@ public final class ClientConfig {
         builder.pop();
         builder.push("screens");
         EMBERS = builder
-                .comment("Embers rise behind the upgrader's settings screen and scatter from the cursor. A prototype.")
+                .comment("Embers stream out of the bottom right corner behind the upgrader's settings screen and scatter from the cursor. A prototype.")
                 .define("embers", true);
         builder.pop();
         SPEC = builder.build();

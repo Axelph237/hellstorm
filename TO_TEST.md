@@ -4,7 +4,7 @@ What's built and covered by automated tests but not yet checked by playing. Tick
 
 ## Screens (2026-10-25)
 
-- [ ] **Ember prototype.** In creative, right-click an upgrader to open its settings. Embers rise from the bottom edge, glowing white-hot to orange to red as they fade, with a faint orange glow along the bottom. Move the cursor through them: they scatter away and get swept along. Hover a button or the cost box: sparks lift off its top edge. Click anywhere: a burst. Try GUI Scale 2 to 4 and a resized window. Every 5 seconds the log prints `Embers: N alive, tick X us, draw Y us a frame`. Note those numbers and the F3 frame graph with and without `screens.embers = false` in `config/hellstorm-client.toml`. Judge the look: size, count, speed, colour, soft glow versus pixelated squares.
+- [ ] **Ember prototype.** In creative, right-click an upgrader to open its settings. Small square embers stream out of the bottom right corner in a tight band, flowing up and left at 135 degrees, white-hot to orange to red as they fade, gone before the middle of the screen. Move the cursor through the stream: the embers scatter away and get swept along, then settle back into parallel lines. Try GUI Scale 2 to 4 and a resized window: the stream stays in the corner. Every 5 seconds the log prints `Embers: N alive, tick X us, draw Y us a frame`. Note those numbers and the F3 frame graph with and without `screens.embers = false` in `config/hellstorm-client.toml`. Judge the look: band width, density, square size, speed, colour.
 
 ## Machines and perks (2026-10-24)
 
