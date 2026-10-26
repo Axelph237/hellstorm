@@ -1,39 +1,44 @@
 package dev.candycanecazoo.hellstorm.client;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
+import dev.candycanecazoo.hellstorm.Hellstorm;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
-import net.minecraft.world.effect.MobEffect;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraftforge.client.extensions.common.IClientMobEffectExtensions;
 
-/**
- * A perk effect's icon as a square in the effect's color with the perk's initial, standing in for the icon textures in
- * NEEDED/TEXTURES.md so nothing draws as a missing texture.
- */
+/** A perk effect's icon, one 16 by 16 cell of the perk icon sheet, read left to right and top to bottom. */
 public final class PerkEffectIcon implements IClientMobEffectExtensions {
-    private static final int SIZE = 18;
+    private static final ResourceLocation SHEET = Hellstorm.id("textures/gui/perk_icons.png");
+    private static final int SHEET_SIZE = 64;
+    private static final int ICON = 16;
+    private static final int COLUMNS = SHEET_SIZE / ICON;
+
+    private final int cell;
+
+    public PerkEffectIcon(int cell) {
+        this.cell = cell;
+    }
 
     @Override
     public boolean renderInventoryIcon(MobEffectInstance instance, EffectRenderingInventoryScreen<?> screen, GuiGraphics graphics, int x, int y, int blitOffset) {
-        draw(graphics, instance.getEffect(), x, y + 7);
+        draw(graphics, x, y + 7);
         return true;
     }
 
     @Override
     public boolean renderGuiIcon(MobEffectInstance instance, Gui gui, GuiGraphics graphics, int x, int y, float z, float alpha) {
-        draw(graphics, instance.getEffect(), x + 3, y + 3);
+        graphics.setColor(1, 1, 1, alpha);
+        draw(graphics, x + 3, y + 3);
+        graphics.setColor(1, 1, 1, 1);
         return true;
     }
 
-    /** Where vanilla would blit the 18 by 18 sprite. */
-    private static void draw(GuiGraphics graphics, MobEffect effect, int x, int y) {
-        graphics.fill(x, y, x + SIZE, y + SIZE, 0xFF000000 | effect.getColor());
-        Font font = Minecraft.getInstance().font;
-        String name = effect.getDisplayName().getString();
-        String initial = name.isEmpty() ? "?" : name.substring(0, 1);
-        graphics.drawString(font, initial, x + (SIZE - font.width(initial) + 1) / 2, y + (SIZE - font.lineHeight) / 2 + 1, 0xFFFFFFFF, true);
+    /** Centred where vanilla would blit its 18 by 18 sprite. */
+    private void draw(GuiGraphics graphics, int x, int y) {
+        int u = cell % COLUMNS * ICON;
+        int v = cell / COLUMNS * ICON;
+        graphics.blit(SHEET, x + 1, y + 1, u, v, ICON, ICON, SHEET_SIZE, SHEET_SIZE);
     }
 }

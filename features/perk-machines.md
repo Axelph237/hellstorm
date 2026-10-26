@@ -32,7 +32,8 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
 ## Assets
 
 - The machine uses your textures. Its green is repainted in memory in the color of what it sells (see As built); no texture files are added.
-- **Needed from you:** one HUD icon per default perk (16×16), and one mob effect icon per perk (18×18). Listed in `NEEDED/TEXTURES.md`.
+- The effect icons are your sheet, `textures/gui/perk_icons.png` (64×64, 16×16 cells).
+- **Needed from you:** a HUD icon per default perk only if the HUD gets a perk row. Listed in `NEEDED/TEXTURES.md`.
 
 ## Depends on
 
@@ -80,7 +81,7 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
   - `hellstorm:extra_weapon_slots` (base 0, 0 to 9) adds to `players.weapon_slots` (`game/WeaponSlots`).
   - The attributes are built outside their suppliers, because mob effects register before attributes and the effects need them.
 - **Potions.** One per effect, so each effect also has splash, lingering, and tipped arrow forms, all named in the lang file (`item.minecraft.potion.effect.vigorade` is "Vigoraid").
-- **Effect icons.** No textures ship. `client/PerkEffectIcon` (`IClientMobEffectExtensions`) draws each perk's icon in the HUD and inventory as a square in the effect's color with the first letter of its name, so nothing draws as a missing texture.
+- **Effect icons** (2026-10-26). `client/PerkEffectIcon` (`IClientMobEffectExtensions`) draws each perk's icon in the HUD and inventory from your sheet `textures/gui/perk_icons.png`: 16×16 cells read left to right, top to bottom, in the order Vigoraid, Hellfire, Saint's Brew, Off-Hand, Wandering Spirit, Load-Up. Each effect passes its cell to `perk(...)` in `perk/PerkEffects`. The 16×16 icon sits centred in the 18×18 square where vanilla draws its sprites, and fades with the effect on the HUD as vanilla's do. The sheet lives in `gui/`, not `mob_effect/`, because the game stitches everything in `mob_effect/` into its effect atlas. Until then each icon was a square in the effect's color with the perk's initial.
 - **What a perk is** (`perk/Perks`). An effect in `hellstorm:perks`. `Perks.held` lists the ones a player has active, and `players.perk_limit` counts them.
   - `Perks.limitRefusal(held, adding, limit)` refuses a potion whose new perks would take the player past the limit: "You can only hold 4 perks". Perks the player already has and non-perk effects don't count. A potion of two new perks needs room for both.
   - Drinking: `LivingEntityUseItemEvent.Start` is cancelled on the server for a player in a game when the potion would go past the limit, with the usual refusal notice. The client keeps its drinking pose until the player lets go of use, since it doesn't know the limit. Splash and lingering potions and `/effect` aren't checked, on purpose. A machine sells a perk potion at the limit too (it only refuses an effect you already have), since the potion can wait in the inventory.

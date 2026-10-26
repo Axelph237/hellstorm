@@ -36,23 +36,24 @@ public final class PerkEffects {
     private static final DeferredRegister<MobEffect> EFFECTS = DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, Hellstorm.MOD_ID);
     private static final DeferredRegister<Potion> POTIONS = DeferredRegister.create(ForgeRegistries.POTIONS, Hellstorm.MOD_ID);
 
-    public static final RegistryObject<MobEffect> VIGORADE = perk("vigorade", 0xd33a2c,
+    public static final RegistryObject<MobEffect> VIGORADE = perk("vigorade", 0, 0xd33a2c,
             Attributes.MAX_HEALTH, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e01", 20, AttributeModifier.Operation.ADDITION);
-    public static final RegistryObject<MobEffect> RELOAD = perk("reload", 0x3fae4a,
+    public static final RegistryObject<MobEffect> RELOAD = perk("reload", 5, 0x3fae4a,
             PapRegistries.RELOAD_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e02", 1, AttributeModifier.Operation.ADDITION);
-    public static final RegistryObject<MobEffect> HELLFIRE = perk("hellfire", 0xe3a92b,
+    public static final RegistryObject<MobEffect> HELLFIRE = perk("hellfire", 1, 0xe3a92b,
             PapRegistries.FIRE_RATE, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e03", 0.33, AttributeModifier.Operation.ADDITION);
-    public static final RegistryObject<MobEffect> SAINTS_BREW = perk("saints_brew", 0xd6a44f,
+    public static final RegistryObject<MobEffect> SAINTS_BREW = perk("saints_brew", 2, 0xd6a44f,
             PapRegistries.REVIVE_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e04", 1, AttributeModifier.Operation.ADDITION);
-    public static final RegistryObject<MobEffect> OFF_HAND_PERK = perk("off_hand", 0x2f8f5b,
+    public static final RegistryObject<MobEffect> OFF_HAND_PERK = perk("off_hand", 3, 0x2f8f5b,
             PapRegistries.EXTRA_WEAPON_SLOTS, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e05", 1, AttributeModifier.Operation.ADDITION);
-    public static final RegistryObject<MobEffect> JOCKEY_ENERGY = perk("jockey_energy", 0xf2d64b,
+    public static final RegistryObject<MobEffect> JOCKEY_ENERGY = perk("jockey_energy", 4, 0xf2d64b,
             Attributes.MOVEMENT_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e06", 0.07, AttributeModifier.Operation.MULTIPLY_BASE);
 
     private PerkEffects() {}
 
-    private static RegistryObject<MobEffect> perk(String id, int color, Attribute attribute, String uuid, double amount, AttributeModifier.Operation operation) {
-        RegistryObject<MobEffect> effect = EFFECTS.register(id, () -> new PerkEffect(color).addAttributeModifier(attribute, uuid, amount, operation));
+    /** {@code icon} is the perk's cell on the icon sheet ({@code client/PerkEffectIcon}). */
+    private static RegistryObject<MobEffect> perk(String id, int icon, int color, Attribute attribute, String uuid, double amount, AttributeModifier.Operation operation) {
+        RegistryObject<MobEffect> effect = EFFECTS.register(id, () -> new PerkEffect(icon, color).addAttributeModifier(attribute, uuid, amount, operation));
         POTIONS.register(id, () -> new Potion(new MobEffectInstance(effect.get(), MobEffectInstance.INFINITE_DURATION)));
         return effect;
     }
@@ -64,8 +65,11 @@ public final class PerkEffects {
 
     /** Heals the max health it adds and takes it back on removal, and re-evaluates the held gun when the fire rate changes. */
     private static final class PerkEffect extends MobEffect {
-        PerkEffect(int color) {
+        private final int icon;
+
+        PerkEffect(int icon, int color) {
             super(MobEffectCategory.BENEFICIAL, color);
+            this.icon = icon;
         }
 
         @Override
@@ -96,7 +100,7 @@ public final class PerkEffects {
 
         @Override
         public void initializeClient(Consumer<IClientMobEffectExtensions> consumer) {
-            consumer.accept(new PerkEffectIcon());
+            consumer.accept(new PerkEffectIcon(icon));
         }
     }
 }

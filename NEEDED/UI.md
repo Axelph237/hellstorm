@@ -28,7 +28,7 @@ Each opens when an op in creative uses the machine outside a game. All five are 
 | Points popups | `client/GameHud` | "+N" rising off your points as you earn | Styled, with a different look for a headshot or a kill. |
 | Power-up timers | `client/GameHud` | Insta-Kill, Double Points and Fire Sale as text along the top, grey as they run out | An icon and a countdown ring or bar for each. |
 | Revive and bleed-out bar | `client/GameHud` | A thin colored bar | A styled bar, with the reviver's or downed player's name. |
-| Perk icons | `client/PerkEffectIcon` | A colored square with a letter per perk | An icon per perk, in a row on the HUD (icons are already listed in `TEXTURES.md`). |
+| Perk icons | `client/PerkEffectIcon` | Your perk icon sheet, top right with the other effects | A row of perk icons on the HUD, if wanted (the sheet's icons could serve). |
 | Prompts | `client/PromptOverlay`, `client/WorldPrompt` | "Load-Up [2500]" floating at the machine, or on the HUD (`prompt_style`), with a vending machine's drink lore under it | A key hint for the Hellstorm use key ("[O] Buy", O by default), a style for "No power", and the background. |
 | Notices | `client/NoticeOverlay` | One line of text: refusals, "The power is on", round survived | Styled banners: a large one for round start, the power and wave events, a small one for refusals. |
 | Downed view | `client/DownedView` | The screen goes black and white while you're down | A bleed-out timer, and "Hold use to revive" for teammates looking at you. |
