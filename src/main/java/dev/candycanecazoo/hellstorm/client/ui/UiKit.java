@@ -27,8 +27,8 @@ public final class UiKit {
     public static final Sprite SPIN_DOWN = new Sprite(106, 49, 10, 14);
     public static final Sprite SEARCH = new Sprite(119, 74, 7, 7);
 
-    /** Behind every screen: 80% black over the world. */
-    public static final int TINT = 0xCC000000;
+    /** Behind every screen: 90% black over the world. */
+    public static final int TINT = 0xE6000000;
     /** Stands in for hover art until there is some: a faint lift inside the box. */
     public static final int HOVER = 0x26FFFFFF;
     /** The toggle's green, for what's chosen. */
