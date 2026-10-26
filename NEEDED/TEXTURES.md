@@ -9,7 +9,7 @@ This mod never adds texture files. Anything that needs a custom texture is left 
 | `assets/hellstorm/textures/mob_effect/vigorade.png` | 18×18 | Vigoraid's effect icon (top-right HUD, inventory) | `perk-machines.md` | Red square with "V" (`client/PerkEffectIcon`; remove it once the icons exist) |
 | `assets/hellstorm/textures/mob_effect/reload.png` | 18×18 | Load-Up's effect icon | `perk-machines.md` | Green square with "L" |
 | `assets/hellstorm/textures/mob_effect/hellfire.png` | 18×18 | Hellfire's effect icon | `perk-machines.md` | Orange square with "H" |
-| `assets/hellstorm/textures/mob_effect/saints_brew.png` | 18×18 | Saint's Brew's effect icon | `perk-machines.md` | Blue square with "S" |
+| `assets/hellstorm/textures/mob_effect/saints_brew.png` | 18×18 | Saint's Brew's effect icon | `perk-machines.md` | Amber square with "S" |
 | `assets/hellstorm/textures/mob_effect/off_hand.png` | 18×18 | Off-Hand's effect icon | `perk-machines.md` | Dark green square with "O" |
 | `assets/hellstorm/textures/mob_effect/jockey_energy.png` | 18×18 | Wandering Spirit's effect icon | `perk-machines.md` | Yellow square with "W" |
 | `assets/hellstorm/textures/gui/powerup/<id>.png` | 16×16 | HUD timer icon for timed power-ups (insta_kill, double_points, fire_sale) | `power-ups.md`, `hud-and-prompts.md` | Text timer across the top of the HUD |

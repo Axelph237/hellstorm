@@ -42,7 +42,7 @@ public final class PerkEffects {
             PapRegistries.RELOAD_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e02", 1, AttributeModifier.Operation.ADDITION);
     public static final RegistryObject<MobEffect> HELLFIRE = perk("hellfire", 0xe3a92b,
             PapRegistries.FIRE_RATE, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e03", 0.33, AttributeModifier.Operation.ADDITION);
-    public static final RegistryObject<MobEffect> SAINTS_BREW = perk("saints_brew", 0x4aa3df,
+    public static final RegistryObject<MobEffect> SAINTS_BREW = perk("saints_brew", 0xd6a44f,
             PapRegistries.REVIVE_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e04", 1, AttributeModifier.Operation.ADDITION);
     public static final RegistryObject<MobEffect> OFF_HAND_PERK = perk("off_hand", 0x2f8f5b,
             PapRegistries.EXTRA_WEAPON_SLOTS, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e05", 1, AttributeModifier.Operation.ADDITION);
