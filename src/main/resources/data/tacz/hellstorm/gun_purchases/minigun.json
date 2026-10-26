@@ -1,0 +1,6 @@
+{
+  "cost": 5000,
+  "repurchase": "refill_ammo",
+  "ammo_cost": 2500,
+  "pap_ammo_cost": 4500
+}

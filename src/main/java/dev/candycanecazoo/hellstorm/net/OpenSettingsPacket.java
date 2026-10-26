@@ -1,8 +1,8 @@
 package dev.candycanecazoo.hellstorm.net;
 
 import dev.candycanecazoo.hellstorm.client.settings.SettingsScreens;
-import dev.candycanecazoo.hellstorm.config.PurchaseDefaults;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
+import dev.candycanecazoo.hellstorm.data.PurchaseDefault;
 import dev.candycanecazoo.hellstorm.feature.WallBuy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -27,7 +27,7 @@ public record OpenSettingsPacket(BlockPos pos, List<Choice> choices, Optional<He
     public record Choice(ResourceLocation id, Component name) {}
 
     /** The item in the map maker's hand when they opened the screen, as a wall-buy would sell it, and its listed defaults. */
-    public record Held(ItemSpec item, Component name, Optional<PurchaseDefaults.Purchase> defaults) {}
+    public record Held(ItemSpec item, Component name, Optional<PurchaseDefault> defaults) {}
 
     void encode(FriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
@@ -57,7 +57,7 @@ public record OpenSettingsPacket(BlockPos pos, List<Choice> choices, Optional<He
             choices.add(new Choice(buf.readResourceLocation(), buf.readComponent()));
         }
         Optional<Held> held = buf.readOptional(b -> new Held(ItemSpec.CODEC.parse(NbtOps.INSTANCE, b.readNbt()).getOrThrow(false, e -> {}), b.readComponent(),
-                b.readOptional(d -> new PurchaseDefaults.Purchase(d.readVarInt(), d.readEnum(WallBuy.Repurchase.class), d.readVarInt(), d.readVarInt()))));
+                b.readOptional(d -> new PurchaseDefault(d.readVarInt(), d.readEnum(WallBuy.Repurchase.class), d.readVarInt(), d.readVarInt()))));
         return new OpenSettingsPacket(pos, List.copyOf(choices), held, buf.readVarInt());
     }
 

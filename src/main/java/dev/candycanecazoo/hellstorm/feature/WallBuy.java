@@ -2,8 +2,8 @@ package dev.candycanecazoo.hellstorm.feature;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.candycanecazoo.hellstorm.config.PurchaseDefaults;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
+import dev.candycanecazoo.hellstorm.data.PurchaseDefault;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import dev.candycanecazoo.hellstorm.util.Codecs;
 import net.minecraft.resources.ResourceLocation;
@@ -68,7 +68,7 @@ public final class WallBuy {
         }
 
         /** Sells {@code item} at its listed price, buying again and ammo costs, still needing the power or not as before. */
-        public Config selling(ItemSpec item, PurchaseDefaults.Purchase defaults) {
+        public Config selling(ItemSpec item, PurchaseDefault defaults) {
             return new Config(item, defaults.cost(), defaults.repurchase(), defaults.ammoCost(), defaults.papAmmoCost(), requiresPower);
         }
 

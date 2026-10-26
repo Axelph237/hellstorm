@@ -116,7 +116,7 @@ class PacketRoundTripTest {
         OpenSettingsPacket withDefaults = new OpenSettingsPacket(BlockPos.ZERO, List.of(),
                 Optional.of(new OpenSettingsPacket.Held(dev.candycanecazoo.hellstorm.data.ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "ak47")),
                         net.minecraft.network.chat.Component.literal("AK-47"),
-                        Optional.of(new dev.candycanecazoo.hellstorm.config.PurchaseDefaults.Purchase(1200,
+                        Optional.of(new dev.candycanecazoo.hellstorm.data.PurchaseDefault(1200,
                                 dev.candycanecazoo.hellstorm.feature.WallBuy.Repurchase.REFILL_AMMO, 600, 4500)))), 0);
         for (OpenSettingsPacket packet : List.of(bare, full, withDefaults)) {
             assertEquals(packet, roundTrip(packet, OpenSettingsPacket::encode, OpenSettingsPacket::decode));

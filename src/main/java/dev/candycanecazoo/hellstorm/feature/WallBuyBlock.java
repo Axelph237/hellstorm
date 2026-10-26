@@ -1,9 +1,9 @@
 package dev.candycanecazoo.hellstorm.feature;
 
 import com.mojang.serialization.Codec;
-import dev.candycanecazoo.hellstorm.config.DefaultsConfig;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
+import dev.candycanecazoo.hellstorm.data.PurchaseDefaults;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.Refusal;
@@ -334,7 +334,7 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
         super.setPlacedBy(level, pos, state, placer, stack);
         if (!level.isClientSide && BlockItem.getBlockEntityData(stack) == null && level.getBlockEntity(pos) instanceof Entity entity) {
             WallBuy.Config config = entity.config();
-            DefaultsConfig.current().of(config.item()).ifPresent(defaults -> entity.setConfig(config.selling(config.item(), defaults)));
+            PurchaseDefaults.of(config.item()).ifPresent(defaults -> entity.setConfig(config.selling(config.item(), defaults)));
         }
     }
 
