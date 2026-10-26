@@ -2,6 +2,7 @@ package dev.candycanecazoo.hellstorm.feature;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.candycanecazoo.hellstorm.config.PurchaseDefaults;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
 import dev.candycanecazoo.hellstorm.util.Codecs;
@@ -64,6 +65,11 @@ public final class WallBuy {
         /** A new item at {@code cost}: refills cost half the price, upgraded refills the default, and no power needed. */
         public static Config forItem(ItemSpec item, int cost, Repurchase repurchase) {
             return new Config(item, cost, repurchase, cost / 2, DEFAULT_PAP_AMMO_COST, false);
+        }
+
+        /** Sells {@code item} at its listed price, buying again and ammo costs, still needing the power or not as before. */
+        public Config selling(ItemSpec item, PurchaseDefaults.Purchase defaults) {
+            return new Config(item, defaults.cost(), defaults.repurchase(), defaults.ammoCost(), defaults.papAmmoCost(), requiresPower);
         }
 
         public Config withRequiresPower(boolean power) {

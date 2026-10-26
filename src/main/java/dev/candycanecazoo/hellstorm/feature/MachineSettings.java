@@ -1,5 +1,6 @@
 package dev.candycanecazoo.hellstorm.feature;
 
+import dev.candycanecazoo.hellstorm.config.DefaultsConfig;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.data.BoxPool;
 import dev.candycanecazoo.hellstorm.data.BoxPools;
@@ -66,7 +67,7 @@ public final class MachineSettings {
     private static Optional<OpenSettingsPacket.Held> held(ServerPlayer player, ConfigBlockEntity<?> entity) {
         ItemStack stack = player.getMainHandItem();
         return entity instanceof WallBuyBlock.Entity && !stack.isEmpty()
-                ? Optional.of(new OpenSettingsPacket.Held(ItemSpec.of(stack), stack.getHoverName()))
+                ? Optional.of(new OpenSettingsPacket.Held(ItemSpec.of(stack), stack.getHoverName(), DefaultsConfig.current().of(ItemSpec.of(stack))))
                 : Optional.empty();
     }
 

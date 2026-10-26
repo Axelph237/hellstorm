@@ -112,8 +112,13 @@ class PacketRoundTripTest {
         OpenSettingsPacket full = new OpenSettingsPacket(new BlockPos(-4, 70, 9),
                 List.of(new OpenSettingsPacket.Choice(ResourceLocation.tryBuild("hellstorm", "default"), net.minecraft.network.chat.Component.literal("Default"))),
                 Optional.of(new OpenSettingsPacket.Held(new dev.candycanecazoo.hellstorm.data.ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "golden_apple"), 3,
-                        Optional.empty()), net.minecraft.network.chat.Component.literal("Golden Apple"))), 5000);
-        for (OpenSettingsPacket packet : List.of(bare, full)) {
+                        Optional.empty()), net.minecraft.network.chat.Component.literal("Golden Apple"), Optional.empty())), 5000);
+        OpenSettingsPacket withDefaults = new OpenSettingsPacket(BlockPos.ZERO, List.of(),
+                Optional.of(new OpenSettingsPacket.Held(dev.candycanecazoo.hellstorm.data.ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "ak47")),
+                        net.minecraft.network.chat.Component.literal("AK-47"),
+                        Optional.of(new dev.candycanecazoo.hellstorm.config.PurchaseDefaults.Purchase(1200,
+                                dev.candycanecazoo.hellstorm.feature.WallBuy.Repurchase.REFILL_AMMO, 600, 4500)))), 0);
+        for (OpenSettingsPacket packet : List.of(bare, full, withDefaults)) {
             assertEquals(packet, roundTrip(packet, OpenSettingsPacket::encode, OpenSettingsPacket::decode));
         }
         net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();

@@ -1,12 +1,15 @@
 package dev.candycanecazoo.hellstorm.gametest;
 
 import dev.candycanecazoo.hellstorm.Hellstorm;
+import dev.candycanecazoo.hellstorm.config.DefaultsConfig;
+import dev.candycanecazoo.hellstorm.config.PurchaseDefaults;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.feature.FeatureBlock;
 import dev.candycanecazoo.hellstorm.feature.WallBuy;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
 import dev.candycanecazoo.hellstorm.game.GameManager;
+import dev.candycanecazoo.hellstorm.perk.PerkCanItem;
 import dev.candycanecazoo.hellstorm.perk.PerkEffects;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.tacz.TaczBridge;
@@ -278,6 +281,35 @@ public final class WallBuyGameTests {
         };
         FeatureBlock.use(player, at);
         helper.assertTrue(said.isEmpty(), "a non-op using a machine outside a game should see nothing, got " + said);
+        helper.succeed();
+    }
+
+    /** A wall-buy placed by hand takes its gun's listed defaults; one placed with copied settings keeps them. Every perk can is listed. */
+    @GameTest(template = "floor")
+    public static void aPlacedWallBuyTakesItsGunsDefaultsAndEveryCanIsListed(GameTestHelper helper) {
+        PurchaseDefaults defaults = DefaultsConfig.current();
+        ItemSpec.Gun pistol = ItemSpec.Gun.of(ResourceLocation.tryBuild("tacz", "m1911"));
+        PurchaseDefaults.Purchase listed = defaults.of(pistol).orElseThrow(() -> new AssertionError("the M1911 should be listed"));
+        BlockPos at = wallBuy(helper, new WallBuy.Config(pistol, 9999, WallBuy.Repurchase.DENY, 1, 2, true));
+        WallBuyBlock block = (WallBuyBlock) PapRegistries.WALL_BUY.get();
+        block.setPlacedBy(helper.getLevel(), at, helper.getLevel().getBlockState(at), null, new ItemStack(block));
+        WallBuy.Config placed = entity(helper, at).config();
+        helper.assertTrue(placed.equals(new WallBuy.Config(pistol, listed.cost(), listed.repurchase(), listed.ammoCost(), listed.papAmmoCost(), true)),
+                "a placed wall-buy should take the M1911's defaults and keep its power setting, got " + placed);
+
+        WallBuy.Config copied = new WallBuy.Config(pistol, 9999, WallBuy.Repurchase.DENY, 1, 2, false);
+        entity(helper, at).setConfig(copied);
+        ItemStack withSettings = new ItemStack(block);
+        withSettings.getOrCreateTagElement("BlockEntityTag");
+        block.setPlacedBy(helper.getLevel(), at, helper.getLevel().getBlockState(at), null, withSettings);
+        helper.assertTrue(entity(helper, at).config().equals(copied), "a wall-buy placed with copied settings should keep them");
+
+        for (net.minecraft.world.item.Item item : net.minecraftforge.registries.ForgeRegistries.ITEMS) {
+            if (item instanceof PerkCanItem) {
+                ResourceLocation id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item);
+                helper.assertTrue(defaults.of(new ItemSpec.Plain(id, 1, Optional.empty())).isPresent(), id + " should have listed defaults");
+            }
+        }
         helper.succeed();
     }
 }

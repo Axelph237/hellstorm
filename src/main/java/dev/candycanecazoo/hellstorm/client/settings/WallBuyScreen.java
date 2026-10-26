@@ -67,7 +67,12 @@ final class WallBuyScreen extends SettingsScreen<WallBuy.Config> {
         item = held.item();
         itemName = held.name();
         itemStack = heldStack;
-        repurchase = WallBuy.Repurchase.defaultFor(item);
+        held.defaults().ifPresentOrElse(defaults -> {
+            cost = String.valueOf(defaults.cost());
+            repurchase = defaults.repurchase();
+            ammoCost = String.valueOf(defaults.ammoCost());
+            papAmmoCost = String.valueOf(defaults.papAmmoCost());
+        }, () -> repurchase = WallBuy.Repurchase.defaultFor(item));
         relayout();
     }
 

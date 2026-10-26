@@ -1,6 +1,7 @@
 package dev.candycanecazoo.hellstorm.feature;
 
 import com.mojang.serialization.Codec;
+import dev.candycanecazoo.hellstorm.config.DefaultsConfig;
 import dev.candycanecazoo.hellstorm.config.GameSettings;
 import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.game.GameEvent;
@@ -20,6 +21,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -34,6 +37,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -321,6 +326,16 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
 
     public static Optional<Entity> entity(Level level, BlockPos pos) {
         return level.getBlockEntity(pos) instanceof Entity entity ? Optional.of(entity) : Optional.empty();
+    }
+
+    /** A wall-buy placed by hand starts with its gun's listed defaults; one copied with its settings keeps them. */
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (!level.isClientSide && BlockItem.getBlockEntityData(stack) == null && level.getBlockEntity(pos) instanceof Entity entity) {
+            WallBuy.Config config = entity.config();
+            DefaultsConfig.current().of(config.item()).ifPresent(defaults -> entity.setConfig(config.selling(config.item(), defaults)));
+        }
     }
 
     @Override
