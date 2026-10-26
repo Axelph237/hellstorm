@@ -296,12 +296,12 @@ The design as researched:
 **Before v0.1.0:**
 - Perk cans for Hellfire, Saint's Brew, Off-Hand, and Jockey Energy, from your models (Load-Up and Vigoraid are in). Then the default machines sell cans instead of potions.
 - The sounds and music in `NEEDED/SOUNDS.md`, as you supply them.
-- Possibly the extras below (GobbleGum-style buffs, point sharing), or they go to an addon.
 
 **After v0.1.0, in the base mod:**
 - More enemy variety (crawlers, mini-bosses, special zombies).
 - More perks and more power-ups.
 - Wonder weapons.
+- GobbleGum-style buffs and point sharing, unless they go to an addon instead.
 - Buildables, map objectives, and Easter eggs, together with better map-making features.
 - Damageable areas: zones drawn with the Zone Wand where TacZ's normal block damage applies (glass shattering, incendiary fire, explosive rounds where the gun allows it), restored when the game ends, even after a crash. First version: breakable areas must stay off zombie routes; updating zombie paths when blocks break comes after.
 - Characters, as in CoD's crews (Dempsey, Nikolai, Takeo, Richtofen):
