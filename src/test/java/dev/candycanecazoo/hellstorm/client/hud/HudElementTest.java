@@ -48,4 +48,9 @@ class HudElementTest {
         assertEquals("candyc...", PlayerBoard.shortName("candycanecazoo"));
         assertEquals("Alexan...", PlayerBoard.shortName("Alexand"));
     }
+
+    @Test
+    void pointsAreWrittenWithADollarSign() {
+        assertEquals("$1500", PlayerBoard.points(new dev.candycanecazoo.hellstorm.net.HudSyncPacket.Line("Steve", 1500, true, false, true)));
+    }
 }

@@ -16,7 +16,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 /**
  * A row for every player, in join order: their face (red while down, a skeleton's once dead), their name cut to
- * {@link #NAME_LENGTH} letters, and their points, with "+N" rising off yours as you earn. {@code justify} sets the order:
+ * {@link #NAME_LENGTH} letters, and their points as "$1500", with "+N" rising off yours as you earn. {@code justify} sets the order:
  * {@code LEFT} reads face, name, points against the box's left side, {@code RIGHT} points, name, face against its right.
  */
 public final class PlayerBoard extends HudElement {
@@ -49,7 +49,7 @@ public final class PlayerBoard extends HudElement {
         if (rows == 0) {
             return Size.NONE;
         }
-        int points = frame.hud().players().stream().mapToInt(line -> frame.font().width(String.valueOf(line.points()))).max().orElse(0);
+        int points = frame.hud().players().stream().mapToInt(line -> frame.font().width(points(line))).max().orElse(0);
         int width = FACE + FACE_GAP + names(frame) + COLUMN_GAP + points;
         return new Size(width, (frame.font().lineHeight + ROW_GAP) * rows - ROW_GAP);
     }
@@ -63,7 +63,7 @@ public final class PlayerBoard extends HudElement {
         int y = top;
         for (HudSyncPacket.Line line : frame.hud().players()) {
             String name = shortName(line.name());
-            String points = String.valueOf(line.points());
+            String points = points(line);
             int color = line.downed() ? Colors.RED : !line.alive() ? Colors.GREY : line.you() ? Colors.GOLD : Colors.WHITE;
             int nameColor = line.alive() ? Colors.GREY : Colors.DIM;
             boolean popups = line.you() && ClientConfig.SHOW_POPUPS.get();
@@ -89,6 +89,11 @@ public final class PlayerBoard extends HudElement {
             }
             y += font.lineHeight + ROW_GAP;
         }
+    }
+
+    /** "$1500": the dollar sign stands in for a points icon. */
+    static String points(HudSyncPacket.Line line) {
+        return "$" + line.points();
     }
 
     private static int names(Frame frame) {
@@ -119,7 +124,7 @@ public final class PlayerBoard extends HudElement {
         return name.length() <= NAME_LENGTH ? name : name.substring(0, NAME_LENGTH) + "...";
     }
 
-    /** The +N / -N rising from {@code x}: to its left when {@code leftOf}, else to its right. */
+    /** The +N / -N beside your points, level with them at first, rising as it fades: to the left of {@code x} when {@code leftOf}, else to its right. */
     private static void drawPopups(GuiGraphics graphics, Font font, int x, int y, boolean leftOf) {
         long now = Util.getMillis();
         for (HudState.Popup popup : HudState.popups()) {
@@ -127,7 +132,7 @@ public final class PlayerBoard extends HudElement {
             int alpha = Math.max(8, (int) (255 * (1 - age)));
             String text = (popup.amount() > 0 ? "+" : "") + popup.amount();
             int color = popup.amount() > 0 ? Colors.GOLD : Colors.RED;
-            graphics.drawString(font, text, leftOf ? x - font.width(text) : x, (int) (y - 10 - age * 18), (alpha << 24) | color);
+            graphics.drawString(font, text, leftOf ? x - font.width(text) : x, (int) (y - age * 18), (alpha << 24) | color);
         }
     }
 }
