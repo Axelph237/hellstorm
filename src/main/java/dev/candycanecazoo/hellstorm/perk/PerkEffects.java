@@ -98,9 +98,10 @@ public final class PerkEffects {
             }
         }
 
+        /** MobEffect's constructor calls this before {@code icon} is set, so the icon reads it when it draws. */
         @Override
         public void initializeClient(Consumer<IClientMobEffectExtensions> consumer) {
-            consumer.accept(new PerkEffectIcon(icon));
+            consumer.accept(new PerkEffectIcon(() -> icon));
         }
     }
 }

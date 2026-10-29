@@ -8,6 +8,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraftforge.client.extensions.common.IClientMobEffectExtensions;
 
+import java.util.function.IntSupplier;
+
 /** A perk effect's icon, one 16 by 16 cell of the perk icon sheet, read left to right and top to bottom. */
 public final class PerkEffectIcon implements IClientMobEffectExtensions {
     private static final ResourceLocation SHEET = Hellstorm.id("textures/gui/perk_icons.png");
@@ -15,9 +17,9 @@ public final class PerkEffectIcon implements IClientMobEffectExtensions {
     private static final int ICON = 16;
     private static final int COLUMNS = SHEET_SIZE / ICON;
 
-    private final int cell;
+    private final IntSupplier cell;
 
-    public PerkEffectIcon(int cell) {
+    public PerkEffectIcon(IntSupplier cell) {
         this.cell = cell;
     }
 
@@ -37,8 +39,8 @@ public final class PerkEffectIcon implements IClientMobEffectExtensions {
 
     /** Centred where vanilla would blit its 18 by 18 sprite. */
     private void draw(GuiGraphics graphics, int x, int y) {
-        int u = cell % COLUMNS * ICON;
-        int v = cell / COLUMNS * ICON;
+        int u = cell.getAsInt() % COLUMNS * ICON;
+        int v = cell.getAsInt() / COLUMNS * ICON;
         graphics.blit(SHEET, x + 1, y + 1, u, v, ICON, ICON, SHEET_SIZE, SHEET_SIZE);
     }
 }
