@@ -12,10 +12,10 @@ import java.util.List;
  */
 public final class HudState {
     private static final long STALE_MILLIS = 2_000;
-    static final long POPUP_MILLIS = 1_200;
+    public static final long POPUP_MILLIS = 1_200;
 
     /** A change to this player's points, and when it arrived. */
-    record Popup(int amount, long at) {}
+    public record Popup(int amount, long at) {}
 
     private static HudSyncPacket last = HudSyncPacket.NONE;
     private static long receivedAt = Long.MIN_VALUE / 2;
@@ -48,7 +48,7 @@ public final class HudState {
     }
 
     /** Ticks, with fractions, since the last HUD arrived, for moving its bar on between updates. */
-    static float ticksSinceUpdate() {
+    public static float ticksSinceUpdate() {
         return (Util.getMillis() - receivedAt) / 50f;
     }
 
@@ -72,7 +72,7 @@ public final class HudState {
     }
 
     /** Point changes younger than {@link #POPUP_MILLIS}, oldest first. */
-    static List<Popup> popups() {
+    public static List<Popup> popups() {
         long now = Util.getMillis();
         popups.removeIf(p -> now - p.at() > POPUP_MILLIS);
         return popups;

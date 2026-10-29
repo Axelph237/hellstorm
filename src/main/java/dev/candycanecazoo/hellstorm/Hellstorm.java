@@ -8,8 +8,10 @@ import dev.candycanecazoo.hellstorm.config.ServerConfig;
 import dev.candycanecazoo.hellstorm.net.PapNetwork;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
@@ -31,7 +33,8 @@ public final class Hellstorm {
         dev.candycanecazoo.hellstorm.powerup.PowerUpRegistries.register(modBus);
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(PapNetwork::register));
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
+        // The client config's HUD sections are built from client classes, so a server never loads it.
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC));
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
         MinecraftForge.EVENT_BUS.addListener(HellstormCommand::register);
     }

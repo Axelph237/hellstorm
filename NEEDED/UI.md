@@ -24,7 +24,7 @@ Each opens when an op in creative uses the machine outside a game. All five are 
 | Piece | Drawn by | Today | Needs |
 |---|---|---|---|
 | Round counter | `client/GameHud` | The round number large in red, top left, with the zombies left or the phase under it (countdown, between rounds) | A styled counter, and the round-change animation. |
-| Points | `client/GameHud` | A row per player, middle right by default (`hud.player_list`, six spots): points, the first 6 letters of the name, face (red when down, a skeleton's when dead); mirrored on the left | A styled panel. |
+| Points | `client/GameHud` | A row per player, middle right by default, anywhere with `[hud.players]` `x` and `y`: points, the first 6 letters of the name, face (red when down, a skeleton's when dead); mirrored on the left | A styled panel. |
 | Points popups | `client/GameHud` | "+N" rising off your points as you earn | Styled, with a different look for a headshot or a kill. |
 | Power-up timers | `client/GameHud` | Insta-Kill, Double Points and Fire Sale as text along the top, grey as they run out | An icon and a countdown ring or bar for each. |
 | Revive and bleed-out bar | `client/GameHud` | A thin colored bar | A styled bar, with the reviver's or downed player's name. |
