@@ -13,6 +13,11 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
@@ -21,8 +26,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * The CoD-style game HUD: the round number large in the bottom left, with the phase under it while it isn't a plain
- * round, and every player's points in the bottom right, your own row in gold with "+N" rising off it as you earn.
+ * The CoD-style game HUD: the round number large in the top left, with the zombies left under it (or the phase while it
+ * isn't a plain round), and in the bottom left your points, with "+N" rising off them as you earn, over a row per player:
+ * their face (red while down, a skeleton's once dead), their name cut to {@link #NAME_LENGTH} letters, and their points.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class GameHud {
@@ -41,6 +47,14 @@ public final class GameHud {
     private static final int ENDING_TICKS = 100;
     private static final int BAR_WIDTH = 100;
     private static final int BAR_HEIGHT = 5;
+    /** Names longer than this are cut to it and end in "...". */
+    static final int NAME_LENGTH = 6;
+    private static final int FACE = 8;
+    private static final int FACE_GAP = 3;
+    private static final int ROW_GAP = 2;
+    /** Between your points and the rows under them. */
+    private static final int POINTS_GAP = 4;
+    private static final ResourceLocation SKELETON = ResourceLocation.tryBuild("minecraft", "textures/entity/skeleton/skeleton.png");
 
     private GameHud() {}
 
@@ -74,8 +88,8 @@ public final class GameHud {
         }
         HudSyncPacket hud = HudState.hud();
         Font font = mc.font;
-        drawRound(graphics, font, hud, height);
-        drawPoints(graphics, font, hud, width, height);
+        drawRound(graphics, font, hud);
+        drawPlayers(graphics, font, hud, height);
         drawTimers(graphics, font, hud, width);
         hud.bar().ifPresent(bar -> drawBar(graphics, font, bar, width, height));
     }
@@ -120,47 +134,67 @@ public final class GameHud {
         return hud.zombiesLeft() > 0 ? java.util.Optional.of(hud.zombiesLeft() + " left") : java.util.Optional.empty();
     }
 
-    /** The top of the bottom-left round block, so other bottom-left HUD rows (perks) can sit above it. */
-    public static int roundTop(Font font, int height) {
-        HudSyncPacket hud = HudState.hud();
-        int y = height - MARGIN - font.lineHeight;
-        if (subtitle(hud).isPresent()) {
-            y -= font.lineHeight + 2;
+    private static void drawRound(GuiGraphics graphics, Font font, HudSyncPacket hud) {
+        int y = MARGIN;
+        if (hud.round() > 0) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(MARGIN, y, 0);
+            graphics.pose().scale(ROUND_SCALE, ROUND_SCALE, 1);
+            graphics.drawString(font, String.valueOf(hud.round()), 0, 0, RED);
+            graphics.pose().popPose();
+            y += Math.round(font.lineHeight * ROUND_SCALE) + 2;
         }
-        return hud.round() > 0 ? (int) (y - font.lineHeight * (ROUND_SCALE - 1)) : y + font.lineHeight;
-    }
-
-    private static void drawRound(GuiGraphics graphics, Font font, HudSyncPacket hud, int height) {
-        int y = height - MARGIN - font.lineHeight;
         java.util.Optional<String> subtitle = subtitle(hud);
         if (subtitle.isPresent()) {
             boolean plainRound = hud.phase().equals("Round " + hud.round());
             graphics.drawString(font, subtitle.get(), MARGIN, y, plainRound ? GREY : WHITE);
-            y -= font.lineHeight + 2;
-        }
-        if (hud.round() > 0) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(MARGIN, y - font.lineHeight * (ROUND_SCALE - 1), 0);
-            graphics.pose().scale(ROUND_SCALE, ROUND_SCALE, 1);
-            graphics.drawString(font, String.valueOf(hud.round()), 0, 0, RED);
-            graphics.pose().popPose();
         }
     }
 
-    private static void drawPoints(GuiGraphics graphics, Font font, HudSyncPacket hud, int width, int height) {
-        int y = height - MARGIN - font.lineHeight * hud.players().size() - 2 * (hud.players().size() - 1);
-        for (HudSyncPacket.Line line : hud.players()) {
-            String points = String.valueOf(line.points());
-            int x = width - MARGIN - font.width(points);
-            int color = line.downed() ? RED : !line.alive() ? GREY : line.you() ? GOLD : WHITE;
-            graphics.drawString(font, points, x, y, color);
-            String name = line.name();
-            graphics.drawString(font, name, x - 6 - font.width(name), y, line.alive() ? GREY : 0x555555);
-            if (line.you() && ClientConfig.SHOW_POPUPS.get()) {
-                drawPopups(graphics, font, x, y);
-            }
-            y += font.lineHeight + 2;
+    /** Your points, then a row for every player under them, in join order, anchored to the bottom left. */
+    private static void drawPlayers(GuiGraphics graphics, Font font, HudSyncPacket hud, int height) {
+        int rowHeight = font.lineHeight + ROW_GAP;
+        int top = height - MARGIN - rowHeight * hud.players().size() + ROW_GAP;
+        String points = String.valueOf(hud.points());
+        int pointsY = top - POINTS_GAP - font.lineHeight;
+        graphics.drawString(font, points, MARGIN, pointsY, GOLD);
+        if (ClientConfig.SHOW_POPUPS.get()) {
+            drawPopups(graphics, font, MARGIN + font.width(points) + 4, pointsY);
         }
+        int nameX = MARGIN + FACE + FACE_GAP;
+        int pointsX = nameX + hud.players().stream().mapToInt(line -> font.width(shortName(line.name()))).max().orElse(0) + 6;
+        int y = top;
+        for (HudSyncPacket.Line line : hud.players()) {
+            drawFace(graphics, line, MARGIN, y);
+            graphics.drawString(font, shortName(line.name()), nameX, y, line.alive() ? GREY : 0x555555);
+            int color = line.downed() ? RED : !line.alive() ? GREY : line.you() ? GOLD : WHITE;
+            graphics.drawString(font, String.valueOf(line.points()), pointsX, y, color);
+            y += rowHeight;
+        }
+    }
+
+    /** The player's skin face with its hat layer, tinted red while they're down; a skeleton's face once they're dead. */
+    private static void drawFace(GuiGraphics graphics, HudSyncPacket.Line line, int x, int y) {
+        if (!line.alive() && !line.downed()) {
+            graphics.blit(SKELETON, x, y, FACE, FACE, 8, 8, 8, 8, 64, 32);
+            return;
+        }
+        if (line.downed()) {
+            graphics.setColor(1, 0.3f, 0.3f, 1);
+        }
+        PlayerFaceRenderer.draw(graphics, skin(line.name()), x, y, FACE);
+        graphics.setColor(1, 1, 1, 1);
+    }
+
+    private static ResourceLocation skin(String name) {
+        ClientPacketListener connection = Minecraft.getInstance().getConnection();
+        PlayerInfo info = connection == null ? null : connection.getPlayerInfo(name);
+        return info == null ? DefaultPlayerSkin.getDefaultSkin() : info.getSkinLocation();
+    }
+
+    /** The first {@link #NAME_LENGTH} letters of a name, and "..." if there were more. */
+    static String shortName(String name) {
+        return name.length() <= NAME_LENGTH ? name : name.substring(0, NAME_LENGTH) + "...";
     }
 
     private static void drawPopups(GuiGraphics graphics, Font font, int x, int y) {
@@ -170,7 +204,7 @@ public final class GameHud {
             int alpha = Math.max(8, (int) (255 * (1 - age)));
             String text = (popup.amount() > 0 ? "+" : "") + popup.amount();
             int color = popup.amount() > 0 ? GOLD : RED;
-            graphics.drawString(font, text, x - font.width(text) - 4, (int) (y - 10 - age * 18), (alpha << 24) | color);
+            graphics.drawString(font, text, x, (int) (y - 10 - age * 18), (alpha << 24) | color);
         }
     }
 }
