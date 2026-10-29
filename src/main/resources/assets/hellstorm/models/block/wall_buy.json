@@ -1,66 +1,6 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "plate": "minecraft:block/dark_oak_planks",
     "particle": "minecraft:block/dark_oak_planks"
-  },
-  "elements": [
-    {
-      "from": [
-        0,
-        0,
-        15
-      ],
-      "to": [
-        16,
-        16,
-        16
-      ],
-      "faces": {
-        "north": {
-          "texture": "#plate"
-        },
-        "south": {
-          "texture": "#plate",
-          "cullface": "south"
-        },
-        "east": {
-          "texture": "#plate",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "west": {
-          "texture": "#plate",
-          "uv": [
-            15,
-            0,
-            16,
-            16
-          ]
-        },
-        "up": {
-          "texture": "#plate",
-          "uv": [
-            0,
-            15,
-            16,
-            16
-          ]
-        },
-        "down": {
-          "texture": "#plate",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        }
-      }
-    }
-  ]
+  }
 }

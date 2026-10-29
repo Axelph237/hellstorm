@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -93,6 +94,12 @@ public final class WallBuyBlock extends HorizontalDirectionalBlock implements En
                 display = config().item().build(0).orElse(ItemStack.EMPTY);
             }
             return display;
+        }
+
+        /** The plate grows to fit a long gun, past the block's own edges. */
+        @Override
+        public AABB getRenderBoundingBox() {
+            return new AABB(worldPosition).inflate(1);
         }
 
         public String itemName() {
