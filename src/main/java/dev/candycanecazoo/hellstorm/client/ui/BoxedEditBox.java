@@ -7,9 +7,9 @@ import net.minecraft.network.chat.Component;
 
 /**
  * A text field drawn in the input box. The field itself is the box's inside, from the text's top line down, so the
- * text sits centred in the box; the box is drawn around it.
+ * text sits centred in the box; the box is drawn around it, focused while you type in it.
  */
-public final class BoxedEditBox extends EditBox {
+public class BoxedEditBox extends EditBox {
     private static final int INSET = 5;
     private final int boxWidth;
     private final int boxHeight;
@@ -23,9 +23,38 @@ public final class BoxedEditBox extends EditBox {
         setBordered(false);
     }
 
+    protected int boxX() {
+        return getX() - INSET;
+    }
+
+    protected int boxY() {
+        return getY() - textTop;
+    }
+
+    protected int boxWidth() {
+        return boxWidth;
+    }
+
+    protected int boxHeight() {
+        return boxHeight;
+    }
+
+    protected boolean overBox(double mouseX, double mouseY) {
+        return mouseX >= boxX() && mouseX < boxX() + boxWidth && mouseY >= boxY() && mouseY < boxY() + boxHeight;
+    }
+
+    protected UiKit.Look look(int mouseX, int mouseY) {
+        return !active ? UiKit.Look.DISABLED : overBox(mouseX, mouseY) ? UiKit.Look.HOVERED : UiKit.Look.NORMAL;
+    }
+
+    /** Draws the box round the field. */
+    protected void renderBox(GuiGraphics graphics, int mouseX, int mouseY) {
+        UiKit.box(graphics, boxX(), boxY(), boxWidth, boxHeight, isFocused(), look(mouseX, mouseY));
+    }
+
     @Override
     public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        UiKit.box(graphics, getX() - INSET, getY() - textTop, boxWidth, boxHeight);
+        renderBox(graphics, mouseX, mouseY);
         super.renderWidget(graphics, mouseX, mouseY, partialTick);
     }
 }

@@ -6,32 +6,53 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Hellstorm's UI pieces, from two sprite sheets: {@code gui/frame.png} (the frame around every screen) and
- * {@code gui/inputs.png} (the toggle, the spinner's halves, the search icon, and the box that buttons, fields, slots
- * and dropdowns are drawn in). Coordinates are in each sheet's pixels; one sheet pixel is one GUI pixel.
+ * Hellstorm's UI pieces, each from its own sprite sheet in {@code textures/gui/}: the frame round every screen, the input
+ * box that buttons, fields, slots and dropdowns are drawn in, the switch, and the spinner corners of a number field.
+ * One sheet pixel is one GUI pixel.
  */
 public final class UiKit {
     private static final ResourceLocation FRAME = Hellstorm.id("textures/gui/frame.png");
-    private static final ResourceLocation INPUTS = Hellstorm.id("textures/gui/inputs.png");
-    private static final int FRAME_SHEET = 192;
-    private static final int INPUTS_SHEET = 128;
+    private static final ResourceLocation BOX = Hellstorm.id("textures/gui/input_box.png");
+    private static final ResourceLocation SWITCH = Hellstorm.id("textures/gui/switch.png");
+    private static final ResourceLocation SPINNERS = Hellstorm.id("textures/gui/spinners.png");
     private static final NineSlice FRAME_SLICES = new NineSlice(0, 0, 192, 64, 0);
-    /** On the sheet the box's 12-pixel corners and its edge pieces stand 4 pixels apart. */
-    private static final NineSlice BOX_SLICES = new NineSlice(82, 82, 44, 12, 4);
+    /** Each look of the box is 24 pixels square, cut into 8-pixel corners, edges and middle. */
+    private static final int BOX_SIZE = 24;
+    private static final int BOX_CORNER = 8;
+    public static final int SWITCH_SIZE = 16;
+    public static final int SPINNER = 8;
 
-    public record Sprite(int u, int v, int width, int height) {}
+    /** A box's row on its sheet. Buttons use {@link #PRESSED} while held; everything else uses it for {@code DISABLED}. */
+    public enum Look {
+        NORMAL(0), HOVERED(1), DISABLED(2);
 
-    public static final Sprite TOGGLE_OFF = new Sprite(66, 9, 28, 14);
-    public static final Sprite TOGGLE_ON = new Sprite(98, 9, 28, 14);
-    public static final Sprite SPIN_UP = new Sprite(106, 33, 10, 14);
-    public static final Sprite SPIN_DOWN = new Sprite(106, 49, 10, 14);
-    public static final Sprite SEARCH = new Sprite(119, 74, 7, 7);
+        public static final Look PRESSED = DISABLED;
+
+        final int row;
+
+        Look(int row) {
+            this.row = row;
+        }
+    }
+
+    /** A spinner corner's row on its sheet, from the box's state and whether the mouse is on this spinner. */
+    public enum SpinnerLook {
+        NORMAL, BOX_HOVERED, HOVERED, FOCUSED, FOCUSED_BOX_HOVERED, FOCUSED_HOVERED, DISABLED, DISABLED_FOCUSED;
+
+        public static SpinnerLook of(boolean disabled, boolean focused, boolean boxHovered, boolean spinnerHovered) {
+            if (disabled) {
+                return focused ? DISABLED_FOCUSED : DISABLED;
+            }
+            if (focused) {
+                return spinnerHovered ? FOCUSED_HOVERED : boxHovered ? FOCUSED_BOX_HOVERED : FOCUSED;
+            }
+            return spinnerHovered ? HOVERED : boxHovered ? BOX_HOVERED : NORMAL;
+        }
+    }
 
     /** Behind every screen: 90% black over the world. */
     public static final int TINT = 0xE6000000;
-    /** Stands in for hover art until there is some: a faint lift inside the box. */
-    public static final int HOVER = 0x26FFFFFF;
-    /** The toggle's green, for what's chosen. */
+    /** The switch's green, for what's chosen. */
     public static final int ACCENT = 0x37946E;
     public static final int TEXT = 0xFFFFFF;
 
@@ -42,29 +63,52 @@ public final class UiKit {
     }
 
     public static void frame(GuiGraphics graphics, int x, int y, int width, int height) {
-        draw(graphics, FRAME, FRAME_SHEET, FRAME_SLICES, x, y, width, height);
+        draw(graphics, FRAME, 192, 192, FRAME_SLICES, x, y, width, height, false);
     }
 
-    public static void box(GuiGraphics graphics, int x, int y, int width, int height) {
-        draw(graphics, INPUTS, INPUTS_SHEET, BOX_SLICES, x, y, width, height);
+    /** The input box, its focused column when {@code focused}, its row from {@code look}. */
+    public static void box(GuiGraphics graphics, int x, int y, int width, int height, boolean focused, Look look) {
+        draw(graphics, BOX, 2 * BOX_SIZE, 3 * BOX_SIZE, boxSlices(focused, look), x, y, width, height, false);
     }
 
-    public static void hover(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.fill(x + 2, y + 2, x + width - 2, y + height - 2, HOVER);
-    }
-
-    public static void sprite(GuiGraphics graphics, Sprite sprite, int x, int y) {
+    /**
+     * The input box with its bottom left corner the − spinner and its top right the + spinner, each in its own look.
+     */
+    public static void spinnerBox(GuiGraphics graphics, int x, int y, int width, int height, boolean focused, Look look,
+                                  SpinnerLook minus, SpinnerLook plus) {
+        draw(graphics, BOX, 2 * BOX_SIZE, 3 * BOX_SIZE, boxSlices(focused, look), x, y, width, height, true);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        graphics.blit(INPUTS, x, y, sprite.u(), sprite.v(), sprite.width(), sprite.height(), INPUTS_SHEET, INPUTS_SHEET);
+        graphics.blit(SPINNERS, x, y + height - SPINNER, 0, minus.ordinal() * SPINNER, SPINNER, SPINNER, 2 * SPINNER, 8 * SPINNER);
+        graphics.blit(SPINNERS, x + width - SPINNER, y, SPINNER, plus.ordinal() * SPINNER, SPINNER, SPINNER, 2 * SPINNER, 8 * SPINNER);
         RenderSystem.disableBlend();
     }
 
-    private static void draw(GuiGraphics graphics, ResourceLocation sheet, int sheetSize, NineSlice slices, int x, int y, int width, int height) {
+    /** The switch: off or on, unfocused or focused, in its row from {@code look}. */
+    public static void toggle(GuiGraphics graphics, int x, int y, boolean on, boolean focused, Look look) {
+        int column = (on ? 1 : 0) + (focused ? 2 : 0);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        graphics.blit(SWITCH, x, y, column * SWITCH_SIZE, look.row * SWITCH_SIZE, SWITCH_SIZE, SWITCH_SIZE, 4 * SWITCH_SIZE, 3 * SWITCH_SIZE);
+        RenderSystem.disableBlend();
+    }
+
+    private static NineSlice boxSlices(boolean focused, Look look) {
+        return new NineSlice((focused ? 1 : 0) * BOX_SIZE, look.row * BOX_SIZE, BOX_SIZE, BOX_CORNER, 0);
+    }
+
+    /** Draws a nine-sliced region; with {@code spinnerCorners} it leaves out the bottom left and top right corners. */
+    private static void draw(GuiGraphics graphics, ResourceLocation sheet, int sheetWidth, int sheetHeight, NineSlice slices,
+                             int x, int y, int width, int height, boolean spinnerCorners) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         for (NineSlice.Piece p : slices.pieces(x, y, width, height)) {
-            graphics.blit(sheet, p.x(), p.y(), p.width(), p.height(), p.u(), p.v(), p.uWidth(), p.vHeight(), sheetSize, sheetSize);
+            boolean bottomLeft = p.x() == x && p.y() + p.height() == y + height && p.y() > y;
+            boolean topRight = p.y() == y && p.x() + p.width() == x + width && p.x() > x;
+            if (spinnerCorners && (bottomLeft || topRight)) {
+                continue;
+            }
+            graphics.blit(sheet, p.x(), p.y(), p.width(), p.height(), p.u(), p.v(), p.uWidth(), p.vHeight(), sheetWidth, sheetHeight);
         }
         RenderSystem.disableBlend();
     }

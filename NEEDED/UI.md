@@ -8,7 +8,7 @@ Hellstorm adds no texture files of its own (see `TEXTURES.md`). Anything drawn f
 
 ### Machine settings screens
 
-Each opens when an op in creative uses the machine outside a game. All five are built on `client/settings/SettingsScreen`, a column of labelled rows with Done and Cancel. Since 2026-10-25 they use the starter kit in `client/ui` (`UiKit`), drawn from your `gui/frame.png` and `gui/inputs.png`: the screen is tinted 90% black, the frame goes around the rows with the title in the gap of its top edge, and buttons, text fields, item slots and dropdown lists are the input box stretched. Number fields have the spinner beside them, and yes/no settings are toggles.
+Each opens when an op in creative uses the machine outside a game. All five are built on `client/settings/SettingsScreen`, a column of labelled rows with Done and Cancel. Since 2026-10-25 they use the starter kit in `client/ui` (`UiKit`), drawn from your `gui/frame.png`, `gui/input_box.png`, `gui/switch.png` and `gui/spinners.png`: the screen is tinted 90% black, the frame goes around the rows with the title in the gap of its top edge, and buttons, text fields, item slots and dropdown lists are the input box stretched, in its focused, hovered, disabled and pressed looks. Number fields have the − and + spinners in two corners of their box, and yes/no settings are switches.
 
 | Block | Screen | What it sets | Needs |
 |---|---|---|---|

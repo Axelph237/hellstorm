@@ -15,7 +15,7 @@ public final class Toggle extends AbstractButton {
     private boolean on;
 
     public Toggle(int x, int y, Component label, boolean on, Consumer<Boolean> changed) {
-        super(x, y, UiKit.TOGGLE_OFF.width(), UiKit.TOGGLE_OFF.height(), label);
+        super(x, y, UiKit.SWITCH_SIZE, UiKit.SWITCH_SIZE, label);
         this.on = on;
         this.changed = changed;
     }
@@ -28,7 +28,8 @@ public final class Toggle extends AbstractButton {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        UiKit.sprite(graphics, on ? UiKit.TOGGLE_ON : UiKit.TOGGLE_OFF, getX(), getY());
+        UiKit.Look look = !active ? UiKit.Look.DISABLED : isHovered() ? UiKit.Look.HOVERED : UiKit.Look.NORMAL;
+        UiKit.toggle(graphics, getX(), getY(), on, isFocused(), look);
     }
 
     @Override

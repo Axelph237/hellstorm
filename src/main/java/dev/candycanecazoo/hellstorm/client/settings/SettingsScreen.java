@@ -6,7 +6,7 @@ import dev.candycanecazoo.hellstorm.client.WrappedText;
 import dev.candycanecazoo.hellstorm.client.ui.BoxButton;
 import dev.candycanecazoo.hellstorm.client.ui.BoxedEditBox;
 import dev.candycanecazoo.hellstorm.client.ui.Dropdown;
-import dev.candycanecazoo.hellstorm.client.ui.SpriteButton;
+import dev.candycanecazoo.hellstorm.client.ui.NumberBox;
 import dev.candycanecazoo.hellstorm.client.ui.Toggle;
 import dev.candycanecazoo.hellstorm.client.ui.UiKit;
 import dev.candycanecazoo.hellstorm.feature.ConfigBlockEntity;
@@ -42,9 +42,6 @@ abstract class SettingsScreen<C> extends Screen {
     private static final int WIDTH = 240;
     private static final int LABEL_WIDTH = 96;
     private static final int HEIGHT = 20;
-    /** A number row is as tall as the spinner's two halves and the gap between them. */
-    private static final int NUMBER_HEIGHT = 30;
-    private static final int SPIN_GAP = 2;
     private static final int GAP = 2;
     /** From the frame's outside to the rows: clear of its corner knots, with the title in the gap of its top edge. */
     private static final int PAD_SIDE = 24;
@@ -150,26 +147,13 @@ abstract class SettingsScreen<C> extends Screen {
         return y;
     }
 
-    /** A whole number, typed or stepped by {@code step} with the spinner (ten steps with Shift held). */
+    /** A whole number, typed or stepped by {@code step} with the spinner corners of its box (ten steps with Shift held). */
     protected EditBox number(Component label, String value, Component hint, int step, Consumer<String> changed) {
-        int y = row(label, NUMBER_HEIGHT);
-        int spinX = fieldX() + fieldWidth() - UiKit.SPIN_UP.width();
-        BoxedEditBox box = new BoxedEditBox(fieldX(), y, fieldWidth() - UiKit.SPIN_UP.width() - SPIN_GAP, NUMBER_HEIGHT, label);
-        box.setMaxLength(9);
-        box.setFilter(text -> text.chars().allMatch(Character::isDigit));
+        NumberBox box = new NumberBox(fieldX(), row(label, HEIGHT), fieldWidth(), HEIGHT, label, step);
         box.setValue(value);
         box.setHint(hint);
         box.setResponder(changed);
-        addRenderableWidget(box);
-        addRenderableWidget(new SpriteButton(UiKit.SPIN_UP, spinX, y, Component.literal("+"), () -> step(box, step)));
-        addRenderableWidget(new SpriteButton(UiKit.SPIN_DOWN, spinX, y + UiKit.SPIN_UP.height() + SPIN_GAP, Component.literal("-"), () -> step(box, -step)));
-        return box;
-    }
-
-    private static void step(EditBox box, int step) {
-        long value = box.getValue().isEmpty() ? 0 : Long.parseLong(box.getValue());
-        long stepped = value + (long) step * (hasShiftDown() ? 10 : 1);
-        box.setValue(String.valueOf(Math.max(0, Math.min(999_999_999L, stepped))));
+        return addRenderableWidget(box);
     }
 
     protected EditBox text(Component label, String value, int maxLength, Component hint, Consumer<String> changed) {
@@ -188,7 +172,7 @@ abstract class SettingsScreen<C> extends Screen {
 
     protected Toggle toggle(Component label, boolean value, Consumer<Boolean> changed) {
         int y = row(label, HEIGHT);
-        return addRenderableWidget(new Toggle(fieldX(), y + (HEIGHT - UiKit.TOGGLE_OFF.height()) / 2, label, value, changed));
+        return addRenderableWidget(new Toggle(fieldX(), y + (HEIGHT - UiKit.SWITCH_SIZE) / 2, label, value, changed));
     }
 
     protected BoxButton button(Component label, Component text, Runnable pressed) {
@@ -229,7 +213,7 @@ abstract class SettingsScreen<C> extends Screen {
         UiKit.frame(graphics, left() - PAD_SIDE, panelTop, WIDTH + 2 * PAD_SIDE, panelHeight);
         WrappedText.drawCentered(graphics, font, title, width / 2, panelTop + TITLE_Y, WIDTH + 2 * PAD_SIDE - TITLE_CLEARANCE, UiKit.TEXT);
         for (Slot slot : slots) {
-            UiKit.box(graphics, slot.x(), slot.y() + top, SLOT, SLOT);
+            UiKit.box(graphics, slot.x(), slot.y() + top, SLOT, SLOT, false, UiKit.Look.NORMAL);
             graphics.renderItem(slot.stack().get(), slot.x() + 2, slot.y() + top + 2);
         }
         for (Text text : texts) {

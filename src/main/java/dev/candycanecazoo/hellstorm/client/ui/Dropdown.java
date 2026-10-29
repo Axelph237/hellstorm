@@ -51,10 +51,7 @@ public final class Dropdown<T> extends AbstractButton {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        UiKit.box(graphics, getX(), getY(), width, height);
-        if (isHoveredOrFocused()) {
-            UiKit.hover(graphics, getX(), getY(), width, height);
-        }
+        UiKit.box(graphics, getX(), getY(), width, height, isFocused(), BoxButton.look(this));
         renderScrollingString(graphics, Minecraft.getInstance().font, name.apply(value), getX() + 4, getY(), getX() + width - CHEVRON - 8, getY() + height, UiKit.TEXT);
         int cx = getX() + width - CHEVRON - 5;
         int cy = getY() + (height - 3) / 2;
@@ -75,10 +72,8 @@ public final class Dropdown<T> extends AbstractButton {
         for (int i = 0; i < shown; i++) {
             T option = values.get(scroll + i);
             int y = listTop + i * height;
-            UiKit.box(graphics, getX(), y, width, height);
-            if (mouseX >= getX() && mouseX < getX() + width && mouseY >= y && mouseY < y + height) {
-                UiKit.hover(graphics, getX(), y, width, height);
-            }
+            boolean hovered = mouseX >= getX() && mouseX < getX() + width && mouseY >= y && mouseY < y + height;
+            UiKit.box(graphics, getX(), y, width, height, false, hovered ? UiKit.Look.HOVERED : UiKit.Look.NORMAL);
             renderScrollingString(graphics, font, name.apply(option), getX() + 4, y, getX() + width - 4, y + height,
                     option.equals(value) ? UiKit.ACCENT : UiKit.TEXT);
         }

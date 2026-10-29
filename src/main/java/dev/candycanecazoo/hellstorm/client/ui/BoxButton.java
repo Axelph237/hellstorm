@@ -22,11 +22,16 @@ public final class BoxButton extends AbstractButton {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        UiKit.box(graphics, getX(), getY(), width, height);
-        if (isHoveredOrFocused()) {
-            UiKit.hover(graphics, getX(), getY(), width, height);
-        }
+        UiKit.box(graphics, getX(), getY(), width, height, isFocused(), look(this));
         renderScrollingString(graphics, Minecraft.getInstance().font, 4, UiKit.TEXT);
+    }
+
+    /** A button's look: pressed while it's held down (or disabled), hovered under the mouse. */
+    static UiKit.Look look(AbstractButton button) {
+        if (!button.active || button.isHovered() && Minecraft.getInstance().mouseHandler.isLeftPressed()) {
+            return UiKit.Look.PRESSED;
+        }
+        return button.isHovered() ? UiKit.Look.HOVERED : UiKit.Look.NORMAL;
     }
 
     @Override
