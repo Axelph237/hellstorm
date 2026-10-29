@@ -26,7 +26,7 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
   - Revive bar and downed indicators.
 - **Prompts.** When the crosshair targets a feature block within reach, show what it is and its cost in gold brackets, for example "AK-47 [1000]", "Vigoraid [2500]", "Mystery Crate [950]", "Dante's Toil [5000]", or "Door [750]". Show the cost in red when the player can't afford it, and "No power" in red instead when it needs the power on.
 - **Sync.** The server sends `HudSyncPacket` deltas once per tick at most. Points popups are client-side animations from the delta.
-- **Text only until icons exist.** Perks and power-ups render their name and color as text badges until you supply icons.
+- **Icons.** Perks show their effect icons (the perk icon sheet) and power-up timers their power-up's item, so neither needs a texture of its own.
 
 ## Config surface
 
@@ -34,7 +34,7 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
 
 ## Assets
 
-- **Needed from you:** perk icons, power-up icons, a points icon, a downed icon (all 16×16). Listed in `NEEDED/TEXTURES.md`. The HUD falls back to text badges.
+- **Needed from you:** a points icon and a downed icon (both 16×16). Listed in `NEEDED/TEXTURES.md`.
 
 ## Depends on
 
@@ -58,6 +58,7 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
   - The phase under it while it isn't a plain round ("Starting in 3", "Game over"); otherwise how many zombies are left.
   - Every player's name and points, bottom right. Your own row is gold and downed or spectating players are grey.
   - Point changes rise off your row as gold "+N" or red "-N" and fade over 1.2 seconds.
+  - The team's timed power-ups across the top, each its power-up's item (16×16, the same item as the floating pickup), then the name and seconds left in gold, grey in flashes over the last 5 seconds (2026-10-29; text only before).
 - **`client/PromptOverlay`:** under the crosshair while in a game and looking at a door or a machine with something to sell, it shows "{label} [{cost}]" with gold brackets (just the label when it's free): the gun or item name for a wall-buy (buying, refilling ammo, or topping up), the perk name, "Mystery Crate", "Dante's Toil", "Power", "Door", or "Debris". A Mystery Crate or upgrader result waiting to be taken shows its item name. The cost is red when you can't afford it. Anything that needs power shows "No power" in red instead while the power is off. Doors come from the synced map; machines from their block entity's `Prompted`.
 - **World prompts** (`client/WorldPrompt`, the default). The same text floats at the thing itself instead of under the crosshair, turned to face you. `[hud] prompt_style` in the client config picks `WORLD` or `HUD` (the old crosshair prompt).
   - **Where.** Machines: 0.35 above the top of every block the machine covers (`FeatureBlock.blocks`; both halves of the upgrader), pulled 0.4 toward you so a wall-buy's text clears the wall. A machine with a block above it (a trap set into a wall) keeps that height but moves out half a block in front of the face you're looking at first, so the block above doesn't hide it (see `traps.md`). Doors: the face your crosshair hit, out at the door's edge on that side and centered on the whole door; looking at its top or bottom, the side you're nearer. Windows the same, 0.35 out so it clears the boards. A downed teammate: above their head ("Revive <name>"). The revive bar stays on the HUD.

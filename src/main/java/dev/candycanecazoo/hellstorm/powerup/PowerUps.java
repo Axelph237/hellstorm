@@ -76,7 +76,7 @@ public final class PowerUps {
     /** The effect alone, for the whole team. */
     public static void apply(GameManager.Active game, PowerUpDef def) {
         GameSettings.PowerUps settings = game.game().settings().powerUps();
-        def.effect().timer().ifPresent(timer -> game.game().startTimed(timer, def.name(), def.durationTicks()));
+        def.effect().timer().ifPresent(timer -> game.game().startTimed(timer, def.name(), def.item(), def.durationTicks()));
         switch (def.effect()) {
             case MAX_AMMO -> players(game).forEach(PowerUps::refillEveryGun);
             case FIRE_SALE -> MysteryBoxes.setFireSale(game, true);

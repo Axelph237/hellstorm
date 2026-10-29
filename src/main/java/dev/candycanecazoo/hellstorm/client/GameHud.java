@@ -1,8 +1,11 @@
 package dev.candycanecazoo.hellstorm.client;
 
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.game.GameWorld;
 import net.minecraft.network.chat.Component;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import dev.candycanecazoo.hellstorm.config.ClientConfig;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.net.HudSyncPacket;
@@ -10,6 +13,7 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
@@ -29,6 +33,11 @@ public final class GameHud {
     private static final int MARGIN = 8;
     private static final float ROUND_SCALE = 3.0f;
     private static final int TIMER_GAP = 12;
+    /** A timer's item icon, and the space between it and the count. */
+    private static final int ICON = 16;
+    private static final int ICON_GAP = 2;
+    /** Each timer's icon, built once per item rather than every frame. */
+    private static final Map<ItemSpec.Plain, ItemStack> ICONS = new HashMap<>();
     private static final int ENDING_TICKS = 100;
     private static final int BAR_WIDTH = 100;
     private static final int BAR_HEIGHT = 5;
@@ -71,18 +80,20 @@ public final class GameHud {
         hud.bar().ifPresent(bar -> drawBar(graphics, font, bar, width, height));
     }
 
-    /** The team's timed effects across the top: "Insta-Kill 23", counting down in seconds. */
+    /** The team's timed effects across the top: the power-up's item, then "Insta-Kill 23", counting down in seconds. */
     private static void drawTimers(GuiGraphics graphics, Font font, HudSyncPacket hud, int width) {
         if (hud.timers().isEmpty()) {
             return;
         }
         List<String> labels = hud.timers().stream()
                 .map(t -> Component.translatable(t.name()).getString() + " " + (t.ticksLeft() + 19) / 20).toList();
-        int total = labels.stream().mapToInt(font::width).sum() + TIMER_GAP * (labels.size() - 1);
+        int total = labels.stream().mapToInt(font::width).sum() + (ICON + ICON_GAP) * labels.size() + TIMER_GAP * (labels.size() - 1);
         int x = (width - total) / 2;
         for (int i = 0; i < labels.size(); i++) {
             GameWorld.Timer timer = hud.timers().get(i);
             boolean ending = timer.ticksLeft() < ENDING_TICKS && (timer.ticksLeft() / 5) % 2 == 0;
+            graphics.renderItem(ICONS.computeIfAbsent(timer.icon(), icon -> icon.build(0).orElse(ItemStack.EMPTY)), x, MARGIN - (ICON - font.lineHeight) / 2);
+            x += ICON + ICON_GAP;
             graphics.drawString(font, labels.get(i), x, MARGIN, ending ? GREY : GOLD);
             x += font.width(labels.get(i)) + TIMER_GAP;
         }

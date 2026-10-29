@@ -16,7 +16,8 @@ public interface GameWorld {
     record Standing(UUID player, int points, boolean alive, boolean downed) {}
 
     /** A team-wide effect counting down, such as Insta-Kill. {@code name} is a lang key. */
-    record Timer(String name, int ticksLeft, int totalTicks) {}
+    /** {@code icon} is the item the HUD draws beside it: the power-up's own item. */
+    record Timer(String name, dev.candycanecazoo.hellstorm.data.ItemSpec.Plain icon, int ticksLeft, int totalTicks) {}
 
     /**
      * A progress bar in the middle of one player's screen: reviving, being revived, bleeding out, rebuilding a board.

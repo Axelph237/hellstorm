@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * A power-up from {@code data/<ns>/hellstorm/powerups/<id>.json}. {@code name} is a lang key, {@code weight} its share of
  * drops (0 never drops at random, but can still be forced by a wave event), {@code durationTicks} how long a timed effect
- * lasts, and {@code item} the item the floating pickup shows until it has its own sprite, written as {@code /give} takes it.
+ * lasts, and {@code item} the item the floating pickup shows, and its timer on the HUD, written as {@code /give} takes it.
  */
 public record PowerUpDef(String name, int weight, int durationTicks, ItemSpec.Plain item, PowerUpEffect effect) {
     public static final ItemSpec.Plain DEFAULT_ITEM = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "nether_star"), 1, java.util.Optional.empty());

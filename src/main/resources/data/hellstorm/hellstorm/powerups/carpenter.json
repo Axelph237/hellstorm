@@ -1,6 +1,6 @@
 {
   "name": "powerup.hellstorm.carpenter",
   "weight": 6,
-  "item": "minecraft:oak_planks",
+  "item": "minecraft:netherite_axe",
   "effect": { "type": "carpenter" }
 }

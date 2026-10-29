@@ -174,10 +174,10 @@ public final class Game {
 
     /**
      * Starts a team-wide timed effect (Insta-Kill, Double Points, Fire Sale), or restarts it if it's already running.
-     * {@code name} is the lang key the HUD shows. When it runs out the world hears {@link GameWorld#timedEffectEnded}.
+     * {@code name} is the lang key the HUD shows, beside {@code icon}. When it runs out the world hears {@link GameWorld#timedEffectEnded}.
      */
-    public void startTimed(ResourceLocation effect, String name, int ticks) {
-        timed.put(effect, new GameWorld.Timer(name, ticks, ticks));
+    public void startTimed(ResourceLocation effect, String name, dev.candycanecazoo.hellstorm.data.ItemSpec.Plain icon, int ticks) {
+        timed.put(effect, new GameWorld.Timer(name, icon, ticks, ticks));
     }
 
     public boolean timedActive(ResourceLocation effect) {
@@ -186,7 +186,7 @@ public final class Game {
 
     private void tickTimed(GameWorld world) {
         List<ResourceLocation> ended = new ArrayList<>();
-        timed.replaceAll((effect, timer) -> new GameWorld.Timer(timer.name(), timer.ticksLeft() - 1, timer.totalTicks()));
+        timed.replaceAll((effect, timer) -> new GameWorld.Timer(timer.name(), timer.icon(), timer.ticksLeft() - 1, timer.totalTicks()));
         timed.forEach((effect, timer) -> {
             if (timer.ticksLeft() <= 0) {
                 ended.add(effect);

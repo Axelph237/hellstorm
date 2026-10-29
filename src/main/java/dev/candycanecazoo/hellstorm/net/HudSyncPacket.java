@@ -1,6 +1,8 @@
 package dev.candycanecazoo.hellstorm.net;
 
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.game.GameWorld;
+import dev.candycanecazoo.hellstorm.powerup.PowerUpDef;
 import dev.candycanecazoo.hellstorm.client.HudState;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
@@ -44,6 +46,7 @@ public record HudSyncPacket(int round, String phase, int zombiesLeft, boolean po
         buf.writeVarInt(timers.size());
         for (GameWorld.Timer timer : timers) {
             buf.writeUtf(timer.name());
+            buf.writeUtf(timer.icon().asGive());
             buf.writeVarInt(timer.ticksLeft());
             buf.writeVarInt(timer.totalTicks());
         }
@@ -69,7 +72,7 @@ public record HudSyncPacket(int round, String phase, int zombiesLeft, boolean po
         int timerCount = buf.readVarInt();
         List<GameWorld.Timer> timers = new java.util.ArrayList<>(timerCount);
         for (int i = 0; i < timerCount; i++) {
-            timers.add(new GameWorld.Timer(buf.readUtf(), buf.readVarInt(), buf.readVarInt()));
+            timers.add(new GameWorld.Timer(buf.readUtf(), ItemSpec.Plain.parse(buf.readUtf()).result().orElse(PowerUpDef.DEFAULT_ITEM), buf.readVarInt(), buf.readVarInt()));
         }
         Optional<GameWorld.Bar> bar = buf.readOptional(b -> new GameWorld.Bar(b.readUtf(), b.readFloat(), b.readInt(), b.readFloat()));
         return new HudSyncPacket(round, phase, zombiesLeft, powerOn, points, players, timers, bar);

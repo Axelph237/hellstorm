@@ -9,6 +9,7 @@
 - New: an Off-Hand can, `hellstorm:off_hand` ("Carries a third gun", 4000 points by default), and a Wandering Spirit can, `hellstorm:jockey_energy` ("Boosts movement speed", 2000), each with its own model.
 - New: a Hellfire can, `hellstorm:hellfire` ("Boosts fire rate", 2000), with its own model. Every perk now comes in a can.
 - A new vending machine sells a Vigoraid can instead of a Vigoraid potion. Machines already set keep what they sell. A `perk_bought` event for a can gives the perk's id, such as `hellstorm:vigorade`, as it does for a potion.
+- The power-up timers across the top of the HUD show each power-up's item beside its name. Max Ammo floats as TacZ's diamond ammo box (was a spectral arrow) and Carpenter as a netherite axe (was oak planks).
 - A player can hold 5 perks by default (`players.perk_limit`, was 4).
 - The Zone Wand puts a corner in front of the face you click: in the air over a floor, beside a wall, under a ceiling; sneak-click to take the block itself. A wand click never uses the block (no door opens, no lever flips). `/hs zones desel` clears the selection (sneak-click used to), and `/hsz` is short for `/hs zones`.
 - **Scripts can no longer escape their sandbox.** String methods such as `("x"):rep(n)` use the script's own capped string table, never the one TacZ's gun scripts share, and `getmetatable("")` gives the script's own. `scripting.max_string_length` now caps `..`, `string.format`, `string.gsub` and `table.concat` too, `..` costs budget for what it builds, and a listener that runs the server out of memory is switched off.

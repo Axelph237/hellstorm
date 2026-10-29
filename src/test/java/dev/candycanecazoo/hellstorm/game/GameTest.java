@@ -1,6 +1,7 @@
 package dev.candycanecazoo.hellstorm.game;
 
 import dev.candycanecazoo.hellstorm.config.GameSettings;
+import dev.candycanecazoo.hellstorm.data.ItemSpec;
 import dev.candycanecazoo.hellstorm.map.BlockBox;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
 import dev.candycanecazoo.hellstorm.map.Zone;
@@ -40,6 +41,7 @@ class GameTest {
     private static final MobRoster ROSTER = new MobRoster(List.of(
             new MobRoster.Entry(net.minecraft.resources.ResourceLocation.tryBuild("test", "zombie"), 1, 1, Optional.empty())));
 
+    private static final ItemSpec.Plain SKULL = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "skeleton_skull"), 1, Optional.empty());
     private static final List<ZoneId> ZONES = List.of(new ZoneId("a"), new ZoneId("b"), new ZoneId("c"), new ZoneId("d"));
 
     private FakeWorld world;
@@ -254,11 +256,11 @@ class GameTest {
     void timedEffectsCountDownShowOnTheHudAndEndOnce() {
         Game game = startedGame();
         net.minecraft.resources.ResourceLocation instaKill = net.minecraft.resources.ResourceLocation.tryBuild("hellstorm", "insta_kill");
-        game.startTimed(instaKill, "powerup.hellstorm.insta_kill", 5);
+        game.startTimed(instaKill, "powerup.hellstorm.insta_kill", SKULL, 5);
         assertTrue(game.timedActive(instaKill));
         tick(game, world, 2);
-        assertEquals(List.of(new GameWorld.Timer("powerup.hellstorm.insta_kill", 3, 5)), game.status(alice).timers());
-        game.startTimed(instaKill, "powerup.hellstorm.insta_kill", 5);
+        assertEquals(List.of(new GameWorld.Timer("powerup.hellstorm.insta_kill", SKULL, 3, 5)), game.status(alice).timers());
+        game.startTimed(instaKill, "powerup.hellstorm.insta_kill", SKULL, 5);
         tick(game, world, 4);
         assertTrue(game.timedActive(instaKill), "picking it up again restarts the timer");
         tick(game, world, 1);
@@ -271,7 +273,7 @@ class GameTest {
     void gameOverEndsRunningTimedEffects() {
         Game game = startedGame();
         net.minecraft.resources.ResourceLocation fireSale = net.minecraft.resources.ResourceLocation.tryBuild("hellstorm", "fire_sale");
-        game.startTimed(fireSale, "powerup.hellstorm.fire_sale", 600);
+        game.startTimed(fireSale, "powerup.hellstorm.fire_sale", SKULL, 600);
         game.stop(world);
         assertFalse(game.timedActive(fireSale));
         assertEquals(List.of(fireSale), world.timedEnded);

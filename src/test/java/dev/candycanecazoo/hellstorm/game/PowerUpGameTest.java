@@ -140,7 +140,7 @@ class PowerUpGameTest {
         Game game = game(settings(0.0, 4));
         List<UUID> mobs = new ArrayList<>(game.mobs());
         int start = game.player(alice).orElseThrow().points();
-        game.startTimed(TimedEffects.DOUBLE_POINTS, "powerup.hellstorm.double_points", 5);
+        game.startTimed(TimedEffects.DOUBLE_POINTS, "powerup.hellstorm.double_points", dev.candycanecazoo.hellstorm.powerup.PowerUpDef.DEFAULT_ITEM, 5);
         game.onMobHit(mobs.get(0), alice);
         game.onMobDied(mobs.get(0), Optional.of(alice), false, false, BlockPos.ZERO);
         GameSettings.Economy economy = GameSettings.DEFAULT.economy();

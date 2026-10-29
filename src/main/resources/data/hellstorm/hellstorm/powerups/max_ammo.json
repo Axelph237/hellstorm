@@ -1,6 +1,6 @@
 {
   "name": "powerup.hellstorm.max_ammo",
   "weight": 10,
-  "item": "minecraft:spectral_arrow",
+  "item": "tacz:ammo_box{Level:2,AmmoId:\"tacz:9mm\",AmmoCount:1}",
   "effect": { "type": "max_ammo" }
 }
