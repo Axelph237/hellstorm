@@ -64,7 +64,7 @@ class PurchaseDefaultTest {
 
     @Test
     void everyPerkCanHasAFileThatRefusesASecondCan() throws IOException {
-        for (String can : List.of("vigoraid", "load_up", "saints_brew", "off_hand", "jockey_energy")) {
+        for (String can : List.of("vigoraid", "load_up", "saints_brew", "off_hand", "jockey_energy", "hellfire")) {
             PurchaseDefault purchase = parse(Files.readString(ITEMS.resolve(can + ".json")));
             assertEquals(WallBuy.Repurchase.DENY, purchase.repurchase(), can);
             assertEquals(Optional.empty(), PurchaseDefaults.itemProblem(purchase), can);

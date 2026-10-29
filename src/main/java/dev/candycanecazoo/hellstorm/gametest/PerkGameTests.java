@@ -85,9 +85,11 @@ public final class PerkGameTests {
     }
 
     /** Takes the first potion out of the player's inventory, the way a machine handed it over. */
-    static ItemStack takePotion(ServerPlayer player) {
+    /** Takes the first potion or perk can out of the player's inventory. */
+    static ItemStack takeDrink(ServerPlayer player) {
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-            if (player.getInventory().getItem(slot).is(Items.POTION)) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (stack.is(Items.POTION) || stack.getItem() instanceof dev.candycanecazoo.hellstorm.perk.PerkCanItem) {
                 return player.getInventory().removeItemNoUpdate(slot);
             }
         }
@@ -129,7 +131,7 @@ public final class PerkGameTests {
         active.game().refund(player.getUUID(), 10_000);
         int start = PurchaseGameTests.points(active, player);
         FeatureBlock.use(player, at);
-        helper.assertTrue(takePotion(player).isEmpty(), "a new vending machine sold its Vigoraid without power");
+        helper.assertTrue(takeDrink(player).isEmpty(), "a new vending machine sold its Vigoraid without power");
         helper.assertTrue(PurchaseGameTests.points(active, player) == start, "charged without power");
 
         active.game().turnPowerOn(Optional.empty());
@@ -138,13 +140,13 @@ public final class PerkGameTests {
         int paid = start - VendingMachineBlock.DEFAULT_COST;
         helper.assertTrue(PurchaseGameTests.points(active, player) == paid,
                 "using any block of it should charge " + VendingMachineBlock.DEFAULT_COST + ", have " + PurchaseGameTests.points(active, player));
-        helper.assertTrue(takePotion(player).isEmpty(), "handed the potion over before the vend");
+        helper.assertTrue(takeDrink(player).isEmpty(), "handed the can over before the vend");
         FeatureBlock.use(player, at);
         helper.assertTrue(PurchaseGameTests.points(active, player) == paid, "a busy machine charged again");
         helper.runAfterDelay(VendingMachineBlock.VEND_TICKS - 2, () -> {
             try {
-                helper.assertTrue(takePotion(player).isEmpty(), "handed the potion over before the vend ended");
-                helper.assertTrue(events.stream().noneMatch(GameEvent.PerkBought.class::isInstance), "perk_bought before the potion was handed over");
+                helper.assertTrue(takeDrink(player).isEmpty(), "handed the can over before the vend ended");
+                helper.assertTrue(events.stream().noneMatch(GameEvent.PerkBought.class::isInstance), "perk_bought before the can was handed over");
             } catch (RuntimeException e) {
                 GameManager.end(active);
                 throw e;
@@ -152,9 +154,8 @@ public final class PerkGameTests {
         });
         helper.runAfterDelay(VendingMachineBlock.VEND_TICKS + 2, () -> {
             try {
-                ItemStack bought = takePotion(player);
-                helper.assertTrue(PotionUtils.getMobEffects(bought).stream().anyMatch(e -> e.getEffect() == PerkEffects.VIGORADE.get()),
-                        "expected a Vigoraid potion after the vend, got " + bought + " " + bought.getTag());
+                ItemStack bought = takeDrink(player);
+                helper.assertTrue(bought.is(PapRegistries.VIGORAID_CAN.get()), "expected a Vigoraid can after the vend, got " + bought + " " + bought.getTag());
                 helper.assertTrue(PurchaseGameTests.points(active, player) == paid, "paid " + (start - PurchaseGameTests.points(active, player)));
                 helper.assertTrue(events.contains(new GameEvent.PerkBought(player.getUUID(), "hellstorm:vigorade", VendingMachineBlock.DEFAULT_COST)),
                         "no perk_bought event: " + events);
@@ -210,7 +211,7 @@ public final class PerkGameTests {
             active.game().refund(player.getUUID(), 10_000);
             buy(player, at);
             player.setHealth(10);
-            helper.assertTrue(drink(player, takePotion(player)), "the bought Vigoraid couldn't be drunk");
+            helper.assertTrue(drink(player, takeDrink(player)), "the bought Vigoraid couldn't be drunk");
             MobEffectInstance effect = player.getEffect(PerkEffects.VIGORADE.get());
             helper.assertTrue(effect != null && effect.isInfiniteDuration(), "Vigoraid should last forever, is " + effect);
             helper.assertTrue(player.getMaxHealth() == BASE_HEALTH + 20, "max health is " + player.getMaxHealth());
@@ -263,7 +264,7 @@ public final class PerkGameTests {
             held.subList(0, limit).forEach(effect -> give(player, effect));
 
             buy(player, at);
-            ItemStack jockeyEnergy = takePotion(player);
+            ItemStack jockeyEnergy = takeDrink(player);
             helper.assertFalse(jockeyEnergy.isEmpty(), "at the limit the machine still sells a perk you don't have");
             helper.assertFalse(drink(player, jockeyEnergy), "drinking a perk past the limit should be refused");
             helper.assertFalse(player.hasEffect(PerkEffects.JOCKEY_ENERGY.get()), "Wandering Spirit was added past the limit");
@@ -294,7 +295,7 @@ public final class PerkGameTests {
 
             int before = PurchaseGameTests.points(active, player);
             buy(player, at);
-            helper.assertTrue(takePotion(player).isEmpty(), "sold a Vigoraid to a player who has it");
+            helper.assertTrue(takeDrink(player).isEmpty(), "sold a Vigoraid to a player who has it");
             helper.assertTrue(PurchaseGameTests.points(active, player) == before, "charged for a refused Vigoraid");
         } finally {
             GameManager.end(active);
@@ -339,6 +340,11 @@ public final class PerkGameTests {
             helper.assertTrue(drink(player, new ItemStack(PapRegistries.JOCKEY_ENERGY_CAN.get())), "drinking a Wandering Spirit can shouldn't be refused");
             MobEffectInstance jockeyEnergy = player.getEffect(PerkEffects.JOCKEY_ENERGY.get());
             helper.assertTrue(jockeyEnergy != null && jockeyEnergy.isInfiniteDuration(), "the Wandering Spirit can should give Wandering Spirit with no time limit, got " + jockeyEnergy);
+            // Five perks is the limit, so make room for a sixth.
+            player.removeAllEffects();
+            helper.assertTrue(drink(player, new ItemStack(PapRegistries.HELLFIRE_CAN.get())), "drinking a Hellfire can shouldn't be refused");
+            MobEffectInstance hellfire = player.getEffect(PerkEffects.HELLFIRE.get());
+            helper.assertTrue(hellfire != null && hellfire.isInfiniteDuration(), "the Hellfire can should give Hellfire with no time limit, got " + hellfire);
         } finally {
             GameManager.end(active);
         }
@@ -432,7 +438,7 @@ public final class PerkGameTests {
 
             active.game().refund(player.getUUID(), 10_000);
             buy(player, at);
-            helper.assertTrue(drink(player, takePotion(player)), "Load-Up wasn't bought");
+            helper.assertTrue(drink(player, takeDrink(player)), "Load-Up wasn't bought");
             helper.assertTrue(reloadSpeed.getValue() == 2, "Load-Up should add 1 to reload speed, is " + reloadSpeed.getValue());
             Reloaded after = reloadAfter(player, elapsed);
             helper.assertTrue(after.state() != ReloadState.StateType.EMPTY_RELOAD_FEEDING && after.magazine() > 0,
@@ -502,7 +508,8 @@ public final class PerkGameTests {
                 item -> (net.minecraft.network.chat.contents.TranslatableContents) ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) item).lore().getContents();
         var cans = java.util.Map.of(PapRegistries.VIGORAID_CAN.get(), net.minecraft.ChatFormatting.RED,
                 PapRegistries.LOAD_UP_CAN.get(), net.minecraft.ChatFormatting.GREEN, PapRegistries.SAINTS_BREW_CAN.get(), net.minecraft.ChatFormatting.GOLD,
-                PapRegistries.OFF_HAND_CAN.get(), net.minecraft.ChatFormatting.DARK_GREEN, PapRegistries.JOCKEY_ENERGY_CAN.get(), net.minecraft.ChatFormatting.YELLOW);
+                PapRegistries.OFF_HAND_CAN.get(), net.minecraft.ChatFormatting.DARK_GREEN, PapRegistries.JOCKEY_ENERGY_CAN.get(), net.minecraft.ChatFormatting.YELLOW,
+                PapRegistries.HELLFIRE_CAN.get(), net.minecraft.ChatFormatting.GOLD);
         cans.forEach((can, color) -> {
             net.minecraft.network.chat.Component line = ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) can).lore();
             var contents = lore.apply(can);

@@ -42,7 +42,7 @@ public final class DownsGameTests {
         double baseSpeed = alice.getAttributeValue(Attributes.MOVEMENT_SPEED);
         active.game().refund(alice.getUUID(), 10_000);
         PerkGameTests.buy(alice, machine);
-        PerkGameTests.drink(alice, PerkGameTests.takePotion(alice));
+        PerkGameTests.drink(alice, PerkGameTests.takeDrink(alice));
         boolean bought = alice.getMaxHealth() > baseHealth;
         // However the test ends, the game mustn't outlive it.
         helper.runAfterDelay(290, () -> GameManager.get(helper.getLevel()).filter(a -> a == active).ifPresent(GameManager::end));

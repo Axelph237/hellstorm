@@ -150,6 +150,8 @@ public final class PapRegistries {
             PerkEffects.OFF_HAND_PERK, net.minecraft.ChatFormatting.DARK_GREEN));
     public static final RegistryObject<Item> JOCKEY_ENERGY_CAN = ITEMS.register("jockey_energy", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
             PerkEffects.JOCKEY_ENERGY, net.minecraft.ChatFormatting.YELLOW));
+    public static final RegistryObject<Item> HELLFIRE_CAN = ITEMS.register("hellfire", () -> new PerkCanItem(new Item.Properties().stacksTo(1),
+            PerkEffects.HELLFIRE, net.minecraft.ChatFormatting.GOLD));
     public static final RegistryObject<Item> TRAP_CONTROLLER_ITEM = ITEMS.register("trap_controller", () -> new BlockItem(TRAP_CONTROLLER.get(), new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
@@ -169,6 +171,7 @@ public final class PapRegistries {
                 output.accept(SAINTS_BREW_CAN.get());
                 output.accept(OFF_HAND_CAN.get());
                 output.accept(JOCKEY_ENERGY_CAN.get());
+                output.accept(HELLFIRE_CAN.get());
             })
             .build());
 

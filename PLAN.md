@@ -294,7 +294,6 @@ The design as researched:
 ## Scope after v0.1.0 (decided 2026-10-23)
 
 **Before v0.1.0:**
-- A perk can for Hellfire, from your model (Vigoraid, Load-Up, Saint's Brew, Off-Hand and Jockey Energy are in). Then the default machines sell cans instead of potions.
 - The sounds and music in `NEEDED/SOUNDS.md`, as you supply them.
 
 **After v0.1.0, in the base mod:**

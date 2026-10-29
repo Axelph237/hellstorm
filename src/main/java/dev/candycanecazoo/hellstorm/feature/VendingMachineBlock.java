@@ -12,6 +12,7 @@ import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.game.Refusal;
 import dev.candycanecazoo.hellstorm.game.Shop;
 import dev.candycanecazoo.hellstorm.map.FeatureKind;
+import dev.candycanecazoo.hellstorm.perk.PerkCanItem;
 import dev.candycanecazoo.hellstorm.registry.PapRegistries;
 import dev.candycanecazoo.hellstorm.util.Codecs;
 import net.minecraft.core.BlockPos;
@@ -58,11 +59,11 @@ import java.util.Optional;
 /**
  * A wall-buy in a vending machine two blocks wide and two tall ({@link TwoBlockMachine}). It sells any item the same way
  * and stocks its shelves with it. Buying presses three keys and shakes the machine for {@link #VEND_TICKS}, and then the
- * item is the buyer's. By default it sells a Vigoraid potion and needs the power. While it can sell, it is lit and hums.
+ * item is the buyer's. By default it sells a Vigoraid can and needs the power. While it can sell, it is lit and hums.
  */
 public final class VendingMachineBlock extends TwoBlockMachine {
     public static final int DEFAULT_COST = 2500;
-    public static final WallBuy.Config DEFAULT = sells(Hellstorm.id("vigorade"), DEFAULT_COST);
+    public static final WallBuy.Config DEFAULT = sells(new ItemSpec.Plain(Hellstorm.id("vigoraid"), 1, Optional.empty()), DEFAULT_COST);
     /** The GeckoLib model, animation and unlit texture, under {@code geo/block/}, {@code animations/block/} and {@code textures/block/}. */
     public static final String MODEL = "vending_machine";
     /** The model is 24 pixels wide, with its middle 4 pixels toward the foot from the seam between its blocks. */
@@ -317,12 +318,19 @@ public final class VendingMachineBlock extends TwoBlockMachine {
     public static WallBuy.Config sells(ResourceLocation potion, int cost) {
         CompoundTag nbt = new CompoundTag();
         nbt.putString(PotionUtils.TAG_POTION, potion.toString());
-        ItemSpec item = new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "potion"), 1, Optional.of(nbt));
+        return sells(new ItemSpec.Plain(ResourceLocation.tryBuild("minecraft", "potion"), 1, Optional.of(nbt)), cost);
+    }
+
+    /** Sells one {@code item}, once per player: buying again is refused. */
+    public static WallBuy.Config sells(ItemSpec item, int cost) {
         return new WallBuy.Config(item, cost, WallBuy.Repurchase.DENY, cost / 2, WallBuy.DEFAULT_PAP_AMMO_COST, true);
     }
 
-    /** The potion's id for a potion, so a script sees which perk was bought; the item spec otherwise. */
+    /** The perk's id for a perk can or a potion, so a script sees which perk was bought; the item spec otherwise. */
     static String describe(ItemStack sold, ItemSpec spec) {
+        if (sold.getItem() instanceof PerkCanItem can) {
+            return String.valueOf(ForgeRegistries.MOB_EFFECTS.getKey(can.effect().getEffect()));
+        }
         Potion potion = PotionUtils.getPotion(sold);
         return potion == Potions.EMPTY ? spec.describe() : String.valueOf(ForgeRegistries.POTIONS.getKey(potion));
     }
