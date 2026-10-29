@@ -6,6 +6,7 @@
 - Using a machine outside a game as anyone but an op in creative does nothing; it no longer shows the machine's settings in chat.
 - The `/hs wallbuy`, `/hs box`, `/hs upgrader`, `/hs power` and `/hs trap` commands are gone: set every machine on its settings screen (use it as an op in creative, outside a game). To sell a gun, hold it, using `/hs give <gun>` if needed.
 - New: a Saint's Brew can, `hellstorm:saints_brew`, with its own model.
+- New: an Off-Hand can, `hellstorm:off_hand` ("Carries a third gun", 4000 points by default), and a Wandering Spirit can, `hellstorm:jockey_energy` ("Boosts movement speed", 2000), each with its own model.
 - A player can hold 5 perks by default (`players.perk_limit`, was 4).
 - The Zone Wand puts a corner in front of the face you click: in the air over a floor, beside a wall, under a ceiling; sneak-click to take the block itself. A wand click never uses the block (no door opens, no lever flips). `/hs zones desel` clears the selection (sneak-click used to), and `/hsz` is short for `/hs zones`.
 - **Scripts can no longer escape their sandbox.** String methods such as `("x"):rep(n)` use the script's own capped string table, never the one TacZ's gun scripts share, and `getmetatable("")` gives the script's own. `scripting.max_string_length` now caps `..`, `string.format`, `string.gsub` and `table.concat` too, `..` costs budget for what it builds, and a listener that runs the server out of memory is switched off.

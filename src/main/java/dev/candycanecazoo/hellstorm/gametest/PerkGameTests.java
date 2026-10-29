@@ -333,6 +333,12 @@ public final class PerkGameTests {
             helper.assertTrue(drink(player, new ItemStack(PapRegistries.SAINTS_BREW_CAN.get())), "drinking a Saint's Brew can shouldn't be refused");
             MobEffectInstance saintsBrew = player.getEffect(PerkEffects.SAINTS_BREW.get());
             helper.assertTrue(saintsBrew != null && saintsBrew.isInfiniteDuration(), "the Saint's Brew can should give Saint's Brew with no time limit, got " + saintsBrew);
+            helper.assertTrue(drink(player, new ItemStack(PapRegistries.OFF_HAND_CAN.get())), "drinking an Off-Hand can shouldn't be refused");
+            MobEffectInstance offHand = player.getEffect(PerkEffects.OFF_HAND_PERK.get());
+            helper.assertTrue(offHand != null && offHand.isInfiniteDuration(), "the Off-Hand can should give Off-Hand with no time limit, got " + offHand);
+            helper.assertTrue(drink(player, new ItemStack(PapRegistries.JOCKEY_ENERGY_CAN.get())), "drinking a Wandering Spirit can shouldn't be refused");
+            MobEffectInstance jockeyEnergy = player.getEffect(PerkEffects.JOCKEY_ENERGY.get());
+            helper.assertTrue(jockeyEnergy != null && jockeyEnergy.isInfiniteDuration(), "the Wandering Spirit can should give Wandering Spirit with no time limit, got " + jockeyEnergy);
         } finally {
             GameManager.end(active);
         }
@@ -495,7 +501,8 @@ public final class PerkGameTests {
         java.util.function.Function<net.minecraft.world.item.Item, net.minecraft.network.chat.contents.TranslatableContents> lore =
                 item -> (net.minecraft.network.chat.contents.TranslatableContents) ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) item).lore().getContents();
         var cans = java.util.Map.of(PapRegistries.VIGORAID_CAN.get(), net.minecraft.ChatFormatting.RED,
-                PapRegistries.LOAD_UP_CAN.get(), net.minecraft.ChatFormatting.GREEN, PapRegistries.SAINTS_BREW_CAN.get(), net.minecraft.ChatFormatting.GOLD);
+                PapRegistries.LOAD_UP_CAN.get(), net.minecraft.ChatFormatting.GREEN, PapRegistries.SAINTS_BREW_CAN.get(), net.minecraft.ChatFormatting.GOLD,
+                PapRegistries.OFF_HAND_CAN.get(), net.minecraft.ChatFormatting.DARK_GREEN, PapRegistries.JOCKEY_ENERGY_CAN.get(), net.minecraft.ChatFormatting.YELLOW);
         cans.forEach((can, color) -> {
             net.minecraft.network.chat.Component line = ((dev.candycanecazoo.hellstorm.perk.PerkCanItem) can).lore();
             var contents = lore.apply(can);
