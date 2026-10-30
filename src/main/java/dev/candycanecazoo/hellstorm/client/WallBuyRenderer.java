@@ -69,8 +69,11 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
     /** The halo, just in front of the plate and behind the item. */
     private static final float HALO_Z = FRONT - 0.01f;
 
-    /** Each wall-buy's plate, and where its item draws, for the item it was measured with. */
-    private record Measured(ItemStack stack, WallBuyPlate plate, Optional<WallBuyPlate> item) {}
+    /**
+     * Each wall-buy's plate, centred on the block, where its item draws once moved by {@code shiftX} and {@code shiftY}
+     * to sit on the block's center too, for the item it was measured with.
+     */
+    private record Measured(ItemStack stack, WallBuyPlate plate, Optional<WallBuyPlate> item, double shiftX, double shiftY) {}
 
     /** One layer of the plate's face: a sprite and its tint. */
     private record Skin(TextureAtlasSprite sprite, int color) {}
@@ -101,7 +104,7 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
             if (glow > 0 && measured.item().isPresent()) {
                 drawHalo(pose, buffers.getBuffer(RenderType.eyes(GlowTexture.get())), measured.item().get(), glow);
             }
-            pose.translate(0, 0, DEPTH);
+            pose.translate(measured.shiftX(), measured.shiftY(), DEPTH);
             pose.scale(SCALE, SCALE, SCALE);
             items.renderStatic(stack, ItemDisplayContext.FIXED, lit(light, glow), overlay, pose, buffers, entity.getLevel(), (int) entity.getBlockPos().asLong());
         }
@@ -114,7 +117,7 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
             return measured;
         }
         if (stack.isEmpty()) {
-            Measured empty = new Measured(ItemStack.EMPTY, WallBuyPlate.EMPTY, Optional.empty());
+            Measured empty = new Measured(ItemStack.EMPTY, WallBuyPlate.EMPTY, Optional.empty(), 0, 0);
             plates.put(entity, empty);
             return empty;
         }
@@ -124,10 +127,13 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         GunModelCapture.into(bounds, () -> items.renderStatic(stack, ItemDisplayContext.FIXED, 0, OverlayTexture.NO_OVERLAY, measuring, type -> bounds, null, 0));
         if (bounds.isEmpty()) {
             // Nothing drawn yet (a model still loading): try again next frame rather than keep the smallest plate.
-            return new Measured(stack, WallBuyPlate.EMPTY, Optional.empty());
+            return new Measured(stack, WallBuyPlate.EMPTY, Optional.empty(), 0, 0);
         }
-        Measured fresh = new Measured(stack.copy(), WallBuyPlate.around(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY),
-                Optional.of(new WallBuyPlate(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY)));
+        // Items aren't drawn centred (a TacZ gun sits a few pixels low), so the item is moved onto the block's center.
+        double shiftX = -(bounds.minX + bounds.maxX) / 2;
+        double shiftY = -(bounds.minY + bounds.maxY) / 2;
+        WallBuyPlate item = new WallBuyPlate(bounds.minX + shiftX, bounds.minY + shiftY, bounds.maxX + shiftX, bounds.maxY + shiftY);
+        Measured fresh = new Measured(stack.copy(), WallBuyPlate.around(item.minX(), item.minY(), item.maxX(), item.maxY()), Optional.of(item), shiftX, shiftY);
         plates.put(entity, fresh);
         return fresh;
     }
