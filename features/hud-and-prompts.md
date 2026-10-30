@@ -33,7 +33,7 @@ Look-at prompts read the targeted feature BlockEntity's synced data (`getUpdateT
 
 ## Assets
 
-- **Needed from you:** a downed icon (16×16). Listed in `NEEDED/TEXTURES.md`. Points are written with a "$" in place of an icon.
+- Nothing more needed. Points are written with a "$" in place of an icon. A downed player's face on the board is tinted red (a skeleton's once dead) and they glow red in the world (see `downs-and-revives.md`), so the downed icon once listed here isn't needed.
 
 ## Depends on
 

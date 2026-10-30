@@ -35,7 +35,7 @@ A player who takes lethal damage goes down instead of dying. They crawl with a p
 ## Assets
 
 - Revive progress bar and downed indicator on the HUD (see `hud-and-prompts.md`).
-- **Needed from you:** a downed-player icon for the HUD (16×16). Listed in `NEEDED/TEXTURES.md`.
+- No icon needed: the player board tints a downed player's face red, and the red glow below shows where they are.
 
 ## Depends on
 

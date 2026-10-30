@@ -4,4 +4,3 @@ This mod never adds texture files. Anything that needs a custom texture is left 
 
 | Path | Size | Used for | Feature | Fallback until supplied |
 |---|---|---|---|---|
-| `assets/hellstorm/textures/gui/downed.png` | 16×16 | Downed player indicator | `downs-and-revives.md` | Red text |
