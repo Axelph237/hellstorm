@@ -5,7 +5,9 @@ import com.mojang.serialization.DataResult;
 import dev.candycanecazoo.hellstorm.client.WrappedText;
 import dev.candycanecazoo.hellstorm.client.ui.BoxButton;
 import dev.candycanecazoo.hellstorm.client.ui.BoxedEditBox;
+import dev.candycanecazoo.hellstorm.client.anim.UiClock;
 import dev.candycanecazoo.hellstorm.client.ui.Dropdown;
+import dev.candycanecazoo.hellstorm.client.ui.Ladder;
 import dev.candycanecazoo.hellstorm.client.ui.NumberBox;
 import dev.candycanecazoo.hellstorm.client.ui.Toggle;
 import dev.candycanecazoo.hellstorm.client.ui.UiKit;
@@ -14,8 +16,10 @@ import dev.candycanecazoo.hellstorm.net.PapNetwork;
 import dev.candycanecazoo.hellstorm.net.SaveSettingsPacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -26,7 +30,9 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -55,6 +61,8 @@ abstract class SettingsScreen<C> extends Screen {
     /** Done and Cancel keep left, so the frame's flames in its bottom right corner stay clear. */
     private static final int BUTTON_WIDTH = 90;
     private static final int PROBLEM_COLOR = 0xFF5555;
+    /** The rows fade in one after another, top first, then Done and Cancel. */
+    private static final Ladder ROWS_IN = Ladder.of(180, 40);
 
     private final BlockPos pos;
     private final Codec<C> codec;
@@ -68,10 +76,17 @@ abstract class SettingsScreen<C> extends Screen {
     private Optional<Component> problem = Optional.empty();
     private Dropdown<?> open;
     private boolean rebuild;
+    /** Each widget's row, for the rows' fade in. Done and Cancel are the row after the last. */
+    private final Map<Renderable, Integer> widgetRows = new IdentityHashMap<>();
+    private int rowCount;
+    /** The row widgets are being added to. */
+    private int rowIndex;
+    /** When the screen first opened; laying it out again later doesn't replay the fade. */
+    private long openedAt = -1;
 
-    private record Text(int x, int y, Supplier<Component> text) {}
+    private record Text(int x, int y, int row, Supplier<Component> text) {}
 
-    private record Slot(int x, int y, Supplier<ItemStack> stack) {}
+    private record Slot(int x, int y, int row, Supplier<ItemStack> stack) {}
 
     protected SettingsScreen(Component title, ConfigBlockEntity<C> entity) {
         super(title);
@@ -93,9 +108,15 @@ abstract class SettingsScreen<C> extends Screen {
     protected final void init() {
         texts.clear();
         slots.clear();
+        widgetRows.clear();
         open = null;
         nextRow = 0;
+        rowCount = 0;
+        if (openedAt < 0) {
+            openedAt = UiClock.now();
+        }
         rows();
+        rowIndex = rowCount;
         problemY = nextRow + 1;
         int buttons = problemY + PROBLEM_LINE + 2;
         addRenderableWidget(new BoxButton(left(), buttons, BUTTON_WIDTH, HEIGHT, CommonComponents.GUI_DONE, this::save));
@@ -143,8 +164,21 @@ abstract class SettingsScreen<C> extends Screen {
     private int row(Component label, int height) {
         int y = nextRow;
         nextRow += height + GAP;
-        texts.add(new Text(left(), y + (height - 8) / 2, () -> label));
+        rowIndex = rowCount++;
+        texts.add(new Text(left(), y + (height - 8) / 2, rowIndex, () -> label));
         return y;
+    }
+
+    /** Every widget is added through here, so it fades in with its row. */
+    @Override
+    protected <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T widget) {
+        widgetRows.put(widget, rowIndex);
+        return super.addRenderableWidget(widget);
+    }
+
+    /** How far its row's fade in has got, 0 to 1. */
+    private float rowIn(int row) {
+        return ROWS_IN.progress(UiClock.now() - openedAt, row);
     }
 
     /** A whole number, typed or stepped by {@code step} with the spinner corners of its box (ten steps with Shift held). */
@@ -182,14 +216,14 @@ abstract class SettingsScreen<C> extends Screen {
     /** A row showing an item in a slot, with its name beside it. */
     protected void item(Component label, Supplier<ItemStack> stack, Supplier<Component> name) {
         int y = row(label, SLOT);
-        slots.add(new Slot(fieldX(), y, stack));
-        texts.add(new Text(fieldX() + SLOT + 4, y + (SLOT - 8) / 2, name));
+        slots.add(new Slot(fieldX(), y, rowIndex, stack));
+        texts.add(new Text(fieldX() + SLOT + 4, y + (SLOT - 8) / 2, rowIndex, name));
     }
 
     /** A row showing a value that changes as the player edits. */
     protected void text(Component label, Supplier<Component> value) {
         int y = row(label, HEIGHT);
-        texts.add(new Text(fieldX(), y + (HEIGHT - 8) / 2, value));
+        texts.add(new Text(fieldX(), y + (HEIGHT - 8) / 2, rowIndex, value));
     }
 
     private void save() {
@@ -212,16 +246,42 @@ abstract class SettingsScreen<C> extends Screen {
         UiKit.tint(graphics, width, height);
         UiKit.frame(graphics, left() - PAD_SIDE, panelTop, WIDTH + 2 * PAD_SIDE, panelHeight);
         WrappedText.drawCentered(graphics, font, title, width / 2, panelTop + TITLE_Y, WIDTH + 2 * PAD_SIDE - TITLE_CLEARANCE, UiKit.TEXT);
+        // Each row is drawn under its own alpha, which fades its boxes, sprites and text together.
         for (Slot slot : slots) {
-            UiKit.box(graphics, slot.x(), slot.y() + top, SLOT, SLOT, false, UiKit.Look.NORMAL);
-            graphics.renderItem(slot.stack().get(), slot.x() + 2, slot.y() + top + 2);
+            float in = rowIn(slot.row());
+            if (in > 0) {
+                graphics.setColor(1, 1, 1, in);
+                UiKit.box(graphics, slot.x(), slot.y() + top, SLOT, SLOT, false, UiKit.Look.NORMAL);
+                graphics.setColor(1, 1, 1, 1);
+                // An item draws opaque whatever the alpha, so it comes in once its row is half there.
+                if (in >= 0.5f) {
+                    graphics.renderItem(slot.stack().get(), slot.x() + 2, slot.y() + top + 2);
+                }
+            }
         }
         for (Text text : texts) {
-            graphics.drawString(font, text.text().get(), text.x(), text.y() + top, UiKit.TEXT);
+            float in = rowIn(text.row());
+            if (in > 0) {
+                graphics.setColor(1, 1, 1, in);
+                graphics.drawString(font, text.text().get(), text.x(), text.y() + top, UiKit.TEXT);
+                graphics.setColor(1, 1, 1, 1);
+            }
         }
         boolean listOpen = open != null;
-        super.render(graphics, listOpen ? -1 : mouseX, listOpen ? -1 : mouseY, partialTick);
-        problem.ifPresent(p -> WrappedText.drawCentered(graphics, font, p, width / 2, top + problemY, width, PROBLEM_COLOR));
+        for (Renderable widget : renderables) {
+            float in = rowIn(widgetRows.getOrDefault(widget, rowCount));
+            if (in > 0) {
+                graphics.setColor(1, 1, 1, in);
+                widget.render(graphics, listOpen ? -1 : mouseX, listOpen ? -1 : mouseY, partialTick);
+                graphics.setColor(1, 1, 1, 1);
+            }
+        }
+        float buttonsIn = rowIn(rowCount);
+        if (buttonsIn > 0) {
+            graphics.setColor(1, 1, 1, buttonsIn);
+            problem.ifPresent(p -> WrappedText.drawCentered(graphics, font, p, width / 2, top + problemY, width, PROBLEM_COLOR));
+            graphics.setColor(1, 1, 1, 1);
+        }
         if (listOpen) {
             open.renderList(graphics, mouseX, mouseY, height);
         }
