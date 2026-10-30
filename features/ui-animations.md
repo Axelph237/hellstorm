@@ -33,6 +33,7 @@ Everything in `client/anim`, pure but for its clock, so it's tested without the 
 - **First use: hover.** Buttons and dropdowns (`BoxButton.drawBox`, `Dropdown`) ease into and out of the input box's
   hovered look over 120 ms (`EASE_OUT`) by drawing the normal look with the hovered one over it at the transition's
   value (`UiKit.box(..., hover)`). Pressed and disabled still switch at once.
+- **Dropdown rows** (2026-10-30). When a dropdown opens, each row of its list fades in from transparent and slides 6 pixels down into place over 140 ms (`EASE_OUT`), each 30 ms after the one above (`Dropdown.ROW_IN`, sampled at the time since opening less the row's stagger; `Fill.BOTH` holds a row hidden until its turn). The row's own dark backing fades with it, so the ladder shows. Hover and clicks use the rows' final places, so a quick click lands where it was aimed. A row's text waits until the row is 5% in: Minecraft draws text with almost no alpha as fully opaque, which would flash.
 - **Not yet used** for the HUD: its panels could slide or fade in, the round number could pulse when it changes, and
   the power-up timer's last-seconds flash (now a hard blink) could be a keyframe `Animation`.
 
