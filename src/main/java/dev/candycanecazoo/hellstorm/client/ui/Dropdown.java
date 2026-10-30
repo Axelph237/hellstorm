@@ -28,6 +28,7 @@ public final class Dropdown<T> extends AbstractButton {
     private final Function<T, Component> name;
     private final Consumer<T> changed;
     private final Consumer<Dropdown<?>> opened;
+    private final dev.candycanecazoo.hellstorm.client.anim.Transition<Float> hover = BoxButton.hoverTransition();
     private T value;
     private int scroll;
     private int listTop;
@@ -51,7 +52,7 @@ public final class Dropdown<T> extends AbstractButton {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        UiKit.box(graphics, getX(), getY(), width, height, isFocused(), BoxButton.look(this));
+        BoxButton.drawBox(graphics, this, hover, getX(), getY(), width, height);
         renderScrollingString(graphics, Minecraft.getInstance().font, name.apply(value), getX() + 4, getY(), getX() + width - CHEVRON - 8, getY() + height, UiKit.TEXT);
         int cx = getX() + width - CHEVRON - 5;
         int cy = getY() + (height - 3) / 2;

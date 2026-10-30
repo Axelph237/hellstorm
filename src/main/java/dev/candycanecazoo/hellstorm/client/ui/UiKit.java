@@ -72,6 +72,21 @@ public final class UiKit {
     }
 
     /**
+     * The input box as {@code look}, or while it isn't pressed or disabled, its normal look with the hovered one over it at
+     * {@code hover} (0 to 1), so it can ease in and out of hover.
+     */
+    public static void box(GuiGraphics graphics, int x, int y, int width, int height, boolean focused, Look look, float hover) {
+        if (look == Look.DISABLED || hover <= 0) {
+            box(graphics, x, y, width, height, focused, look == Look.HOVERED ? Look.NORMAL : look);
+            return;
+        }
+        box(graphics, x, y, width, height, focused, Look.NORMAL);
+        graphics.setColor(1, 1, 1, Math.min(1, hover));
+        box(graphics, x, y, width, height, focused, Look.HOVERED);
+        graphics.setColor(1, 1, 1, 1);
+    }
+
+    /**
      * The input box with its bottom left corner the − spinner and its top right the + spinner, each in its own look.
      */
     public static void spinnerBox(GuiGraphics graphics, int x, int y, int width, int height, boolean focused, Look look,

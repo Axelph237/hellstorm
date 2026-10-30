@@ -22,6 +22,7 @@ Hellstorm is a Forge 1.20.1 mod (mod id `hellstorm`, package `dev.candycanecazoo
 - **Event listeners.** Forge names a generated listener after its package, class, method and event, and silently merges two with the same name. `EventSubscriberLintTest` catches it; give a nested `Registration` class's methods distinct names.
 - **Settings.** Game rules live in `config/GameSettings` (a record with a codec), and are exposed in `config/GameSettingsConfig` (per-world `serverconfig/hellstorm-server.toml`). Per-map overrides are designed (`config/SettingsResolver` merges one over the server's) but not wired up: nothing stores or passes a map's override yet. `config/CommonConfig` holds what both sides read at startup. Forge registers renderers before the common config loads, so code that needs a setting then reads the toml itself (`client/ZombieLimbs.dismembermentAtStartup`).
 - **HUD.** Anything drawn on the game HUD is a `client/hud/HudElement` listed in `HudElements.ALL`: that gives it a client config section with `x`, `y` and `hidden`, and settings of its own go in `defineMore`.
+- **UI motion** goes through `client/anim`, a small CSS-like library (`Transition`, `Keyframes`, `Animation`, `Easing`) timed by `UiClock`, not hand-rolled timers or the game time.
 - **Stay compatible** with NeoForge for 1.20.1.
 
 ## Working agreements
