@@ -8,23 +8,22 @@ class WallBuyPlateTest {
     private static final double EPSILON = 1e-9;
 
     @Test
-    void aLongGunGetsAPlateItsLengthPlusABorder() {
+    void aLongGunGetsAPlateItsLengthPlusABorderAndTheFramesHeight() {
         WallBuyPlate plate = WallBuyPlate.around(-0.6, -0.2, 0.6, 0.2);
         assertEquals(1.2 + 2 * WallBuyPlate.BORDER, plate.width(), EPSILON);
-        assertEquals(WallBuyPlate.MIN, plate.height(), EPSILON, "a short gun's plate is still 0.75 tall");
+        assertEquals(WallBuyPlate.HEIGHT, plate.height(), EPSILON, "the frame's height, whatever the gun's");
     }
 
     @Test
-    void aSmallItemGetsTheSmallestPlateCentredOnIt() {
+    void aSmallItemGetsTheShortestPlateCentredOnIt() {
         WallBuyPlate plate = WallBuyPlate.around(0.1, 0.1, 0.3, 0.3);
         assertEquals(WallBuyPlate.MIN, plate.width(), EPSILON);
-        assertEquals(WallBuyPlate.MIN, plate.height(), EPSILON);
         assertEquals(0.2, (plate.minX() + plate.maxX()) / 2, EPSILON);
         assertEquals(0.2, (plate.minY() + plate.maxY()) / 2, EPSILON);
     }
 
     @Test
-    void anEmptyWallBuyHasTheSmallestPlateOnTheBlocksCenter() {
-        assertEquals(new WallBuyPlate(-0.375, -0.375, 0.375, 0.375), WallBuyPlate.EMPTY);
+    void anEmptyWallBuyHasTheShortestPlateOnTheBlocksCenter() {
+        assertEquals(new WallBuyPlate(-0.375, -0.5, 0.375, 0.5), WallBuyPlate.EMPTY);
     }
 }

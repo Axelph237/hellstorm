@@ -3,6 +3,7 @@ package dev.candycanecazoo.hellstorm.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
 import dev.candycanecazoo.hellstorm.tacz.GunModelCapture;
 import net.minecraft.Util;
@@ -40,20 +41,23 @@ import java.util.Optional;
 import java.util.WeakHashMap;
 
 /**
- * Draws a wall-buy: a plate on the wall, sized to the item it sells ({@link WallBuyPlate}) and faced like the block it's
- * on, and the item flat on it the way an item frame does. The plate's size comes from drawing the item once into a
+ * Draws a wall-buy: the user's frame on the wall ({@link WallBuyFrame}), as long as the item it sells needs
+ * ({@link WallBuyPlate}) and faced like the block it's on, and the item flat on it the way an item frame does. The plate's size comes from drawing the item once into a
  * recorder that keeps only where its vertices land, so it fits whatever the item's renderer draws. A TacZ gun draws into
  * Minecraft's shared buffers, not the ones it's handed, so its body is drawn into the recorder through
  * {@link GunModelCapture}. Within {@link #GLOW_DISTANCE} of the player the item glows: it's drawn lit, over a soft pulsing
  * halo. Both are depth-tested like anything else, so a wall in between hides them.
  */
 public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.Entity> {
-    /** The plate's front, the block's back sixteenth's face, from the block's center toward the wall. */
+    /** The frame's recess, a sixteenth out from the wall; its rim stands a sixteenth further. From the block's center toward the wall. */
     private static final float FRONT = 7.0f / 16;
+    /** The wall. */
     private static final float BACK = 8.0f / 16;
     /** Just in front of the plate. */
     private static final double DEPTH = FRONT - 0.04;
     private static final float SCALE = 0.8f;
+    /** The frame model, which the plate is drawn from. */
+    private static final ResourceLocation FRAME = Hellstorm.id("shapes/wall_buy.json");
     /** The plate when there's no block behind it to look like. */
     private static final ResourceLocation PLANKS = ResourceLocation.tryBuild("minecraft", "block/dark_oak_planks");
     /** The glow is full within this many blocks less {@link #GLOW_FADE}, and gone past it. */
@@ -193,51 +197,72 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         }
     }
 
-    /** One layer of the plate as a box from {@link #FRONT} to {@link #BACK}, its texture laid a block at a time so none stretch. */
+    /**
+     * One layer of the plate: the frame ({@link WallBuyFrame}) laid out the plate's length along the wall, its thickness
+     * standing out of the wall from {@link #BACK}, its width up the wall, each face showing its part of the layer's sprite.
+     */
     private static void drawPlate(PoseStack pose, VertexConsumer out, WallBuyPlate plate, Skin skin, int light, int overlay) {
-        TextureAtlasSprite planks = skin.sprite();
-        int color = skin.color();
+        WallBuyFrame frame = frame();
+        if (frame == null) {
+            return;
+        }
         Matrix4f matrix = pose.last().pose();
         Matrix3f normal = pose.last().normal();
-        for (double x = plate.minX(); x < plate.maxX() - 1e-6; x += 1) {
-            double x1 = Math.min(plate.maxX(), x + 1);
-            for (double y = plate.minY(); y < plate.maxY() - 1e-6; y += 1) {
-                double y1 = Math.min(plate.maxY(), y + 1);
-                float u1 = planks.getU((x1 - x) * 16);
-                float v1 = planks.getV((y1 - y) * 16);
-                quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), u1, v1, light, overlay, 0, 0, -1,
-                        (float) x, (float) y, FRONT, (float) x1, (float) y, FRONT, (float) x1, (float) y1, FRONT, (float) x, (float) y1, FRONT);
-            }
+        float length = (float) (plate.width() * 16);
+        float centerX = (float) ((plate.minX() + plate.maxX()) / 2);
+        float centerY = (float) ((plate.minY() + plate.maxY()) / 2);
+        TextureAtlasSprite sprite = skin.sprite();
+        for (WallBuyFrame.Box box : frame.laidOut(length)) {
+            float[] a = box.from();
+            float[] b = box.to();
+            box.faces().forEach((side, uv) -> {
+                // The face's corners in the model's pixels, in Minecraft's face layout: the first is its texture's top left.
+                float[][] corners = switch (side) {
+                    case UP -> new float[][] {{a[0], b[1], a[2]}, {b[0], b[1], a[2]}, {b[0], b[1], b[2]}, {a[0], b[1], b[2]}};
+                    case DOWN -> new float[][] {{a[0], a[1], b[2]}, {b[0], a[1], b[2]}, {b[0], a[1], a[2]}, {a[0], a[1], a[2]}};
+                    case NORTH -> new float[][] {{b[0], b[1], a[2]}, {a[0], b[1], a[2]}, {a[0], a[1], a[2]}, {b[0], a[1], a[2]}};
+                    case SOUTH -> new float[][] {{a[0], b[1], b[2]}, {b[0], b[1], b[2]}, {b[0], a[1], b[2]}, {a[0], a[1], b[2]}};
+                    case WEST -> new float[][] {{a[0], b[1], a[2]}, {a[0], b[1], b[2]}, {a[0], a[1], b[2]}, {a[0], a[1], a[2]}};
+                    case EAST -> new float[][] {{b[0], b[1], b[2]}, {b[0], b[1], a[2]}, {b[0], a[1], a[2]}, {b[0], a[1], b[2]}};
+                };
+                float[][] uvs = {{uv.u0(), uv.v0()}, {uv.u1(), uv.v0()}, {uv.u1(), uv.v1()}, {uv.u0(), uv.v1()}};
+                // The model's y comes out of the wall (toward the room, -z here), its z runs along the wall, its x up it.
+                float[] facing = switch (side) {
+                    case UP -> new float[] {0, 0, -1};
+                    case DOWN -> new float[] {0, 0, 1};
+                    case NORTH -> new float[] {-1, 0, 0};
+                    case SOUTH -> new float[] {1, 0, 0};
+                    case WEST -> new float[] {0, -1, 0};
+                    case EAST -> new float[] {0, 1, 0};
+                };
+                for (int i = 0; i < 4; i++) {
+                    float[] c = corners[i];
+                    out.vertex(matrix, centerX + (c[2] - length / 2) / 16, centerY + (c[0] - 8) / 16, BACK - c[1] / 16)
+                            .color(skin.color() >> 16 & 0xff, skin.color() >> 8 & 0xff, skin.color() & 0xff, 255)
+                            .uv(sprite.getU(uvs[i][0]), sprite.getV(uvs[i][1]))
+                            .overlayCoords(overlay)
+                            .uv2(light)
+                            .normal(normal, facing[0], facing[1], facing[2])
+                            .endVertex();
+                }
+            });
         }
-        float x0 = (float) plate.minX();
-        float x1 = (float) plate.maxX();
-        float y0 = (float) plate.minY();
-        float y1 = (float) plate.maxY();
-        float edge = planks.getV(1);
-        float alongX = planks.getU(Math.min(16, plate.width() * 16));
-        float alongY = planks.getU(Math.min(16, plate.height() * 16));
-        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongX, edge, light, overlay, 0, 1, 0,
-                x0, y1, FRONT, x1, y1, FRONT, x1, y1, BACK, x0, y1, BACK);
-        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongX, edge, light, overlay, 0, -1, 0,
-                x0, y0, BACK, x1, y0, BACK, x1, y0, FRONT, x0, y0, FRONT);
-        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongY, edge, light, overlay, -1, 0, 0,
-                x0, y0, BACK, x0, y0, FRONT, x0, y1, FRONT, x0, y1, BACK);
-        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongY, edge, light, overlay, 1, 0, 0,
-                x1, y0, FRONT, x1, y0, BACK, x1, y1, BACK, x1, y1, FRONT);
     }
 
-    private static void quad(VertexConsumer out, Matrix4f matrix, Matrix3f normal, int color, float u0, float v0, float u1, float v1, int light, int overlay,
-                             float nx, float ny, float nz, float... corners) {
-        float[][] uv = {{u0, v1}, {u1, v1}, {u1, v0}, {u0, v0}};
-        for (int i = 0; i < 4; i++) {
-            out.vertex(matrix, corners[i * 3], corners[i * 3 + 1], corners[i * 3 + 2])
-                    .color(color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff, 255)
-                    .uv(uv[i][0], uv[i][1])
-                    .overlayCoords(overlay)
-                    .uv2(light)
-                    .normal(normal, nx, ny, nz)
-                    .endVertex();
+    private static WallBuyFrame frame;
+    private static boolean frameLoaded;
+
+    /** The frame model, read once; nothing if it can't be read, which leaves wall-buys with no plate. */
+    private static WallBuyFrame frame() {
+        if (!frameLoaded) {
+            frameLoaded = true;
+            try (java.io.InputStream in = Minecraft.getInstance().getResourceManager().open(FRAME)) {
+                frame = WallBuyFrame.load(in);
+            } catch (java.io.IOException | RuntimeException e) {
+                Hellstorm.LOG.error("Couldn't read the wall-buy frame {}", FRAME, e);
+            }
         }
+        return frame;
     }
 
     /** Keeps the smallest box round every vertex drawn into it, across the wall (x and y), and nothing else. */
