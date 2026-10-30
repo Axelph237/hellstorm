@@ -81,11 +81,9 @@ public final class UiKit {
             return;
         }
         box(graphics, x, y, width, height, focused, Look.NORMAL);
-        // On top of any alpha already set, such as a settings row's fade in.
-        float alpha = RenderSystem.getShaderColor()[3];
-        graphics.setColor(1, 1, 1, alpha * Math.min(1, hover));
+        graphics.setColor(1, 1, 1, Math.min(1, hover));
         box(graphics, x, y, width, height, focused, Look.HOVERED);
-        graphics.setColor(1, 1, 1, alpha);
+        graphics.setColor(1, 1, 1, 1);
     }
 
     /**

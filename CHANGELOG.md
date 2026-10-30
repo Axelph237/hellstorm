@@ -9,7 +9,7 @@
 - New: an Off-Hand can, `hellstorm:off_hand` ("Carries a third gun", 4000 points by default), and a Wandering Spirit can, `hellstorm:jockey_energy` ("Boosts movement speed", 2000), each with its own model.
 - New: a Hellfire can, `hellstorm:hellfire` ("Boosts fire rate", 2000), with its own model. Every perk now comes in a can.
 - A new vending machine sells a Vigoraid can instead of a Vigoraid potion. Machines already set keep what they sell. A `perk_bought` event for a can gives the perk's id, such as `hellstorm:vigorade`, as it does for a potion.
-- Buttons and dropdowns on settings screens fade smoothly into and out of their hovered look, an opened dropdown's choices fade in and slide down into place one after another, and a settings screen's rows fade in one after another from the top as it opens.
+- Buttons and dropdowns on settings screens fade smoothly into and out of their hovered look, and an opened dropdown's choices fade in and slide down into place one after another.
 - Perks: Hellfire makes guns fire 30% faster (was 33%), Wandering Spirit 50% faster on foot (was 7%). Saint's Brew still doubles revive speed.
 - Runners move 0.6 of the way from a player's walk to their sprint, about 5.1 blocks a second (they walked as fast as a walking player). Crawlers move at 0.75 of a zombie's speed (was 0.8), and the crawler profile too. Hellhounds are a little slower: twice the round's zombie speed, down from 2.25.
 - Drinks are a sensible size everywhere: each one is about as big as a potion in the inventory, in hand, on the ground, in item frames and on vending machine shelves. Vigoraid was much bigger than the rest.

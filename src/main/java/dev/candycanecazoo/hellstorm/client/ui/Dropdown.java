@@ -1,5 +1,8 @@
 package dev.candycanecazoo.hellstorm.client.ui;
 
+import dev.candycanecazoo.hellstorm.client.anim.Animation;
+import dev.candycanecazoo.hellstorm.client.anim.Easing;
+import dev.candycanecazoo.hellstorm.client.anim.Keyframes;
 import dev.candycanecazoo.hellstorm.client.anim.Transition;
 import dev.candycanecazoo.hellstorm.client.anim.UiClock;
 import net.minecraft.client.Minecraft;
@@ -25,8 +28,13 @@ public final class Dropdown<T> extends AbstractButton {
     private static final int VISIBLE = 6;
     private static final int CHEVRON = 5;
     private static final int LIST_BACKGROUND = 0xF0000000;
-    /** How each row of the open list comes in: from transparent and {@link #ROW_SLIDE} pixels up to in place, laddered down. */
-    private static final Ladder ROWS_IN = Ladder.of(140, 30);
+    /**
+     * How each row of the open list comes in: from transparent and {@link #ROW_SLIDE} pixels up to in place, each row
+     * {@link #ROW_STAGGER} milliseconds after the one above, so they ladder down. Held at its start until a row's turn.
+     */
+    private static final Animation<Float> ROW_IN = Animation.of(Keyframes.floats().at(0, 0f).at(1, 1f), 140)
+            .withEasing(Easing.EASE_OUT).withFill(Animation.Fill.BOTH);
+    private static final long ROW_STAGGER = 30;
     private static final int ROW_SLIDE = 6;
     /** Minecraft draws text with almost no alpha as fully opaque, so a row's text waits until the row is this visible. */
     private static final float TEXT_SHOWN_FROM = 0.05f;
@@ -84,7 +92,7 @@ public final class Dropdown<T> extends AbstractButton {
             int y = listTop + i * height;
             // Hover and clicks use where the row ends up, so a quick click still lands where the player aimed.
             boolean hovered = mouseX >= getX() && mouseX < getX() + width && mouseY >= y && mouseY < y + height;
-            float in = ROWS_IN.progress(elapsed, i);
+            float in = ROW_IN.sample(elapsed - i * ROW_STAGGER, 1f);
             if (in <= 0) {
                 continue;
             }
