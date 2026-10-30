@@ -41,13 +41,13 @@ public final class PerkEffects {
     public static final RegistryObject<MobEffect> RELOAD = perk("reload", 5, 0x3fae4a,
             PapRegistries.RELOAD_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e02", 1, AttributeModifier.Operation.ADDITION);
     public static final RegistryObject<MobEffect> HELLFIRE = perk("hellfire", 1, 0xe3a92b,
-            PapRegistries.FIRE_RATE, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e03", 0.33, AttributeModifier.Operation.ADDITION);
+            PapRegistries.FIRE_RATE, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e03", 0.30, AttributeModifier.Operation.ADDITION);
     public static final RegistryObject<MobEffect> SAINTS_BREW = perk("saints_brew", 2, 0xd6a44f,
             PapRegistries.REVIVE_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e04", 1, AttributeModifier.Operation.ADDITION);
     public static final RegistryObject<MobEffect> OFF_HAND_PERK = perk("off_hand", 3, 0x2f8f5b,
             PapRegistries.EXTRA_WEAPON_SLOTS, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e05", 1, AttributeModifier.Operation.ADDITION);
     public static final RegistryObject<MobEffect> JOCKEY_ENERGY = perk("jockey_energy", 4, 0xf2d64b,
-            Attributes.MOVEMENT_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e06", 0.07, AttributeModifier.Operation.MULTIPLY_BASE);
+            Attributes.MOVEMENT_SPEED, "8c3e1f52-6a0d-4b7e-9f21-3d5c7a9b1e06", 0.5, AttributeModifier.Operation.MULTIPLY_BASE);
 
     private PerkEffects() {}
 

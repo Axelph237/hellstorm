@@ -69,10 +69,10 @@ Machines sell perks like Vigoraid, Load-Up, Hellfire, Saint's Brew, Wandering Sp
   |---|---|---|
   | `vigorade` | `minecraft:generic.max_health` | +20, `addition` |
   | `reload` | `hellstorm:reload_speed` | +1, `addition` |
-  | `hellfire` | `hellstorm:fire_rate` | +0.33, `addition` |
+  | `hellfire` | `hellstorm:fire_rate` | +0.3, `addition` (30% faster; +0.33 until 2026-10-30) |
   | `saints_brew` | `hellstorm:revive_speed` | +1, `addition` |
   | `off_hand` | `hellstorm:extra_weapon_slots` | +1, `addition` |
-  | `jockey_energy` | `minecraft:generic.movement_speed` | +0.07, `multiply_base` |
+  | `jockey_energy` | `minecraft:generic.movement_speed` | +0.5, `multiply_base` (50% faster, walking and sprinting; a player's speed goes straight with the attribute; +0.07 until 2026-10-30) |
 
   - Gaining max health heals the gain, and losing it clamps health, as vanilla Health Boost does.
   - The amplifier scales the modifier as vanilla does, so a Vigoraid II from a command adds 40.

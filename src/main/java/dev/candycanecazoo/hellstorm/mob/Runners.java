@@ -12,19 +12,24 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.UUID;
 
 /**
- * A runner moves at least as fast as a walking player: its speed is raised to {@link #SPEED}, unless its round and
- * profile already make it faster. A crawler's slowdown applies on top, so a crawler that runs moves 0.8 times as fast as that.
+ * A runner moves at least {@link #RUN_BLEND} of the way from a walking player's speed to a sprinting one's: its speed is
+ * raised to {@link #SPEED}, unless its round and profile already make it faster. A crawler's slowdown applies on top, so
+ * a crawler that runs moves {@link Dismemberment#CRAWL_SPEED} times as fast as that.
  * Marked by {@value #RUNNER} in its NBT ({@code ForgeData}), so a profile's {@code nbt} can make one.
  */
 @Mod.EventBusSubscriber(modid = Hellstorm.MOD_ID)
 public final class Runners {
     public static final String RUNNER = Hellstorm.MOD_ID + "_runner";
+    /** How far a runner's speed is from a walking player's (0) to a sprinting player's (1), who moves 1.3 times as fast. */
+    public static final double RUN_BLEND = 0.6;
     /**
-     * The speed attribute at which a mob walks 4.32 blocks a second on flat ground, as a walking player does. A mob's
+     * The speed attribute at which a mob walks as fast as a walking player, 4.32 blocks a second on flat ground. A mob's
      * ground speed goes with the square of its attribute ({@link GroundSpeed}), so this is about the square root of 0.1, a
-     * player's own 0.1 walking speed. Measured by the GameTest {@code aRunnerWalksAsFastAsAWalkingPlayer}.
+     * player's own 0.1 walking speed. Measured by the GameTest {@code aRunnerMovesBetweenAPlayersWalkAndSprint}.
      */
-    public static final double SPEED = 0.316;
+    static final double WALKING_PLAYER_SPEED = 0.316;
+    /** The runner's speed attribute: 1 + 0.6 x 0.3 = 1.18 times a walking player's ground speed, about 5.09 blocks a second. */
+    public static final double SPEED = WALKING_PLAYER_SPEED * GroundSpeed.attributeFactor(1 + RUN_BLEND * 0.3);
     private static final UUID RUN_SPEED = UUID.fromString("c2a7e0b4-5d1f-4e8b-a6c3-9f4d2b7e1a58");
 
     private Runners() {}

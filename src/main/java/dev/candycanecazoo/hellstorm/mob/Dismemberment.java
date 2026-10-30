@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public final class Dismemberment {
     public static final float LIMB_SHARE = 0.55f;
-    public static final float CRAWL_SPEED = 0.8f;
+    public static final float CRAWL_SPEED = 0.75f;
     private static final String DAMAGE = Limbs.REMOVED + "_damage";
     /** Dark red dust, Minecraft's plain colored square, for blood. */
     private static final DustParticleOptions BLOOD = new DustParticleOptions(new Vector3f(0.55f, 0.0f, 0.0f), 1.2f);

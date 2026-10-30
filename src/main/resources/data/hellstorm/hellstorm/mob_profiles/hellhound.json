@@ -3,7 +3,7 @@
   "weight": 0,
   "ai": "replace",
   "health_multiplier": 0.0242424,
-  "speed_multiplier": 2.25,
+  "speed_multiplier": 2.0,
   "damage": 3.0,
   "scale": 1.5
 }

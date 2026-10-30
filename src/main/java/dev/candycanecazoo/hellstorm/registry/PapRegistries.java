@@ -53,7 +53,7 @@ public final class PapRegistries {
     /** How fast a player revives teammates, as a multiple of normal: 2 revives in half the time. Saint's Brew adds 1. */
     public static final Attribute REVIVE_SPEED = new RangedAttribute("attribute.name.hellstorm.revive_speed", 1.0, 0.1, 10.0).setSyncable(true);
 
-    /** How fast a player's TacZ guns fire, as a multiple of their rounds per minute. Hellfire adds 0.33. */
+    /** How fast a player's TacZ guns fire, as a multiple of their rounds per minute. Hellfire adds 0.3. */
     public static final Attribute FIRE_RATE = new RangedAttribute("attribute.name.hellstorm.fire_rate", 1.0, 0.1, 10.0).setSyncable(true);
 
     /** TacZ guns a player can carry on top of {@code players.weapon_slots}. Off-Hand adds 1. */

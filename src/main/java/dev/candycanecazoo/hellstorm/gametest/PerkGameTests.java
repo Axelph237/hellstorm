@@ -340,6 +340,9 @@ public final class PerkGameTests {
             helper.assertTrue(drink(player, new ItemStack(PapRegistries.JOCKEY_ENERGY_CAN.get())), "drinking a Wandering Spirit can shouldn't be refused");
             MobEffectInstance jockeyEnergy = player.getEffect(PerkEffects.JOCKEY_ENERGY.get());
             helper.assertTrue(jockeyEnergy != null && jockeyEnergy.isInfiniteDuration(), "the Wandering Spirit can should give Wandering Spirit with no time limit, got " + jockeyEnergy);
+            double walk = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).getBaseValue();
+            helper.assertTrue(Math.abs(player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED) - walk * 1.5) < 1e-6,
+                    "Wandering Spirit should make a player half again as fast, speed " + player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED));
             // Five perks is the limit, so make room for a sixth.
             player.removeAllEffects();
             helper.assertTrue(drink(player, new ItemStack(PapRegistries.HELLFIRE_CAN.get())), "drinking a Hellfire can shouldn't be refused");
@@ -408,7 +411,7 @@ public final class PerkGameTests {
             base = rpm(player);
             helper.assertTrue(base > 0, "no cached rpm for the AK");
             give(player, PerkEffects.HELLFIRE.get());
-            int expected = (int) Math.round(base * 1.33);
+            int expected = (int) Math.round(base * 1.3);
             helper.assertTrue(rpm(player) == expected, "rpm " + rpm(player) + ", expected " + expected + " from " + base);
         } finally {
             GameManager.end(active);
