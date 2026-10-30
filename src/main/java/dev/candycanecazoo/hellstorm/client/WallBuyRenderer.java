@@ -5,30 +5,47 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
 import dev.candycanecazoo.hellstorm.tacz.GunModelCapture;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.WeakHashMap;
 
 /**
- * Draws a wall-buy: a dark oak plate on the wall, sized to the item it sells ({@link WallBuyPlate}), and the item flat on
- * it the way an item frame does. The plate's size comes from drawing the item once into a recorder that keeps only where
- * its vertices land, so it fits whatever the item's renderer draws. A TacZ gun draws into Minecraft's shared buffers,
- * not the ones it's handed, so its body is drawn into the recorder through {@link GunModelCapture}.
+ * Draws a wall-buy: a plate on the wall, sized to the item it sells ({@link WallBuyPlate}) and faced like the block it's
+ * on, and the item flat on it the way an item frame does. The plate's size comes from drawing the item once into a
+ * recorder that keeps only where its vertices land, so it fits whatever the item's renderer draws. A TacZ gun draws into
+ * Minecraft's shared buffers, not the ones it's handed, so its body is drawn into the recorder through
+ * {@link GunModelCapture}. Within {@link #GLOW_DISTANCE} of the player the item glows: it's drawn lit, over a soft pulsing
+ * halo. Both are depth-tested like anything else, so a wall in between hides them.
  */
 public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.Entity> {
     /** The plate's front, the block's back sixteenth's face, from the block's center toward the wall. */
@@ -37,10 +54,22 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
     /** Just in front of the plate. */
     private static final double DEPTH = FRONT - 0.04;
     private static final float SCALE = 0.8f;
+    /** The plate when there's no block behind it to look like. */
     private static final ResourceLocation PLANKS = ResourceLocation.tryBuild("minecraft", "block/dark_oak_planks");
+    /** The glow is full within this many blocks less {@link #GLOW_FADE}, and gone past it. */
+    private static final double GLOW_DISTANCE = 5;
+    private static final double GLOW_FADE = 1.5;
+    /** How far the halo reaches past the item, in blocks. */
+    private static final double HALO_REACH = 0.2;
+    private static final int HALO_COLOR = 0xFFD24A;
+    /** The halo, just in front of the plate and behind the item. */
+    private static final float HALO_Z = FRONT - 0.01f;
 
-    /** Each wall-buy's plate, for the item it was measured with. */
-    private record Measured(ItemStack stack, WallBuyPlate plate) {}
+    /** Each wall-buy's plate, and where its item draws, for the item it was measured with. */
+    private record Measured(ItemStack stack, WallBuyPlate plate, Optional<WallBuyPlate> item) {}
+
+    /** One layer of the plate's face: a sprite and its tint. */
+    private record Skin(TextureAtlasSprite sprite, int color) {}
 
     private final Map<WallBuyBlock.Entity, Measured> plates = new WeakHashMap<>();
     private final ItemRenderer items;
@@ -57,24 +86,33 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         pose.translate(0.5, 0.5, 0.5);
         pose.mulPose(Axis.YP.rotationDegrees(180.0f - facing.toYRot()));
         // Measure before taking a buffer: drawing an item can flush the buffer a renderer is holding.
-        WallBuyPlate plate = plate(entity, stack);
-        drawPlate(pose, buffers.getBuffer(RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS)), plate, light, overlay);
+        Measured measured = measure(entity, stack);
+        List<Skin> skins = skins(entity, facing);
+        VertexConsumer plateOut = buffers.getBuffer(RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS));
+        for (Skin skin : skins) {
+            drawPlate(pose, plateOut, measured.plate(), skin, light, overlay);
+        }
         if (!stack.isEmpty()) {
+            float glow = glow(entity, partialTick);
+            if (glow > 0 && measured.item().isPresent()) {
+                drawHalo(pose, buffers.getBuffer(RenderType.eyes(GlowTexture.get())), measured.item().get(), glow);
+            }
             pose.translate(0, 0, DEPTH);
             pose.scale(SCALE, SCALE, SCALE);
-            items.renderStatic(stack, ItemDisplayContext.FIXED, light, overlay, pose, buffers, entity.getLevel(), (int) entity.getBlockPos().asLong());
+            items.renderStatic(stack, ItemDisplayContext.FIXED, lit(light, glow), overlay, pose, buffers, entity.getLevel(), (int) entity.getBlockPos().asLong());
         }
         pose.popPose();
     }
 
-    private WallBuyPlate plate(WallBuyBlock.Entity entity, ItemStack stack) {
+    private Measured measure(WallBuyBlock.Entity entity, ItemStack stack) {
         Measured measured = plates.get(entity);
         if (measured != null && ItemStack.matches(measured.stack(), stack)) {
-            return measured.plate();
+            return measured;
         }
         if (stack.isEmpty()) {
-            plates.put(entity, new Measured(ItemStack.EMPTY, WallBuyPlate.EMPTY));
-            return WallBuyPlate.EMPTY;
+            Measured empty = new Measured(ItemStack.EMPTY, WallBuyPlate.EMPTY, Optional.empty());
+            plates.put(entity, empty);
+            return empty;
         }
         Bounds bounds = new Bounds();
         PoseStack measuring = new PoseStack();
@@ -82,16 +120,83 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         GunModelCapture.into(bounds, () -> items.renderStatic(stack, ItemDisplayContext.FIXED, 0, OverlayTexture.NO_OVERLAY, measuring, type -> bounds, null, 0));
         if (bounds.isEmpty()) {
             // Nothing drawn yet (a model still loading): try again next frame rather than keep the smallest plate.
-            return WallBuyPlate.EMPTY;
+            return new Measured(stack, WallBuyPlate.EMPTY, Optional.empty());
         }
-        WallBuyPlate plate = WallBuyPlate.around(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
-        plates.put(entity, new Measured(stack.copy(), plate));
-        return plate;
+        Measured fresh = new Measured(stack.copy(), WallBuyPlate.around(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY),
+                Optional.of(new WallBuyPlate(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY)));
+        plates.put(entity, fresh);
+        return fresh;
     }
 
-    /** The plate as a box from {@link #FRONT} to {@link #BACK}, its planks laid a block at a time so none stretch. */
-    private static void drawPlate(PoseStack pose, VertexConsumer out, WallBuyPlate plate, int light, int overlay) {
+    /**
+     * The plate's face, layer by layer: the face of the block behind the wall-buy that looks out at it, each layer with its
+     * tint (grass, leaves); that block's particle texture if it has no such face; dark oak with nothing there.
+     */
+    private static List<Skin> skins(WallBuyBlock.Entity entity, Direction facing) {
         TextureAtlasSprite planks = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(PLANKS);
+        Level level = entity.getLevel();
+        if (level == null) {
+            return List.of(new Skin(planks, 0xffffff));
+        }
+        BlockPos behind = entity.getBlockPos().relative(facing.getOpposite());
+        BlockState state = level.getBlockState(behind);
+        if (state.isAir() || state.getRenderShape() != RenderShape.MODEL) {
+            return List.of(new Skin(planks, 0xffffff));
+        }
+        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+        List<BakedQuad> quads = model.getQuads(state, facing, RandomSource.create(behind.asLong()));
+        if (quads.isEmpty()) {
+            return List.of(new Skin(model.getParticleIcon(), 0xffffff));
+        }
+        List<Skin> skins = new ArrayList<>(quads.size());
+        for (BakedQuad quad : quads) {
+            int color = quad.isTinted() ? Minecraft.getInstance().getBlockColors().getColor(state, level, behind, quad.getTintIndex()) : 0xffffff;
+            skins.add(new Skin(quad.getSprite(), color));
+        }
+        return skins;
+    }
+
+    /** 0 to 1: how strongly the item glows for this player, full up close and fading out toward {@link #GLOW_DISTANCE}. */
+    private static float glow(WallBuyBlock.Entity entity, float partialTick) {
+        Player player = Minecraft.getInstance().player;
+        if (player == null) {
+            return 0;
+        }
+        double distance = Math.sqrt(player.getEyePosition(partialTick).distanceToSqr(Vec3.atCenterOf(entity.getBlockPos())));
+        return (float) Math.max(0, Math.min(1, (GLOW_DISTANCE - distance) / GLOW_FADE));
+    }
+
+    /** {@code light} with its block light raised toward full as the glow does. */
+    private static int lit(int light, float glow) {
+        int block = Math.max(LightTexture.block(light), Math.round(15 * glow));
+        return LightTexture.pack(block, LightTexture.sky(light));
+    }
+
+    /** A soft gold glow round where the item draws, pulsing gently, behind the item. */
+    private static void drawHalo(PoseStack pose, VertexConsumer out, WallBuyPlate item, float glow) {
+        // The client's own clock: the game time jumps when the server lags.
+        float pulse = 0.8f + 0.2f * Mth.sin(Util.getMillis() / 1000f * 3);
+        float strength = glow * pulse;
+        int r = Math.round((HALO_COLOR >> 16 & 0xff) * strength);
+        int g = Math.round((HALO_COLOR >> 8 & 0xff) * strength);
+        int b = Math.round((HALO_COLOR & 0xff) * strength);
+        float x0 = (float) (item.minX() - HALO_REACH);
+        float y0 = (float) (item.minY() - HALO_REACH);
+        float x1 = (float) (item.maxX() + HALO_REACH);
+        float y1 = (float) (item.maxY() + HALO_REACH);
+        Matrix4f matrix = pose.last().pose();
+        Matrix3f normal = pose.last().normal();
+        float[][] corners = {{x0, y0, 0, 1}, {x1, y0, 1, 1}, {x1, y1, 1, 0}, {x0, y1, 0, 0}};
+        for (float[] c : corners) {
+            out.vertex(matrix, c[0], c[1], HALO_Z).color(r, g, b, 255).uv(c[2], c[3]).overlayCoords(OverlayTexture.NO_OVERLAY)
+                    .uv2(LightTexture.FULL_BRIGHT).normal(normal, 0, 0, -1).endVertex();
+        }
+    }
+
+    /** One layer of the plate as a box from {@link #FRONT} to {@link #BACK}, its texture laid a block at a time so none stretch. */
+    private static void drawPlate(PoseStack pose, VertexConsumer out, WallBuyPlate plate, Skin skin, int light, int overlay) {
+        TextureAtlasSprite planks = skin.sprite();
+        int color = skin.color();
         Matrix4f matrix = pose.last().pose();
         Matrix3f normal = pose.last().normal();
         for (double x = plate.minX(); x < plate.maxX() - 1e-6; x += 1) {
@@ -100,7 +205,7 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
                 double y1 = Math.min(plate.maxY(), y + 1);
                 float u1 = planks.getU((x1 - x) * 16);
                 float v1 = planks.getV((y1 - y) * 16);
-                quad(out, matrix, normal, planks.getU0(), planks.getV0(), u1, v1, light, overlay, 0, 0, -1,
+                quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), u1, v1, light, overlay, 0, 0, -1,
                         (float) x, (float) y, FRONT, (float) x1, (float) y, FRONT, (float) x1, (float) y1, FRONT, (float) x, (float) y1, FRONT);
             }
         }
@@ -111,22 +216,22 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         float edge = planks.getV(1);
         float alongX = planks.getU(Math.min(16, plate.width() * 16));
         float alongY = planks.getU(Math.min(16, plate.height() * 16));
-        quad(out, matrix, normal, planks.getU0(), planks.getV0(), alongX, edge, light, overlay, 0, 1, 0,
+        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongX, edge, light, overlay, 0, 1, 0,
                 x0, y1, FRONT, x1, y1, FRONT, x1, y1, BACK, x0, y1, BACK);
-        quad(out, matrix, normal, planks.getU0(), planks.getV0(), alongX, edge, light, overlay, 0, -1, 0,
+        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongX, edge, light, overlay, 0, -1, 0,
                 x0, y0, BACK, x1, y0, BACK, x1, y0, FRONT, x0, y0, FRONT);
-        quad(out, matrix, normal, planks.getU0(), planks.getV0(), alongY, edge, light, overlay, -1, 0, 0,
+        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongY, edge, light, overlay, -1, 0, 0,
                 x0, y0, BACK, x0, y0, FRONT, x0, y1, FRONT, x0, y1, BACK);
-        quad(out, matrix, normal, planks.getU0(), planks.getV0(), alongY, edge, light, overlay, 1, 0, 0,
+        quad(out, matrix, normal, color, planks.getU0(), planks.getV0(), alongY, edge, light, overlay, 1, 0, 0,
                 x1, y0, FRONT, x1, y0, BACK, x1, y1, BACK, x1, y1, FRONT);
     }
 
-    private static void quad(VertexConsumer out, Matrix4f matrix, Matrix3f normal, float u0, float v0, float u1, float v1, int light, int overlay,
+    private static void quad(VertexConsumer out, Matrix4f matrix, Matrix3f normal, int color, float u0, float v0, float u1, float v1, int light, int overlay,
                              float nx, float ny, float nz, float... corners) {
         float[][] uv = {{u0, v1}, {u1, v1}, {u1, v0}, {u0, v0}};
         for (int i = 0; i < 4; i++) {
             out.vertex(matrix, corners[i * 3], corners[i * 3 + 1], corners[i * 3 + 2])
-                    .color(255, 255, 255, 255)
+                    .color(color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff, 255)
                     .uv(uv[i][0], uv[i][1])
                     .overlayCoords(overlay)
                     .uv2(light)
