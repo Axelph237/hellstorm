@@ -9,6 +9,7 @@
 - New: an Off-Hand can, `hellstorm:off_hand` ("Carries a third gun", 4000 points by default), and a Wandering Spirit can, `hellstorm:jockey_energy` ("Boosts movement speed", 2000), each with its own model.
 - New: a Hellfire can, `hellstorm:hellfire` ("Boosts fire rate", 2000), with its own model. Every perk now comes in a can.
 - A new vending machine sells a Vigoraid can instead of a Vigoraid potion. Machines already set keep what they sell. A `perk_bought` event for a can gives the perk's id, such as `hellstorm:vigorade`, as it does for a potion.
+- The revive, bleed-out and rebuild bar is drawn from new loader art, with no panel behind it, and the input and HUD panel art is redrawn.
 - The round number is in Roman numerals, from new art, and each part of the HUD sits on a dark rounded panel. The zombies left has its own panel just under the round's (`[hud.zombies]`, `attached` to keep it there).
 - Machine settings screens use the new input art: boxes, buttons and dropdowns light up when hovered, focused or pressed; yes/no settings are the new switch; and a number field's − and + sit in its box's bottom left and top right corners, so number rows are no taller than the rest.
 - A wall-buy's plate fits the gun it sells, with a thin border: long for a rifle, and never smaller than three quarters of a block square. Attachments aren't counted.

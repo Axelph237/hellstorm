@@ -15,7 +15,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
  * box sits in the room left over: 0 against the left or top edge, 1 against the right or bottom, 0.5 centred. So an
  * element is never off the screen, at any size or GUI scale. Each is drawn on the HUD's rounded panel
  * ({@code textures/gui/hud/element_background.png}, nine-sliced), {@link #paddingX} and {@link #paddingY} round what it
- * shows. An element made {@link #HudElement(String, String, double, double, HudElement) under} another sits just below
+ * shows, unless it has no {@link #background}. An element made {@link #HudElement(String, String, double, double, HudElement) under} another sits just below
  * that one's panel while its {@code attached} setting is on, and uses its own {@code x} and {@code y} when it's off or
  * the other isn't drawn. A subclass adds settings of its own in {@link #defineMore}.
  */
@@ -77,6 +77,11 @@ public abstract class HudElement {
         return PADDING;
     }
 
+    /** Whether it's drawn on the HUD's panel. */
+    protected boolean background() {
+        return true;
+    }
+
     public String id() {
         return id;
     }
@@ -119,7 +124,9 @@ public abstract class HudElement {
         Panel panel = under != null && attached.get() && under.drawn != null
                 ? attachedUnder(under.drawn, under.x.get(), panelWidth, panelHeight, frame.width())
                 : new Panel(place(x.get(), frame.width(), panelWidth), place(y.get(), frame.height(), panelHeight), panelWidth, panelHeight);
-        drawBackground(frame.graphics(), panel.x(), panel.y(), panel.width(), panel.height());
+        if (background()) {
+            drawBackground(frame.graphics(), panel.x(), panel.y(), panel.width(), panel.height());
+        }
         draw(frame, panel.x() + paddingX(), panel.y() + paddingY(), size);
         drawn = panel;
     }
