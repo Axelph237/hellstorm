@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.candycanecazoo.hellstorm.Hellstorm;
 import dev.candycanecazoo.hellstorm.feature.VendingMachineBlock;
+import dev.candycanecazoo.hellstorm.perk.PerkCanItem;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -47,6 +48,11 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
     private static final float[] SHELF_TOPS = {12, 18, 24};
     private static final float FRONT_Z = -6;
     private static final float ITEM_SCALE = 0.28f;
+    /**
+     * Perk cans are drawn bigger than other items, so they read from across a room: about 5 of the machine's pixels
+     * tall, from their item-frame height of 12/16 (see perk-machines.md, Drink sizes).
+     */
+    private static final float CAN_SCALE = 0.425f;
 
     private final ItemRenderer items;
     private final Model model = new Model();
@@ -96,11 +102,12 @@ public final class VendingMachineRenderer implements BlockEntityRenderer<Vending
             return;
         }
         int seed = (int) machine.getBlockPos().asLong();
+        float scale = stack.getItem() instanceof PerkCanItem ? CAN_SCALE : ITEM_SCALE;
         for (float top : SHELF_TOPS) {
             for (float x : SPOTS_X) {
                 pose.pushPose();
                 pose.translate(x / 16, top / 16, FRONT_Z / 16);
-                pose.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
+                pose.scale(scale, scale, scale);
                 // Scaled from the shelf's top, so the bottom of the item's cube stays on the shelf whatever its size.
                 pose.translate(0, 0.5, 0);
                 items.renderStatic(stack, ItemDisplayContext.FIXED, light, overlay, pose, buffers, machine.getLevel(), seed);
