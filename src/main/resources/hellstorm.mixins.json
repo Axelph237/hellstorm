@@ -12,6 +12,8 @@
     "ProjectileExplosionMixin"
   ],
   "client": [
+    "BedrockGunModelMixin",
+    "BedrockModelMixin",
     "GunHudOverlayMixin",
     "ObjectAnimationRunnerMixin"
   ],

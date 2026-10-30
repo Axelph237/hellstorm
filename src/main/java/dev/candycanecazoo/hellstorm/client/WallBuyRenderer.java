@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.candycanecazoo.hellstorm.feature.WallBuyBlock;
+import dev.candycanecazoo.hellstorm.tacz.GunModelCapture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -26,7 +27,8 @@ import java.util.WeakHashMap;
 /**
  * Draws a wall-buy: a dark oak plate on the wall, sized to the item it sells ({@link WallBuyPlate}), and the item flat on
  * it the way an item frame does. The plate's size comes from drawing the item once into a recorder that keeps only where
- * its vertices land, so it fits whatever the item's renderer draws, a TacZ gun's model included.
+ * its vertices land, so it fits whatever the item's renderer draws. A TacZ gun draws into Minecraft's shared buffers,
+ * not the ones it's handed, so its body is drawn into the recorder through {@link GunModelCapture}.
  */
 public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.Entity> {
     /** The plate's front, the block's back sixteenth's face, from the block's center toward the wall. */
@@ -54,7 +56,9 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         pose.pushPose();
         pose.translate(0.5, 0.5, 0.5);
         pose.mulPose(Axis.YP.rotationDegrees(180.0f - facing.toYRot()));
-        drawPlate(pose, buffers.getBuffer(RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS)), plate(entity, stack), light, overlay);
+        // Measure before taking a buffer: drawing an item can flush the buffer a renderer is holding.
+        WallBuyPlate plate = plate(entity, stack);
+        drawPlate(pose, buffers.getBuffer(RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS)), plate, light, overlay);
         if (!stack.isEmpty()) {
             pose.translate(0, 0, DEPTH);
             pose.scale(SCALE, SCALE, SCALE);
@@ -75,7 +79,7 @@ public final class WallBuyRenderer implements BlockEntityRenderer<WallBuyBlock.E
         Bounds bounds = new Bounds();
         PoseStack measuring = new PoseStack();
         measuring.scale(SCALE, SCALE, SCALE);
-        items.renderStatic(stack, ItemDisplayContext.FIXED, 0, OverlayTexture.NO_OVERLAY, measuring, type -> bounds, null, 0);
+        GunModelCapture.into(bounds, () -> items.renderStatic(stack, ItemDisplayContext.FIXED, 0, OverlayTexture.NO_OVERLAY, measuring, type -> bounds, null, 0));
         if (bounds.isEmpty()) {
             // Nothing drawn yet (a model still loading): try again next frame rather than keep the smallest plate.
             return WallBuyPlate.EMPTY;
