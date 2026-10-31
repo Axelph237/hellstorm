@@ -1,4 +1,8 @@
 {
   "replace": false,
-  "values": ["hellstorm:builder"]
+  "values": [
+    "hellstorm:builder",
+    "hellstorm:zombies_map",
+    "hellstorm:map_workshop"
+  ]
 }

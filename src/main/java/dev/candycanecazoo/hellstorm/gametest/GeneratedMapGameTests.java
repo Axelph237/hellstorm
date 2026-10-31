@@ -68,7 +68,7 @@ public final class GeneratedMapGameTests {
             Layout layout = made.layout();
             Hellstorm.LOG.info("Generated map: {} rooms, {} doors, {} zones, features {}, problems {}", layout.rooms().size(), map.doors().size(),
                     map.zones().size(), map.features().values().stream().collect(Collectors.groupingBy(k -> k, Collectors.counting())), made.report().problems());
-            helper.assertTrue(made.report().playable(), "the generated map should be playable: " + made.report().problems());
+            helper.assertTrue(made.report().problems().isEmpty(), "the generated map should be playable with no warnings: " + made.report().problems());
             helper.assertTrue(layout.rooms().size() >= 8 && layout.rooms().size() <= 14, "8 to 14 rooms, not " + layout.rooms().size());
             helper.assertTrue(map.zones().size() == layout.rooms().size(), "a zone per room: " + map.zones().size());
             helper.assertTrue(map.startZones().size() == 1, "one start zone, the start room's: " + map.startZones());
@@ -97,6 +97,21 @@ public final class GeneratedMapGameTests {
         } finally {
             MapEdits.apply(level, m -> before);
             MapModes.set(level, modeBefore);
+        }
+        helper.succeed();
+    }
+
+    /** Both world types load from their data files with this mod's generator, each in its own mode. */
+    @GameTest(template = "floor", batch = "generated_world_types")
+    public static void theGeneratedMapAndWorkshopWorldTypesLoadWithTheirModes(GameTestHelper helper) {
+        var presets = helper.getLevel().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.WORLD_PRESET);
+        for (var mode : dev.candycanecazoo.hellstorm.gen.world.HellstormLevelSource.Mode.values()) {
+            String id = mode == dev.candycanecazoo.hellstorm.gen.world.HellstormLevelSource.Mode.MAP ? "zombies_map" : "map_workshop";
+            var preset = presets.get(Hellstorm.id(id));
+            helper.assertTrue(preset != null, "the " + id + " world type is registered");
+            var overworld = preset.createWorldDimensions().overworld();
+            helper.assertTrue(overworld instanceof dev.candycanecazoo.hellstorm.gen.world.HellstormLevelSource source && source.mode() == mode
+                    && source.packs().isEmpty(), id + "'s overworld is Hellstorm's generator in " + mode + " mode, with no packs picked: " + overworld);
         }
         helper.succeed();
     }

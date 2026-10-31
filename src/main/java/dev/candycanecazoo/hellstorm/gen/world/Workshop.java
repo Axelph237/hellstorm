@@ -65,7 +65,8 @@ public final class Workshop {
 
     static final List<Sample> SAMPLES = List.of(
             new Sample("start", 11, 11, List.of("start"), 1, Optional.empty(), all(Connector.Kind.DOOR),
-                    List.of(Thing.of(PlaceholderKind.WALL_BUY, 2, 2, 1, Direction.SOUTH), Thing.spawn(9, 9))),
+                    // Low on the wall: the top of one at head height is a standing spot nobody can reach, which the start room mustn't have.
+                    List.of(Thing.of(PlaceholderKind.WALL_BUY, 2, 1, 1, Direction.SOUTH), Thing.spawn(9, 9))),
             new Sample("hall", 5, 11, List.of("hallway"), 4, Optional.empty(),
                     Map.of(Direction.NORTH, Connector.Kind.OPEN, Direction.SOUTH, Connector.Kind.OPEN), List.of(Thing.spawn(1, 5))),
             new Sample("room", 11, 11, List.of(), 4, Optional.empty(), all(Connector.Kind.DOOR),

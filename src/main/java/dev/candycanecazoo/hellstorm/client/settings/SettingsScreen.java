@@ -193,14 +193,18 @@ abstract class SettingsScreen<C> extends Screen {
     }
 
     private void save() {
+        encodedSettings().ifPresent(tag -> PapNetwork.CHANNEL.sendToServer(new SaveSettingsPacket(pos, tag)));
+    }
+
+    /** The settings as they'd be sent, or nothing after showing what's wrong with them. */
+    protected Optional<CompoundTag> encodedSettings() {
         DataResult<C> settings = settings();
         Optional<String> invalid = settings.error().map(e -> e.message());
         if (invalid.isPresent()) {
             showProblem(invalid.get());
-            return;
+            return Optional.empty();
         }
-        CompoundTag tag = (CompoundTag) codec.encodeStart(NbtOps.INSTANCE, settings.result().orElseThrow()).getOrThrow(false, e -> {});
-        PapNetwork.CHANNEL.sendToServer(new SaveSettingsPacket(pos, tag));
+        return Optional.of((CompoundTag) codec.encodeStart(NbtOps.INSTANCE, settings.result().orElseThrow()).getOrThrow(false, e -> {}));
     }
 
     void showProblem(String message) {

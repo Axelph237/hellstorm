@@ -26,6 +26,12 @@ public final class GenRegistries {
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, Hellstorm.MOD_ID);
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Hellstorm.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, Hellstorm.MOD_ID);
+    private static final DeferredRegister<com.mojang.serialization.Codec<? extends net.minecraft.world.level.chunk.ChunkGenerator>> CHUNK_GENERATORS =
+            DeferredRegister.create(net.minecraft.core.registries.Registries.CHUNK_GENERATOR, Hellstorm.MOD_ID);
+
+    static {
+        CHUNK_GENERATORS.register("level", () -> dev.candycanecazoo.hellstorm.gen.world.HellstormLevelSource.CODEC);
+    }
 
     private static BlockBehaviour.Properties marker() {
         return BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_BLUE).strength(0.5f).sound(SoundType.STONE).noLootTable();
@@ -67,5 +73,6 @@ public final class GenRegistries {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
+        CHUNK_GENERATORS.register(modBus);
     }
 }

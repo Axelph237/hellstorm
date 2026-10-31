@@ -40,6 +40,8 @@ public final class PapNetwork {
                 .encoder(OpenSettingsPacket::encode).decoder(OpenSettingsPacket::decode).consumerMainThread(OpenSettingsPacket::handle).add();
         CHANNEL.messageBuilder(SaveSettingsPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(SaveSettingsPacket::encode).decoder(SaveSettingsPacket::decode).consumerMainThread(SaveSettingsPacket::handle).add();
+        CHANNEL.messageBuilder(SaveRoomPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(SaveRoomPacket::encode).decoder(SaveRoomPacket::decode).consumerMainThread(SaveRoomPacket::handle).add();
         CHANNEL.messageBuilder(SettingsResultPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(SettingsResultPacket::encode).decoder(SettingsResultPacket::decode).consumerMainThread(SettingsResultPacket::handle).add();
         CHANNEL.messageBuilder(RevivePacket.class, id++, NetworkDirection.PLAY_TO_SERVER)

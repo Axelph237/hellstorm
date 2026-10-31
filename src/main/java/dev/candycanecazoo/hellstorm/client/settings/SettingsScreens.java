@@ -31,6 +31,10 @@ public final class SettingsScreens {
             screen = new PowerSwitchScreen(power);
         } else if (entity instanceof TrapControllerBlock.Entity trap) {
             screen = new TrapScreen(trap, packet);
+        } else if (entity instanceof dev.candycanecazoo.hellstorm.gen.block.RoomBlock.Entity room) {
+            screen = new RoomBlockScreen(room);
+        } else if (entity instanceof dev.candycanecazoo.hellstorm.gen.block.ConnectorBlock.Entity connector) {
+            screen = new ConnectorScreen(connector);
         }
         if (screen != null) {
             mc.setScreen(screen);
