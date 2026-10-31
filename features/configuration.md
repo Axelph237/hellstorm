@@ -61,6 +61,8 @@ Nothing. Everything else depends on this.
 
 `/hs debug infinite_money <true|false> [players]` and `/hs debug god <true|false> [players]`, op only. They default to the player running the command. Infinite money makes purchases cost nothing and never fail for lack of points. God mode cancels all damage, in or out of a game. They're kept in memory per player (`game/Cheats`) and cleared by a server restart.
 
+**Skip to a round** (2026-10-31): `/hs debug round <round>`, op only, 1 to 10000. The game in the command's world starts that round now (`Game.jumpToRound`): the zombies alive are removed without points or drops, the special round under way ends, and the round begins as one reached by playing, with its count, health, speed, wave event, and spectators back in. Refused before round 1 has begun (lobby, countdown) and once the game is over. JUnit `GameTest.jumpingToARoundClearsTheZombiesWithoutPointsAndStartsItNow`, `jumpingIsRefusedBeforeTheFirstRoundAndForRoundZero`.
+
 ## Added in phase 7
 
 - `players.max_players` (4): most players in one game.

@@ -1,9 +1,12 @@
 package dev.candycanecazoo.hellstorm.command;
 
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.candycanecazoo.hellstorm.game.Cheats;
+import dev.candycanecazoo.hellstorm.game.GameManager;
 import dev.candycanecazoo.hellstorm.tools.DebugRules;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -14,7 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.Collection;
 import java.util.List;
 
-/** `/hs debug [rule [true|false]]`: lists, shows, or sets the per-world debug rules, and toggles per-player cheats. */
+/** `/hs debug [rule [true|false]]`: lists, shows, or sets the per-world debug rules, toggles per-player cheats, and skips to a round. */
 final class DebugCommands {
     private DebugCommands() {}
 
@@ -40,6 +43,8 @@ final class DebugCommands {
                         return 1;
                     }))));
         }
+        debug.then(Commands.literal("round").then(Commands.argument("round", IntegerArgumentType.integer(1, 10_000))
+                .executes(CommandErrors.titled("Unable to set the round", DebugCommands::round))));
         for (Cheats.Cheat cheat : Cheats.Cheat.values()) {
             debug.then(Commands.literal(cheat.id())
                     .then(Commands.argument("on", BoolArgumentType.bool())
@@ -48,6 +53,21 @@ final class DebugCommands {
                                     .executes(CommandErrors.titled("Unable to set cheat", ctx -> cheat(ctx, cheat, EntityArgument.getPlayers(ctx, "players")))))));
         }
         return debug;
+    }
+
+    /**
+     * {@code /hs debug round <round>}: the game in this world skips to that round now, the zombies alive gone without
+     * points or drops.
+     */
+    private static int round(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        int round = IntegerArgumentType.getInteger(ctx, "round");
+        GameManager.Active active = GameManager.get(ctx.getSource().getLevel())
+                .orElseThrow(() -> CommandErrors.fail("No game is running in this world"));
+        if (!active.game().jumpToRound(active.world(), round)) {
+            throw CommandErrors.fail("The game hasn't reached round 1 yet, or is over");
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal("Now round " + round), true);
+        return round;
     }
 
     /** {@code /hs debug infinite_money|god <true|false> [players]}: per-player testing aids, cleared on restart. */

@@ -174,6 +174,32 @@ class GameTest {
     }
 
     @Test
+    void jumpingToARoundClearsTheZombiesWithoutPointsAndStartsItNow() {
+        Game game = startedGame();
+        tick(game, world, 50);
+        java.util.Set<UUID> alive = new HashSet<>(game.mobs());
+        int points = game.player(alice).orElseThrow().points();
+        assertFalse(alive.isEmpty());
+        assertTrue(game.jumpToRound(world, 7));
+        GamePhase.RoundActive round = assertInstanceOf(GamePhase.RoundActive.class, game.phase());
+        assertEquals(7, round.round());
+        assertEquals(RoundPlan.zombieCount(SETTINGS.rounds(), 7, 1), round.toSpawn());
+        assertTrue(game.mobs().isEmpty() && world.removed.containsAll(alive), "the zombies alive are gone");
+        assertEquals(points, game.player(alice).orElseThrow().points(), "and pay nothing");
+        assertTrue(seen.contains(new GameEvent.RoundStart(7)));
+    }
+
+    @Test
+    void jumpingIsRefusedBeforeTheFirstRoundAndForRoundZero() {
+        Game game = newGame(SETTINGS);
+        game.join(alice);
+        game.start();
+        assertFalse(game.jumpToRound(world, 5), "still counting down");
+        Game started = startedGame();
+        assertFalse(started.jumpToRound(world, 0));
+    }
+
+    @Test
     void spawnsRespectTheMaxAliveCapAndTheDelay() {
         GameSettings capped = new GameSettings(
                 new GameSettings.Rounds(40, 0, 0.15, 0.004, 100, 100, 0.23, 0.23, 0.32, 2, 5, 1.0, 150, 0, 2, 0.0),

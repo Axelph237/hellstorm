@@ -371,6 +371,23 @@ public final class Game {
         return tickRound(world, (GamePhase.RoundActive) phase);
     }
 
+    /**
+     * For testing: ends what's under way, its zombies gone without points or drops, and starts {@code round} at once, with
+     * that round's count, health, speed and wave event. False before the first round has begun or once the game is over.
+     */
+    public boolean jumpToRound(GameWorld world, int round) {
+        if (!(phase instanceof GamePhase.RoundActive || phase instanceof GamePhase.Intermission) || round < 1) {
+            return false;
+        }
+        List<UUID> remaining = List.copyOf(mobs);
+        mobs.clear();
+        lastRunner = null;
+        remaining.forEach(world::removeMob);
+        endWave(world);
+        phase = beginRound(world, round);
+        return true;
+    }
+
     private GamePhase beginRound(GameWorld world, int round) {
         for (PlayerState player : players.values()) {
             player.resetRoundCounters();

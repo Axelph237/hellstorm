@@ -6,13 +6,15 @@ import java.util.Optional;
 
 /**
  * The round number in Roman numerals, laid out glyph by glyph from {@code textures/gui/hud/numeral_<value>.png}. Two
- * glyphs side by side overlap by a pixel when the first is smaller (IV, XC) or both are I (II, III); any other pair has a
- * pixel's gap between them (VI, XX, CI).
+ * I's side by side overlap by {@link #ONES_OVERLAP} pixels (II, III), two glyphs where the first is smaller by one (IV,
+ * XC), and any other pair has a pixel's gap between them (VI, XX, CI).
  */
 public final class RomanNumerals {
     /** The glyphs there are art for. With no D, the numerals go up to 399. */
     public static final int MAX = 399;
     public static final int HEIGHT = 9;
+    /** How far one I overlaps the next. */
+    public static final int ONES_OVERLAP = 2;
 
     public enum Glyph {
         I(1, 5), V(5, 7), X(10, 7), L(50, 7), C(100, 7);
@@ -60,8 +62,8 @@ public final class RomanNumerals {
             Glyph glyph = glyphs.get(i);
             if (i > 0) {
                 Glyph before = glyphs.get(i - 1);
-                boolean overlap = before.value < glyph.value || before == Glyph.I && glyph == Glyph.I;
-                x += before.width + (overlap ? -1 : 1);
+                int step = before == Glyph.I && glyph == Glyph.I ? -ONES_OVERLAP : before.value < glyph.value ? -1 : 1;
+                x += before.width + step;
             }
             placed.add(new Placed(glyph, x));
         }

@@ -38,9 +38,9 @@ class RomanNumeralsTest {
     }
 
     @Test
-    void onesOverlapEachOther() {
-        assertEquals(List.of(0, 4, 8), xs(of(3)));
-        assertEquals(13, RomanNumerals.layout(of(3)).width());
+    void onesOverlapEachOtherByTwoPixels() {
+        assertEquals(List.of(0, 3, 6), xs(of(3)));
+        assertEquals(11, RomanNumerals.layout(of(3)).width());
     }
 
     @Test
@@ -56,7 +56,7 @@ class RomanNumeralsTest {
     }
 
     @Test
-    void theUsersExampleOverlapsIVCAndIIIWithAGapBetween() {
-        assertEquals(List.of(0, 4, 10, 18, 22, 26), xs(List.of(I, V, C, I, I, I)));
+    void theUsersExampleOverlapsIVCByOneAndIIIByTwoWithAGapBetween() {
+        assertEquals(List.of(0, 4, 10, 18, 21, 24), xs(List.of(I, V, C, I, I, I)));
     }
 }
