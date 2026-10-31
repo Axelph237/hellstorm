@@ -105,5 +105,14 @@
   "subtitles.hellstorm.player.bleeding": "Heart pounds",
   "subtitles.hellstorm.player.revived": "Heart beats",
   "subtitles.hellstorm.player.bled_out": "Bell tolls",
-  "subtitles.hellstorm.ambient": "Eerie music plays"
+  "subtitles.hellstorm.ambient": "Eerie music plays",
+  "block.hellstorm.placeholder_wall_buy": "Wall-Buy Placeholder",
+  "block.hellstorm.placeholder_vending_machine": "Vending Machine Placeholder",
+  "block.hellstorm.placeholder_mystery_box": "Mystery Crate Placeholder",
+  "block.hellstorm.placeholder_upgrader": "Upgrader Placeholder",
+  "block.hellstorm.placeholder_power_switch": "Power Switch Placeholder",
+  "block.hellstorm.connector": "Room Connector",
+  "block.hellstorm.room_block": "Room Block",
+  "generator.hellstorm.zombies_map": "Hellstorm Generated Map",
+  "generator.hellstorm.map_workshop": "Hellstorm Map Workshop"
 }

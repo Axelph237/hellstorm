@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "hellstorm:block/placeholder_upgrader"
+    },
+    "facing=east": {
+      "model": "hellstorm:block/placeholder_upgrader",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "hellstorm:block/placeholder_upgrader",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "hellstorm:block/placeholder_upgrader",
+      "y": 270
+    }
+  }
+}

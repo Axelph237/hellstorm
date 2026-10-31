@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "hellstorm:block/connector"
+    },
+    "facing=east": {
+      "model": "hellstorm:block/connector",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "hellstorm:block/connector",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "hellstorm:block/connector",
+      "y": 270
+    }
+  }
+}

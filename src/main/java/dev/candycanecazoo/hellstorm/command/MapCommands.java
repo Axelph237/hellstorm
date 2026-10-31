@@ -33,6 +33,7 @@ final class MapCommands {
                 .then(MapPackCommands.export())
                 .then(MapPackCommands.importPack())
                 .then(MapPackCommands.packs())
+                .then(GenerateCommands.generate())
                 .then(MapPackCommands.mode());
     }
 

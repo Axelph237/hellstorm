@@ -172,6 +172,7 @@ public final class PapRegistries {
                 output.accept(OFF_HAND_CAN.get());
                 output.accept(JOCKEY_ENERGY_CAN.get());
                 output.accept(HELLFIRE_CAN.get());
+                GenRegistries.kit().forEach(output::accept);
             })
             .build());
 

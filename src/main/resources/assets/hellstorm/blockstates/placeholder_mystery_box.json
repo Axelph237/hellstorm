@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "hellstorm:block/placeholder_mystery_box"
+    },
+    "facing=east": {
+      "model": "hellstorm:block/placeholder_mystery_box",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "hellstorm:block/placeholder_mystery_box",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "hellstorm:block/placeholder_mystery_box",
+      "y": 270
+    }
+  }
+}

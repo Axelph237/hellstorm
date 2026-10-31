@@ -30,6 +30,7 @@ public final class Hellstorm {
     public Hellstorm() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         PapRegistries.register(modBus);
+        dev.candycanecazoo.hellstorm.registry.GenRegistries.register(modBus);
         dev.candycanecazoo.hellstorm.powerup.PowerUpRegistries.register(modBus);
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(PapNetwork::register));
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
