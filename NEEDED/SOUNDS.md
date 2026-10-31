@@ -58,7 +58,7 @@ The trigger is the game event that plays it (`game/GameEvent`), or the place in 
 | `zombie/ambient`, `zombie/sprint`, `zombie/attack`, `zombie/death` | 1 to 2 s each, several of each | Game zombies' voices in place of vanilla's, walking and sprinting apart | Nearby, from the zombie | Vanilla zombie sounds |
 | `hound/spawn` | 1 to 2 s | A hellhound appears (CoD's lightning strike) | Nearby, from the spawn | None |
 | `window/rebuild` | under 1 s | A board goes back on a window | Nearby, from the window | Armor stand break |
-| `window/tear` | under 1 s | A zombie tears a board off | Nearby, from the window | Armor stand break, with the zombie's wooden door bang |
+| `window/tear` | under 1 s | A zombie tears a board off | Nearby, from the window | Armor stand break |
 
 ## Stand-ins in place (2026-10-23)
 
@@ -73,6 +73,6 @@ The rows above whose stand-in names a recording play it now. `game/GameSounds` h
 - **Ambient** (2026-10-23, `GameSounds.AMBIENT`). From 45 to 135 s into a game, then 45 to 135 s after each one ends, one of your four `_daub` tracks plays to every player in the game, never the same twice running, on the Ambient/Environment volume. Each one's volume puts it at the loudness of the quietest (Alone in the Dark) at half volume: 0.5, 0.26, 0.15, and 0.066 (Luminous Life is about eight times as loud). Each file fades in over 2 s and out over its last 4 s. The game's end, or leaving it, stops it. `no_evidence_of_disease` stays the round-start sting only. The four come to about 6 MB in the jar. GameTest `GameSoundsGameTests`: no track plays at the start, and one played plays once to each player.
 - **Ambient on the music channel** (2026-10-23). The tracks now play on the Music volume, not Ambient/Environment. Starting one stops vanilla's song, and vanilla starts none while one plays; it then waits its usual 10 to 20 minutes (`client/AmbientMusic`, on the player's client).
 - **Quieter game start** (2026-10-23): volume 0.35, from 1.0, about half as loud to the ear (9 dB down).
-- **Board torn off** (2026-10-23): the armor stand break from the middle of the window, with the zombie's wooden door bang it always had (`WindowOps.tearBoard`).
+- **Board torn off** (2026-10-23): the armor stand break from the middle of the window (`WindowOps.tearBoard`). The zombie's wooden door bang it had as well was dropped on 2026-10-31.
 - **Vending machine** (2026-10-23): the shake's rattle is gone, file and all. The idle loop is recut from 31 s into your recording, in place of 20 s, at the same gain: the old cut held the recording's loud click 3.73 s in and a fainter tick at 9.35 s.
 - **Not yet played:** Fire Sale's loop, the perk jingles, the box spin, the trap, the power-up's floating loop and timer end, the downed sting, zombie and hound voices, and the window rebuild.

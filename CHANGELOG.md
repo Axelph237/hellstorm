@@ -61,7 +61,7 @@
 - With `dismemberment` off, Hellstorm no longer registers a zombie renderer, so another mod's zombie renderer is kept instead of being replaced by Minecraft's.
 - A game's ambient tracks play on the Music volume slider instead of Ambient/Environment, and Minecraft's own music stops and holds off while one plays.
 - The game start sound is about half as loud.
-- A zombie tearing a board off a window now also plays the armor stand break, from the middle of the window.
+- A zombie tearing a board off a window plays only the armor stand break, from the middle of the window. The zombie door-bash it played as well is gone.
 - Vending machines no longer rattle when they vend, and their hum no longer clicks every 12 seconds.
 
 ## v0.0.1-prerelease
