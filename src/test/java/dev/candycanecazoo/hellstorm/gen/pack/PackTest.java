@@ -66,6 +66,17 @@ class PackTest {
     }
 
     @Test
+    void aPacksDatapackIsKeptForInstallingAsItsOwnFolder() throws Exception {
+        Map<String, byte[]> files = new TreeMap<>();
+        files.put("pack.json", "{\"format\": 2, \"name\": \"x\"}".getBytes(StandardCharsets.UTF_8));
+        files.put("datapack/pack.mcmeta", "{}".getBytes(StandardCharsets.UTF_8));
+        files.put("datapack/data/x/hellstorm/scripts/announcer.lua", "-- hello".getBytes(StandardCharsets.UTF_8));
+        RoomPack pack = RoomPack.parse("x", files);
+        assertEquals(Set.of("pack.mcmeta", "data/x/hellstorm/scripts/announcer.lua"), pack.datapack().keySet());
+        assertEquals("-- hello", new String(pack.datapack().get("data/x/hellstorm/scripts/announcer.lua"), StandardCharsets.UTF_8));
+    }
+
+    @Test
     void aPackWithStrangeOrMissingFilesIsRefused() {
         Map<String, byte[]> files = new TreeMap<>();
         files.put("pack.json", "{\"format\": 2, \"name\": \"x\"}".getBytes(StandardCharsets.UTF_8));

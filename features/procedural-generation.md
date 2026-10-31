@@ -184,6 +184,7 @@ Everything below was built on 2026-10-31. Tests: JUnit `LayoutGeneratorTest`, `R
 - **The workshop is a void world with a stone platform**, the boilerplate rooms open at the top so a builder can see in.
   The start room's wall-buy is low on the wall: one at head height leaves a standing spot on top nobody can reach, which
   the validator warns about in a start room.
+- **A generated-map world with nothing to generate from** (no packs saved yet, a broken pack, rules the rooms can't meet) gets a stone platform at the spawn instead of a fall into the void, and each player who joins is told why and what to do.
 - **Saving checks the room**: it refuses a room with no connectors or a connector off its side, and warns about one with
   no zone or no spawn marker.
 
@@ -235,7 +236,7 @@ Everything below was built on 2026-10-31. Tests: JUnit `LayoutGeneratorTest`, `R
 - **Tests.** The GameTest builds the workshop, saves its six rooms, and generates from the pack: a playable map, 8 to 14
   rooms, a zone per room, one start zone, one upgrader, one power switch, 2 to 4 vending machines, 1 to 3 crate spots,
   doors, a spawn marker per room, no placeholder or connector left, and the same layout again from the same seed. Another
-  loads both world types from their data and checks their mode.
+  loads both world types from their data and checks their mode. JUnit checks a pack's `datapack/` files are read and kept to install.
 
 ### Not yet
 
