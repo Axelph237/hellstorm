@@ -104,6 +104,10 @@ public final class MapGenerator {
                 pieces.add(room.def().piece(id));
             }
         }
+        if (pieces.isEmpty()) {
+            return new Result.Failed("The packs " + packs.stream().map(RoomPack::id).toList()
+                    + " have no rooms saved yet: use each room's Room Block and press Done to save it");
+        }
         String lastProblem = "";
         for (int attempt = 0; attempt < LAYOUTS; attempt++) {
             long layoutSeed = seed + attempt * LAYOUT_STEP;

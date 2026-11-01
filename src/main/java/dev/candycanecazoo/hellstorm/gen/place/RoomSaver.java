@@ -58,7 +58,10 @@ public final class RoomSaver {
     }
 
     public static Result save(ServerLevel level, RoomBlock.Entity block) {
-        return save(level, block.config(), block.min(), packs());
+        Result result = save(level, block.config(), block.min(), packs());
+        dev.candycanecazoo.hellstorm.Hellstorm.LOG.info("Room Block at {}: {}{}", block.getBlockPos().toShortString(), result.message(),
+                result.warnings().isEmpty() ? "" : " (" + String.join("; ", result.warnings()) + ")");
+        return result;
     }
 
     public static Result save(ServerLevel level, RoomBlock.Config config, BlockPos min, Path packs) {

@@ -52,6 +52,14 @@ class PackTest {
     }
 
     @Test
+    void aPackIsListedAsSoonAsItsMadeBeforeAnyRoomIsSaved() throws Exception {
+        Path folder = Files.createTempDirectory("hellstorm-pack-new");
+        RoomPack.writeRules(folder, "fresh", GenerationRules.DEFAULT);
+        assertEquals(List.of("fresh"), RoomPack.available(folder));
+        assertTrue(RoomPack.read(folder, "fresh").rooms().isEmpty());
+    }
+
+    @Test
     void aSavedRoomReadsBackInItsPack() throws Exception {
         Path folder = Files.createTempDirectory("hellstorm-pack-test");
         CompoundTag template = new CompoundTag();

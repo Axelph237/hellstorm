@@ -34,6 +34,7 @@ final class MapCommands {
                 .then(MapPackCommands.importPack())
                 .then(MapPackCommands.packs())
                 .then(GenerateCommands.generate())
+                .then(GenerateCommands.saveRooms())
                 .then(MapPackCommands.mode());
     }
 

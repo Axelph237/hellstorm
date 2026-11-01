@@ -192,7 +192,8 @@ abstract class SettingsScreen<C> extends Screen {
         texts.add(new Text(fieldX(), y + (HEIGHT - 8) / 2, value));
     }
 
-    private void save() {
+    /** Done: sends the settings. A screen whose Done does more sends its own packet. */
+    protected void save() {
         encodedSettings().ifPresent(tag -> PapNetwork.CHANNEL.sendToServer(new SaveSettingsPacket(pos, tag)));
     }
 

@@ -113,6 +113,6 @@
   "block.hellstorm.placeholder_power_switch": "Power Switch Placeholder",
   "block.hellstorm.connector": "Room Connector",
   "block.hellstorm.room_block": "Room Block",
-  "generator.hellstorm.zombies_map": "Hellstorm Generated Map",
-  "generator.hellstorm.map_workshop": "Hellstorm Map Workshop"
+  "generator.hellstorm.zombies_map": "Zombies Map",
+  "generator.hellstorm.map_workshop": "Map Workshop"
 }

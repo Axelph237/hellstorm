@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-/** The Room Block's settings: the pack and room it saves, the room's tags, weight and max, and its box. Save room saves it. */
+/** The Room Block's settings: the pack and room it saves, the room's tags, weight and max, and its box. Done saves the room. */
 final class RoomBlockScreen extends SettingsScreen<RoomBlock.Config> {
     private String pack;
     private String room;
@@ -43,8 +43,12 @@ final class RoomBlockScreen extends SettingsScreen<RoomBlock.Config> {
         text(Component.literal("At most"), max, 6, Component.literal("blank for no limit"), v -> max = v);
         text(Component.literal("Offset"), offset, 16, Component.literal("x y z from this block"), v -> offset = v);
         text(Component.literal("Size"), size, 16, Component.literal("x y z, 1 to " + RoomBlock.MAX_SIZE + " each"), v -> size = v);
-        button(Component.literal("Save the room"), Component.literal("Save room"),
-                () -> encodedSettings().ifPresent(tag -> PapNetwork.CHANNEL.sendToServer(new SaveRoomPacket(pos(), tag))));
+    }
+
+    /** Done saves the settings and then the room into its pack: it's what a map maker presses when the room is ready. */
+    @Override
+    protected void save() {
+        encodedSettings().ifPresent(tag -> PapNetwork.CHANNEL.sendToServer(new SaveRoomPacket(pos(), tag)));
     }
 
     @Override

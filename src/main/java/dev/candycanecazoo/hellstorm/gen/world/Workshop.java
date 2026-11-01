@@ -135,14 +135,14 @@ public final class Workshop {
             x += sample.sx() + GAP;
         }
         MapModes.set(level, MapMode.EDIT);
-        Path rules = packs.resolve(PACK).resolve("generation.json");
-        if (!Files.exists(rules)) {
-            try {
-                Files.createDirectories(rules.getParent());
+        try {
+            boolean fresh = !Files.exists(packs.resolve(PACK).resolve("generation.json"));
+            RoomPack.create(packs, PACK);
+            if (fresh) {
                 RoomPack.writeRules(packs, PACK, rules());
-            } catch (IOException e) {
-                Hellstorm.LOG.warn("Couldn't write the workshop pack's generation.json", e);
             }
+        } catch (IOException e) {
+            Hellstorm.LOG.warn("Couldn't make the workshop pack", e);
         }
         return roomBlocks;
     }

@@ -242,6 +242,27 @@ public record RoomPack(String id, Info info, GenerationRules rules, Map<String, 
         if (!MapPack.NAME.matcher(pack).matches() || !ROOM_ID.matcher(def.id()).matches()) {
             throw new IOException("Bad pack or room name: " + pack + " / " + def.id());
         }
+        Path dir = create(folder, pack);
+        writeJson(dir.resolve("rooms/" + def.id() + ".json"), RoomDef.CODEC.encodeStart(JsonOps.INSTANCE, def).getOrThrow(false, e -> {}));
+        ByteArrayOutputStream nbt = new ByteArrayOutputStream();
+        NbtIo.writeCompressed(template, nbt);
+        Files.write(dir.resolve("rooms/" + def.id() + ".nbt"), nbt.toByteArray());
+    }
+
+    /** Writes {@code rules} as the pack's {@code generation.json}, making the pack if it's new. */
+    public static void writeRules(Path folder, String pack, GenerationRules rules) throws IOException {
+        Path dir = create(folder, pack);
+        writeJson(dir.resolve(GENERATION), GenerationRules.CODEC.encodeStart(JsonOps.INSTANCE, rules).getOrThrow(false, e -> {}));
+    }
+
+    /**
+     * The pack folder {@code folder/<pack>}, made if it's new with its {@code pack.json} and the default
+     * {@code generation.json}, so it's listed as a pack from the start.
+     */
+    public static Path create(Path folder, String pack) throws IOException {
+        if (!MapPack.NAME.matcher(pack).matches()) {
+            throw new IOException("Bad pack name: " + pack);
+        }
         Path dir = folder.resolve(pack);
         Files.createDirectories(dir.resolve("rooms"));
         if (!Files.exists(dir.resolve(INFO))) {
@@ -250,15 +271,7 @@ public record RoomPack(String id, Info info, GenerationRules rules, Map<String, 
         if (!Files.exists(dir.resolve(GENERATION))) {
             writeJson(dir.resolve(GENERATION), GenerationRules.CODEC.encodeStart(JsonOps.INSTANCE, GenerationRules.DEFAULT).getOrThrow(false, e -> {}));
         }
-        writeJson(dir.resolve("rooms/" + def.id() + ".json"), RoomDef.CODEC.encodeStart(JsonOps.INSTANCE, def).getOrThrow(false, e -> {}));
-        ByteArrayOutputStream nbt = new ByteArrayOutputStream();
-        NbtIo.writeCompressed(template, nbt);
-        Files.write(dir.resolve("rooms/" + def.id() + ".nbt"), nbt.toByteArray());
-    }
-
-    /** Writes {@code rules} as the pack's {@code generation.json}. */
-    public static void writeRules(Path folder, String pack, GenerationRules rules) throws IOException {
-        writeJson(folder.resolve(pack).resolve(GENERATION), GenerationRules.CODEC.encodeStart(JsonOps.INSTANCE, rules).getOrThrow(false, e -> {}));
+        return dir;
     }
 
     private static void writeJson(Path file, JsonElement json) throws IOException {

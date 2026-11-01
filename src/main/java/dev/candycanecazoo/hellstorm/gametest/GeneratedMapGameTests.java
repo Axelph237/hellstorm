@@ -50,6 +50,10 @@ public final class GeneratedMapGameTests {
             BlockPos workshop = new BlockPos(6000, 80, 6000);
             List<BlockPos> roomBlocks = Workshop.build(level, workshop, packs);
             helper.assertTrue(roomBlocks.size() == 6, "the workshop has six rooms, not " + roomBlocks.size());
+            helper.assertTrue(RoomPack.available(packs).contains(Workshop.PACK), "the workshop pack is listed before any room is saved");
+            MapGenerator.Result empty = MapGenerator.generate(level, List.of(RoomPack.read(packs, Workshop.PACK)), 1L, new BlockPos(7000, 80, 7000));
+            helper.assertTrue(empty instanceof MapGenerator.Result.Failed failed && failed.reason().contains("no rooms saved"),
+                    "an empty pack says its rooms aren't saved: " + empty);
             for (BlockPos pos : roomBlocks) {
                 RoomBlock.Entity block = (RoomBlock.Entity) level.getBlockEntity(pos);
                 RoomSaver.Result saved = RoomSaver.save(level, block.config(), block.min(), packs);

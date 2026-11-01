@@ -47,6 +47,49 @@ final class GenerateCommands {
                                 .executes(CommandErrors.titled("Unable to generate a map", ctx -> generate(ctx, LongArgumentType.getLong(ctx, "seed"), true))))));
     }
 
+    /** {@code /hs map saverooms [<radius>]}: saves every Room Block's room within {@code radius} blocks, as if Done were pressed on each. */
+    static LiteralArgumentBuilder<CommandSourceStack> saveRooms() {
+        return Commands.literal("saverooms")
+                .executes(CommandErrors.titled("Unable to save rooms", ctx -> saveRooms(ctx, 64)))
+                .then(Commands.argument("radius", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 512))
+                        .executes(CommandErrors.titled("Unable to save rooms", ctx -> saveRooms(ctx,
+                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "radius")))));
+    }
+
+    private static int saveRooms(CommandContext<CommandSourceStack> ctx, int radius) throws CommandSyntaxException {
+        ServerLevel level = ctx.getSource().getLevel();
+        BlockPos center = BlockPos.containing(ctx.getSource().getPosition());
+        java.util.List<dev.candycanecazoo.hellstorm.gen.block.RoomBlock.Entity> blocks = new java.util.ArrayList<>();
+        int chunks = (radius >> 4) + 1;
+        for (int cx = (center.getX() >> 4) - chunks; cx <= (center.getX() >> 4) + chunks; cx++) {
+            for (int cz = (center.getZ() >> 4) - chunks; cz <= (center.getZ() >> 4) + chunks; cz++) {
+                if (!level.hasChunk(cx, cz)) {
+                    continue;
+                }
+                for (var entity : level.getChunk(cx, cz).getBlockEntities().values()) {
+                    if (entity instanceof dev.candycanecazoo.hellstorm.gen.block.RoomBlock.Entity room
+                            && room.getBlockPos().distSqr(center) <= (double) radius * radius) {
+                        blocks.add(room);
+                    }
+                }
+            }
+        }
+        if (blocks.isEmpty()) {
+            throw CommandErrors.fail("No Room Block within {} blocks", radius);
+        }
+        blocks.sort(java.util.Comparator.comparing(b -> b.getBlockPos()));
+        int saved = 0;
+        for (var block : blocks) {
+            RoomSaver.Result result = RoomSaver.save(level, block);
+            saved += result.saved() ? 1 : 0;
+            ctx.getSource().sendSuccess(() -> Component.literal(result.message()).withStyle(result.saved() ? ChatFormatting.GREEN : ChatFormatting.RED), false);
+            result.warnings().forEach(w -> ctx.getSource().sendSuccess(() -> Component.literal(w).withStyle(ChatFormatting.YELLOW), false));
+        }
+        int done = saved;
+        ctx.getSource().sendSuccess(() -> Component.literal("Saved " + done + " of " + blocks.size() + " rooms"), true);
+        return saved;
+    }
+
     private static int generate(CommandContext<CommandSourceStack> ctx, long seed, boolean replace) throws CommandSyntaxException {
         ServerLevel level = ctx.getSource().getLevel();
         if (GameManager.get(level).isPresent()) {

@@ -198,7 +198,7 @@ Everything below was built on 2026-10-31. Tests: JUnit `LayoutGeneratorTest`, `R
   weight-0 room goes in only to meet a rule.
 - **Packs** (`gen/pack`, format 2). `RoomPack` reads a folder or zip (`pack.json`, `generation.json`, `rooms/<id>.json` and
   `.nbt`, `datapack/...`), taking only those entries, no path out of the folder, at most 20,000 files and 512 MB;
-  `writeRoom` saves a room, making the pack with default rules if it's new; `available` lists the format 2 packs.
+  `create` makes a pack (its `pack.json` and default rules), so the workshop's pack is listed before any room is saved; `writeRoom` saves a room; `available` lists the format 2 packs.
   `RoomDef` (size, tags, weight, max, connectors, placeholders, map slice), `GenerationRules` (rooms, start, tag rules,
   `features` per placeholder kind with count, depths, pool and unique, `doors`, `seal`), `PlaceholderKind`
   (`wall_buy`, `vending_machine`, `mystery_box`, `upgrader`, `power_switch`), `FeatureResolver`.
@@ -206,8 +206,10 @@ Everything below was built on 2026-10-31. Tests: JUnit `LayoutGeneratorTest`, `R
   - Five placeholders, `hellstorm:placeholder_<kind>`, facing whoever places them (the machine's front).
   - `hellstorm:connector`: fill an opening with them facing out of the room; touching ones facing the same way with the same
     settings are one opening. Its settings screen: what it becomes when joined (a door to buy, or open) and its group.
-  - `hellstorm:room_block`: pack, room, tags, weight, at most, offset and size (x y z each); Save room saves (packet
-    `SaveRoomPacket`: the settings, then `RoomSaver.save`), with the result as a notice. Its box is outlined
+  - `hellstorm:room_block`: pack, room, tags, weight, at most, offset and size (x y z each); Done saves the settings and then the room (packet
+    `SaveRoomPacket`: the settings, then `RoomSaver.save`), with the result as a notice and in the log. Until 2026-10-31
+    evening a separate Save room row did it and Done only kept the settings, so a map maker pressing Done saved nothing.
+    `/hs map saverooms [<radius>]` (64) saves every Room Block's room near the command's position. Its box is outlined
     (`client/gen/RoomBlockRenderer`).
 - **Saving** (`gen/place/RoomSaver`): the box's blocks as a structure template, the connectors and placeholders read from
   the blocks, and the level map's slice (zones clipped to the box, windows, doors and features inside it), relative to
@@ -219,8 +221,9 @@ Everything below was built on 2026-10-31. Tests: JUnit `LayoutGeneratorTest`, `R
   `datapacks/<pack>` and reload, and validate.
 - **Command**: `/hs map generate <packs> [<seed>] [replace]`, op only, packs joined with `+` or `all`, the corner at the
   command's position; refused while a game runs or over a map without `replace`.
-- **World types** (`gen/world`, `data/hellstorm/worldgen/world_preset/`): `hellstorm:zombies_map` ("Hellstorm Generated
-  Map") and `hellstorm:map_workshop` ("Hellstorm Map Workshop"), both on the world-type list. Their overworld is
+- **World types** (`gen/world`, `data/hellstorm/worldgen/world_preset/`): `hellstorm:zombies_map` ("Zombies Map") and
+  `hellstorm:map_workshop` ("Map Workshop"; "Hellstorm Generated Map" and "Hellstorm Map Workshop" at first, shortened to
+  fit the world-type button), both on the world-type list. Their overworld is
   `hellstorm:level` (`HellstormLevelSource`, a flat generator with `mode` and `packs`). The generated-map world's
   Customize button opens a pack picker (`client/gen/GeneratedMapPresetScreen`, through Forge's `RegisterPresetEditorsEvent`).
   On first start (`GeneratedWorlds`, remembered in the world's saved data) a map is generated at 0, 64, 0 from the
